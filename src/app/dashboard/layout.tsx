@@ -13,6 +13,7 @@ import {
   Users,
   Info,
   FileText,
+  LogOut,
 } from "lucide-react"
 
 import {
@@ -80,11 +81,16 @@ export default function DashboardLayout({
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami" },
   ]
+  
+  const bottomNavItems = [
+    { href: "/", icon: LogOut, label: "Esci" },
+  ]
+
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r bg-background sm:flex">
-        <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
+        <nav className="flex flex-col items-center gap-4 px-2 sm:py-5 flex-1">
           <Link
             href="#"
             className="group flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:text-base"
@@ -94,6 +100,18 @@ export default function DashboardLayout({
           </Link>
           <div className="flex-1 w-full">
             {navItems.map(item => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+              >
+                <item.icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            ))}
+          </div>
+          <div className="w-full mt-auto">
+             {bottomNavItems.map(item => (
               <Link
                 key={item.label}
                 href={item.href}
@@ -125,6 +143,16 @@ export default function DashboardLayout({
                     <span className="sr-only">LiberaSphere</span>
                 </Link>
                 {navItems.map(item => (
+                    <Link
+                        key={item.label}
+                        href={item.href}
+                        className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                    >
+                        <item.icon className="h-5 w-5" />
+                        {item.label}
+                    </Link>
+                ))}
+                 {bottomNavItems.map(item => (
                     <Link
                         key={item.label}
                         href={item.href}
