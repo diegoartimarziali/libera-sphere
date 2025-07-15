@@ -14,8 +14,6 @@ import { CheckCircle } from "lucide-react"
 
 const plans = [
     { name: "Mensile", price: "29.99", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Pass ospite (2/mese)"] },
-    { name: "Trimestrale", price: "79.99", features: ["Tutti i vantaggi del mensile", "Risparmia il 10%", "Armadietto personale"] },
-    { name: "Annuale", price: "299.99", features: ["Tutti i vantaggi del trimestrale", "Risparmia il 20%", "Merchandise gratuito"] },
 ]
 
 export function SubscriptionManagement() {
@@ -28,7 +26,7 @@ export function SubscriptionManagement() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <RadioGroup defaultValue="mensile" className="grid gap-4 md:grid-cols-3">
+        <RadioGroup defaultValue="mensile" className="grid gap-4">
             {plans.map(plan => (
                 <Label key={plan.name} htmlFor={plan.name.toLowerCase()} className="block">
                     <RadioGroupItem value={plan.name.toLowerCase()} id={plan.name.toLowerCase()} className="sr-only" />
