@@ -34,7 +34,7 @@ const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
     xmlns="http://www.w3.org/2000/svg"
     width="24"
     height="24"
-    viewBox="0 0 24 24"
+    viewBox="0 0 24"
     fill="none"
     stroke="currentColor"
     strokeWidth="2"
@@ -55,7 +55,7 @@ const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
     xmlns="http://www.w3.org/2000/svg"
     width="24"
     height="24"
-    viewBox="0 0 24 24"
+    viewBox="0 0 24"
     fill="currentColor"
     {...props}
   >
@@ -72,7 +72,7 @@ export default function DashboardLayout({
 }) {
   const navItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
-    { href: "#", icon: Info, label: "Istruzioni" },
+    { href: "/dashboard/instructions", icon: Info, label: "Istruzioni" },
     { href: "#", icon: FileText, label: "Regolamenti e Privacy" },
     { href: "#", icon: DumbbellIcon, label: "Lezioni di Selezione" },
     { href: "/dashboard/associates", icon: Users, label: "Associati" },
