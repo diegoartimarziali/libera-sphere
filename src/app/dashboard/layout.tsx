@@ -50,32 +50,19 @@ const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
-const TigerIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="24" 
-        height="24" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        {...props}>
-            <path d="M18.2 12c0-3.4-2.8-6.2-6.2-6.2S5.8 8.6 5.8 12" />
-            <path d="M12 18.2c3.4 0 6.2-2.8 6.2-6.2" />
-            <path d="M12 18.2c-3.4 0-6.2-2.8-6.2-6.2" />
-            <path d="M13 12c0-1.1-.9-2-2-2" />
-            <path d="M15 9.4c0-1.3-1-2.4-2.4-2.4" />
-            <path d="M18 10c0-2.2-1.8-4-4-4" />
-            <path d="M6 10c0-2.2 1.8-4 4-4" />
-            <path d="m9.1 14.1 3-3" />
-            <path d="m14.9 14.1-3-3" />
-            <path d="M12 6V3" />
-            <path d="M12 21v-3" />
-            <path d="M16 4.5 14 6" />
-            <path d="M8 4.5 10 6" />
-    </svg>
+const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    {...props}
+  >
+    <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" fontSize="24" fontFamily="serif">
+      道
+    </text>
+  </svg>
 )
 
 export default function DashboardLayout({
@@ -102,7 +89,7 @@ export default function DashboardLayout({
             href="#"
             className="group flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:text-base"
           >
-            <TigerIcon className="h-4 w-4 transition-all group-hover:scale-110" />
+            <KanjiIcon className="h-4 w-4 transition-all group-hover:scale-110" />
             <span>LiberaSphere</span>
           </Link>
           <div className="flex-1 w-full">
@@ -134,7 +121,7 @@ export default function DashboardLayout({
                     href="#"
                     className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
                 >
-                    <TigerIcon className="h-5 w-5 transition-all group-hover:scale-110" />
+                    <KanjiIcon className="h-5 w-5 transition-all group-hover:scale-110" />
                     <span className="sr-only">LiberaSphere</span>
                 </Link>
                 {navItems.map(item => (
