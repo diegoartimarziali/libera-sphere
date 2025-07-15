@@ -35,22 +35,22 @@ export function ClassSelection() {
       <CardHeader>
         <CardTitle>Lezioni di Selezione</CardTitle>
         <CardDescription>
-          Seleziona la tua palestra e il tuo corso preferiti per iniziare.
+          Seleziona la tua arte marziale e il tuo corso preferiti per iniziare.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
         <form>
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="gym">Sede Palestra</Label>
+              <Label htmlFor="gym">Arte marziale scelta</Label>
               <Select>
                 <SelectTrigger id="gym">
-                  <SelectValue placeholder="Seleziona una palestra" />
+                  <SelectValue placeholder="Seleziona un'arte marziale" />
                 </SelectTrigger>
                 <SelectContent position="popper">
-                  <SelectItem value="downtown">Fitness Centro</SelectItem>
-                  <SelectItem value="uptown">Forza Periferia</SelectItem>
-                  <SelectItem value="suburban">Benessere Suburbano</SelectItem>
+                  <SelectItem value="karate">Karate</SelectItem>
+                  <SelectItem value="judo">Judo</SelectItem>
+                  <SelectItem value="jujitsu">Jujitsu</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -61,10 +61,10 @@ export function ClassSelection() {
                   <SelectValue placeholder="Seleziona un corso" />
                 </SelectTrigger>
                 <SelectContent position="popper">
-                  <SelectItem value="yoga">Yoga Flow - Lun 18:00</SelectItem>
-                  <SelectItem value="spin">Spin Cycle - Mar 07:00</SelectItem>
-                  <SelectItem value="hiit">HIIT Blast - Mer 17:30</SelectItem>
-                  <SelectItem value="zumba">Zumba Party - Gio 19:00</SelectItem>
+                  <SelectItem value="principianti">Principianti - Lun 18:00</SelectItem>
+                  <SelectItem value="intermedi">Intermedi - Mar 19:00</SelectItem>
+                  <SelectItem value="avanzati">Avanzati - Mer 17:30</SelectItem>
+                  <SelectItem value="agonisti">Agonisti - Gio 19:00</SelectItem>
                 </SelectContent>
               </Select>
             </div>
