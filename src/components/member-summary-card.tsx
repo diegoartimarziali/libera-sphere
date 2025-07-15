@@ -90,7 +90,7 @@ export function MemberSummaryCard() {
             <div className="flex items-center pt-2 gap-2">
               <Badge variant="default" className="bg-green-600 hover:bg-green-700">Membro Attivo</Badge>
               <span className="text-sm text-muted-foreground">
-                Si rinnova il 31 Dic 2024
+                Associazione stagione: 2024/2025
               </span>
             </div>
           </div>
