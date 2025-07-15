@@ -56,9 +56,9 @@ export function MemberSummaryCard() {
               {userName.toLowerCase().replace(' ', '.')}@example.com
             </div>
             <div className="text-sm text-muted-foreground mt-2">
-              CODICE FISCALE
+              <span>CODICE FISCALE: </span>
+              <span className="font-medium text-foreground">RSSMRA80A01H501U</span>
             </div>
-            <div className="text-sm">RSSMRA80A01H501U</div>
             <div className="flex items-center pt-2 gap-2">
               <Badge variant="default" className="bg-green-600 hover:bg-green-700">Membro Attivo</Badge>
               <span className="text-sm text-muted-foreground">
