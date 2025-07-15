@@ -13,29 +13,29 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { CheckCircle } from "lucide-react"
 
 const plans = [
-    { name: "Monthly", price: "29.99", features: ["Access to all gyms", "Unlimited classes", "Guest passes (2/mo)"] },
-    { name: "Quarterly", price: "79.99", features: ["All Monthly benefits", "Save 10%", "Personal locker"] },
-    { name: "Yearly", price: "299.99", features: ["All Quarterly benefits", "Save 20%", "Free merchandise"] },
+    { name: "Mensile", price: "29.99", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Pass ospite (2/mese)"] },
+    { name: "Trimestrale", price: "79.99", features: ["Tutti i vantaggi del mensile", "Risparmia il 10%", "Armadietto personale"] },
+    { name: "Annuale", price: "299.99", features: ["Tutti i vantaggi del trimestrale", "Risparmia il 20%", "Merchandise gratuito"] },
 ]
 
 export function SubscriptionManagement() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Subscription Plan</CardTitle>
+        <CardTitle>Piano di Abbonamento</CardTitle>
         <CardDescription>
-          Choose the plan that's right for you.
+          Scegli il piano giusto per te.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <RadioGroup defaultValue="monthly" className="grid gap-4 md:grid-cols-3">
+        <RadioGroup defaultValue="mensile" className="grid gap-4 md:grid-cols-3">
             {plans.map(plan => (
                 <Label key={plan.name} htmlFor={plan.name.toLowerCase()} className="block">
                     <RadioGroupItem value={plan.name.toLowerCase()} id={plan.name.toLowerCase()} className="sr-only" />
                     <Card className="cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary">
                         <CardHeader>
                             <CardTitle>{plan.name}</CardTitle>
-                            <p className="text-2xl font-bold">${plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.name === 'Monthly' ? 'mo' : plan.name === 'Quarterly' ? 'qtr' : 'yr'}</span></p>
+                            <p className="text-2xl font-bold">€{plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.name === 'Mensile' ? 'mese' : plan.name === 'Trimestrale' ? 'trim' : 'anno'}</span></p>
                         </CardHeader>
                         <CardContent className="space-y-2">
                            {plan.features.map(feature => (
@@ -50,7 +50,7 @@ export function SubscriptionManagement() {
             ))}
         </RadioGroup>
         <div className="mt-6 flex justify-end">
-            <Button>Update Subscription</Button>
+            <Button>Aggiorna Abbonamento</Button>
         </div>
       </CardContent>
     </Card>

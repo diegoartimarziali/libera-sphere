@@ -40,22 +40,22 @@ import { useState } from "react"
 
 const associatesData = [
   {
-    name: "Jane Doe",
-    email: "jane.doe@example.com",
-    status: "Active",
-    plan: "Family Add-on",
+    name: "Giovanna Bianchi",
+    email: "giovanna.bianchi@example.com",
+    status: "Attivo",
+    plan: "Aggiunta Famiglia",
   },
   {
-    name: "John Smith",
-    email: "john.smith@example.com",
-    status: "Active",
-    plan: "Family Add-on",
+    name: "Marco Neri",
+    email: "marco.neri@example.com",
+    status: "Attivo",
+    plan: "Aggiunta Famiglia",
   },
   {
-    name: "Emily Jones",
-    email: "emily.jones@example.com",
-    status: "Inactive",
-    plan: "None",
+    name: "Elisa Gialli",
+    email: "elisa.gialli@example.com",
+    status: "Inattivo",
+    plan: "Nessuno",
   },
 ]
 
@@ -68,9 +68,9 @@ export function AssociateManagement() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Associated Members</CardTitle>
+            <CardTitle>Membri Associati</CardTitle>
             <CardDescription>
-              Manage family members or associates linked to your account.
+              Gestisci i membri della famiglia o gli associati collegati al tuo account.
             </CardDescription>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
@@ -78,34 +78,34 @@ export function AssociateManagement() {
               <Button size="sm" className="gap-1">
                 <PlusCircle className="h-3.5 w-3.5" />
                 <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Add Associate
+                  Aggiungi Associato
                 </span>
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Associate</DialogTitle>
+                <DialogTitle>Aggiungi Nuovo Associato</DialogTitle>
                 <DialogDescription>
-                  Enter the details of the new associate member.
+                  Inserisci i dettagli del nuovo membro associato.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="name" className="text-right">
-                    Name
+                    Nome
                   </Label>
-                  <Input id="name" placeholder="Jane Doe" className="col-span-3" />
+                  <Input id="name" placeholder="Giovanna Bianchi" className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="email" className="text-right">
                     Email
                   </Label>
-                  <Input id="email" type="email" placeholder="jane@example.com" className="col-span-3" />
+                  <Input id="email" type="email" placeholder="giovanna@example.com" className="col-span-3" />
                 </div>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={() => setOpen(false)}>Save</Button>
+                <Button variant="outline" onClick={() => setOpen(false)}>Annulla</Button>
+                <Button onClick={() => setOpen(false)}>Salva</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -115,12 +115,12 @@ export function AssociateManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead>Nome</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Plan</TableHead>
+              <TableHead>Stato</TableHead>
+              <TableHead>Piano</TableHead>
               <TableHead>
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">Azioni</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -130,7 +130,7 @@ export function AssociateManagement() {
                 <TableCell className="font-medium">{associate.name}</TableCell>
                 <TableCell>{associate.email}</TableCell>
                 <TableCell>
-                  <Badge variant={associate.status === 'Active' ? 'default' : 'secondary'} className={associate.status === 'Active' ? 'bg-green-500/20 text-green-700 border-green-500/20' : ''}>
+                  <Badge variant={associate.status === 'Attivo' ? 'default' : 'secondary'} className={associate.status === 'Attivo' ? 'bg-green-500/20 text-green-700 border-green-500/20' : ''}>
                     {associate.status}
                   </Badge>
                 </TableCell>
@@ -140,14 +140,14 @@ export function AssociateManagement() {
                     <DropdownMenuTrigger asChild>
                       <Button aria-haspopup="true" size="icon" variant="ghost">
                         <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
+                        <span className="sr-only">Apri menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
+                      <DropdownMenuLabel>Azioni</DropdownMenuLabel>
+                      <DropdownMenuItem>Modifica</DropdownMenuItem>
                       <DropdownMenuItem className="text-destructive">
-                        Delete
+                        Elimina
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

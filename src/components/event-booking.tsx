@@ -13,22 +13,22 @@ import { useToast } from "@/hooks/use-toast"
 
 const events = [
   {
-    title: "Advanced Yoga Workshop",
+    title: "Workshop di Yoga Avanzato",
     type: "Stage",
     date: "2024-08-15",
   },
   {
-    title: "Black Belt Examination",
-    type: "Exam",
+    title: "Esame Cintura Nera",
+    type: "Esame",
     date: "2024-09-01",
   },
   {
-    title: "CrossFit Open Prep",
+    title: "Preparazione CrossFit Open",
     type: "Stage",
     date: "2024-09-10",
   },
     {
-    title: "Pilates Masterclass",
+    title: "Masterclass di Pilates",
     type: "Stage",
     date: "2024-09-22",
   },
@@ -39,17 +39,17 @@ export function EventBooking() {
 
   const handleBooking = (title: string) => {
     toast({
-        title: "Booking Confirmed!",
-        description: `You've successfully booked your spot for ${title}.`,
+        title: "Prenotazione Confermata!",
+        description: `Hai prenotato con successo il tuo posto per ${title}.`,
     })
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Book Stages & Exams</CardTitle>
+        <CardTitle>Prenota Stage ed Esami</CardTitle>
         <CardDescription>
-          Reserve your spot in upcoming special events.
+          Riserva il tuo posto nei prossimi eventi speciali.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -65,11 +65,11 @@ export function EventBooking() {
                   <Tag className="mr-1.5 h-4 w-4" />
                   <span>{event.type}</span>
                   <Calendar className="ml-4 mr-1.5 h-4 w-4" />
-                  <span>{new Date(event.date).toLocaleDateString()}</span>
+                  <span>{new Date(event.date).toLocaleDateString('it-IT')}</span>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={() => handleBooking(event.title)}>
-                Book Now
+                Prenota Ora
               </Button>
             </div>
           ))}

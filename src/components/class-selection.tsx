@@ -25,46 +25,46 @@ export function ClassSelection() {
 
     const handleRegister = () => {
         toast({
-            title: "Registration Successful!",
-            description: "You have been registered for the class.",
+            title: "Registrazione Riuscita!",
+            description: "Ti sei registrato al corso.",
         })
     }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Register for a Class</CardTitle>
+        <CardTitle>Registrati a un Corso</CardTitle>
         <CardDescription>
-          Select your preferred gym and class to get started.
+          Seleziona la tua palestra e il tuo corso preferiti per iniziare.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form>
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="gym">Gym Location</Label>
+              <Label htmlFor="gym">Sede Palestra</Label>
               <Select>
                 <SelectTrigger id="gym">
-                  <SelectValue placeholder="Select a gym" />
+                  <SelectValue placeholder="Seleziona una palestra" />
                 </SelectTrigger>
                 <SelectContent position="popper">
-                  <SelectItem value="downtown">Downtown Fitness</SelectItem>
-                  <SelectItem value="uptown">Uptown Strength</SelectItem>
-                  <SelectItem value="suburban">Suburban Wellness</SelectItem>
+                  <SelectItem value="downtown">Fitness Centro</SelectItem>
+                  <SelectItem value="uptown">Forza Periferia</SelectItem>
+                  <SelectItem value="suburban">Benessere Suburbano</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="class">Class</Label>
+              <Label htmlFor="class">Corso</Label>
               <Select>
                 <SelectTrigger id="class">
-                  <SelectValue placeholder="Select a class" />
+                  <SelectValue placeholder="Seleziona un corso" />
                 </SelectTrigger>
                 <SelectContent position="popper">
-                  <SelectItem value="yoga">Yoga Flow - Mon 6 PM</SelectItem>
-                  <SelectItem value="spin">Spin Cycle - Tue 7 AM</SelectItem>
-                  <SelectItem value="hiit">HIIT Blast - Wed 5:30 PM</SelectItem>
-                  <SelectItem value="zumba">Zumba Party - Thu 7 PM</SelectItem>
+                  <SelectItem value="yoga">Yoga Flow - Lun 18:00</SelectItem>
+                  <SelectItem value="spin">Spin Cycle - Mar 07:00</SelectItem>
+                  <SelectItem value="hiit">HIIT Blast - Mer 17:30</SelectItem>
+                  <SelectItem value="zumba">Zumba Party - Gio 19:00</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -72,7 +72,7 @@ export function ClassSelection() {
         </form>
       </CardContent>
       <CardFooter className="flex justify-end">
-        <Button onClick={handleRegister}>Register</Button>
+        <Button onClick={handleRegister}>Registrati</Button>
       </CardFooter>
     </Card>
   )

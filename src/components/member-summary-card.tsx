@@ -12,8 +12,8 @@ export function MemberSummaryCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Welcome, Alex!</CardTitle>
-        <CardDescription>Here's a summary of your membership.</CardDescription>
+        <CardTitle>Benvenuto, Alex!</CardTitle>
+        <CardDescription>Ecco un riepilogo della tua iscrizione.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex items-center space-x-4">
@@ -27,9 +27,9 @@ export function MemberSummaryCard() {
               alex.doe@example.com
             </div>
             <div className="flex items-center pt-2 gap-2">
-              <Badge variant="default" className="bg-green-600 hover:bg-green-700">Active Member</Badge>
+              <Badge variant="default" className="bg-green-600 hover:bg-green-700">Membro Attivo</Badge>
               <span className="text-sm text-muted-foreground">
-                Renews on Dec 31, 2024
+                Si rinnova il 31 Dic 2024
               </span>
             </div>
           </div>

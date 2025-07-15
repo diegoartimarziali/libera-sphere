@@ -24,19 +24,19 @@ export default function AuthPage() {
         <div className="text-center mb-8">
           <Dumbbell className="mx-auto h-12 w-12 text-primary" />
           <h1 className="text-4xl font-bold font-headline mt-4">LiberaSphere</h1>
-          <p className="text-muted-foreground mt-2">Your sphere of fitness freedom.</p>
+          <p className="text-muted-foreground mt-2">La tua sfera di libertà nel fitness.</p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Log In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsTrigger value="login">Accedi</TabsTrigger>
+            <TabsTrigger value="signup">Registrati</TabsTrigger>
           </TabsList>
           <TabsContent value="login">
             <Card>
               <CardHeader>
-                <CardTitle>Welcome Back</CardTitle>
-                <CardDescription>Enter your credentials to access your account.</CardDescription>
+                <CardTitle>Bentornato</CardTitle>
+                <CardDescription>Inserisci le tue credenziali per accedere al tuo account.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -47,13 +47,13 @@ export default function AuthPage() {
                   <div className="flex items-center">
                     <Label htmlFor="password-login">Password</Label>
                     <Link href="#" className="ml-auto inline-block text-sm underline">
-                      Forgot password?
+                      Password dimenticata?
                     </Link>
                   </div>
                   <Input id="password-login" type="password" required />
                 </div>
                 <Button type="submit" className="w-full" onClick={handleAuthAction}>
-                  Log In
+                  Accedi
                 </Button>
               </CardContent>
             </Card>
@@ -61,13 +61,13 @@ export default function AuthPage() {
           <TabsContent value="signup">
             <Card>
               <CardHeader>
-                <CardTitle>Create an Account</CardTitle>
-                <CardDescription>Enter your information to create a new account.</CardDescription>
+                <CardTitle>Crea un Account</CardTitle>
+                <CardDescription>Inserisci le tue informazioni per creare un nuovo account.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name-signup">Full Name</Label>
-                  <Input id="name-signup" placeholder="John Doe" required />
+                  <Label htmlFor="name-signup">Nome e Cognome</Label>
+                  <Input id="name-signup" placeholder="Mario Rossi" required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email-signup">Email</Label>
@@ -78,7 +78,7 @@ export default function AuthPage() {
                   <Input id="password-signup" type="password" required />
                 </div>
                 <Button type="submit" className="w-full" onClick={handleAuthAction}>
-                  Sign Up
+                  Registrati
                 </Button>
               </CardContent>
             </Card>

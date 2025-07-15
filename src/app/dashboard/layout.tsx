@@ -33,12 +33,12 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const navItems = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "#", icon: Dumbbell, label: "Classes" },
-    { href: "#", icon: HeartPulse, label: "Medical" },
-    { href: "/dashboard/associates", icon: Users, label: "Associates" },
-    { href: "#", icon: CreditCard, label: "Subscription" },
-    { href: "#", icon: Calendar, label: "Events" },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Pannello" },
+    { href: "#", icon: Dumbbell, label: "Corsi" },
+    { href: "#", icon: HeartPulse, label: "Medico" },
+    { href: "/dashboard/associates", icon: Users, label: "Associati" },
+    { href: "#", icon: CreditCard, label: "Abbonamento" },
+    { href: "#", icon: Calendar, label: "Eventi" },
   ]
 
   return (
@@ -72,7 +72,7 @@ export default function DashboardLayout({
             <SheetTrigger asChild>
               <Button size="icon" variant="outline" className="sm:hidden">
                 <PanelLeft className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
+                <span className="sr-only">Apri/Chiudi Menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="sm:max-w-xs">
@@ -101,7 +101,7 @@ export default function DashboardLayout({
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search..."
+              placeholder="Cerca..."
               className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
             />
           </div>
@@ -119,12 +119,12 @@ export default function DashboardLayout({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>Il Mio Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuItem>Impostazioni</DropdownMenuItem>
+              <DropdownMenuItem>Supporto</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link href="/">Logout</Link></DropdownMenuItem>
+              <DropdownMenuItem asChild><Link href="/">Esci</Link></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
