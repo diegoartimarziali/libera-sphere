@@ -4,6 +4,7 @@ import { SubscriptionManagement } from "@/components/subscription-management"
 import { EventBooking } from "@/components/event-booking"
 import { ClassSelection } from "@/components/class-selection"
 import { AssociateCard } from "@/components/associate-card"
+import { RegulationsAcceptance } from "@/components/regulations-acceptance"
 
 export default function Dashboard() {
   return (
@@ -18,6 +19,9 @@ export default function Dashboard() {
         <AssociateCard />
       </div>
       <div className="lg:col-span-1">
+        <RegulationsAcceptance />
+      </div>
+      <div className="lg:col-span-3">
         <MedicalCertificate />
       </div>
        <div className="lg:col-span-3">
