@@ -41,7 +41,7 @@ export default function Dashboard() {
               <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
                 <li>Controlla che il tuo certificato medico sia caricato e in corso di validità.</li>
                 <li>Clicca sul tasto <b>"Recupera Dati"</b>.</li>
-                <li>Clicca sul tasto "Invia Domanda di Associazione".</li>
+                <li>Clicca sul tasto <b>"Fai Domanda di Associazione"</b>.</li>
                 <li>Effettua il pagamento del contributo associativo con il metodo da te scelto.</li>
               </ol>
               <Separator className="my-4" />
@@ -52,7 +52,7 @@ export default function Dashboard() {
                 <li>Prendi visione e accetta i regolamenti nella scheda <b>"Accettazione Regolamenti e Privacy"</b>.</li>
                 <li>Carica il tuo certificato medico nella sezione <b>"Certificato Medico"</b>.</li>
                 <li>Inserisci i tuoi dati e quelli di un genitore se sei minorenne.</li>
-                <li>Clicca sul tasto "Invia Domanda di Associazione".</li>
+                <li>Clicca sul tasto <b>"Fai Domanda di Associazione"</b>.</li>
                 <li>Effettua il pagamento del contributo associativo con il metodo da te scelto.</li>
               </ol>
             </div>
@@ -74,11 +74,13 @@ export default function Dashboard() {
         <div className="lg:col-span-1">
           <MedicalCertificate />
         </div>
-        <div className="lg:col-span-1">
-          <SubscriptionManagement />
-        </div>
-         <div className="lg:col-span-3">
-          <EventBooking />
+        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="lg:col-span-1">
+                <SubscriptionManagement />
+            </div>
+            <div className="lg:col-span-1">
+                <EventBooking />
+            </div>
         </div>
       </div>
     </>
