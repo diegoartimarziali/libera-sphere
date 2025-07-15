@@ -34,7 +34,7 @@ export function MemberSummaryCard() {
     <Card>
       <CardHeader>
         <CardTitle>Benvenuto, {userName.split(' ')[0]}!</CardTitle>
-        <CardDescription>Ecco un riepilogo della tua iscrizione.</CardDescription>
+        <CardDescription>Ecco la tua situazione.</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex items-center space-x-4">
