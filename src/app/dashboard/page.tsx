@@ -3,7 +3,6 @@ import { MedicalCertificate } from "@/components/medical-certificate"
 import { SubscriptionManagement } from "@/components/subscription-management"
 import { EventBooking } from "@/components/event-booking"
 import { ClassSelection } from "@/components/class-selection"
-import { AssociateManagement } from "@/components/associate-management"
 
 export default function Dashboard() {
   return (
@@ -14,11 +13,8 @@ export default function Dashboard() {
       <div className="lg:col-span-1">
         <ClassSelection />
       </div>
-      <div className="lg:col-span-1">
+      <div className="lg:col-span-2">
         <MedicalCertificate />
-      </div>
-      <div className="lg:col-span-1">
-        <AssociateManagement />
       </div>
        <div className="lg:col-span-3">
         <EventBooking />
