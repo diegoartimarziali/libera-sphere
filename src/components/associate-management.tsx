@@ -42,20 +42,14 @@ import { useState } from "react"
 
 const associatesData = [
   {
-    name: "Giovanna Bianchi",
-    email: "giovanna.bianchi@example.com",
     status: "Attivo",
     plan: "Aggiunta Famiglia",
   },
   {
-    name: "Marco Neri",
-    email: "marco.neri@example.com",
     status: "Attivo",
     plan: "Aggiunta Famiglia",
   },
   {
-    name: "Elisa Gialli",
-    email: "elisa.gialli@example.com",
     status: "Inattivo",
     plan: "Nessuno",
   },
@@ -77,8 +71,6 @@ export function AssociateManagement() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Email</TableHead>
               <TableHead>Stato</TableHead>
               <TableHead>Piano</TableHead>
               <TableHead>
@@ -89,8 +81,6 @@ export function AssociateManagement() {
           <TableBody>
             {associates.map((associate, index) => (
               <TableRow key={index}>
-                <TableCell className="font-medium">{associate.name}</TableCell>
-                <TableCell>{associate.email}</TableCell>
                 <TableCell>
                   <Badge variant={associate.status === 'Attivo' ? 'default' : 'secondary'} className={associate.status === 'Attivo' ? 'bg-green-500/20 text-green-700 border-green-500/20' : ''}>
                     {associate.status}
