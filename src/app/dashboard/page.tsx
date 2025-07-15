@@ -6,6 +6,7 @@ import { ClassSelection } from "@/components/class-selection"
 import { AssociateCard } from "@/components/associate-card"
 import { RegulationsAcceptance } from "@/components/regulations-acceptance"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 
 export default function Dashboard() {
   return (
@@ -40,6 +41,16 @@ export default function Dashboard() {
               <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
                 <li>Carica i dati già inseriti.</li>
                 <li>Invia la domanda di associazione.</li>
+                <li>Effettua il pagamento del contributo associativo.</li>
+              </ol>
+              <Separator className="my-4" />
+               <p className="text-sm text-muted-foreground">
+                <b>Nuova associazione o dati non presenti:</b>
+              </p>
+              <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
+                <li>Prendi visione e accetta i regolamenti nella scheda <b>"Accettazione Regolamenti e Privacy"</b>.</li>
+                <li>Carica il tuo certificato medico nella sezione <b>"Certificato Medico"</b>.</li>
+                <li>Inserisci i tuoi dati e quelli di un genitore se sei minorenne.</li>
                 <li>Effettua il pagamento del contributo associativo.</li>
               </ol>
             </div>
