@@ -87,7 +87,7 @@ export default function DashboardLayout({
     { href: "#", icon: HeartPulse, label: "Medico" },
     { href: "/dashboard/associates", icon: Users, label: "Associati" },
     { href: "#", icon: CreditCard, label: "Abbonamento" },
-    { href: "#", icon: Calendar, label: "Eventi" },
+    { href: "#", icon: Calendar, label: "Stage ed Esami" },
   ]
 
   return (
