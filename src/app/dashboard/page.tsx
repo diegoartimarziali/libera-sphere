@@ -74,11 +74,11 @@ export default function Dashboard() {
         <div className="lg:col-span-1">
           <MedicalCertificate />
         </div>
-        <div className="lg:col-span-3">
-          <EventBooking />
-        </div>
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-1">
           <SubscriptionManagement />
+        </div>
+         <div className="lg:col-span-3">
+          <EventBooking />
         </div>
       </div>
     </>
