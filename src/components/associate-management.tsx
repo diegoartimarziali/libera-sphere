@@ -14,6 +14,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -67,50 +68,10 @@ export function AssociateManagement() {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Associati</CardTitle>
-            <CardDescription>
-              Gestisci i membri della famiglia o gli associati.
-            </CardDescription>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-1">
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Aggiungi
-                </span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Aggiungi Nuovo Associato</DialogTitle>
-                <DialogDescription>
-                  Inserisci i dettagli del nuovo membro associato.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Nome
-                  </Label>
-                  <Input id="name" placeholder="Giovanna Bianchi" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input id="email" type="email" placeholder="giovanna@example.com" className="col-span-3" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>Annulla</Button>
-                <Button onClick={() => setOpen(false)}>Salva</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <CardTitle>Associati</CardTitle>
+        <CardDescription>
+          Gestisci i membri della famiglia o gli associati.
+        </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
         <Table>
@@ -158,6 +119,44 @@ export function AssociateManagement() {
           </TableBody>
         </Table>
       </CardContent>
+      <CardFooter className="flex justify-end">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="gap-1">
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                Aggiungi
+              </span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Aggiungi Nuovo Associato</DialogTitle>
+              <DialogDescription>
+                Inserisci i dettagli del nuovo membro associato.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Nome
+                </Label>
+                <Input id="name" placeholder="Giovanna Bianchi" className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  Email
+                </Label>
+                <Input id="email" type="email" placeholder="giovanna@example.com" className="col-span-3" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>Annulla</Button>
+              <Button onClick={() => setOpen(false)}>Salva</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardFooter>
     </Card>
   )
 }
