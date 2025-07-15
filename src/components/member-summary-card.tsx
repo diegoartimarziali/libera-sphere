@@ -126,14 +126,11 @@ export function MemberSummaryCard() {
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600">Pagato</Badge>
             </div>
-            <div className="flex items-start pt-2 gap-2">
-                <span className="text-muted-foreground shrink-0">
-                    Partecipazione agli stage:
-                </span>
-                <div className="flex flex-col">
-                    <span className="font-medium text-foreground">Stage Karate - 15 Giugno 2024</span>
-                    <span className="font-medium text-foreground">Stage Aikido - 22 Giugno 2024</span>
-                </div>
+            <div className="flex items-center pt-2 gap-2">
+              <span className="text-muted-foreground">
+                Partecipazione agli stage:
+              </span>
+              <Badge variant="outline" className="border-orange-500 text-orange-600 bg-orange-500/10">Media</Badge>
             </div>
           </div>
         </div>
