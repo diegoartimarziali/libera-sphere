@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -15,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { CheckCircle } from "lucide-react"
 
 const plans = [
-    { id: "stagionale", name: "Stagionale", price: "500", period: "anno", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Sconto eventi speciali"] },
+    { id: "stagionale", name: "Stagionale", price: "440", period: "anno", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Sconto eventi speciali"] },
     { id: "mensile", name: "Mensile", price: "55", period: "mese", features: ["Accesso a tutte le palestre", "Corsi illimitati"] },
 ]
 
