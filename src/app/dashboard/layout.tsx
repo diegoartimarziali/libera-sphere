@@ -90,7 +90,7 @@ export default function DashboardLayout({
     { href: "#", icon: DumbbellIcon, label: "Lezioni di Selezione" },
     { href: "/dashboard/associates", icon: Users, label: "Associati" },
     { href: "#", icon: HeartPulse, label: "Certificato Medico" },
-    { href: "#", icon: CreditCard, label: "Abbonamento" },
+    { href: "#", icon: CreditCard, label: "Abbonamento ai Corsi" },
     { href: "#", icon: Calendar, label: "Stage ed Esami" },
   ]
 
