@@ -109,7 +109,8 @@ export function AssociateManagement() {
           </TableBody>
         </Table>
       </CardContent>
-      <CardFooter className="flex justify-end">
+      <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline">Recupera dati</Button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gap-1">
