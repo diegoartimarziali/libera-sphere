@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { CheckCircle } from "lucide-react"
 
 const plans = [
-    { id: "stagionale", name: "Stagionale", price: "440", period: "stagione", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Paga in un'unica soluzione.", "Un mese gratis"] },
+    { id: "stagionale", name: "Stagionale", price: "440", period: "stagione", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Paga in un'unica soluzione.", "Un mese gratis"], expiry: "l'offerta scade il 01/09/2025" },
     { id: "mensile", name: "Mensile", price: "55", period: "mese", features: ["Accesso a tutte le palestre", "Corsi illimitati"] },
 ]
 
@@ -35,6 +35,7 @@ export function SubscriptionManagement() {
                     <Card className="cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary h-full flex flex-col">
                         <CardHeader>
                             <CardTitle>{plan.name}</CardTitle>
+                            {plan.expiry && <p className="text-sm text-muted-foreground">{plan.expiry}</p>}
                             <p className="text-2xl font-bold">€{plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.period}</span></p>
                         </CardHeader>
                         <CardContent className="space-y-2 flex-grow">
