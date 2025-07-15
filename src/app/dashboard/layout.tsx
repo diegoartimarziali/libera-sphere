@@ -163,30 +163,6 @@ export default function DashboardLayout({
               </nav>
             </SheetContent>
           </Sheet>
-          <div className="ml-auto">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="overflow-hidden rounded-full"
-                >
-                  <Avatar>
-                    <AvatarImage src="https://placehold.co/32x32" alt="@shadcn" data-ai-hint="person face"/>
-                    <AvatarFallback>LS</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Il Mio Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Impostazioni</DropdownMenuItem>
-                <DropdownMenuItem>Supporto</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild><Link href="/">Esci</Link></DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
         </header>
         <main className="flex-1 p-4 sm:px-6 sm:py-0 space-y-4">
             {children}
