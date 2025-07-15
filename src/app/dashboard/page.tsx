@@ -40,7 +40,7 @@ export default function Dashboard() {
               </p>
               <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
                 <li>Controlla che il tuo certificato medico sia caricato e in corso di validità.</li>
-                <li>Clicca sul tasto "Recupera Dati".</li>
+                <li>Clicca sul tasto <b>"Recupera Dati"</b>.</li>
                 <li>Clicca sul tasto "Invia Domanda di Associazione".</li>
                 <li>Effettua il pagamento del contributo associativo con il metodo da te scelto.</li>
               </ol>
@@ -71,7 +71,7 @@ export default function Dashboard() {
         <div className="lg:col-span-1">
           <AssociateCard />
         </div>
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-2">
           <MedicalCertificate />
         </div>
         <div className="lg:col-span-3">
