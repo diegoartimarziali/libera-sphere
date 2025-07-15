@@ -23,8 +23,9 @@ export function AssociateCard() {
                     Siamo una associazione senza scopo di lucro, nata dalla profonda passione per le arti marziali e dalla volontà di condividerne i valori autentici. Ogni aspetto della nostra gestione è guidato da principi di trasparenza e dedizione, tutti i ricavi derivanti dai contributi associativi vengono interamente reinvestiti in Didattica, Formazione, Aggiornamento e progetti di utilità sociale.
                 </p>
             </CardContent>
-            <CardFooter className="flex justify-end">
+            <CardFooter className="flex flex-col items-end gap-2">
                 <Button>Fai Domanda di Associazione</Button>
+                <Button variant="outline">Recupera Dati</Button>
             </CardFooter>
         </Card>
     )
