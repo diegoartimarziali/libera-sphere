@@ -8,13 +8,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function AuthPage() {
   const router = useRouter();
+  const [name, setName] = useState('');
 
-  const handleAuthAction = () => {
-    // In a real app, you'd handle auth here.
-    // For this prototype, we'll just navigate to the dashboard.
+  const handleLogin = () => {
+    // In a real app, you would fetch user data. For this prototype, we'll use a default name.
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('userName', 'Alex Doe');
+    }
+    router.push('/dashboard');
+  };
+
+  const handleSignup = () => {
+    if (typeof window !== 'undefined' && name) {
+      localStorage.setItem('userName', name);
+    }
     router.push('/dashboard');
   };
 
@@ -52,7 +63,7 @@ export default function AuthPage() {
                   </div>
                   <Input id="password-login" type="password" required />
                 </div>
-                <Button type="submit" className="w-full" onClick={handleAuthAction}>
+                <Button type="submit" className="w-full" onClick={handleLogin}>
                   Accedi
                 </Button>
               </CardContent>
@@ -67,7 +78,13 @@ export default function AuthPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name-signup">Nome e Cognome</Label>
-                  <Input id="name-signup" placeholder="Mario Rossi" required />
+                  <Input 
+                    id="name-signup" 
+                    placeholder="Mario Rossi" 
+                    required 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email-signup">Email</Label>
@@ -77,7 +94,7 @@ export default function AuthPage() {
                   <Label htmlFor="password-signup">Password</Label>
                   <Input id="password-signup" type="password" required />
                 </div>
-                <Button type="submit" className="w-full" onClick={handleAuthAction}>
+                <Button type="submit" className="w-full" onClick={handleSignup}>
                   Registrati
                 </Button>
               </CardContent>
