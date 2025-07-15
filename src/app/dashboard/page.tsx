@@ -2,7 +2,6 @@ import { MemberSummaryCard } from "@/components/member-summary-card"
 import { MedicalCertificate } from "@/components/medical-certificate"
 import { SubscriptionManagement } from "@/components/subscription-management"
 import { EventBooking } from "@/components/event-booking"
-import { AssociateManagement } from "@/components/associate-management";
 
 export default function Dashboard() {
   return (
@@ -12,9 +11,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 pb-6">
-        <div className="lg:col-span-1">
-          <AssociateManagement />
-        </div>
         <div className="lg:col-span-1">
           <MedicalCertificate />
         </div>
