@@ -20,7 +20,7 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Per iscriverti alle lezioni di selezione, segui questi passaggi:
+            <b>Lezioni di selezione, segui questi passaggi:</b>
           </p>
           <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
             <li>Prendi visione e accetta i regolamenti nella scheda <b>"Accettazione Regolamenti e Privacy"</b>.</li>
