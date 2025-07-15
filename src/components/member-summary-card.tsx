@@ -49,24 +49,24 @@ export function MemberSummaryCard() {
               {randomKanji ? randomKanji : getInitials(userName)}
             </AvatarFallback>
           </Avatar>
-          <div className="grid gap-1">
+          <div className="grid gap-1.5 text-base">
             <div className="font-semibold text-xl flex items-center gap-2">
               <span>{userName}</span>
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-muted-foreground">
                 <span>Grado attuale: </span>
                 <span className="font-medium text-foreground">Cintura Nera 1° Dan</span>
                 <span className="ml-4">Prossimo esame: </span>
                 <span className="font-medium text-foreground">2° Dan (30/06/2025)</span>
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-muted-foreground">
               {userName.toLowerCase().replace(' ', '.')}@example.com
             </div>
-            <div className="text-sm text-muted-foreground mt-2">
+            <div className="text-muted-foreground mt-2">
               <span>CODICE FISCALE: </span>
               <span className="font-medium text-foreground">RSSMRA80A01H501U</span>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground mt-2">
+            <div className="grid grid-cols-2 gap-4 text-muted-foreground mt-2">
                 <div>
                     <span>Nato a: </span>
                     <span className="font-medium text-foreground">Roma</span>
@@ -76,11 +76,11 @@ export function MemberSummaryCard() {
                     <span className="font-medium text-foreground">01/01/1980</span>
                 </div>
             </div>
-             <div className="text-sm text-muted-foreground mt-2">
+             <div className="text-muted-foreground mt-2">
                 <span>Residente in (via, piazza): </span>
                 <span className="font-medium text-foreground">Via del Corso, 1</span>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground mt-2">
+            <div className="grid grid-cols-2 gap-4 text-muted-foreground mt-2">
                 <div>
                     <span>Comune: </span>
                     <span className="font-medium text-foreground">Roma</span>
@@ -90,41 +90,41 @@ export function MemberSummaryCard() {
                     <span className="font-medium text-foreground">RM</span>
                 </div>
             </div>
-            <div className="text-sm text-muted-foreground mt-2">
+            <div className="text-muted-foreground mt-2">
               <span>Data prima associazione: </span>
               <span className="font-medium text-foreground">01/09/2023</span>
             </div>
             <div className="flex items-center pt-2 gap-2">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground">
                 Regolamento, Statuto e Privacy:
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600">Accettati</Badge>
             </div>
             <div className="flex items-center pt-2 gap-2">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground">
                 Associazione stagione: 2024/2025
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600">Valida</Badge>
             </div>
             <div className="flex items-center pt-2 gap-2">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground">
                 certificato medico scadenza: 31/08/2025
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600">Valido</Badge>
             </div>
              <div className="flex items-center pt-2 gap-2">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground">
                 Abbonamento ai corsi: Mensile
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600">Pagato</Badge>
             </div>
             <div className="flex items-start pt-2 gap-2">
-                <span className="text-sm text-muted-foreground shrink-0">
+                <span className="text-muted-foreground shrink-0">
                     Partecipazione agli stage:
                 </span>
                 <div className="flex flex-col">
-                    <span className="text-sm font-medium text-foreground">Stage Karate - 15 Giugno 2024</span>
-                    <span className="text-sm font-medium text-foreground">Stage Aikido - 22 Giugno 2024</span>
+                    <span className="font-medium text-foreground">Stage Karate - 15 Giugno 2024</span>
+                    <span className="font-medium text-foreground">Stage Aikido - 22 Giugno 2024</span>
                 </div>
             </div>
           </div>
