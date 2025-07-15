@@ -70,7 +70,7 @@ export function AssociateManagement() {
       <CardHeader>
         <CardTitle>Associati</CardTitle>
         <CardDescription>
-          Gestisci i membri della famiglia o gli associati.
+          Far parte della nostra associazione no profit non significa semplicemente iscriversi a un corso di Arti Marziali. Significa intraprendere un percorso di crescita condiviso, dove l'allenamento fisico è solo una parte di un'esperienza molto più ricca e profonda.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
