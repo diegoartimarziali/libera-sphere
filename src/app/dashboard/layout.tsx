@@ -12,6 +12,7 @@ import {
   Settings,
   Users,
   Info,
+  FileText,
 } from "lucide-react"
 
 import {
@@ -85,6 +86,7 @@ export default function DashboardLayout({
   const navItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "#", icon: Info, label: "Istruzioni" },
+    { href: "#", icon: FileText, label: "Regolamenti e Privacy" },
     { href: "#", icon: DumbbellIcon, label: "Corsi" },
     { href: "#", icon: HeartPulse, label: "Medico" },
     { href: "/dashboard/associates", icon: Users, label: "Associati" },
