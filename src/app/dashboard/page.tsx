@@ -24,7 +24,7 @@ export default function Dashboard() {
           </p>
           <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
             <li>Prendi visione e accetta i regolamenti nella scheda <b>"Accettazione Regolamenti e Privacy"</b>.</li>
-            <li>Iscriviti alle lezioni di selezione tramite la scheda <b>"Lezioni di Selezione"</b>.</li>
+            <li>Non sei mai stato associato e vuoi partecipare alle selezioni? Iscriviti alle lezioni di selezione tramite la scheda <b>"Lezioni di Selezione"</b>.</li>
             <li>Carica il tuo certificato medico nella sezione <b>"Certificato Medico"</b>.</li>
             <li>Se vuoi associare anche un familiare, puoi farlo dalla sezione <b>"Associati"</b>.</li>
           </ol>
