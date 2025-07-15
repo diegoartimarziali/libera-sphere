@@ -54,6 +54,10 @@ export function MemberSummaryCard() {
               <span>{userName}</span>
             </div>
             <div className="text-sm text-muted-foreground">
+                <span>Grado attuale: </span>
+                <span className="font-medium text-foreground">Cintura Nera 1° Dan</span>
+            </div>
+            <div className="text-sm text-muted-foreground">
               {userName.toLowerCase().replace(' ', '.')}@example.com
             </div>
             <div className="text-sm text-muted-foreground mt-2">
