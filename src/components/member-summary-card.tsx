@@ -11,8 +11,11 @@ import {
 } from "@/components/ui/card"
 import { useEffect, useState } from "react"
 
+const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'];
+
 export function MemberSummaryCard() {
   const [userName, setUserName] = useState("Utente");
+  const [randomKanji, setRandomKanji] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -21,6 +24,8 @@ export function MemberSummaryCard() {
         setUserName(storedName);
       }
     }
+    // Select a random Kanji on client-side mount to avoid hydration mismatch
+    setRandomKanji(kanjiList[Math.floor(Math.random() * kanjiList.length)]);
   }, []);
 
   const getInitials = (name: string) => {
@@ -43,7 +48,10 @@ export function MemberSummaryCard() {
             <AvatarFallback>{getInitials(userName)}</AvatarFallback>
           </Avatar>
           <div className="grid gap-1">
-            <div className="font-semibold text-xl">{userName}</div>
+            <div className="font-semibold text-xl flex items-center gap-2">
+              <span>{userName}</span>
+              {randomKanji && <span className="text-primary font-serif" title="Il tuo Kanji del giorno">{randomKanji}</span>}
+            </div>
             <div className="text-sm text-muted-foreground">
               {userName.toLowerCase().replace(' ', '.')}@example.com
             </div>
