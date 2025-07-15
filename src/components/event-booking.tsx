@@ -18,10 +18,14 @@ export function EventBooking() {
           Riserva il tuo posto nei prossimi eventi speciali.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow">
+      <CardContent className="flex-grow space-y-4">
         <div className="rounded-lg border p-4">
             <h3 className="font-semibold text-lg mb-2">Stage</h3>
             {/* Future stage content can go here */}
+        </div>
+         <div className="rounded-lg border p-4">
+            <h3 className="font-semibold text-lg mb-2">Esami</h3>
+            {/* Future exam content can go here */}
         </div>
       </CardContent>
     </Card>
