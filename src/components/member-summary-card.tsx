@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useEffect, useState } from "react"
+import { Star } from "lucide-react"
 
 const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'];
 
@@ -52,6 +53,13 @@ export function MemberSummaryCard() {
           <div className="grid gap-1.5 text-base">
             <div className="font-semibold text-xl flex items-center gap-2">
               <span>{userName}</span>
+              <div className="flex items-center">
+                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                <Star className="w-5 h-5 text-muted-foreground/50" />
+                <Star className="w-5 h-5 text-muted-foreground/50" />
+              </div>
             </div>
             <div className="text-muted-foreground">
                 <span>Grado attuale: </span>
