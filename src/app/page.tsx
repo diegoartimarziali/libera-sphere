@@ -35,7 +35,7 @@ export default function AuthPage() {
         <div className="text-center mb-8">
           <Dumbbell className="mx-auto h-12 w-12 text-primary" />
           <h1 className="text-4xl font-bold font-headline mt-4">LiberaSphere</h1>
-          <p className="text-muted-foreground mt-2">La tua sfera di libertà nel fitness.</p>
+          <p className="text-muted-foreground mt-2">La tua sfera di liberta nelle Arti Marziali</p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">
