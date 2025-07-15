@@ -89,6 +89,12 @@ export function MemberSummaryCard() {
             </div>
             <div className="flex items-center pt-2 gap-2">
               <span className="text-sm text-muted-foreground">
+                Regolamento, Statuto e Privacy:
+              </span>
+              <Badge variant="outline" className="border-green-500 text-green-600">Accettati</Badge>
+            </div>
+            <div className="flex items-center pt-2 gap-2">
+              <span className="text-sm text-muted-foreground">
                 Associazione stagione: 2024/2025
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600">Valida</Badge>
