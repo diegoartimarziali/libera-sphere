@@ -7,6 +7,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Label } from "./ui/label"
 import { Button } from "./ui/button"
 
 export function EventBooking() {
@@ -19,9 +27,22 @@ export function EventBooking() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
-        <div className="rounded-lg border p-4">
-            <h3 className="font-semibold text-lg mb-2">Stage</h3>
-            {/* Future stage content can go here */}
+        <div className="rounded-lg border p-4 space-y-4">
+            <h3 className="font-semibold text-lg">Stage</h3>
+            <div className="space-y-2">
+                <Label htmlFor="stage-select">Seleziona Stage</Label>
+                <Select>
+                    <SelectTrigger id="stage-select">
+                        <SelectValue placeholder="Scegli uno stage..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="stage-1">Stage Karate - 15 Giugno 2024</SelectItem>
+                        <SelectItem value="stage-2">Stage Aikido - 22 Giugno 2024</SelectItem>
+                        <SelectItem value="stage-3">Stage Estivo - 1-5 Luglio 2024</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+            <Button className="w-full">Prenota Stage</Button>
         </div>
          <div className="rounded-lg border p-4">
             <h3 className="font-semibold text-lg mb-2">Esami</h3>
