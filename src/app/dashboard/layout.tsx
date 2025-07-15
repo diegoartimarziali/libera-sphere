@@ -5,7 +5,6 @@ import Link from "next/link"
 import {
   Calendar,
   CreditCard,
-  Dumbbell,
   HeartPulse,
   LayoutDashboard,
   PanelLeft,
@@ -27,6 +26,48 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
+// Custom Dumbbell Icon
+const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="M15.5 15.5c-1 0-1.5 1-1.5 2s.5 2 1.5 2 1.5-1 1.5-2-.5-2-1.5-2zM4.5 9.5c-1 0-1.5 1-1.5 2s.5 2 1.5 2 1.5-1 1.5-2-.5-2-1.5-2z" />
+    <path d="M18 6.5V15a2 2 0 002 2h1" />
+    <path d="M6 6.5V15a2 2 0 01-2 2H3" />
+    <path d="M12 8V6.5a4.5 4.5 0 00-9 0V15" />
+    <path d="M12 8h1a4.5 4.5 0 014.5 4.5V15" />
+  </svg>
+)
+
+const BicepIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="24" 
+        height="24" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        {...props}>
+            <path d="M8.5 10.5c.7-2.3 2.9-4 5.5-4 3.3 0 6 2.7 6 6v2.5" />
+            <path d="m11.5 10.5-3 5.5" />
+            <path d="M4 16.5h10.5" />
+            <path d="M7 16.5c-1.7 0-3-1.3-3-3V7.5" />
+            <path d="M18 16.5c1.7 0 3-1.3 3-3V11" />
+    </svg>
+)
+
 export default function DashboardLayout({
   children,
 }: {
@@ -34,7 +75,7 @@ export default function DashboardLayout({
 }) {
   const navItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
-    { href: "#", icon: Dumbbell, label: "Corsi" },
+    { href: "#", icon: DumbbellIcon, label: "Corsi" },
     { href: "#", icon: HeartPulse, label: "Medico" },
     { href: "/dashboard/associates", icon: Users, label: "Associati" },
     { href: "#", icon: CreditCard, label: "Abbonamento" },
@@ -49,7 +90,7 @@ export default function DashboardLayout({
             href="#"
             className="group flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:text-base"
           >
-            <Dumbbell className="h-4 w-4 transition-all group-hover:scale-110" />
+            <BicepIcon className="h-4 w-4 transition-all group-hover:scale-110" />
             <span>LiberaSphere</span>
           </Link>
           <div className="flex-1 w-full">
@@ -81,7 +122,7 @@ export default function DashboardLayout({
                     href="#"
                     className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
                 >
-                    <Dumbbell className="h-5 w-5 transition-all group-hover:scale-110" />
+                    <BicepIcon className="h-5 w-5 transition-all group-hover:scale-110" />
                     <span className="sr-only">LiberaSphere</span>
                 </Link>
                 {navItems.map(item => (
