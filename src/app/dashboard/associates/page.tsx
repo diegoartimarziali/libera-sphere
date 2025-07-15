@@ -1,9 +1,9 @@
-import { AssociateManagement } from "@/components/associate-management";
+import { AssociateCard } from "@/components/associate-card";
 
 export default function AssociatesPage() {
     return (
         <div>
-            <AssociateManagement />
+            <AssociateCard />
         </div>
     );
 }
