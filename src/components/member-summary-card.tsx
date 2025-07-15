@@ -73,6 +73,16 @@ export function MemberSummaryCard() {
                 <span>Residente in (via, piazza): </span>
                 <span className="font-medium text-foreground">Via del Corso, 1</span>
             </div>
+            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground mt-2">
+                <div>
+                    <span>Comune: </span>
+                    <span className="font-medium text-foreground">Roma</span>
+                </div>
+                <div>
+                    <span>Provincia: </span>
+                    <span className="font-medium text-foreground">RM</span>
+                </div>
+            </div>
             <div className="flex items-center pt-2 gap-2">
               <Badge variant="default" className="bg-green-600 hover:bg-green-700">Membro Attivo</Badge>
               <span className="text-sm text-muted-foreground">
