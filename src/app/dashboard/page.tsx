@@ -13,13 +13,13 @@ export default function Dashboard() {
         <MemberSummaryCard />
       </div>
       <div className="lg:col-span-1">
+        <RegulationsAcceptance />
+      </div>
+      <div className="lg:col-span-1">
         <ClassSelection />
       </div>
       <div className="lg:col-span-1">
         <AssociateCard />
-      </div>
-      <div className="lg:col-span-1">
-        <RegulationsAcceptance />
       </div>
       <div className="lg:col-span-3">
         <MedicalCertificate />
