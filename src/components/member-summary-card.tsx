@@ -56,6 +56,8 @@ export function MemberSummaryCard() {
             <div className="text-sm text-muted-foreground">
                 <span>Grado attuale: </span>
                 <span className="font-medium text-foreground">Cintura Nera 1° Dan</span>
+                <span className="ml-4">Prossimo esame: </span>
+                <span className="font-medium text-foreground">2° Dan (30/06/2025)</span>
             </div>
             <div className="text-sm text-muted-foreground">
               {userName.toLowerCase().replace(' ', '.')}@example.com
