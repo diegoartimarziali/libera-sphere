@@ -29,7 +29,7 @@ export function SubscriptionManagement() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <RadioGroup defaultValue="stagionale" className="grid gap-4 md:grid-cols-2">
+        <RadioGroup defaultValue="stagionale" className="grid gap-4">
             {plans.map(plan => (
                 <Label key={plan.id} htmlFor={plan.id} className="block h-full">
                     <RadioGroupItem value={plan.id} id={plan.id} className="sr-only" />
