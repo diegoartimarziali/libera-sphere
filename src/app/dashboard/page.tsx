@@ -3,6 +3,7 @@ import { MedicalCertificate } from "@/components/medical-certificate"
 import { SubscriptionManagement } from "@/components/subscription-management"
 import { EventBooking } from "@/components/event-booking"
 import { ClassSelection } from "@/components/class-selection"
+import { AssociateManagement } from "@/components/associate-management"
 
 export default function Dashboard() {
   return (
@@ -17,10 +18,13 @@ export default function Dashboard() {
         <MedicalCertificate />
       </div>
       <div className="lg:col-span-1">
-        <SubscriptionManagement />
+        <AssociateManagement />
+      </div>
+       <div className="lg:col-span-3">
+        <EventBooking />
       </div>
       <div className="lg:col-span-3">
-        <EventBooking />
+        <SubscriptionManagement />
       </div>
     </div>
   )

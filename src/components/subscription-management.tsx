@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -18,14 +19,14 @@ const plans = [
 
 export function SubscriptionManagement() {
   return (
-    <Card className="h-full flex flex-col">
+    <Card>
       <CardHeader>
         <CardTitle>Piano di Abbonamento</CardTitle>
         <CardDescription>
           Scegli il piano giusto per te.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-grow">
+      <CardContent>
         <RadioGroup defaultValue="mensile" className="grid gap-4">
             {plans.map(plan => (
                 <Label key={plan.name} htmlFor={plan.name.toLowerCase()} className="block">

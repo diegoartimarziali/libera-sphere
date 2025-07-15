@@ -1,3 +1,4 @@
+
 "use client"
 
 import {
@@ -64,13 +65,13 @@ export function AssociateManagement() {
   const [open, setOpen] = useState(false)
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Membri Associati</CardTitle>
             <CardDescription>
-              Gestisci i membri della famiglia o gli associati collegati al tuo account.
+              Gestisci i membri della famiglia o gli associati.
             </CardDescription>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
@@ -78,7 +79,7 @@ export function AssociateManagement() {
               <Button size="sm" className="gap-1">
                 <PlusCircle className="h-3.5 w-3.5" />
                 <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Aggiungi Associato
+                  Aggiungi
                 </span>
               </Button>
             </DialogTrigger>
@@ -111,7 +112,7 @@ export function AssociateManagement() {
           </Dialog>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow">
         <Table>
           <TableHeader>
             <TableRow>
