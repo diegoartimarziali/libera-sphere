@@ -125,15 +125,15 @@ export function AssociateManagement() {
             <Button size="sm" className="gap-1">
               <PlusCircle className="h-3.5 w-3.5" />
               <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                Aggiungi
+                Domanda Associazione
               </span>
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Aggiungi Nuovo Associato</DialogTitle>
+              <DialogTitle>Domanda di Associazione</DialogTitle>
               <DialogDescription>
-                Inserisci i dettagli del nuovo membro associato.
+                Inserisci i dettagli per la domanda di associazione.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -141,18 +141,18 @@ export function AssociateManagement() {
                 <Label htmlFor="name" className="text-right">
                   Nome
                 </Label>
-                <Input id="name" placeholder="Giovanna Bianchi" className="col-span-3" />
+                <Input id="name" placeholder="Nome Cognome" className="col-span-3" />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="email" className="text-right">
                   Email
                 </Label>
-                <Input id="email" type="email" placeholder="giovanna@example.com" className="col-span-3" />
+                <Input id="email" type="email" placeholder="nome@example.com" className="col-span-3" />
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Annulla</Button>
-              <Button onClick={() => setOpen(false)}>Salva</Button>
+              <Button onClick={() => setOpen(false)}>Invia Domanda</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
