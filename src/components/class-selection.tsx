@@ -49,8 +49,7 @@ export function ClassSelection() {
                 </SelectTrigger>
                 <SelectContent position="popper">
                   <SelectItem value="karate">Karate</SelectItem>
-                  <SelectItem value="judo">Judo</SelectItem>
-                  <SelectItem value="jujitsu">Jujitsu</SelectItem>
+                  <SelectItem value="aikido">Aikido</SelectItem>
                 </SelectContent>
               </Select>
             </div>
