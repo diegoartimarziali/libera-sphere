@@ -59,6 +59,16 @@ export function MemberSummaryCard() {
               <span>CODICE FISCALE: </span>
               <span className="font-medium text-foreground">RSSMRA80A01H501U</span>
             </div>
+            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground mt-2">
+                <div>
+                    <span>Nato a: </span>
+                    <span className="font-medium text-foreground">Roma</span>
+                </div>
+                <div>
+                    <span>Il: </span>
+                    <span className="font-medium text-foreground">01/01/1980</span>
+                </div>
+            </div>
             <div className="flex items-center pt-2 gap-2">
               <Badge variant="default" className="bg-green-600 hover:bg-green-700">Membro Attivo</Badge>
               <span className="text-sm text-muted-foreground">
