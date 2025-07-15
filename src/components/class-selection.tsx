@@ -33,7 +33,7 @@ export function ClassSelection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Registrati a un Corso</CardTitle>
+        <CardTitle>Lezioni di Selezione</CardTitle>
         <CardDescription>
           Seleziona la tua palestra e il tuo corso preferiti per iniziare.
         </CardDescription>
