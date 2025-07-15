@@ -18,14 +18,14 @@ const plans = [
 
 export function SubscriptionManagement() {
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>Piano di Abbonamento</CardTitle>
         <CardDescription>
           Scegli il piano giusto per te.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow">
         <RadioGroup defaultValue="mensile" className="grid gap-4">
             {plans.map(plan => (
                 <Label key={plan.name} htmlFor={plan.name.toLowerCase()} className="block">

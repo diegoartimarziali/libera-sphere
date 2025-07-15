@@ -26,14 +26,14 @@ export function MedicalCertificate() {
   }
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>Certificato Medico</CardTitle>
         <CardDescription>
           Il tuo certificato è richiesto per la partecipazione.
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center text-center gap-4 p-8">
+      <CardContent className="flex flex-grow flex-col items-center justify-center text-center gap-4 p-8">
         {isCertificateUploaded ? (
           <>
             <HeartPulse className="w-16 h-16 text-green-500" />

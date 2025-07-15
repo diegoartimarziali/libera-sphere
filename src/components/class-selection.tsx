@@ -31,14 +31,14 @@ export function ClassSelection() {
     }
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle>Lezioni di Selezione</CardTitle>
         <CardDescription>
           Seleziona la tua palestra e il tuo corso preferiti per iniziare.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-grow">
         <form>
           <div className="grid w-full items-center gap-4">
             <div className="flex flex-col space-y-1.5">
