@@ -46,7 +46,7 @@ export default function AuthPage() {
           <TabsContent value="login">
             <Card>
               <CardHeader>
-                <CardTitle>Bentornato</CardTitle>
+                <CardTitle>Oss, benvenuto nel Dojo!</CardTitle>
                 <CardDescription>Inserisci le tue credenziali per accedere al tuo account.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
