@@ -39,7 +39,7 @@ export default function Dashboard() {
                 <b>Associazione dopo lezioni di selezione o già associato nella stagione precedente:</b>
               </p>
               <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
-                <li>Nella scheda associati clicca sul tasto Recupera Dati.</li>
+                <li>Nella scheda associati clicca sul tasto <b>Recupera Dati</b>.</li>
                 <li>Invia la domanda di associazione.</li>
                 <li>Effettua il pagamento del contributo associativo.</li>
               </ol>
