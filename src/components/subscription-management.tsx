@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { CheckCircle } from "lucide-react"
 
 const plans = [
-    { name: "Mensile", price: "29.99", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Pass ospite (2/mese)"] },
+    { name: "Mensile", price: "55", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Pass ospite (2/mese)"] },
 ]
 
 export function SubscriptionManagement() {
