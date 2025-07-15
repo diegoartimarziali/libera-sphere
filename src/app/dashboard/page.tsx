@@ -19,17 +19,31 @@ export default function Dashboard() {
             <CardTitle>Istruzioni</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
-            <b>Lezioni di selezione, segui questi passaggi:</b>
-          </p>
-          <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
-            <li>Prendi visione e accetta i regolamenti nella scheda <b>"Accettazione Regolamenti e Privacy"</b>.</li>
-            <li>Iscriviti alle lezioni di selezione tramite la scheda <b>"Lezioni di Selezione"</b>.</li>
-            <li>Carica il tuo certificato medico nella sezione <b>"Certificato Medico"</b>.</li>
-            <li>Inserisci i tuoi dati e quelli di un genitore se sei minorenne.</li>
-            <li>Verrai contattato telefonicamente per scegliere la tua prima lezione.</li>
-            <li>Effettua il pagamento del contributo di 30€ alla prima lezione.</li>
-          </ol>
+          <div className="grid md:grid-cols-2 gap-8">
+            <div>
+              <p className="text-sm text-muted-foreground">
+                <b>Lezioni di selezione, segui questi passaggi:</b>
+              </p>
+              <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
+                <li>Prendi visione e accetta i regolamenti nella scheda <b>"Accettazione Regolamenti e Privacy"</b>.</li>
+                <li>Iscriviti alle lezioni di selezione tramite la scheda <b>"Lezioni di Selezione"</b>.</li>
+                <li>Carica il tuo certificato medico nella sezione <b>"Certificato Medico"</b>.</li>
+                <li>Inserisci i tuoi dati e quelli di un genitore se sei minorenne.</li>
+                <li>Verrai contattato telefonicamente per scegliere la tua prima lezione.</li>
+                <li>Effettua il pagamento del contributo di 30€ alla prima lezione.</li>
+              </ol>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">
+                <b>Associazione dopo lezioni di selezione o già associato nella stagione precedente:</b>
+              </p>
+              <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
+                <li>Carica i dati già inseriti.</li>
+                <li>Invia la domanda di associazione.</li>
+                <li>Effettua il pagamento del contributo associativo.</li>
+              </ol>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
