@@ -15,8 +15,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { CheckCircle } from "lucide-react"
 
 const plans = [
-    { id: "mensile", name: "Mensile", price: "55", period: "mese", features: ["Accesso a tutte le palestre", "Corsi illimitati"] },
     { id: "stagionale", name: "Stagionale", price: "500", period: "anno", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Sconto eventi speciali"] },
+    { id: "mensile", name: "Mensile", price: "55", period: "mese", features: ["Accesso a tutte le palestre", "Corsi illimitati"] },
 ]
 
 export function SubscriptionManagement() {
@@ -29,7 +29,7 @@ export function SubscriptionManagement() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <RadioGroup defaultValue="mensile" className="grid gap-4 md:grid-cols-2">
+        <RadioGroup defaultValue="stagionale" className="grid gap-4 md:grid-cols-2">
             {plans.map(plan => (
                 <Label key={plan.id} htmlFor={plan.id} className="block h-full">
                     <RadioGroupItem value={plan.id} id={plan.id} className="sr-only" />
