@@ -88,7 +88,7 @@ export function MedicalCertificate() {
               </Popover>
             </div>
             <Button className="mt-4" onClick={handleUploadClick} disabled={!expirationDate}>
-              <Upload className="mr-2 h-4 w-4" /> Carica Ora
+              <Upload className="mr-2 h-4 w-4" /> Carica il Certificato
             </Button>
           </>
         )}
