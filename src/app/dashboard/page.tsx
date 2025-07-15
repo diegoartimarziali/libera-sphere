@@ -39,9 +39,10 @@ export default function Dashboard() {
                 <b>Associazione dopo lezioni di selezione o già associato nella stagione precedente:</b>
               </p>
               <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-2 mt-2">
-                <li>Nella scheda associati clicca sul tasto <b>Recupera Dati</b>.</li>
-                <li>Invia la domanda di associazione.</li>
-                <li>Effettua il pagamento del contributo associativo.</li>
+                <li>Controlla che il tuo certificato medico sia caricato e in corso di validità.</li>
+                <li>Clicca sul tasto "Recupera Dati".</li>
+                <li>Clicca sul tasto "Invia Domanda di Associazione".</li>
+                <li>Effettua il pagamento del contributo associativo con il metodo da te scelto.</li>
               </ol>
               <Separator className="my-4" />
                <p className="text-sm text-muted-foreground">
@@ -51,7 +52,8 @@ export default function Dashboard() {
                 <li>Prendi visione e accetta i regolamenti nella scheda <b>"Accettazione Regolamenti e Privacy"</b>.</li>
                 <li>Carica il tuo certificato medico nella sezione <b>"Certificato Medico"</b>.</li>
                 <li>Inserisci i tuoi dati e quelli di un genitore se sei minorenne.</li>
-                <li>Effettua il pagamento del contributo associativo.</li>
+                <li>Clicca sul tasto "Invia Domanda di Associazione".</li>
+                <li>Effettua il pagamento del contributo associativo con il metodo da te scelto.</li>
               </ol>
             </div>
           </div>
