@@ -69,6 +69,10 @@ export function MemberSummaryCard() {
                     <span className="font-medium text-foreground">01/01/1980</span>
                 </div>
             </div>
+             <div className="text-sm text-muted-foreground mt-2">
+                <span>Residente in (via, piazza): </span>
+                <span className="font-medium text-foreground">Via del Corso, 1</span>
+            </div>
             <div className="flex items-center pt-2 gap-2">
               <Badge variant="default" className="bg-green-600 hover:bg-green-700">Membro Attivo</Badge>
               <span className="text-sm text-muted-foreground">
