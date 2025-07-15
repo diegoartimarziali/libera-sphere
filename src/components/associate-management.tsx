@@ -69,7 +69,7 @@ export function AssociateManagement() {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Membri Associati</CardTitle>
+            <CardTitle>Associati</CardTitle>
             <CardDescription>
               Gestisci i membri della famiglia o gli associati.
             </CardDescription>
