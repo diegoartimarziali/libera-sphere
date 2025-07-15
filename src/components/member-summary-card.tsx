@@ -105,6 +105,12 @@ export function MemberSummaryCard() {
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600">Valido</Badge>
             </div>
+             <div className="flex items-center pt-2 gap-2">
+              <span className="text-sm text-muted-foreground">
+                Abbonamento ai corsi:
+              </span>
+              <Badge variant="outline" className="border-blue-500 text-blue-600">Stagionale</Badge>
+            </div>
           </div>
         </div>
       </CardContent>
