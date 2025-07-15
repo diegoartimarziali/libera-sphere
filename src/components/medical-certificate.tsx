@@ -54,13 +54,13 @@ export function MedicalCertificate() {
             </Button>
           </>
         ) : (
-          <>
+          <div className="w-full max-w-sm flex flex-col items-center">
             <AlertTriangle className="w-16 h-16 text-destructive" />
-            <p className="font-semibold text-lg">Certificato Mancante</p>
+            <p className="font-semibold text-lg mt-4">Certificato Mancante</p>
             <p className="text-muted-foreground text-sm">
               Carica il tuo certificato per continuare.
             </p>
-            <div className="flex flex-col space-y-2 w-full max-w-sm items-center pt-4">
+            <div className="flex flex-col space-y-2 w-full items-center pt-4">
                <Label htmlFor="expiry-date" className="self-start text-left w-full">Data di Scadenza</Label>
                <Popover>
                 <PopoverTrigger asChild>
@@ -87,10 +87,10 @@ export function MedicalCertificate() {
                 </PopoverContent>
               </Popover>
             </div>
-            <Button className="mt-4" onClick={handleUploadClick} disabled={!expirationDate}>
+            <Button className="mt-4 w-full" onClick={handleUploadClick} disabled={!expirationDate}>
               <Upload className="mr-2 h-4 w-4" /> Carica il Certificato
             </Button>
-          </>
+          </div>
         )}
       </CardContent>
     </Card>
