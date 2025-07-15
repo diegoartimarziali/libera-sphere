@@ -30,7 +30,7 @@ export function MedicalCertificate() {
       <CardHeader>
         <CardTitle>Certificato Medico</CardTitle>
         <CardDescription>
-          Il tuo certificato è richiesto per la partecipazione.
+          Il tuo certificato è richiesto per la partecipazione ai corsi, se non ne sei provvisto/a prenota subito la visita non agonistica presso un centro di medicina dello sport, il tuo medico di base o il pediatra di libera scelta e carica il certificato appena ne sei in possesso.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-grow flex-col items-center justify-center text-center gap-4 p-8">
