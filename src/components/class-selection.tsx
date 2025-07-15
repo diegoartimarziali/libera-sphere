@@ -35,9 +35,11 @@ export function ClassSelection() {
       <CardHeader>
         <CardTitle>Lezioni di Selezione</CardTitle>
         <CardDescription>
-          Tre incontri per capire e farti capire più un Bonus di inizio percorso.
-          Il contributo per le lezioni di selezione è di 30€ che pagherai alla prima lezione.Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali.
+          Tre incontri per capire e farti capire più un Bonus di inizio percorso. 
+          Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali.
           Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
+          <br />
+          <b>Il contributo per le lezioni di selezione è di 30€ che pagherai alla prima lezione.</b>
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
