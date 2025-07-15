@@ -46,7 +46,7 @@ export function EventBooking() {
         </div>
          <div className="rounded-lg border p-4">
             <h3 className="font-semibold text-lg mb-2">Esami</h3>
-            {/* Future exam content can go here */}
+            <p className="text-sm text-muted-foreground">Data Esami:............</p>
         </div>
       </CardContent>
     </Card>
