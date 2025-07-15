@@ -133,23 +133,9 @@ export function AssociateManagement() {
             <DialogHeader>
               <DialogTitle>Domanda di Associazione</DialogTitle>
               <DialogDescription>
-                Inserisci i dettagli per la domanda di associazione.
+                Confermando, invierai la tua domanda di associazione per un nuovo membro.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Nome
-                </Label>
-                <Input id="name" placeholder="Nome Cognome" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">
-                  Email
-                </Label>
-                <Input id="email" type="email" placeholder="nome@example.com" className="col-span-3" />
-              </div>
-            </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Annulla</Button>
               <Button onClick={() => setOpen(false)}>Invia Domanda</Button>
