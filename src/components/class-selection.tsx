@@ -54,10 +54,10 @@ export function ClassSelection() {
               </Select>
             </div>
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="class">Corso</Label>
+              <Label htmlFor="dojo">Dojo di</Label>
               <Select>
-                <SelectTrigger id="class">
-                  <SelectValue placeholder="Seleziona un corso" />
+                <SelectTrigger id="dojo">
+                  <SelectValue placeholder="Seleziona un dojo" />
                 </SelectTrigger>
                 <SelectContent position="popper">
                   <SelectItem value="principianti">Principianti - Lun 18:00</SelectItem>
