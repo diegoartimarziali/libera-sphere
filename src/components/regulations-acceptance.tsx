@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/card"
 import { useToast } from "./ui/use-toast"
 import { Eye, Download } from "lucide-react"
+import { Checkbox } from "./ui/checkbox"
+import { Label } from "./ui/label"
+import { useState } from "react"
 
 const documents = [
   { name: "STATUTO", href: "#" },
@@ -20,12 +23,21 @@ const documents = [
 
 export function RegulationsAcceptance() {
     const { toast } = useToast()
+    const [accepted, setAccepted] = useState(false);
 
     const handleAccept = () => {
-        toast({
-            title: "Regolamenti Accettati",
-            description: "Grazie per aver accettato i nostri termini e regolamenti.",
-        })
+        if (accepted) {
+            toast({
+                title: "Regolamenti Accettati",
+                description: "Grazie per aver accettato i nostri termini e regolamenti.",
+            })
+        } else {
+             toast({
+                title: "Attenzione",
+                description: "Devi dichiarare di aver letto i documenti.",
+                variant: "destructive"
+            })
+        }
     }
 
   return (
@@ -53,8 +65,16 @@ export function RegulationsAcceptance() {
             </div>
         ))}
       </CardContent>
-      <CardFooter className="flex justify-end">
-        <Button onClick={handleAccept}>Accetto i Termini</Button>
+      <CardFooter className="flex-col items-start gap-4">
+        <div className="flex items-center space-x-2">
+            <Checkbox id="terms" onCheckedChange={(checked) => setAccepted(!!checked)} />
+            <Label htmlFor="terms" className="text-sm font-normal text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Dichiaro di aver letto lo Statuto, Il documento sulla Privacy ed il Regolamento.
+            </Label>
+        </div>
+        <div className="w-full flex justify-end">
+            <Button onClick={handleAccept}>Accetto i Termini</Button>
+        </div>
       </CardFooter>
     </Card>
   )
