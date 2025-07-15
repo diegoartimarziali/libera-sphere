@@ -26,7 +26,7 @@ export default function Dashboard() {
             <li>Prendi visione e accetta i regolamenti nella scheda <b>"Accettazione Regolamenti e Privacy"</b>.</li>
             <li>Iscriviti alle lezioni di selezione tramite la scheda <b>"Lezioni di Selezione"</b>.</li>
             <li>Carica il tuo certificato medico nella sezione <b>"Certificato Medico"</b>.</li>
-            <li>Inserisci i tuoi dati.</li>
+            <li>Inserisci i tuoi dati e quelli di un genitore se sei minorenne.</li>
             <li>Verrai contattato telefonicamente per scegliere la tua prima lezione.</li>
           </ol>
         </CardContent>
