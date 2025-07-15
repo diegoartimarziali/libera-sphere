@@ -28,6 +28,7 @@ export default function Dashboard() {
             <li>Carica il tuo certificato medico nella sezione <b>"Certificato Medico"</b>.</li>
             <li>Inserisci i tuoi dati e quelli di un genitore se sei minorenne.</li>
             <li>Verrai contattato telefonicamente per scegliere la tua prima lezione.</li>
+            <li>Effettua il pagamento del contributo di 30€ alla prima lezione.</li>
           </ol>
         </CardContent>
       </Card>
