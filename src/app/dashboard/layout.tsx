@@ -73,7 +73,7 @@ export default function DashboardLayout({
   const navItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "/dashboard/instructions", icon: Info, label: "Istruzioni" },
-    { href: "#", icon: FileText, label: "Regolamenti e Privacy" },
+    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti e Privacy" },
     { href: "#", icon: DumbbellIcon, label: "Lezioni di Selezione" },
     { href: "/dashboard/associates", icon: Users, label: "Associati" },
     { href: "#", icon: HeartPulse, label: "Certificato Medico" },
