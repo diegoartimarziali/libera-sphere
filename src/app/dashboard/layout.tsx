@@ -33,7 +33,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const navItems = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Pannello" },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "#", icon: Dumbbell, label: "Corsi" },
     { href: "#", icon: HeartPulse, label: "Medico" },
     { href: "/dashboard/associates", icon: Users, label: "Associati" },
