@@ -88,7 +88,6 @@ export function MemberSummaryCard() {
               <span className="font-medium text-foreground">01/09/2023</span>
             </div>
             <div className="flex items-center pt-2 gap-2">
-              <Badge variant="default" className="bg-green-600 hover:bg-green-700">Membro Attivo</Badge>
               <span className="text-sm text-muted-foreground">
                 Associazione stagione: 2024/2025
               </span>
