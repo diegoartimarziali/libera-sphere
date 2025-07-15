@@ -16,7 +16,7 @@ export default function Dashboard() {
 
       <Card className="lg:col-span-3 my-4">
         <CardHeader>
-            <CardTitle>Come usare l'app:</CardTitle>
+            <CardTitle>Istruzioni</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
