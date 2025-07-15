@@ -44,13 +44,13 @@ export function MemberSummaryCard() {
       <CardContent>
         <div className="flex items-center space-x-4">
           <Avatar className="h-16 w-16">
-            <AvatarImage src="https://placehold.co/128x128" data-ai-hint="person face" />
-            <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+            <AvatarFallback className="text-3xl font-serif bg-primary/10 text-primary">
+              {randomKanji ? randomKanji : getInitials(userName)}
+            </AvatarFallback>
           </Avatar>
           <div className="grid gap-1">
             <div className="font-semibold text-xl flex items-center gap-2">
               <span>{userName}</span>
-              {randomKanji && <span className="text-primary font-serif" title="Il tuo Kanji del giorno">{randomKanji}</span>}
             </div>
             <div className="text-sm text-muted-foreground">
               {userName.toLowerCase().replace(' ', '.')}@example.com
