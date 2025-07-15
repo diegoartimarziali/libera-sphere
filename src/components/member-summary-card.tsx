@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -107,9 +108,9 @@ export function MemberSummaryCard() {
             </div>
              <div className="flex items-center pt-2 gap-2">
               <span className="text-sm text-muted-foreground">
-                Abbonamento ai corsi:
+                Abbonamento ai corsi: Mensile
               </span>
-              <Badge variant="outline" className="border-blue-500 text-blue-600">Mensile</Badge>
+              <Badge variant="outline" className="border-green-500 text-green-600">Pagato</Badge>
             </div>
           </div>
         </div>
