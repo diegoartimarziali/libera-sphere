@@ -109,7 +109,7 @@ export function MemberSummaryCard() {
               <span className="text-sm text-muted-foreground">
                 Abbonamento ai corsi:
               </span>
-              <Badge variant="outline" className="border-blue-500 text-blue-600">Stagionale</Badge>
+              <Badge variant="outline" className="border-blue-500 text-blue-600">Mensile</Badge>
             </div>
           </div>
         </div>
