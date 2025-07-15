@@ -16,7 +16,7 @@ export default function Dashboard() {
       <div className="lg:col-span-1">
         <MedicalCertificate />
       </div>
-      <div className="lg:col-span-2">
+      <div className="lg:col-span-1">
         <SubscriptionManagement />
       </div>
       <div className="lg:col-span-3">
