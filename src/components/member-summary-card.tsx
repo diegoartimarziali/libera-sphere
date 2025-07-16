@@ -63,7 +63,7 @@ export function MemberSummaryCard() {
             </div>
              <div className="text-foreground text-lg">
               <span>Data prima associazione: </span>
-              <span className="font-medium">01/09/2023</span>
+              <span className="font-medium text-foreground">01/09/2023</span>
             </div>
             <div className="text-muted-foreground text-lg">
               {userName.toLowerCase().replace(' ', '.')}@example.com
@@ -125,6 +125,12 @@ export function MemberSummaryCard() {
                 Partecipazione agli stage:
               </span>
               <Badge variant="outline" className="border-orange-500 text-orange-600 bg-orange-500/10">Media</Badge>
+            </div>
+            <div className="flex items-center pt-2 gap-2 text-lg">
+              <span className="text-muted-foreground">
+                Regolarità allenamenti:
+              </span>
+              <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10">Alta</Badge>
             </div>
           </div>
         </div>
