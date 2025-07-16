@@ -12,9 +12,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { useToast } from "./ui/use-toast"
 import { format } from "date-fns"
+import { useRouter } from "next/navigation"
   
 export function AssociateCard({ setAssociated, setAssociationRequested }: { setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void }) {
     const { toast } = useToast();
+    const router = useRouter();
 
     const handleAssociation = () => {
         const associationDate = format(new Date(), "dd/MM/yyyy");
@@ -34,6 +36,7 @@ export function AssociateCard({ setAssociated, setAssociationRequested }: { setA
             description: `La tua domanda di associazione è stata inviata il ${associationDate}. Riceverai una notifica quando verrà approvata.`,
         });
 
+        router.push('/dashboard');
         // We don't call setAssociated(true) here anymore, as it depends on manual approval.
         // We can refresh the component state if needed, but for now a toast is enough.
     }
