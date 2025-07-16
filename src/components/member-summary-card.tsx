@@ -61,9 +61,9 @@ export function MemberSummaryCard() {
                 <Star className="w-5 h-5 text-muted-foreground/50" />
               </div>
             </div>
-             <div className="text-foreground text-lg">
-              <span>Data prima associazione: </span>
-              <span className="font-medium text-foreground">01/09/2023</span>
+            <div className="text-foreground text-lg">
+                <span className="text-muted-foreground">Data prima associazione: </span>
+                <span className="font-medium text-foreground">01/09/2023</span>
             </div>
             <div className="text-muted-foreground text-lg">
               {userName.toLowerCase().replace(' ', '.')}@example.com
@@ -135,6 +135,12 @@ export function MemberSummaryCard() {
             <div className="flex items-center pt-2 gap-2 text-lg">
               <span className="text-muted-foreground">
                 Taiso:
+              </span>
+              <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10">Buono</Badge>
+            </div>
+             <div className="flex items-center pt-2 gap-2 text-lg">
+              <span className="text-muted-foreground">
+                Kihon:
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10">Buono</Badge>
             </div>
