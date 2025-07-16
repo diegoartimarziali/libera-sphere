@@ -118,7 +118,10 @@ export function ClassSelection() {
     
     const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        const capitalized = value.charAt(0).toUpperCase() + value.slice(1);
+        const capitalized = value
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
         setAddress(capitalized);
     };
     
