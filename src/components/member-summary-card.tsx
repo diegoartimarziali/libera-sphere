@@ -66,12 +66,6 @@ export function MemberSummaryCard() {
               <span className="font-medium">01/09/2023</span>
             </div>
             <div className="text-muted-foreground">
-                <span>Grado attuale: </span>
-                <span className="font-medium text-foreground">Cintura Nera 1° Dan</span>
-                <span className="ml-4">Prossimo esame: </span>
-                <span className="font-medium text-foreground">2° Dan (30/06/2025)</span>
-            </div>
-            <div className="text-muted-foreground">
               {userName.toLowerCase().replace(' ', '.')}@example.com
             </div>
             <div className="text-muted-foreground mt-2">
@@ -125,6 +119,12 @@ export function MemberSummaryCard() {
                 Abbonamento ai corsi: Mensile
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600">Pagato</Badge>
+            </div>
+             <div className="text-muted-foreground">
+                <span>Grado attuale: </span>
+                <span className="font-medium text-foreground">Cintura Nera 1° Dan</span>
+                <span className="ml-4">Prossimo esame: </span>
+                <span className="font-medium text-foreground">2° Dan (30/06/2025)</span>
             </div>
             <div className="flex items-center pt-2 gap-2">
               <span className="text-muted-foreground">
