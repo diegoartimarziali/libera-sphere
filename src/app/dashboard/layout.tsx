@@ -74,6 +74,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const [regulationsAccepted, setRegulationsAccepted] = React.useState(false);
   const [associated, setAssociated] = React.useState(false);
+  const [associationRequested, setAssociationRequested] = React.useState(false);
   const [lessonSelected, setLessonSelected] = React.useState(false);
 
   React.useEffect(() => {
@@ -81,6 +82,8 @@ export default function DashboardLayout({
       const storedRegulations = localStorage.getItem('regulationsAccepted');
       const storedAssociation = localStorage.getItem('associated');
       const storedLessonSelected = localStorage.getItem('lessonSelected');
+      const storedAssociationRequested = localStorage.getItem('associationRequested');
+      
       if (storedRegulations === 'true') {
         setRegulationsAccepted(true);
       }
@@ -89,6 +92,9 @@ export default function DashboardLayout({
       }
       if (storedLessonSelected === 'true') {
         setLessonSelected(true);
+      }
+      if (storedAssociationRequested === 'true') {
+        setAssociationRequested(true);
       }
     }
   }, []);
@@ -106,7 +112,7 @@ export default function DashboardLayout({
     { href: "/dashboard/instructions", icon: Info, label: "Istruzioni", hideWhenAssociated: true },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti e Privacy", hideWhenRegulationsAccepted: true },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni di Selezione", hideWhenLessonSelected: true },
-    { href: "/dashboard/associates", icon: Users, label: "Associati" },
+    { href: "/dashboard/associates", icon: Users, label: "Associati", hideWhenAssociationRequested: true },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico" },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami" },
@@ -126,6 +132,9 @@ export default function DashboardLayout({
     if (item.hideWhenLessonSelected && lessonSelected) {
       return false;
     }
+    if (item.hideWhenAssociationRequested && associationRequested) {
+        return false;
+    }
     return true;
   });
 
@@ -135,7 +144,8 @@ export default function DashboardLayout({
             // @ts-ignore
             setRegulationsAccepted,
             setAssociated,
-            setLessonSelected
+            setLessonSelected,
+            setAssociationRequested,
         });
     }
     return child;

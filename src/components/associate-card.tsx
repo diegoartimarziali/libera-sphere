@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "./ui/use-toast"
 import { format } from "date-fns"
   
-export function AssociateCard({ setAssociated }: { setAssociated?: (value: boolean) => void }) {
+export function AssociateCard({ setAssociated, setAssociationRequested }: { setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void }) {
     const { toast } = useToast();
 
     const handleAssociation = () => {
@@ -23,6 +23,10 @@ export function AssociateCard({ setAssociated }: { setAssociated?: (value: boole
         if (typeof window !== 'undefined') {
             localStorage.setItem('associationRequested', 'true');
             localStorage.setItem('associationRequestDate', associationDate);
+        }
+        
+        if (setAssociationRequested) {
+            setAssociationRequested(true);
         }
         
         toast({

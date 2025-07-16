@@ -5,7 +5,7 @@ import { AssociateCard } from "@/components/associate-card";
 import { AssociateForm } from "@/components/associate-form";
 import { useEffect, useState } from "react";
 
-export default function AssociatesPage({ setRegulationsAccepted, setAssociated }: { setRegulationsAccepted?: (value: boolean) => void, setAssociated?: (value: boolean) => void }) {
+export default function AssociatesPage({ setRegulationsAccepted, setAssociated, setAssociationRequested }: { setRegulationsAccepted?: (value: boolean) => void, setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void }) {
     const [hasUserData, setHasUserData] = useState(false);
 
     useEffect(() => {
@@ -24,7 +24,7 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated }
     return (
         <div>
             {hasUserData ? (
-                <AssociateCard setAssociated={setAssociated} />
+                <AssociateCard setAssociated={setAssociated} setAssociationRequested={setAssociationRequested} />
             ) : (
                 <AssociateForm />
             )}
