@@ -152,6 +152,10 @@ export function ClassSelection() {
                             </PopoverContent>
                         </Popover>
                     </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
+                        <Input id="codice-fiscale" placeholder="RSSMRA80A01H501U" required />
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(1)}>Indietro</Button>
