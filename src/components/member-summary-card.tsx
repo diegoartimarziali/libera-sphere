@@ -50,7 +50,7 @@ export function MemberSummaryCard() {
               {randomKanji ? randomKanji : getInitials(userName)}
             </AvatarFallback>
           </Avatar>
-          <div className="grid gap-1.5 text-base flex-1">
+          <div className="grid gap-1.5 text-lg flex-1">
             <div className="font-semibold text-xl flex items-center gap-2">
               <span>{userName}</span>
               <div className="flex items-center">
@@ -61,9 +61,9 @@ export function MemberSummaryCard() {
                 <Star className="w-5 h-5 text-muted-foreground/50" />
               </div>
             </div>
-             <div className="text-muted-foreground">
+             <div className="text-foreground">
               <span>Data prima associazione: </span>
-              <span className="font-medium text-foreground">01/09/2023</span>
+              <span className="font-medium">01/09/2023</span>
             </div>
             <div className="text-muted-foreground">
                 <span>Grado attuale: </span>
