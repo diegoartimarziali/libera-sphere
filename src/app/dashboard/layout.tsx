@@ -89,7 +89,7 @@ export default function DashboardLayout({
   const allNavItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "/dashboard/instructions", icon: Info, label: "Istruzioni", hideWhenAssociated: true },
-    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti e Privacy" },
+    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti e Privacy", hideWhenRegulationsAccepted: true },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni di Selezione" },
     { href: "/dashboard/associates", icon: Users, label: "Associati" },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico" },
@@ -103,6 +103,9 @@ export default function DashboardLayout({
 
   const navItems = allNavItems.filter(item => {
     if (item.hideWhenAssociated && regulationsAccepted && associated) {
+      return false;
+    }
+    if (item.hideWhenRegulationsAccepted && regulationsAccepted) {
       return false;
     }
     return true;
