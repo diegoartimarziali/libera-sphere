@@ -178,7 +178,7 @@ export function ClassSelection() {
                             </div>
                             <div className="space-y-2">
                                 <Label>Data di nascita:</Label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
                                     <Select onValueChange={setDay} value={day}>
                                         <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
                                         <SelectContent>
