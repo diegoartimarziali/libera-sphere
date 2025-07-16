@@ -46,6 +46,7 @@ export function ClassSelection() {
 
     const [codiceFiscale, setCodiceFiscale] = useState("");
     const [provincia, setProvincia] = useState("");
+    const [birthplace, setBirthplace] = useState("");
 
 
     useEffect(() => {
@@ -93,6 +94,12 @@ export function ClassSelection() {
             .map(word => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
         setName(capitalized);
+    };
+
+    const handleBirthplaceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        const capitalized = value.charAt(0).toUpperCase() + value.slice(1);
+        setBirthplace(capitalized);
     };
     
     const isMinor = useMemo(() => {
@@ -192,7 +199,14 @@ export function ClassSelection() {
                          <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
                              <div className="space-y-2">
                                 <Label htmlFor="birthplace">nato/a a:</Label>
-                                <Input id="birthplace" type="text" placeholder="Roma" required />
+                                <Input 
+                                    id="birthplace" 
+                                    type="text" 
+                                    placeholder="Roma" 
+                                    required 
+                                    value={birthplace}
+                                    onChange={handleBirthplaceChange}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label>Data di nascita:</Label>
