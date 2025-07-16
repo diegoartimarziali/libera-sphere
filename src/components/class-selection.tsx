@@ -36,6 +36,7 @@ export function ClassSelection() {
     const [lessonDate, setLessonDate] = useState("");
     const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
     const [codiceFiscale, setCodiceFiscale] = useState("");
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     const handleNextStep = () => {
         if (currentStep === 1) {
@@ -156,7 +157,7 @@ export function ClassSelection() {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="birthdate">il:</Label>
-                                <Popover>
+                                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                                     <PopoverTrigger asChild>
                                     <Button
                                         id="birthdate"
@@ -174,7 +175,10 @@ export function ClassSelection() {
                                     <Calendar
                                         mode="single"
                                         selected={birthDate}
-                                        onSelect={setBirthDate}
+                                        onSelect={(date) => {
+                                            setBirthDate(date)
+                                            setIsCalendarOpen(false)
+                                        }}
                                         initialFocus
                                         locale={it}
                                         captionLayout="dropdown-buttons"
