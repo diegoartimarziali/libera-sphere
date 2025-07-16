@@ -10,17 +10,25 @@ import {
     CardTitle,
   } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { useToast } from "./ui/use-toast"
+import { format } from "date-fns"
   
 export function AssociateCard({ setAssociated }: { setAssociated?: (value: boolean) => void }) {
+    const { toast } = useToast();
 
     const handleAssociation = () => {
+        const associationDate = format(new Date(), "dd/MM/yyyy");
         if (setAssociated) {
             setAssociated(true);
         }
         if (typeof window !== 'undefined') {
             localStorage.setItem('associated', 'true');
+            localStorage.setItem('associationDate', associationDate);
         }
-        // You might want to show a toast message here as well
+        toast({
+            title: "Domanda Inviata!",
+            description: `La tua domanda di associazione è stata inviata il ${associationDate}.`,
+        });
     }
 
     return (
