@@ -35,7 +35,6 @@ export function ClassSelection() {
     const [dojo, setDojo] = useState("");
     const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
 
-
     const handleNextStep = () => {
         if (currentStep === 1) {
             if (!martialArt || !dojo) {
@@ -59,6 +58,18 @@ export function ClassSelection() {
             description: "Ti sei registrato al corso. Verrai contattato a breve.",
         })
     }
+    
+    let isMinor = false;
+    if (birthDate) {
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        isMinor = age < 18;
+    }
+
 
   return (
     <>
@@ -197,6 +208,20 @@ export function ClassSelection() {
                             <Input id="email-confirm" type="email" placeholder="m@example.com" required />
                         </div>
                     </div>
+
+                    {isMinor && (
+                        <div className="space-y-4 pt-4 mt-4 border-t">
+                            <h3 className="text-lg font-semibold">Dati Genitore o tutore</h3>
+                             <div className="space-y-2">
+                                <Label htmlFor="parent-name">Nome e Cognome Genitore/Tutore</Label>
+                                <Input id="parent-name" placeholder="Paolo Bianchi" required={isMinor} />
+                            </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
+                                <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} />
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(1)}>Indietro</Button>
