@@ -20,6 +20,7 @@ export function MemberSummaryCard() {
   const [randomKanji, setRandomKanji] = useState<string | null>(null);
   const [regulationsAccepted, setRegulationsAccepted] = useState(false);
   const [acceptanceDate, setAcceptanceDate] = useState<string | null>(null);
+  const [lessonDate, setLessonDate] = useState<string | null>(null);
   
 
   useEffect(() => {
@@ -33,7 +34,10 @@ export function MemberSummaryCard() {
         setRegulationsAccepted(true);
         setAcceptanceDate(localStorage.getItem('regulationsAcceptanceDate'));
       }
-      
+      const storedLessonDate = localStorage.getItem('lessonDate');
+      if (storedLessonDate) {
+        setLessonDate(storedLessonDate);
+      }
     }
     // Select a random Kanji on client-side mount to avoid hydration mismatch
     setRandomKanji(kanjiList[Math.floor(Math.random() * kanjiList.length)]);
@@ -100,7 +104,7 @@ export function MemberSummaryCard() {
               </div>
                <div className="text-muted-foreground text-lg">
                     <span>Data prima lezione di selezione: </span>
-                    <span className="font-medium text-foreground">Da definire</span>
+                    <span className="font-medium text-foreground">{lessonDate || 'Da definire'}</span>
                  </div>
                
               <div className="flex items-center pt-2 gap-2 text-lg">

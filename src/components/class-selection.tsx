@@ -31,11 +31,18 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(currentYear - i));
 
+const lessonDatesByDojo: { [key: string]: string[] } = {
+    aosta: ["1 Settembre 2024", "8 Settembre 2024", "15 Settembre 2024"],
+    villeneuve: ["2 Settembre 2024", "9 Settembre 2024", "16 Settembre 2024"],
+    verres: ["3 Settembre 2024", "10 Settembre 2024", "17 Settembre 2024"],
+};
+
 export function ClassSelection() {
     const { toast } = useToast()
     const [currentStep, setCurrentStep] = useState(1);
     const [martialArt, setMartialArt] = useState("");
     const [dojo, setDojo] = useState("");
+    const [lessonDate, setLessonDate] = useState("");
     
     const [name, setName] = useState("");
     const [day, setDay] = useState<string | undefined>(undefined);
@@ -48,15 +55,20 @@ export function ClassSelection() {
     const [birthplace, setBirthplace] = useState("");
     const [address, setAddress] = useState("");
 
+    const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
+
+    useEffect(() => {
+        // Reset lesson date if dojo changes
+        setLessonDate("");
+    }, [dojo]);
 
     useEffect(() => {
         if (day && month && year) {
             const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-            // Check if the created date is valid (e.g. not Feb 30)
             if (date.getFullYear() === parseInt(year) && date.getMonth() === parseInt(month) - 1 && date.getDate() === parseInt(day)) {
                 setBirthDate(date);
             } else {
-                setBirthDate(undefined); // Invalid date
+                setBirthDate(undefined);
             }
         } else {
             setBirthDate(undefined);
@@ -65,22 +77,24 @@ export function ClassSelection() {
 
     const handleNextStep = () => {
         if (currentStep === 1) {
-            if (!martialArt || !dojo) {
+            if (!martialArt || !dojo || !lessonDate) {
                 toast({
                     title: "Attenzione",
-                    description: "Per favore, seleziona un'arte marziale e un dojo.",
+                    description: "Per favore, seleziona un'arte marziale, un dojo e una data.",
                     variant: "destructive",
                 })
                 return;
             }
             setCurrentStep(2);
         } else {
-             // Logic for step 2 to 3 if any, or registration
              handleRegister();
         }
     }
 
     const handleRegister = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('lessonDate', lessonDate);
+        }
         toast({
             title: "Registrazione Riuscita!",
             description: "Ti sei registrato al corso. Verrai contattato a breve.",
@@ -164,12 +178,21 @@ export function ClassSelection() {
                         </SelectContent>
                     </Select>
                     </div>
-                    <div className="flex flex-col space-y-1.5">
-                      <Label>Data prima lezione</Label>
-                      <p className="text-sm text-muted-foreground border rounded-md p-2 bg-muted/50">
-                        Le date saranno definite sulla base della disponibilità dei Dojo di Aosta, Villeneuve e Verres. Verrai contattato telefonicamente.
-                      </p>
-                    </div>
+                    {dojo && (
+                        <div className="flex flex-col space-y-1.5">
+                        <Label htmlFor="lesson-date">Data prima lezione</Label>
+                        <Select onValueChange={setLessonDate} value={lessonDate}>
+                            <SelectTrigger id="lesson-date">
+                            <SelectValue placeholder="Seleziona una data" />
+                            </SelectTrigger>
+                            <SelectContent position="popper">
+                            {availableDates.map(date => (
+                                <SelectItem key={date} value={date}>{date}</SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        </div>
+                    )}
                 </div>
                 </form>
             </CardContent>
@@ -280,7 +303,13 @@ export function ClassSelection() {
                              />
                         </div>
                     </div>
-                    
+                    <div className="space-y-2">
+                        <Label>Data prima lezione di selezione:</Label>
+                        <p className="text-sm text-muted-foreground border rounded-md p-2 bg-muted/50">
+                            {lessonDate || "Nessuna data selezionata"}
+                        </p>
+                    </div>
+
                     {!isMinor && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
