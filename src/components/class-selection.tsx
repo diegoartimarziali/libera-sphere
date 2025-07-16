@@ -111,8 +111,8 @@ export function ClassSelection() {
                         <Input id="name" placeholder="Mario Rossi" required />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" placeholder="m@example.com" required />
+                        <Label htmlFor="birthplace">nato/a a:</Label>
+                        <Input id="birthplace" type="text" placeholder="Roma" required />
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="phone">Telefono</Label>
