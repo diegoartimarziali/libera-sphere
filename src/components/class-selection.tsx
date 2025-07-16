@@ -176,10 +176,11 @@ export function ClassSelection() {
                                         mode="single"
                                         selected={birthDate}
                                         onSelect={(date) => {
-                                            setBirthDate(date);
-                                            setIsCalendarOpen(false);
+                                            if (date) {
+                                                setBirthDate(date);
+                                                setIsCalendarOpen(false);
+                                            }
                                         }}
-                                        initialFocus
                                         locale={it}
                                         captionLayout="dropdown-buttons"
                                         fromYear={1930}
