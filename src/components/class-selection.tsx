@@ -187,6 +187,16 @@ export function ClassSelection() {
                             <Input id="provincia" placeholder="RM" required />
                         </div>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label htmlFor="phone">Numero di telefono:</Label>
+                            <Input id="phone" type="tel" placeholder="3331234567" required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
+                            <Input id="email-confirm" type="email" placeholder="m@example.com" required />
+                        </div>
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(1)}>Indietro</Button>
