@@ -32,7 +32,7 @@ export function MemberSummaryCard() {
   const [lessonDate, setLessonDate] = useState<string | null>(null);
   const [selectedDojo, setSelectedDojo] = useState<string | null>(null);
   const [associationStatus, setAssociationStatus] = useState<'none' | 'requested' | 'approved'>('none');
-  
+  const [associationDate, setAssociationDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -63,13 +63,13 @@ export function MemberSummaryCard() {
 
       if (isApproved) {
         setAssociationStatus('approved');
+        setAssociationDate(localStorage.getItem('associationRequestDate')); // Or a real approval date from DB
       } else if (isRequested) {
         setAssociationStatus('requested');
       } else {
         setAssociationStatus('none');
       }
     }
-    // Select a random Kanji on client-side mount to avoid hydration mismatch
     setRandomKanji(kanjiList[Math.floor(Math.random() * kanjiList.length)]);
   }, []);
 
@@ -91,7 +91,6 @@ export function MemberSummaryCard() {
     }
   }
 
-  // Helper function to simulate manual approval from Firebase
   const simulateApproval = () => {
     if (typeof window !== 'undefined') {
         localStorage.setItem('associationApproved', 'true');
@@ -111,7 +110,6 @@ export function MemberSummaryCard() {
         <CardTitle>Benvenuto, {userName.split(' ')[0]}!</CardTitle>
         <CardDescription>
             Ecco la tua situazione. 
-            {/* This button is for simulation purposes only and can be removed */}
             {associationStatus === 'requested' && <button onClick={simulateApproval} className="ml-4 text-xs p-1 bg-gray-200 rounded">Simula Approvazione</button>}
         </CardDescription>
       </CardHeader>
@@ -127,16 +125,16 @@ export function MemberSummaryCard() {
               <div className="font-semibold text-xl flex items-center gap-2">
                 <span>{userName}</span>
                 <div className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                  <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                  <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                  <Star className="w-5 h-5 text-muted-foreground/50" />
+                  <Star className="w-5 h-5 text-muted-foreground/50" />
+                  <Star className="w-5 h-5 text-muted-foreground/50" />
                   <Star className="w-5 h-5 text-muted-foreground/50" />
                   <Star className="w-5 h-5 text-muted-foreground/50" />
                 </div>
               </div>
               <div className="text-foreground text-lg">
                   <span className="text-muted-foreground">Data prima associazione: </span>
-                  <span className="font-medium text-foreground">01/09/2023</span>
+                  <span className="font-medium text-foreground">{associationDate || "Non definito"}</span>
               </div>
               <div className="text-muted-foreground text-lg">
                 {userName.toLowerCase().replace(' ', '.')}@example.com
@@ -147,19 +145,19 @@ export function MemberSummaryCard() {
               </div>
               <div className="text-muted-foreground text-lg">
                   <span>Nato il: </span>
-                  <span className="font-medium text-foreground">01/01/1980</span>
+                  <span className="font-medium text-foreground">Non definito</span>
               </div>
               <div className="text-muted-foreground mt-2 text-lg">
                   <span>Residente in (via, piazza): </span>
-                  <span className="font-medium text-foreground">Via del Corso, 1</span>
+                  <span className="font-medium text-foreground">Non definito</span>
               </div>
               <div className="text-muted-foreground mt-2 text-lg">
                   <span>Comune: </span>
-                  <span className="font-medium text-foreground">Roma</span>
+                  <span className="font-medium text-foreground">Non definito</span>
               </div>
               <div className="text-muted-foreground text-lg">
                   <span>Provincia: </span>
-                  <span className="font-medium text-foreground">RM</span>
+                  <span className="font-medium text-foreground">Non definito</span>
               </div>
               <div className="text-muted-foreground text-lg">
                     <span>Data prima lezione di selezione: </span>
@@ -188,55 +186,55 @@ export function MemberSummaryCard() {
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
-                  Certificato medico scadenza: 31/08/2025
+                  Certificato medico scadenza:
                 </span>
-                <Badge variant="outline" className="border-green-500 text-green-600">Valido</Badge>
+                <Badge variant="destructive">Mancante</Badge>
               </div>
             </div>
             <div className="grid gap-1.5 text-lg flex-1">
               <div className="text-muted-foreground text-lg">
                   <span>Grado attuale: </span>
-                  <span className="font-medium text-foreground">Cintura Nera 1° Dan</span>
+                  <span className="font-medium text-foreground">Nessuno</span>
               </div>
               <div className="text-muted-foreground text-lg">
                   <span>Prossimo esame: </span>
-                  <span className="font-medium text-foreground">2° Dan (30/06/2025)</span>
+                  <span className="font-medium text-foreground">Nessuno</span>
               </div>
                <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
-                  Abbonamento ai corsi: Mensile
+                  Abbonamento ai corsi:
                 </span>
-                <Badge variant="outline" className="border-green-500 text-green-600">Pagato</Badge>
+                <Badge variant="destructive">Non attivo</Badge>
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
                   Partecipazione agli stage:
                 </span>
-                <Badge variant="outline" className="border-orange-500 text-orange-600 bg-orange-500/10">Media</Badge>
+                <Badge variant="outline" className="border-gray-500 text-gray-600">N/D</Badge>
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
                   Regolarità allenamenti:
                 </span>
-                <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10">Alta</Badge>
+                <Badge variant="outline" className="border-gray-500 text-gray-600">N/D</Badge>
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
                   Taiso:
                 </span>
-                <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10">Buono</Badge>
+                <Badge variant="outline" className="border-gray-500 text-gray-600">N/D</Badge>
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
                   Kihon:
                 </span>
-                <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10">Buono</Badge>
+                <Badge variant="outline" className="border-gray-500 text-gray-600">N/D</Badge>
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
                   Bunkai/Kumite:
                 </span>
-                <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10">Buono</Badge>
+                <Badge variant="outline" className="border-gray-500 text-gray-600">N/D</Badge>
               </div>
             </div>
           </div>
