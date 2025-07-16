@@ -21,6 +21,7 @@ export function MemberSummaryCard() {
   const [regulationsAccepted, setRegulationsAccepted] = useState(false);
   const [acceptanceDate, setAcceptanceDate] = useState<string | null>(null);
   const [lessonDate, setLessonDate] = useState<string | null>(null);
+  const [selectedDojo, setSelectedDojo] = useState<string | null>(null);
   const [associationStatus, setAssociationStatus] = useState<'none' | 'requested' | 'approved'>('none');
   
 
@@ -38,6 +39,10 @@ export function MemberSummaryCard() {
       const storedLessonDate = localStorage.getItem('lessonDate');
       if (storedLessonDate) {
         setLessonDate(storedLessonDate);
+      }
+      const storedDojo = localStorage.getItem('selectedDojo');
+      if (storedDojo) {
+        setSelectedDojo(storedDojo);
       }
       
       const isApproved = localStorage.getItem('associationApproved') === 'true';
@@ -80,6 +85,11 @@ export function MemberSummaryCard() {
         localStorage.removeItem('associationRequested');
         setAssociationStatus('approved');
     }
+  }
+
+  const capitalizeFirstLetter = (string: string | null) => {
+    if (!string) return '';
+    return string.charAt(0).toUpperCase() + string.slice(1);
   }
 
   return (
@@ -138,10 +148,12 @@ export function MemberSummaryCard() {
                   <span>Provincia: </span>
                   <span className="font-medium text-foreground">RM</span>
               </div>
-               <div className="text-muted-foreground text-lg">
+              <div className="text-muted-foreground text-lg">
                     <span>Data prima lezione di selezione: </span>
-                    <span className="font-medium text-foreground">{lessonDate || 'Da definire'}</span>
-                 </div>
+                    <span className="font-medium text-foreground">
+                        {lessonDate ? `${lessonDate} presso il Dojo di ${capitalizeFirstLetter(selectedDojo)}` : 'Da definire'}
+                    </span>
+               </div>
                
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">

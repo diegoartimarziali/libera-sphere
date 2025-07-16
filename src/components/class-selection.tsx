@@ -98,6 +98,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const handleRegister = () => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('lessonDate', lessonDate);
+            localStorage.setItem('selectedDojo', dojo);
             localStorage.setItem('lessonSelected', 'true');
         }
         if (setLessonSelected) {
