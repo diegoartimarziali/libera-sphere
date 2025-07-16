@@ -142,31 +142,39 @@ export function MemberSummaryCard() {
               <div className="text-muted-foreground text-lg">
                 {userName.toLowerCase().replace(' ', '.')}@example.com
               </div>
-              <div className="text-muted-foreground mt-2 text-lg">
+              <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
                 <span>CODICE FISCALE: </span>
-                <span className="font-medium text-foreground">{codiceFiscale || "Non disponibile"}</span>
+                {codiceFiscale ? (
+                    <span className="font-medium text-foreground">{codiceFiscale}</span>
+                ) : (
+                    <Badge variant="destructive">Non disponibile</Badge>
+                )}
               </div>
-              <div className="text-muted-foreground text-lg">
+              <div className="text-muted-foreground text-lg flex items-center gap-2">
                   <span>Nato il: </span>
-                  <span className="font-medium text-foreground">Non definito</span>
+                  <Badge variant="destructive">Non definito</Badge>
               </div>
-              <div className="text-muted-foreground mt-2 text-lg">
+              <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
                   <span>Residente in (via, piazza): </span>
-                  <span className="font-medium text-foreground">Non definito</span>
+                  <Badge variant="destructive">Non definito</Badge>
               </div>
-              <div className="text-muted-foreground mt-2 text-lg">
+              <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
                   <span>Comune: </span>
-                  <span className="font-medium text-foreground">Non definito</span>
+                  <Badge variant="destructive">Non definito</Badge>
               </div>
-              <div className="text-muted-foreground text-lg">
+              <div className="text-muted-foreground text-lg flex items-center gap-2">
                   <span>Provincia: </span>
-                  <span className="font-medium text-foreground">Non definito</span>
+                  <Badge variant="destructive">Non definito</Badge>
               </div>
-              <div className="text-muted-foreground text-lg">
+              <div className="text-muted-foreground text-lg flex items-center gap-2">
                     <span>Data prima lezione di selezione: </span>
-                    <span className="font-medium text-foreground">
-                        {lessonDate ? `${lessonDate} presso il Dojo di ${capitalizeFirstLetter(selectedDojo)}` : 'Da definire'}
-                    </span>
+                    {lessonDate ? (
+                        <span className="font-medium text-foreground">
+                            {`${lessonDate} presso il Dojo di ${capitalizeFirstLetter(selectedDojo)}`}
+                        </span>
+                     ) : (
+                        <Badge variant="destructive">Da definire</Badge>
+                     )}
                </div>
                
               <div className="flex items-center pt-2 gap-2 text-lg">
