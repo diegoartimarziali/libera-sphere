@@ -203,13 +203,13 @@ export function MemberSummaryCard() {
               </div>
             </div>
             <div className="grid gap-1.5 text-lg flex-1">
-              <div className="text-muted-foreground text-lg">
+              <div className="text-muted-foreground text-lg flex items-center gap-2">
                   <span>Grado attuale: </span>
-                  <span className="font-medium text-foreground">Nessuno</span>
+                  <Badge variant="destructive">Nessuno</Badge>
               </div>
-              <div className="text-muted-foreground text-lg">
+              <div className="text-muted-foreground text-lg flex items-center gap-2">
                   <span>Prossimo esame: </span>
-                  <span className="font-medium text-foreground">Nessuno</span>
+                  <Badge variant="destructive">Nessuno</Badge>
               </div>
                <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
@@ -221,31 +221,31 @@ export function MemberSummaryCard() {
                 <span className="text-muted-foreground">
                   Partecipazione agli stage:
                 </span>
-                <Badge variant="outline" className="border-gray-500 text-gray-600">N/D</Badge>
+                <Badge variant="destructive">N/D</Badge>
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
                   Regolarità allenamenti:
                 </span>
-                <Badge variant="outline" className="border-gray-500 text-gray-600">N/D</Badge>
+                <Badge variant="destructive">N/D</Badge>
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
                   Taiso:
                 </span>
-                <Badge variant="outline" className="border-gray-500 text-gray-600">N/D</Badge>
+                <Badge variant="destructive">N/D</Badge>
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
                   Kihon:
                 </span>
-                <Badge variant="outline" className="border-gray-500 text-gray-600">N/D</Badge>
+                <Badge variant="destructive">N/D</Badge>
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
                   Bunkai/Kumite:
                 </span>
-                <Badge variant="outline" className="border-gray-500 text-gray-600">N/D</Badge>
+                <Badge variant="destructive">N/D</Badge>
               </div>
             </div>
           </div>
