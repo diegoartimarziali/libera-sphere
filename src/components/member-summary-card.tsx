@@ -15,6 +15,14 @@ import { Star } from "lucide-react"
 
 const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'];
 
+const capitalizeName = (name: string) => {
+    if (!name) return "";
+    return name
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+};
+
 export function MemberSummaryCard() {
   const [userName, setUserName] = useState("Utente");
   const [codiceFiscale, setCodiceFiscale] = useState<string | null>(null);
@@ -30,7 +38,7 @@ export function MemberSummaryCard() {
     if (typeof window !== 'undefined') {
       const storedName = localStorage.getItem("userName");
       if (storedName) {
-        setUserName(storedName);
+        setUserName(capitalizeName(storedName));
       }
       const storedCF = localStorage.getItem("codiceFiscale");
       if (storedCF) {
