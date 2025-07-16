@@ -20,6 +20,7 @@ export function MemberSummaryCard() {
   const [randomKanji, setRandomKanji] = useState<string | null>(null);
   const [regulationsAccepted, setRegulationsAccepted] = useState(false);
   const [acceptanceDate, setAcceptanceDate] = useState<string | null>(null);
+  const [selectedLessonDate, setSelectedLessonDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -31,6 +32,10 @@ export function MemberSummaryCard() {
       if (storedRegulations === 'true') {
         setRegulationsAccepted(true);
         setAcceptanceDate(localStorage.getItem('regulationsAcceptanceDate'));
+      }
+      const storedLessonDate = localStorage.getItem('selectedLessonDate');
+      if (storedLessonDate) {
+        setSelectedLessonDate(storedLessonDate);
       }
     }
     // Select a random Kanji on client-side mount to avoid hydration mismatch
@@ -96,6 +101,12 @@ export function MemberSummaryCard() {
                   <span>Provincia: </span>
                   <span className="font-medium text-foreground">RM</span>
               </div>
+               {selectedLessonDate && (
+                 <div className="text-muted-foreground text-lg">
+                    <span>Data prima lezione di selezione: </span>
+                    <span className="font-medium text-foreground">{selectedLessonDate}</span>
+                 </div>
+               )}
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
                   Regolamento, Statuto e Privacy:

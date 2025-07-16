@@ -80,8 +80,21 @@ export function ClassSelection() {
              handleRegister();
         }
     }
+
+    const lessonDateOptions = [
+        { value: "date-1", label: "Data 1" },
+        { value: "date-2", label: "Data 2" },
+        { value: "date-3", label: "Data 3" },
+    ]
+
+    const selectedLessonDateLabel = useMemo(() => {
+        return lessonDateOptions.find(opt => opt.value === lessonDate)?.label;
+    }, [lessonDate]);
     
     const handleRegister = () => {
+        if (typeof window !== 'undefined' && selectedLessonDateLabel) {
+            localStorage.setItem('selectedLessonDate', selectedLessonDateLabel);
+        }
         toast({
             title: "Registrazione Riuscita!",
             description: "Ti sei registrato al corso. Verrai contattato a breve.",
@@ -119,17 +132,6 @@ export function ClassSelection() {
         }
         return age < 18;
     }, [birthDate]);
-
-    const lessonDateOptions = [
-        { value: "date-1", label: "Data 1" },
-        { value: "date-2", label: "Data 2" },
-        { value: "date-3", label: "Data 3" },
-    ]
-
-    const selectedLessonDateLabel = useMemo(() => {
-        return lessonDateOptions.find(opt => opt.value === lessonDate)?.label;
-    }, [lessonDate]);
-
 
   return (
     <>
@@ -297,7 +299,7 @@ export function ClassSelection() {
                         </div>
                     </div>
                     {selectedLessonDateLabel && (
-                        <div className="space-y-2">
+                        <div className="space-y-2 pt-2">
                             <Label>Data prima lezione di selezione</Label>
                             <Input value={selectedLessonDateLabel} readOnly disabled />
                         </div>
@@ -348,5 +350,3 @@ export function ClassSelection() {
     </>
   )
 }
-
-    
