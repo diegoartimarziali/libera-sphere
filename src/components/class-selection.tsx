@@ -156,13 +156,15 @@ export function ClassSelection() {
                         <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
                         <Input id="codice-fiscale" placeholder="RSSMRA80A01H501U" required />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="address">Residente in:</Label>
-                        <Input id="address" placeholder="Via, Piazza, etc." required />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="civic-number">N° civico:</Label>
-                        <Input id="civic-number" placeholder="12/A" required />
+                    <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="address">Residente in:</Label>
+                            <Input id="address" placeholder="Via, Piazza, etc." required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="civic-number">N° civico:</Label>
+                            <Input id="civic-number" placeholder="12/A" required />
+                        </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
