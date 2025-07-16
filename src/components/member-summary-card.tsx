@@ -26,6 +26,10 @@ const capitalizeName = (name: string) => {
 export function MemberSummaryCard() {
   const [userName, setUserName] = useState("Utente");
   const [codiceFiscale, setCodiceFiscale] = useState<string | null>(null);
+  const [birthDateString, setBirthDateString] = useState<string | null>(null);
+  const [address, setAddress] = useState<string | null>(null);
+  const [comune, setComune] = useState<string | null>(null);
+  const [provincia, setProvincia] = useState<string | null>(null);
   const [randomKanji, setRandomKanji] = useState<string | null>(null);
   const [regulationsAccepted, setRegulationsAccepted] = useState(false);
   const [acceptanceDate, setAcceptanceDate] = useState<string | null>(null);
@@ -40,10 +44,12 @@ export function MemberSummaryCard() {
       if (storedName) {
         setUserName(capitalizeName(storedName));
       }
-      const storedCF = localStorage.getItem("codiceFiscale");
-      if (storedCF) {
-        setCodiceFiscale(storedCF);
-      }
+      setCodiceFiscale(localStorage.getItem("codiceFiscale"));
+      setBirthDateString(localStorage.getItem("birthDate"));
+      setAddress(localStorage.getItem("address"));
+      setComune(localStorage.getItem("comune"));
+      setProvincia(localStorage.getItem("provincia"));
+
       const storedRegulations = localStorage.getItem('regulationsAccepted');
       if (storedRegulations === 'true') {
         setRegulationsAccepted(true);
@@ -152,19 +158,35 @@ export function MemberSummaryCard() {
               </div>
               <div className="text-muted-foreground text-lg flex items-center gap-2">
                   <span>Nato il: </span>
-                  <Badge variant="destructive">Non definito</Badge>
+                  {birthDateString ? (
+                    <span className="font-medium text-foreground">{birthDateString}</span>
+                  ) : (
+                    <Badge variant="destructive">Non definito</Badge>
+                  )}
               </div>
               <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
                   <span>Residente in (via, piazza): </span>
-                  <Badge variant="destructive">Non definito</Badge>
+                  {address ? (
+                    <span className="font-medium text-foreground">{address}</span>
+                  ) : (
+                    <Badge variant="destructive">Non definito</Badge>
+                  )}
               </div>
               <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
                   <span>Comune: </span>
-                  <Badge variant="destructive">Non definito</Badge>
+                  {comune ? (
+                    <span className="font-medium text-foreground">{comune}</span>
+                  ) : (
+                    <Badge variant="destructive">Non definito</Badge>
+                  )}
               </div>
               <div className="text-muted-foreground text-lg flex items-center gap-2">
                   <span>Provincia: </span>
-                  <Badge variant="destructive">Non definito</Badge>
+                  {provincia ? (
+                    <span className="font-medium text-foreground">{provincia}</span>
+                  ) : (
+                    <Badge variant="destructive">Non definito</Badge>
+                  )}
               </div>
               <div className="text-muted-foreground text-lg flex items-center gap-2">
                     <span>Data prima lezione di selezione: </span>

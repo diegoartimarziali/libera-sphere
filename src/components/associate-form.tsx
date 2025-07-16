@@ -46,6 +46,7 @@ export function AssociateForm() {
     const [provincia, setProvincia] = useState("");
     const [birthplace, setBirthplace] = useState("");
     const [address, setAddress] = useState("");
+    const [comune, setComune] = useState("");
     const [parentName, setParentName] = useState("");
     const [parentEmail, setParentEmail] = useState("");
 
@@ -67,6 +68,12 @@ export function AssociateForm() {
         if (typeof window !== 'undefined') {
             localStorage.setItem('userName', name);
             localStorage.setItem('codiceFiscale', codiceFiscale);
+            if (birthDate) {
+                localStorage.setItem('birthDate', `${day}/${month}/${year}`);
+            }
+            localStorage.setItem('address', address);
+            localStorage.setItem('comune', comune);
+            localStorage.setItem('provincia', provincia);
             // Mark as having submitted data
             localStorage.setItem('lessonSelected', 'true'); // Using this as a proxy for data submission
         }
@@ -214,7 +221,13 @@ export function AssociateForm() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="comune">Comune:</Label>
-                    <Input id="comune" placeholder="Roma" required />
+                    <Input 
+                        id="comune" 
+                        placeholder="Roma" 
+                        required 
+                        value={comune}
+                        onChange={(e) => setComune(e.target.value)}
+                    />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="provincia">Provincia:</Label>

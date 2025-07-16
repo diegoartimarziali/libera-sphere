@@ -56,6 +56,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [provincia, setProvincia] = useState("");
     const [birthplace, setBirthplace] = useState("");
     const [address, setAddress] = useState("");
+    const [comune, setComune] = useState("");
     const [parentName, setParentName] = useState("");
     const [parentEmail, setParentEmail] = useState("");
 
@@ -101,6 +102,12 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             localStorage.setItem('codiceFiscale', codiceFiscale);
             localStorage.setItem('lessonDate', lessonDate);
             localStorage.setItem('selectedDojo', dojo);
+            if (birthDate) {
+                localStorage.setItem('birthDate', `${day}/${month}/${year}`);
+            }
+            localStorage.setItem('address', address);
+            localStorage.setItem('comune', comune);
+            localStorage.setItem('provincia', provincia);
             localStorage.setItem('lessonSelected', 'true');
         }
         if (setLessonSelected) {
@@ -315,7 +322,13 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="comune">Comune:</Label>
-                            <Input id="comune" placeholder="Roma" required />
+                            <Input 
+                                id="comune" 
+                                placeholder="Roma" 
+                                required 
+                                value={comune}
+                                onChange={(e) => setComune(e.target.value)}
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="provincia">Provincia:</Label>

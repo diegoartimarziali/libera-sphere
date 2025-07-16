@@ -15,7 +15,7 @@ const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
         xmlns="http://www.w3.org/2000/svg" 
         width="24" 
         height="24" 
-        viewBox="0 0 24 24" 
+        viewBox="0 0 24" 
         fill="currentColor"
         {...props}>
         <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" fontSize="24" fontFamily="serif">
@@ -31,6 +31,7 @@ export default function AuthPage() {
   const handleLogin = () => {
     // In a real app, you would fetch user data. For this prototype, we'll use a default name.
     if (typeof window !== 'undefined') {
+        localStorage.clear(); // Clear previous session
         localStorage.setItem('userName', 'Alex Doe');
     }
     router.push('/dashboard');
@@ -38,6 +39,7 @@ export default function AuthPage() {
 
   const handleSignup = () => {
     if (typeof window !== 'undefined' && name) {
+      localStorage.clear(); // Clear previous session
       localStorage.setItem('userName', name);
     }
     router.push('/dashboard');
