@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -18,14 +19,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/components/ui/use-toast"
 import { useState } from "react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar } from "@/components/ui/calendar"
+import { format } from "date-fns"
+import { it } from "date-fns/locale"
+import { cn } from "@/lib/utils"
+import { Calendar as CalendarIcon } from "lucide-react"
 
 export function ClassSelection() {
     const { toast } = useToast()
     const [currentStep, setCurrentStep] = useState(1);
     const [martialArt, setMartialArt] = useState("");
     const [dojo, setDojo] = useState("");
+    const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
 
 
     const handleNextStep = () => {
@@ -115,8 +123,34 @@ export function ClassSelection() {
                         <Input id="birthplace" type="text" placeholder="Roma" required />
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="phone">il:</Label>
-                        <Input id="phone" type="tel" placeholder="3331234567" required />
+                        <Label htmlFor="birthdate">il:</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                            <Button
+                                id="birthdate"
+                                variant={"outline"}
+                                className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !birthDate && "text-muted-foreground"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {birthDate ? format(birthDate, "PPP", { locale: it }) : <span>Seleziona una data</span>}
+                            </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                            <Calendar
+                                mode="single"
+                                selected={birthDate}
+                                onSelect={setBirthDate}
+                                initialFocus
+                                locale={it}
+                                captionLayout="dropdown-buttons"
+                                fromYear={1930}
+                                toYear={new Date().getFullYear()}
+                            />
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
