@@ -25,7 +25,7 @@ export function AssociateCard() {
             </CardContent>
             <CardFooter className="flex flex-col items-end gap-2">
                 <Button>Fai Domanda di Associazione</Button>
-                <Button variant="outline">Recupera Dati</Button>
+                <Button variant="outline">elimina</Button>
             </CardFooter>
         </Card>
     )
