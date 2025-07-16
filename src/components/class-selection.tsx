@@ -114,45 +114,45 @@ export function ClassSelection() {
                     <CardDescription>Completa con le tue informazioni per finalizzare l'iscrizione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nome e Cognome</Label>
+                        <Input id="name" placeholder="Mario Rossi" required />
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <div className="space-y-2">
-                            <Label htmlFor="name">Nome e Cognome</Label>
-                            <Input id="name" placeholder="Mario Rossi" required />
-                        </div>
                         <div className="space-y-2">
                             <Label htmlFor="birthplace">nato/a a:</Label>
                             <Input id="birthplace" type="text" placeholder="Roma" required />
                         </div>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="birthdate">il:</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                            <Button
-                                id="birthdate"
-                                variant={"outline"}
-                                className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !birthDate && "text-muted-foreground"
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {birthDate ? format(birthDate, "PPP", { locale: it }) : <span>Seleziona una data</span>}
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                            <Calendar
-                                mode="single"
-                                selected={birthDate}
-                                onSelect={setBirthDate}
-                                initialFocus
-                                locale={it}
-                                captionLayout="dropdown-buttons"
-                                fromYear={1930}
-                                toYear={new Date().getFullYear()}
-                            />
-                            </PopoverContent>
-                        </Popover>
+                        <div className="space-y-2">
+                            <Label htmlFor="birthdate">il:</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                <Button
+                                    id="birthdate"
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !birthDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {birthDate ? format(birthDate, "PPP", { locale: it }) : <span>Seleziona una data</span>}
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                <Calendar
+                                    mode="single"
+                                    selected={birthDate}
+                                    onSelect={setBirthDate}
+                                    initialFocus
+                                    locale={it}
+                                    captionLayout="dropdown-buttons"
+                                    fromYear={1930}
+                                    toYear={new Date().getFullYear()}
+                                />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
