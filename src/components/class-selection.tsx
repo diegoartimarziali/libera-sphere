@@ -75,7 +75,7 @@ export function ClassSelection() {
         </form>
       </CardContent>
       <CardFooter className="flex justify-end">
-        <Button onClick={handleRegister}>Registrati</Button>
+        <Button onClick={handleRegister}>Avanti</Button>
       </CardFooter>
     </Card>
   )
