@@ -61,6 +61,10 @@ export function MemberSummaryCard() {
                 <Star className="w-5 h-5 text-muted-foreground/50" />
               </div>
             </div>
+             <div className="text-muted-foreground">
+              <span>Data prima associazione: </span>
+              <span className="font-medium text-foreground">01/09/2023</span>
+            </div>
             <div className="text-muted-foreground">
                 <span>Grado attuale: </span>
                 <span className="font-medium text-foreground">Cintura Nera 1° Dan</span>
@@ -97,10 +101,6 @@ export function MemberSummaryCard() {
                     <span>Provincia: </span>
                     <span className="font-medium text-foreground">RM</span>
                 </div>
-            </div>
-            <div className="text-muted-foreground mt-2">
-              <span>Data prima associazione: </span>
-              <span className="font-medium text-foreground">01/09/2023</span>
             </div>
             <div className="flex items-center pt-2 gap-2">
               <span className="text-muted-foreground">
