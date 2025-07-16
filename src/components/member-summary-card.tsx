@@ -78,7 +78,7 @@ export function MemberSummaryCard() {
                     <span className="font-medium text-foreground">Roma</span>
                 </div>
                 <div>
-                    <span>Il: </span>
+                    <span>Nato il: </span>
                     <span className="font-medium text-foreground">01/01/1980</span>
                 </div>
             </div>
