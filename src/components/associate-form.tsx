@@ -66,6 +66,7 @@ export function AssociateForm() {
         // Here you would typically send the data to a backend/Firebase
         if (typeof window !== 'undefined') {
             localStorage.setItem('userName', name);
+            localStorage.setItem('codiceFiscale', codiceFiscale);
             // Mark as having submitted data
             localStorage.setItem('lessonSelected', 'true'); // Using this as a proxy for data submission
         }

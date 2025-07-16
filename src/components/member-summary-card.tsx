@@ -17,6 +17,7 @@ const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'
 
 export function MemberSummaryCard() {
   const [userName, setUserName] = useState("Utente");
+  const [codiceFiscale, setCodiceFiscale] = useState<string | null>(null);
   const [randomKanji, setRandomKanji] = useState<string | null>(null);
   const [regulationsAccepted, setRegulationsAccepted] = useState(false);
   const [acceptanceDate, setAcceptanceDate] = useState<string | null>(null);
@@ -30,6 +31,10 @@ export function MemberSummaryCard() {
       const storedName = localStorage.getItem("userName");
       if (storedName) {
         setUserName(storedName);
+      }
+      const storedCF = localStorage.getItem("codiceFiscale");
+      if (storedCF) {
+        setCodiceFiscale(storedCF);
       }
       const storedRegulations = localStorage.getItem('regulationsAccepted');
       if (storedRegulations === 'true') {
@@ -130,7 +135,7 @@ export function MemberSummaryCard() {
               </div>
               <div className="text-muted-foreground mt-2 text-lg">
                 <span>CODICE FISCALE: </span>
-                <span className="font-medium text-foreground">RSSMRA80A01H501U</span>
+                <span className="font-medium text-foreground">{codiceFiscale || "Non disponibile"}</span>
               </div>
               <div className="text-muted-foreground text-lg">
                   <span>Nato il: </span>
