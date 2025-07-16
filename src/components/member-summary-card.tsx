@@ -109,12 +109,6 @@ export function MemberSummaryCard() {
               </div>
             </div>
             <div className="grid gap-1.5 text-lg flex-1">
-              <div className="flex items-center pt-2 gap-2 text-lg">
-                <span className="text-muted-foreground">
-                  Abbonamento ai corsi: Mensile
-                </span>
-                <Badge variant="outline" className="border-green-500 text-green-600">Pagato</Badge>
-              </div>
               <div className="text-muted-foreground text-lg">
                   <span>Grado attuale: </span>
                   <span className="font-medium text-foreground">Cintura Nera 1° Dan</span>
@@ -122,6 +116,12 @@ export function MemberSummaryCard() {
               <div className="text-muted-foreground text-lg">
                   <span>Prossimo esame: </span>
                   <span className="font-medium text-foreground">2° Dan (30/06/2025)</span>
+              </div>
+               <div className="flex items-center pt-2 gap-2 text-lg">
+                <span className="text-muted-foreground">
+                  Abbonamento ai corsi: Mensile
+                </span>
+                <Badge variant="outline" className="border-green-500 text-green-600">Pagato</Badge>
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
