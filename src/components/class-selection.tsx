@@ -185,6 +185,11 @@ export function ClassSelection() {
                                         captionLayout="dropdown-buttons"
                                         fromYear={1930}
                                         toYear={new Date().getFullYear()}
+                                        classNames={{
+                                            nav_button: "hidden",
+                                            day_today: "bg-transparent text-foreground",
+                                        }}
+                                        initialFocus
                                     />
                                     </PopoverContent>
                                 </Popover>
