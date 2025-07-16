@@ -150,7 +150,7 @@ export function ClassSelection() {
                             <Input id="name" placeholder="Mario Rossi" required />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
+                             <div className="space-y-2">
                                 <Label htmlFor="birthplace">nato/a a:</Label>
                                 <Input id="birthplace" type="text" placeholder="Roma" required />
                             </div>
@@ -184,6 +184,7 @@ export function ClassSelection() {
                                     </PopoverContent>
                                 </Popover>
                             </div>
+                           
                         </div>
                     </div>
                      <div className="space-y-2">
