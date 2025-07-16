@@ -37,17 +37,22 @@ export function ClassSelection() {
 
 
     const handleNextStep = () => {
-        if (!martialArt || !dojo) {
-            toast({
-                title: "Attenzione",
-                description: "Per favore, seleziona un'arte marziale e un dojo.",
-                variant: "destructive",
-            })
-            return;
+        if (currentStep === 1) {
+            if (!martialArt || !dojo) {
+                toast({
+                    title: "Attenzione",
+                    description: "Per favore, seleziona un'arte marziale e un dojo.",
+                    variant: "destructive",
+                })
+                return;
+            }
+            setCurrentStep(2);
+        } else {
+             // Logic for step 2 to 3 if any, or registration
+             handleRegister();
         }
-        setCurrentStep(2);
     }
-
+    
     const handleRegister = () => {
         toast({
             title: "Registrazione Riuscita!",
@@ -166,6 +171,20 @@ export function ClassSelection() {
                         <div className="space-y-2">
                             <Label htmlFor="civic-number">N° civico:</Label>
                             <Input id="civic-number" placeholder="12/A" required />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="cap">C.A.P.:</Label>
+                            <Input id="cap" placeholder="00100" required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="comune">Comune:</Label>
+                            <Input id="comune" placeholder="Roma" required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="provincia">Provincia:</Label>
+                            <Input id="provincia" placeholder="RM" required />
                         </div>
                     </div>
                 </CardContent>
