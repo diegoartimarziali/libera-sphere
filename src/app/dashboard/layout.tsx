@@ -27,6 +27,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useRouter } from "next/navigation"
 
 // Custom Dumbbell Icon
 const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -70,6 +71,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  const router = useRouter();
   const [regulationsAccepted, setRegulationsAccepted] = React.useState(false);
   const [associated, setAssociated] = React.useState(false);
   const [lessonSelected, setLessonSelected] = React.useState(false);
@@ -90,6 +92,14 @@ export default function DashboardLayout({
       }
     }
   }, []);
+  
+  const handleLogout = (e: React.MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      if (typeof window !== 'undefined') {
+          localStorage.clear();
+      }
+      router.push('/');
+  };
 
   const allNavItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
@@ -103,7 +113,7 @@ export default function DashboardLayout({
   ]
   
   const bottomNavItems = [
-    { href: "/", icon: LogOut, label: "Esci" },
+    { href: "/", icon: LogOut, label: "Esci", onClick: handleLogout },
   ]
 
   const navItems = allNavItems.filter(item => {
@@ -160,6 +170,7 @@ export default function DashboardLayout({
               <Link
                 key={item.label}
                 href={item.href}
+                onClick={item.onClick}
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
                 <item.icon className="h-4 w-4" />
@@ -201,6 +212,7 @@ export default function DashboardLayout({
                     <Link
                         key={item.label}
                         href={item.href}
+                        onClick={item.onClick}
                         className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                     >
                         <item.icon className="h-5 w-5" />
