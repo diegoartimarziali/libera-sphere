@@ -179,7 +179,7 @@ export function ClassSelection() {
                     </Select>
                     </div>
                     <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor="lesson-date">Date da definirsi</Label>
+                      <Label htmlFor="lesson-date">data prima lezione</Label>
                       <Select onValueChange={setLessonDate} value={lessonDate}>
                         <SelectTrigger id="lesson-date">
                           <SelectValue placeholder="Seleziona una data" />
