@@ -22,6 +22,7 @@ import {
 import { useToast } from "@/components/ui/use-toast"
 import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
+import { useRouter } from "next/navigation"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -37,8 +38,9 @@ const lessonDatesByDojo: { [key: string]: string[] } = {
     verres: ["3 Settembre 2024", "10 Settembre 2024", "17 Settembre 2024"],
 };
 
-export function ClassSelection() {
+export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (value: boolean) => void }) {
     const { toast } = useToast()
+    const router = useRouter()
     const [currentStep, setCurrentStep] = useState(1);
     const [martialArt, setMartialArt] = useState("");
     const [dojo, setDojo] = useState("");
@@ -96,11 +98,16 @@ export function ClassSelection() {
     const handleRegister = () => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('lessonDate', lessonDate);
+            localStorage.setItem('lessonSelected', 'true');
+        }
+        if (setLessonSelected) {
+            setLessonSelected(true);
         }
         toast({
             title: "Registrazione Riuscita!",
             description: "Ti sei registrato al corso. Verrai contattato a breve.",
         })
+        router.push('/dashboard');
     }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {

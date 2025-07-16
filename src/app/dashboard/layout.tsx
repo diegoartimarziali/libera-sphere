@@ -72,16 +72,21 @@ export default function DashboardLayout({
 }) {
   const [regulationsAccepted, setRegulationsAccepted] = React.useState(false);
   const [associated, setAssociated] = React.useState(false);
+  const [lessonSelected, setLessonSelected] = React.useState(false);
 
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedRegulations = localStorage.getItem('regulationsAccepted');
       const storedAssociation = localStorage.getItem('associated');
+      const storedLessonSelected = localStorage.getItem('lessonSelected');
       if (storedRegulations === 'true') {
         setRegulationsAccepted(true);
       }
       if (storedAssociation === 'true') {
         setAssociated(true);
+      }
+      if (storedLessonSelected === 'true') {
+        setLessonSelected(true);
       }
     }
   }, []);
@@ -90,7 +95,7 @@ export default function DashboardLayout({
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "/dashboard/instructions", icon: Info, label: "Istruzioni", hideWhenAssociated: true },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti e Privacy", hideWhenRegulationsAccepted: true },
-    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni di Selezione" },
+    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni di Selezione", hideWhenLessonSelected: true },
     { href: "/dashboard/associates", icon: Users, label: "Associati" },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico" },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
@@ -108,6 +113,9 @@ export default function DashboardLayout({
     if (item.hideWhenRegulationsAccepted && regulationsAccepted) {
       return false;
     }
+    if (item.hideWhenLessonSelected && lessonSelected) {
+      return false;
+    }
     return true;
   });
 
@@ -116,7 +124,8 @@ export default function DashboardLayout({
         return React.cloneElement(child, {
             // @ts-ignore
             setRegulationsAccepted,
-            setAssociated
+            setAssociated,
+            setLessonSelected
         });
     }
     return child;
