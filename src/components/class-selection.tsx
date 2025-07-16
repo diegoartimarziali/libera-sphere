@@ -47,6 +47,7 @@ export function ClassSelection() {
     const [codiceFiscale, setCodiceFiscale] = useState("");
     const [provincia, setProvincia] = useState("");
     const [birthplace, setBirthplace] = useState("");
+    const [address, setAddress] = useState("");
 
 
     useEffect(() => {
@@ -91,15 +92,21 @@ export function ClassSelection() {
         const value = e.target.value;
         const capitalized = value
             .split(' ')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ');
         setName(capitalized);
     };
 
     const handleBirthplaceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
-        const capitalized = value.charAt(0).toUpperCase() + value.slice(1);
+        const capitalized = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
         setBirthplace(capitalized);
+    };
+    
+    const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        const capitalized = value.charAt(0).toUpperCase() + value.slice(1);
+        setAddress(capitalized);
     };
     
     const isMinor = useMemo(() => {
@@ -246,7 +253,13 @@ export function ClassSelection() {
                     <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="address">Residente in:</Label>
-                            <Input id="address" placeholder="Via, Piazza, etc." required />
+                            <Input 
+                                id="address" 
+                                placeholder="Via, Piazza, etc." 
+                                required 
+                                value={address}
+                                onChange={handleAddressChange}
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="civic-number">N° civico:</Label>
