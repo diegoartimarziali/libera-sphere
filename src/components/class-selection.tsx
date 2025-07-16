@@ -55,6 +55,7 @@ export function ClassSelection() {
     const [birthplace, setBirthplace] = useState("");
     const [address, setAddress] = useState("");
     const [parentName, setParentName] = useState("");
+    const [parentEmail, setParentEmail] = useState("");
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
 
@@ -134,6 +135,10 @@ export function ClassSelection() {
             .join(' ');
         setParentName(capitalized);
     };
+
+    const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setParentEmail(e.target.value.toLowerCase());
+    }
     
     const isMinor = useMemo(() => {
         if (!birthDate) return false;
@@ -351,7 +356,14 @@ export function ClassSelection() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
-                                    <Input id="parent-email-confirm" type="email" placeholder="m@example.com" required={isMinor} />
+                                    <Input 
+                                        id="parent-email-confirm" 
+                                        type="email" 
+                                        placeholder="m@example.com" 
+                                        required={isMinor}
+                                        value={parentEmail}
+                                        onChange={handleParentEmailChange}
+                                     />
                                 </div>
                             </div>
                         </div>
