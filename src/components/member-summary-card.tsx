@@ -18,12 +18,19 @@ const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'
 export function MemberSummaryCard() {
   const [userName, setUserName] = useState("Utente");
   const [randomKanji, setRandomKanji] = useState<string | null>(null);
+  const [regulationsAccepted, setRegulationsAccepted] = useState(false);
+  const [acceptanceDate, setAcceptanceDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedName = localStorage.getItem("userName");
       if (storedName) {
         setUserName(storedName);
+      }
+      const storedRegulations = localStorage.getItem('regulationsAccepted');
+      if (storedRegulations === 'true') {
+        setRegulationsAccepted(true);
+        setAcceptanceDate(localStorage.getItem('regulationsAcceptanceDate'));
       }
     }
     // Select a random Kanji on client-side mount to avoid hydration mismatch
@@ -93,7 +100,13 @@ export function MemberSummaryCard() {
                 <span className="text-muted-foreground">
                   Regolamento, Statuto e Privacy:
                 </span>
-                <Badge variant="outline" className="border-green-500 text-green-600">Accettati</Badge>
+                {regulationsAccepted ? (
+                    <Badge variant="outline" className="border-green-500 text-green-600">
+                        Accettati il {acceptanceDate}
+                    </Badge>
+                ) : (
+                    <Badge variant="destructive">Non Accettati</Badge>
+                )}
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">

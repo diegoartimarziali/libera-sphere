@@ -15,6 +15,7 @@ import { Eye, Download } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Label } from "./ui/label"
 import { useState } from "react"
+import { format } from "date-fns"
 
 const documents = [
   { name: "STATUTO", href: "#" },
@@ -28,15 +29,17 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
 
     const handleAccept = () => {
         if (accepted) {
+            const acceptanceDate = format(new Date(), "dd/MM/yyyy");
             toast({
                 title: "Regolamenti Accettati",
-                description: "Grazie per aver accettato i nostri termini e regolamenti.",
+                description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
             })
             if (setRegulationsAccepted) {
                 setRegulationsAccepted(true);
             }
             if (typeof window !== 'undefined') {
                 localStorage.setItem('regulationsAccepted', 'true');
+                localStorage.setItem('regulationsAcceptanceDate', acceptanceDate);
             }
         } else {
              toast({
