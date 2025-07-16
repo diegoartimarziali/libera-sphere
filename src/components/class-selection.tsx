@@ -54,6 +54,7 @@ export function ClassSelection() {
     const [provincia, setProvincia] = useState("");
     const [birthplace, setBirthplace] = useState("");
     const [address, setAddress] = useState("");
+    const [parentName, setParentName] = useState("");
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
 
@@ -123,6 +124,15 @@ export function ClassSelection() {
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ');
         setAddress(capitalized);
+    };
+
+    const handleParentNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        const capitalized = value
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+        setParentName(capitalized);
     };
     
     const isMinor = useMemo(() => {
@@ -322,7 +332,13 @@ export function ClassSelection() {
                             <h3 className="text-lg font-semibold">Dati Genitore o tutore</h3>
                              <div className="space-y-2">
                                 <Label htmlFor="parent-name">Nome e Cognome Genitore/Tutore</Label>
-                                <Input id="parent-name" placeholder="Paolo Bianchi" required={isMinor} />
+                                <Input 
+                                    id="parent-name" 
+                                    placeholder="Paolo Bianchi" 
+                                    required={isMinor} 
+                                    value={parentName}
+                                    onChange={handleParentNameChange}
+                                />
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
