@@ -72,15 +72,9 @@ export function MemberSummaryCard() {
               <span>CODICE FISCALE: </span>
               <span className="font-medium text-foreground">RSSMRA80A01H501U</span>
             </div>
-            <div className="grid grid-cols-2 gap-4 text-muted-foreground mt-2 text-lg">
-                <div>
-                    <span>Nato a: </span>
-                    <span className="font-medium text-foreground">Roma</span>
-                </div>
-                <div>
-                    <span>Nato il: </span>
-                    <span className="font-medium text-foreground">01/01/1980</span>
-                </div>
+            <div className="text-muted-foreground text-lg">
+                <span>Nato il: </span>
+                <span className="font-medium text-foreground">01/01/1980</span>
             </div>
              <div className="text-muted-foreground mt-2 text-lg">
                 <span>Residente in (via, piazza): </span>
@@ -90,7 +84,7 @@ export function MemberSummaryCard() {
                 <span>Comune: </span>
                 <span className="font-medium text-foreground">Roma</span>
             </div>
-            <div className="text-muted-foreground mt-2 text-lg">
+             <div className="text-muted-foreground text-lg">
                 <span>Provincia: </span>
                 <span className="font-medium text-foreground">RM</span>
             </div>
