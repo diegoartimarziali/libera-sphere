@@ -115,7 +115,7 @@ export function ClassSelection() {
                         <Input id="birthplace" type="text" placeholder="Roma" required />
                     </div>
                      <div className="space-y-2">
-                        <Label htmlFor="phone">Telefono</Label>
+                        <Label htmlFor="phone">il:</Label>
                         <Input id="phone" type="tel" placeholder="3331234567" required />
                     </div>
                 </CardContent>
