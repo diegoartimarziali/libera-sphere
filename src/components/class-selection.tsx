@@ -38,6 +38,7 @@ export function ClassSelection() {
     const [dojo, setDojo] = useState("");
     const [lessonDate, setLessonDate] = useState("");
     
+    const [name, setName] = useState("");
     const [day, setDay] = useState<string | undefined>(undefined);
     const [month, setMonth] = useState<string | undefined>(undefined);
     const [year, setYear] = useState<string | undefined>(undefined);
@@ -84,6 +85,15 @@ export function ClassSelection() {
             description: "Ti sei registrato al corso. Verrai contattato a breve.",
         })
     }
+
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        const capitalized = value
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        setName(capitalized);
+    };
     
     const isMinor = useMemo(() => {
         if (!birthDate) return false;
@@ -171,7 +181,13 @@ export function ClassSelection() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="name">Nome e Cognome</Label>
-                            <Input id="name" placeholder="Mario Rossi" required />
+                            <Input 
+                                id="name" 
+                                placeholder="Mario Rossi" 
+                                required 
+                                value={name}
+                                onChange={handleNameChange}
+                            />
                         </div>
                          <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
                              <div className="space-y-2">
