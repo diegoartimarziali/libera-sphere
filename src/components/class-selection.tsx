@@ -107,10 +107,9 @@ export function ClassSelection() {
                         <SelectValue placeholder="Seleziona un dojo" />
                         </SelectTrigger>
                         <SelectContent position="popper">
-                        <SelectItem value="principianti">Principianti - Lun 18:00</SelectItem>
-                        <SelectItem value="intermedi">Intermedi - Mar 19:00</SelectItem>
-                        <SelectItem value="avanzati">Avanzati - Mer 17:30</SelectItem>
-                        <SelectItem value="agonisti">Agonisti - Gio 19:00</SelectItem>
+                        <SelectItem value="aosta">Aosta</SelectItem>
+                        <SelectItem value="villeneuve">Villeneuve</SelectItem>
+                        <SelectItem value="verres">Verres</SelectItem>
                         </SelectContent>
                     </Select>
                     </div>
