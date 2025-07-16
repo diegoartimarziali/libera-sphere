@@ -20,13 +20,16 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { useState, useMemo } from "react"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { format } from "date-fns"
+import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
-import { cn } from "@/lib/utils"
-import { Calendar as CalendarIcon } from "lucide-react"
+
+const months = Array.from({ length: 12 }, (_, i) => ({
+  value: String(i + 1),
+  label: it.localize?.month(i, { width: 'wide' }),
+}));
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(currentYear - i));
 
 export function ClassSelection() {
     const { toast } = useToast()
@@ -34,9 +37,27 @@ export function ClassSelection() {
     const [martialArt, setMartialArt] = useState("");
     const [dojo, setDojo] = useState("");
     const [lessonDate, setLessonDate] = useState("");
+    
+    const [day, setDay] = useState<string | undefined>(undefined);
+    const [month, setMonth] = useState<string | undefined>(undefined);
+    const [year, setYear] = useState<string | undefined>(undefined);
     const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
+
     const [codiceFiscale, setCodiceFiscale] = useState("");
-    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+
+    useEffect(() => {
+        if (day && month && year) {
+            const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            // Check if the created date is valid (e.g. not Feb 30)
+            if (date.getFullYear() === parseInt(year) && date.getMonth() === parseInt(month) - 1 && date.getDate() === parseInt(day)) {
+                setBirthDate(date);
+            } else {
+                setBirthDate(undefined); // Invalid date
+            }
+        } else {
+            setBirthDate(undefined);
+        }
+    }, [day, month, year]);
 
     const handleNextStep = () => {
         if (currentStep === 1) {
@@ -156,43 +177,27 @@ export function ClassSelection() {
                                 <Input id="birthplace" type="text" placeholder="Roma" required />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="birthdate">il:</Label>
-                                <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                                    <PopoverTrigger asChild>
-                                    <Button
-                                        id="birthdate"
-                                        variant={"outline"}
-                                        className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !birthDate && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {birthDate ? format(birthDate, "PPP", { locale: it }) : <span>Seleziona una data</span>}
-                                    </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                        mode="single"
-                                        selected={birthDate}
-                                        onSelect={(date) => {
-                                            if (date) {
-                                                setBirthDate(date);
-                                                setIsCalendarOpen(false);
-                                            }
-                                        }}
-                                        locale={it}
-                                        captionLayout="dropdown-buttons"
-                                        fromYear={1930}
-                                        toYear={new Date().getFullYear()}
-                                        classNames={{
-                                            nav_button: "hidden",
-                                            day_today: "bg-transparent text-foreground",
-                                        }}
-                                        initialFocus
-                                    />
-                                    </PopoverContent>
-                                </Popover>
+                                <Label>Data di nascita:</Label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <Select onValueChange={setDay} value={day}>
+                                        <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                        <SelectContent>
+                                            {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select onValueChange={setMonth} value={month}>
+                                        <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                        <SelectContent>
+                                            {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select onValueChange={setYear} value={year}>
+                                        <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                        <SelectContent>
+                                            {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
                            
                         </div>
