@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { format } from "date-fns"
@@ -62,16 +62,16 @@ export function ClassSelection() {
         })
     }
     
-    let isMinor = false;
-    if (birthDate) {
+    const isMinor = useMemo(() => {
+        if (!birthDate) return false;
         const today = new Date();
         let age = today.getFullYear() - birthDate.getFullYear();
         const m = today.getMonth() - birthDate.getMonth();
         if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
             age--;
         }
-        isMinor = age < 18;
-    }
+        return age < 18;
+    }, [birthDate]);
 
 
   return (
@@ -176,8 +176,8 @@ export function ClassSelection() {
                                         mode="single"
                                         selected={birthDate}
                                         onSelect={(date) => {
-                                            setBirthDate(date)
-                                            setIsCalendarOpen(false)
+                                            setBirthDate(date);
+                                            setIsCalendarOpen(false);
                                         }}
                                         initialFocus
                                         locale={it}
