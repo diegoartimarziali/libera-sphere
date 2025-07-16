@@ -35,6 +35,7 @@ export function ClassSelection() {
     const [dojo, setDojo] = useState("");
     const [lessonDate, setLessonDate] = useState("");
     const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
+    const [codiceFiscale, setCodiceFiscale] = useState("");
 
     const handleNextStep = () => {
         if (currentStep === 1) {
@@ -187,7 +188,13 @@ export function ClassSelection() {
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
-                        <Input id="codice-fiscale" placeholder="RSSMRA80A01H501U" required />
+                        <Input 
+                            id="codice-fiscale" 
+                            placeholder="RSSMRA80A01H501U" 
+                            required
+                            value={codiceFiscale}
+                            onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+                        />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
                         <div className="space-y-2">
