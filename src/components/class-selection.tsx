@@ -33,14 +33,15 @@ export function ClassSelection() {
     const [currentStep, setCurrentStep] = useState(1);
     const [martialArt, setMartialArt] = useState("");
     const [dojo, setDojo] = useState("");
+    const [lessonDate, setLessonDate] = useState("");
     const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
 
     const handleNextStep = () => {
         if (currentStep === 1) {
-            if (!martialArt || !dojo) {
+            if (!martialArt || !dojo || !lessonDate) {
                 toast({
                     title: "Attenzione",
-                    description: "Per favore, seleziona un'arte marziale e un dojo.",
+                    description: "Per favore, seleziona un'arte marziale, un dojo e una data.",
                     variant: "destructive",
                 })
                 return;
@@ -112,6 +113,19 @@ export function ClassSelection() {
                         <SelectItem value="verres">Verres</SelectItem>
                         </SelectContent>
                     </Select>
+                    </div>
+                    <div className="flex flex-col space-y-1.5">
+                      <Label htmlFor="lesson-date">Date da definirsi</Label>
+                      <Select onValueChange={setLessonDate} value={lessonDate}>
+                        <SelectTrigger id="lesson-date">
+                          <SelectValue placeholder="Seleziona una data" />
+                        </SelectTrigger>
+                        <SelectContent position="popper">
+                          <SelectItem value="date-1">Data 1</SelectItem>
+                          <SelectItem value="date-2">Data 2</SelectItem>
+                          <SelectItem value="date-3">Data 3</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                 </div>
                 </form>
