@@ -18,17 +18,20 @@ export function AssociateCard({ setAssociated }: { setAssociated?: (value: boole
 
     const handleAssociation = () => {
         const associationDate = format(new Date(), "dd/MM/yyyy");
-        if (setAssociated) {
-            setAssociated(true);
-        }
+        // In a real app, this would trigger a request to the backend.
+        // For this prototype, we'll set a state in localStorage to indicate a request has been made.
         if (typeof window !== 'undefined') {
-            localStorage.setItem('associated', 'true');
-            localStorage.setItem('associationDate', associationDate);
+            localStorage.setItem('associationRequested', 'true');
+            localStorage.setItem('associationRequestDate', associationDate);
         }
+        
         toast({
             title: "Domanda Inviata!",
-            description: `La tua domanda di associazione è stata inviata il ${associationDate}.`,
+            description: `La tua domanda di associazione è stata inviata il ${associationDate}. Riceverai una notifica quando verrà approvata.`,
         });
+
+        // We don't call setAssociated(true) here anymore, as it depends on manual approval.
+        // We can refresh the component state if needed, but for now a toast is enough.
     }
 
     return (
