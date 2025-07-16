@@ -44,13 +44,13 @@ export function MemberSummaryCard() {
         <CardDescription>Ecco la tua situazione.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-16 w-16">
-            <AvatarFallback className="text-3xl font-serif bg-primary/10 text-primary">
+        <div className="flex items-start space-x-6">
+          <Avatar className="h-24 w-24">
+            <AvatarFallback className="text-5xl font-serif bg-primary/10 text-primary">
               {randomKanji ? randomKanji : getInitials(userName)}
             </AvatarFallback>
           </Avatar>
-          <div className="grid gap-1.5 text-base">
+          <div className="grid gap-1.5 text-base flex-1">
             <div className="font-semibold text-xl flex items-center gap-2">
               <span>{userName}</span>
               <div className="flex items-center">
@@ -116,7 +116,7 @@ export function MemberSummaryCard() {
             </div>
             <div className="flex items-center pt-2 gap-2">
               <span className="text-muted-foreground">
-                certificato medico scadenza: 31/08/2025
+                Certificato medico scadenza: 31/08/2025
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600">Valido</Badge>
             </div>
