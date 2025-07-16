@@ -42,11 +42,12 @@ export function EventBooking() {
                     </SelectContent>
                 </Select>
             </div>
-            <Button className="w-full font-bold">Domanda di Partecipazione</Button>
+            <Button className="w-full font-bold">Iscriviti</Button>
         </div>
-         <div className="rounded-lg border p-4">
-            <h3 className="font-semibold text-lg mb-2">Esami</h3>
+         <div className="rounded-lg border p-4 space-y-4">
+            <h3 className="font-semibold text-lg">Esami</h3>
             <p className="text-sm text-muted-foreground">Data Esami:............</p>
+            <Button className="w-full font-bold">Domanda di Partecipazione</Button>
         </div>
       </CardContent>
     </Card>
