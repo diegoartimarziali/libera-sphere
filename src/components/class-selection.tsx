@@ -36,7 +36,6 @@ export function ClassSelection() {
     const [currentStep, setCurrentStep] = useState(1);
     const [martialArt, setMartialArt] = useState("");
     const [dojo, setDojo] = useState("");
-    const [lessonDate, setLessonDate] = useState("");
     
     const [name, setName] = useState("");
     const [day, setDay] = useState<string | undefined>(undefined);
@@ -66,10 +65,10 @@ export function ClassSelection() {
 
     const handleNextStep = () => {
         if (currentStep === 1) {
-            if (!martialArt || !dojo || !lessonDate) {
+            if (!martialArt || !dojo) {
                 toast({
                     title: "Attenzione",
-                    description: "Per favore, seleziona un'arte marziale, un dojo e una data.",
+                    description: "Per favore, seleziona un'arte marziale e un dojo.",
                     variant: "destructive",
                 })
                 return;
@@ -81,20 +80,7 @@ export function ClassSelection() {
         }
     }
 
-    const lessonDateOptions = [
-        { value: "date-1", label: "Data 1" },
-        { value: "date-2", label: "Data 2" },
-        { value: "date-3", label: "Data 3" },
-    ]
-
-    const selectedLessonDateLabel = useMemo(() => {
-        return lessonDateOptions.find(opt => opt.value === lessonDate)?.label;
-    }, [lessonDate]);
-    
     const handleRegister = () => {
-        if (typeof window !== 'undefined' && selectedLessonDateLabel) {
-            localStorage.setItem('selectedLessonDate', selectedLessonDateLabel);
-        }
         toast({
             title: "Registrazione Riuscita!",
             description: "Ti sei registrato al corso. Verrai contattato a breve.",
@@ -179,17 +165,10 @@ export function ClassSelection() {
                     </Select>
                     </div>
                     <div className="flex flex-col space-y-1.5">
-                      <Label htmlFor="lesson-date">data prima lezione</Label>
-                      <Select onValueChange={setLessonDate} value={lessonDate}>
-                        <SelectTrigger id="lesson-date">
-                          <SelectValue placeholder="Seleziona una data" />
-                        </SelectTrigger>
-                        <SelectContent position="popper">
-                          {lessonDateOptions.map(opt => (
-                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label>Data prima lezione</Label>
+                      <p className="text-sm text-muted-foreground border rounded-md p-2 bg-muted/50">
+                        Le date saranno definite sulla base della disponibilità dei Dojo di Aosta, Villeneuve e Verres. Verrai contattato telefonicamente.
+                      </p>
                     </div>
                 </div>
                 </form>
@@ -301,12 +280,7 @@ export function ClassSelection() {
                              />
                         </div>
                     </div>
-                    {selectedLessonDateLabel && (
-                        <div className="space-y-2 pt-2">
-                            <Label>Data prima lezione di selezione</Label>
-                            <Input value={selectedLessonDateLabel} readOnly disabled />
-                        </div>
-                    )}
+                    
                     {!isMinor && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
