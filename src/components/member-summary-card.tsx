@@ -132,6 +132,12 @@ export function MemberSummaryCard() {
               </span>
               <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10">Alta</Badge>
             </div>
+            <div className="flex items-center pt-2 gap-2 text-lg">
+              <span className="text-muted-foreground">
+                Taiso:
+              </span>
+              <Badge variant="outline" className="border-green-500 text-green-600 bg-green-500/10">Buono</Badge>
+            </div>
           </div>
         </div>
       </CardContent>
