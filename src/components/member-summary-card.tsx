@@ -134,7 +134,7 @@ export function MemberSummaryCard() {
               </div>
               <div className="text-foreground text-lg">
                   <span className="text-muted-foreground">Data prima associazione: </span>
-                  <span className="font-medium text-foreground">{associationDate || "Non definito"}</span>
+                  <span className={`font-medium ${!associationDate ? 'text-destructive' : 'text-foreground'}`}>{associationDate || "Non definito"}</span>
               </div>
               <div className="text-muted-foreground text-lg">
                 {userName.toLowerCase().replace(' ', '.')}@example.com
