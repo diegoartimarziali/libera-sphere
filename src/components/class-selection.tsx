@@ -44,6 +44,8 @@ export function ClassSelection() {
     const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
 
     const [codiceFiscale, setCodiceFiscale] = useState("");
+    const [provincia, setProvincia] = useState("");
+
 
     useEffect(() => {
         if (day && month && year) {
@@ -232,7 +234,13 @@ export function ClassSelection() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="provincia">Provincia:</Label>
-                            <Input id="provincia" placeholder="RM" required />
+                            <Input 
+                                id="provincia" 
+                                placeholder="RM" 
+                                required 
+                                value={provincia}
+                                onChange={(e) => setProvincia(e.target.value.toUpperCase())}
+                             />
                         </div>
                     </div>
                     {!isMinor && (
