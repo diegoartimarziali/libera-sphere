@@ -120,6 +120,16 @@ export function ClassSelection() {
         return age < 18;
     }, [birthDate]);
 
+    const lessonDateOptions = [
+        { value: "date-1", label: "Data 1" },
+        { value: "date-2", label: "Data 2" },
+        { value: "date-3", label: "Data 3" },
+    ]
+
+    const selectedLessonDateLabel = useMemo(() => {
+        return lessonDateOptions.find(opt => opt.value === lessonDate)?.label;
+    }, [lessonDate]);
+
 
   return (
     <>
@@ -170,9 +180,9 @@ export function ClassSelection() {
                           <SelectValue placeholder="Seleziona una data" />
                         </SelectTrigger>
                         <SelectContent position="popper">
-                          <SelectItem value="date-1">Data 1</SelectItem>
-                          <SelectItem value="date-2">Data 2</SelectItem>
-                          <SelectItem value="date-3">Data 3</SelectItem>
+                          {lessonDateOptions.map(opt => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -286,6 +296,12 @@ export function ClassSelection() {
                              />
                         </div>
                     </div>
+                    {selectedLessonDateLabel && (
+                        <div className="space-y-2">
+                            <Label>Data prima lezione di selezione</Label>
+                            <Input value={selectedLessonDateLabel} readOnly disabled />
+                        </div>
+                    )}
                     {!isMinor && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -332,3 +348,5 @@ export function ClassSelection() {
     </>
   )
 }
+
+    
