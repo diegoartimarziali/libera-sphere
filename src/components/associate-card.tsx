@@ -1,3 +1,4 @@
+
 "use client"
 
 import {
@@ -10,7 +11,18 @@ import {
   } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
   
-export function AssociateCard() {
+export function AssociateCard({ setAssociated }: { setAssociated?: (value: boolean) => void }) {
+
+    const handleAssociation = () => {
+        if (setAssociated) {
+            setAssociated(true);
+        }
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('associated', 'true');
+        }
+        // You might want to show a toast message here as well
+    }
+
     return (
         <Card className="h-full flex flex-col">
             <CardHeader>
@@ -24,7 +36,7 @@ export function AssociateCard() {
                 </p>
             </CardContent>
             <CardFooter className="flex flex-col items-end gap-2">
-                <Button>Fai Domanda di Associazione</Button>
+                <Button onClick={handleAssociation}>Fai Domanda di Associazione</Button>
             </CardFooter>
         </Card>
     )

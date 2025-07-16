@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +22,7 @@ const documents = [
   { name: "REGOLAMENTO", href: "#" },
 ]
 
-export function RegulationsAcceptance() {
+export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulationsAccepted?: (value: boolean) => void }) {
     const { toast } = useToast()
     const [accepted, setAccepted] = useState(false);
 
@@ -31,6 +32,12 @@ export function RegulationsAcceptance() {
                 title: "Regolamenti Accettati",
                 description: "Grazie per aver accettato i nostri termini e regolamenti.",
             })
+            if (setRegulationsAccepted) {
+                setRegulationsAccepted(true);
+            }
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('regulationsAccepted', 'true');
+            }
         } else {
              toast({
                 title: "Attenzione",

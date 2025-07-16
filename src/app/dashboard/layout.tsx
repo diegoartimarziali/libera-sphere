@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -69,9 +70,25 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const navItems = [
+  const [regulationsAccepted, setRegulationsAccepted] = React.useState(false);
+  const [associated, setAssociated] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedRegulations = localStorage.getItem('regulationsAccepted');
+      const storedAssociation = localStorage.getItem('associated');
+      if (storedRegulations === 'true') {
+        setRegulationsAccepted(true);
+      }
+      if (storedAssociation === 'true') {
+        setAssociated(true);
+      }
+    }
+  }, []);
+
+  const allNavItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
-    { href: "/dashboard/instructions", icon: Info, label: "Istruzioni" },
+    { href: "/dashboard/instructions", icon: Info, label: "Istruzioni", hideWhenAssociated: true },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti e Privacy" },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni di Selezione" },
     { href: "/dashboard/associates", icon: Users, label: "Associati" },
@@ -83,6 +100,24 @@ export default function DashboardLayout({
   const bottomNavItems = [
     { href: "/", icon: LogOut, label: "Esci" },
   ]
+
+  const navItems = allNavItems.filter(item => {
+    if (item.hideWhenAssociated && regulationsAccepted && associated) {
+      return false;
+    }
+    return true;
+  });
+
+  const childrenWithProps = React.Children.map(children, child => {
+    if (React.isValidElement(child)) {
+        return React.cloneElement(child, {
+            // @ts-ignore
+            setRegulationsAccepted,
+            setAssociated
+        });
+    }
+    return child;
+  });
 
 
   return (
@@ -165,7 +200,7 @@ export default function DashboardLayout({
           </Sheet>
         </header>
         <main className="flex-1 p-4 sm:px-6 sm:py-0 space-y-4">
-            {children}
+            {childrenWithProps}
         </main>
       </div>
     </div>
