@@ -303,12 +303,6 @@ export function ClassSelection() {
                              />
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <Label>Data prima lezione di selezione:</Label>
-                        <p className="text-sm text-muted-foreground border rounded-md p-2 bg-muted/50">
-                            {lessonDate || "Nessuna data selezionata"}
-                        </p>
-                    </div>
 
                     {!isMinor && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
