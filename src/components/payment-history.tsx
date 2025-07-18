@@ -22,7 +22,6 @@ import { db } from "@/lib/firebase"
 import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
-import { Skeleton } from "./ui/skeleton"
 
 interface Subscription {
   id: string;
@@ -106,7 +105,10 @@ export function PaymentHistory() {
         ) : error ? (
           <p className="text-destructive">{error}</p>
         ) : subscriptions.length === 0 ? (
-          <p className="text-muted-foreground">Nessun pagamento trovato.</p>
+          <div>
+            <p className="text-muted-foreground">Nessun pagamento trovato.</p>
+            <h3 className="text-lg font-semibold mt-4">Seleziona la modalità di pagamento</h3>
+          </div>
         ) : (
           <Table>
             <TableHeader>
