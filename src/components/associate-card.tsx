@@ -23,23 +23,64 @@ export function AssociateCard({ setAssociated, setAssociationRequested }: { setA
         name: '',
         codiceFiscale: '',
         birthDate: '',
+        birthplace: '',
         address: '',
+        civicNumber: '',
+        cap: '',
         comune: '',
         provincia: '',
+        phone: '',
+        email: '',
     });
+
+    const [parentData, setParentData] = useState({
+        name: '',
+        cf: '',
+        phone: '',
+        email: '',
+    });
+
+    const [isMinor, setIsMinor] = useState(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
+            const birthDateStr = localStorage.getItem('birthDate');
+            if (birthDateStr) {
+                const [day, month, year] = birthDateStr.split('/');
+                const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
+                const today = new Date();
+                let age = today.getFullYear() - birthDateObj.getFullYear();
+                const m = today.getMonth() - birthDateObj.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
+                    age--;
+                }
+                setIsMinor(age < 18);
+            }
+
             setUserData({
                 name: localStorage.getItem('userName') || '',
                 codiceFiscale: localStorage.getItem('codiceFiscale') || '',
                 birthDate: localStorage.getItem('birthDate') || '',
+                birthplace: localStorage.getItem('birthplace') || '',
                 address: localStorage.getItem('address') || '',
+                civicNumber: localStorage.getItem('civicNumber') || '',
+                cap: localStorage.getItem('cap') || '',
                 comune: localStorage.getItem('comune') || '',
                 provincia: localStorage.getItem('provincia') || '',
+                phone: localStorage.getItem('phone') || '',
+                email: localStorage.getItem('registrationEmail') || '',
             });
+
+            if (isMinor) {
+                 setParentData({
+                    name: localStorage.getItem('parentName') || '',
+                    cf: localStorage.getItem('parentCf') || '',
+                    phone: localStorage.getItem('parentPhone') || '',
+                    email: localStorage.getItem('parentEmail') || '',
+                });
+            }
         }
-    }, []);
+    }, [isMinor]);
 
     const handleAssociation = () => {
         const associationDate = format(new Date(), "dd/MM/yyyy");
@@ -69,11 +110,27 @@ export function AssociateCard({ setAssociated, setAssociationRequested }: { setA
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
-                <div className="space-y-2 text-sm text-muted-foreground">
-                    <p><b>Nome e Cognome:</b> {userData.name || 'Non specificato'}</p>
-                    <p><b>Codice Fiscale:</b> {userData.codiceFiscale || 'Non specificato'}</p>
-                    <p><b>Data di Nascita:</b> {userData.birthDate || 'Non specificata'}</p>
-                    <p><b>Residenza:</b> {`${userData.address || ''}, ${userData.comune || ''} (${userData.provincia || ''})` || 'Non specificata'}</p>
+                <div className="space-y-4 text-sm text-muted-foreground">
+                    <div>
+                        <h4 className="font-semibold text-base mb-2 text-foreground">Dati Allievo</h4>
+                        <p><b>Nome e Cognome:</b> {userData.name || 'Non specificato'}</p>
+                        <p><b>Nato/a il:</b> {userData.birthDate || 'Non specificata'} <b>a:</b> {userData.birthplace || 'Non specificato'}</p>
+                        <p><b>Codice Fiscale:</b> {userData.codiceFiscale || 'Non specificato'}</p>
+                        <p><b>Residenza:</b> {`${userData.address || ''}, ${userData.civicNumber || ''} - ${userData.cap || ''} ${userData.comune || ''} (${userData.provincia || ''})` || 'Non specificata'}</p>
+                        {!isMinor && <p><b>Telefono:</b> {userData.phone || 'Non specificato'}</p>}
+                        <p><b>Email:</b> {userData.email || 'Non specificata'}</p>
+                    </div>
+
+                    {isMinor && (
+                        <div>
+                            <Separator className="my-4" />
+                            <h4 className="font-semibold text-base mb-2 text-foreground">Dati Genitore/Tutore</h4>
+                            <p><b>Nome e Cognome:</b> {parentData.name || 'Non specificato'}</p>
+                            <p><b>Codice Fiscale:</b> {parentData.cf || 'Non specificato'}</p>
+                            <p><b>Telefono:</b> {parentData.phone || 'Non specificato'}</p>
+                            <p><b>Email di contatto:</b> {parentData.email || 'Non specificata'}</p>
+                        </div>
+                    )}
                 </div>
                 <Separator />
                 <p className="text-sm text-muted-foreground">

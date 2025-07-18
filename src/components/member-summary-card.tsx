@@ -37,6 +37,9 @@ export function MemberSummaryCard() {
   const [selectedDojo, setSelectedDojo] = useState<string | null>(null);
   const [associationStatus, setAssociationStatus] = useState<'none' | 'requested' | 'approved'>('none');
   const [associationDate, setAssociationDate] = useState<string | null>(null);
+  const [birthplace, setBirthplace] = useState<string | null>(null);
+  const [civicNumber, setCivicNumber] = useState<string | null>(null);
+  const [cap, setCap] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -46,7 +49,10 @@ export function MemberSummaryCard() {
       }
       setCodiceFiscale(localStorage.getItem("codiceFiscale"));
       setBirthDateString(localStorage.getItem("birthDate"));
+      setBirthplace(localStorage.getItem("birthplace"));
       setAddress(localStorage.getItem("address"));
+      setCivicNumber(localStorage.getItem("civicNumber"));
+      setCap(localStorage.getItem("cap"));
       setComune(localStorage.getItem("comune"));
       setProvincia(localStorage.getItem("provincia"));
 
@@ -72,6 +78,7 @@ export function MemberSummaryCard() {
         setAssociationDate(localStorage.getItem('associationRequestDate')); // Or a real approval date from DB
       } else if (isRequested) {
         setAssociationStatus('requested');
+        setAssociationDate(localStorage.getItem('associationRequestDate'));
       } else {
         setAssociationStatus('none');
       }
@@ -144,7 +151,7 @@ export function MemberSummaryCard() {
               <div className="text-foreground text-lg flex items-center gap-2">
                   <span className="text-muted-foreground">Data prima associazione: </span>
                   {associationDate ? 
-                    <span className="font-medium text-foreground">{associationDate}</span> : 
+                    <Badge variant="outline" className="border-green-500 text-green-600">{associationDate}</Badge> : 
                     <Badge variant="destructive">Non definito</Badge>
                   }
               </div>
@@ -162,15 +169,15 @@ export function MemberSummaryCard() {
               <div className="text-muted-foreground text-lg flex items-center gap-2">
                   <span>Nato il: </span>
                   {birthDateString ? (
-                    <span className="font-medium text-foreground">{birthDateString}</span>
+                    <span className="font-medium text-foreground">{birthDateString} a {birthplace}</span>
                   ) : (
                     <Badge variant="destructive">Non definito</Badge>
                   )}
               </div>
               <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
-                  <span>Residente in (via, piazza): </span>
-                  {address ? (
-                    <span className="font-medium text-foreground">{address}</span>
+                  <span>Residente in: </span>
+                  {address && civicNumber && cap ? (
+                    <span className="font-medium text-foreground">{address}, {civicNumber} - {cap}</span>
                   ) : (
                     <Badge variant="destructive">Non definito</Badge>
                   )}

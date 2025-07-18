@@ -56,9 +56,17 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [provincia, setProvincia] = useState("");
     const [birthplace, setBirthplace] = useState("");
     const [address, setAddress] = useState("");
+    const [civicNumber, setCivicNumber] = useState("");
+    const [cap, setCap] = useState("");
     const [comune, setComune] = useState("");
+    const [phone, setPhone] = useState("");
+    const [emailConfirm, setEmailConfirm] = useState("");
+
     const [parentName, setParentName] = useState("");
+    const [parentCf, setParentCf] = useState("");
+    const [parentPhone, setParentPhone] = useState("");
     const [parentEmail, setParentEmail] = useState("");
+    
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
     const [emailError, setEmailError] = useState(false);
 
@@ -127,9 +135,16 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }
 
     const handleRegister = () => {
-        if (isMinor && parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
-            setEmailError(true);
-            return;
+        if (isMinor) {
+             if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()){
+                setEmailError(true);
+                return;
+            }
+        } else {
+            if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                setEmailError(true);
+                return;
+            }
         }
 
         if (typeof window !== 'undefined') {
@@ -140,9 +155,22 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             if (birthDate) {
                 localStorage.setItem('birthDate', `${day}/${month}/${year}`);
             }
+            localStorage.setItem('birthplace', birthplace);
             localStorage.setItem('address', address);
+            localStorage.setItem('civicNumber', civicNumber);
+            localStorage.setItem('cap', cap);
             localStorage.setItem('comune', comune);
             localStorage.setItem('provincia', provincia);
+            
+            if (isMinor) {
+                localStorage.setItem('parentName', parentName);
+                localStorage.setItem('parentCf', parentCf);
+                localStorage.setItem('parentPhone', parentPhone);
+                localStorage.setItem('parentEmail', parentEmail);
+            } else {
+                localStorage.setItem('phone', phone);
+            }
+
             localStorage.setItem('lessonSelected', 'true');
         }
         if (setLessonSelected) {
@@ -187,6 +215,11 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             .join(' ');
         setParentName(capitalized);
     };
+    
+    const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setEmailConfirm(e.target.value.toLowerCase());
+        setEmailError(false);
+    }
 
     const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setParentEmail(e.target.value.toLowerCase());
@@ -348,13 +381,13 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="civic-number">N° civico:</Label>
-                            <Input id="civic-number" placeholder="12/A" required />
+                            <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="cap">C.A.P.:</Label>
-                            <Input id="cap" placeholder="00100" required />
+                            <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="comune">Comune:</Label>
@@ -382,11 +415,12 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="phone">Numero di telefono:</Label>
-                                <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} />
+                                <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)}/>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                                <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} />
+                                <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange}/>
+                                {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                             </div>
                         </div>
                     )}
@@ -406,12 +440,12 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             </div>
                              <div className="space-y-2">
                                 <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
-                                <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} />
+                                <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} />
                             </div>
                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                                    <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} />
+                                    <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
