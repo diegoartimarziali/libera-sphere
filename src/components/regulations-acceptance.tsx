@@ -46,8 +46,10 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
                 title: "Regolamenti Accettati",
                 description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
             });
+            
+            // Force a reload to ensure layout state is updated
+            window.location.href = '/dashboard';
 
-            router.push('/dashboard');
         } else {
              toast({
                 title: "Attenzione",
