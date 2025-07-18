@@ -27,6 +27,7 @@ const capitalizeName = (name: string) => {
 
 export function MemberSummaryCard() {
   const [userName, setUserName] = useState("Utente");
+  const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
   const [codiceFiscale, setCodiceFiscale] = useState<string | null>(null);
   const [birthDateString, setBirthDateString] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
@@ -51,6 +52,7 @@ export function MemberSummaryCard() {
       if (storedName) {
         setUserName(capitalizeName(storedName));
       }
+      setRegistrationEmail(localStorage.getItem('registrationEmail'));
       setCodiceFiscale(localStorage.getItem("codiceFiscale"));
       setBirthDateString(localStorage.getItem("birthDate"));
       setBirthplace(localStorage.getItem("birthplace"));
@@ -92,9 +94,8 @@ export function MemberSummaryCard() {
         try {
             const parsedDate = parse(storedAssociationDate, 'dd/MM/yyyy', new Date());
             if (!isNaN(parsedDate.getTime())) {
-                const duration = formatDistanceToNowStrict(parsedDate, { locale: it, addSuffix: true });
-                // Capitalize the first letter of the output, e.g., "circa 1 anno fa" -> "Circa 1 anno fa"
-                setMembershipDuration(duration.charAt(0).toUpperCase() + duration.slice(1));
+                const duration = formatDistanceToNowStrict(parsedDate, { locale: it });
+                setMembershipDuration(duration);
             }
         } catch (error) {
             console.error("Error parsing association date:", error);
@@ -199,11 +200,14 @@ export function MemberSummaryCard() {
                     <Badge variant="destructive">Non definito</Badge>
                   }
               </div>
-               {membershipDuration && (
+               {associationStatus === 'approved' && membershipDuration && (
                  <div className="text-muted-foreground text-lg">
                     Sei socio da {membershipDuration}.
                  </div>
                )}
+                <div className="text-muted-foreground text-lg">
+                  Email di registrazione: <span className="font-medium text-foreground">{registrationEmail}</span>
+                </div>
               <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
                 <span>CODICE FISCALE: </span>
                 {codiceFiscale ? (
