@@ -9,12 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { HeartPulse, Upload, AlertTriangle } from "lucide-react"
-import { useState, useEffect } from "react"
+import { HeartPulse, Upload, AlertTriangle, FileCheck, FileX } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { Label } from "./ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useToast } from "./ui/use-toast"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
     value: String(i + 1),
@@ -25,8 +26,12 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => String(currentYear + i));
 
 export function MedicalCertificate() {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [isCertificateUploaded, setIsCertificateUploaded] = useState(false)
   const [expirationDate, setExpirationDate] = useState<Date | undefined>(undefined);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   
   const [day, setDay] = useState<string | undefined>(undefined);
   const [month, setMonth] = useState<string | undefined>(undefined);
@@ -45,15 +50,34 @@ export function MedicalCertificate() {
     }
   }, [day, month, year]);
 
-  const handleUploadClick = () => {
-    if(expirationDate) {
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+  
+  const handleRegisterCertificate = () => {
+    if (selectedFile && expirationDate) {
+      // Qui andrebbe la logica per caricare il file su Firebase Storage
+      // e salvare la data di scadenza nel database.
+      // Per ora, simuliamo il successo.
       setIsCertificateUploaded(true);
+      toast({
+        title: "Certificato Caricato!",
+        description: `Il file "${selectedFile.name}" è stato registrato con successo.`,
+      });
     }
   }
-  
+
   const handleNewUpload = () => {
     setIsCertificateUploaded(false);
     setExpirationDate(undefined);
+    setSelectedFile(null);
     setDay(undefined);
     setMonth(undefined);
     setYear(undefined);
@@ -81,11 +105,40 @@ export function MedicalCertificate() {
           </>
         ) : (
           <div className="w-full max-w-sm flex flex-col items-center">
-            <AlertTriangle className="w-16 h-16 text-destructive" />
-            <p className="font-semibold text-lg mt-4">Certificato Mancante</p>
-            <p className="text-muted-foreground text-sm">
-              Carica il tuo certificato per continuare.
+            {selectedFile ? (
+                <FileCheck className="w-16 h-16 text-primary" />
+            ) : (
+                <AlertTriangle className="w-16 h-16 text-destructive" />
+            )}
+            
+            <p className="font-semibold text-lg mt-4">
+              {selectedFile ? 'File Selezionato' : 'Certificato Mancante'}
             </p>
+            
+            {selectedFile && (
+                <div className="text-center mt-2">
+                    <p className="text-muted-foreground text-sm">
+                        {selectedFile.name}
+                    </p>
+                    <button onClick={() => setSelectedFile(null)} className="text-xs text-destructive hover:underline mt-1">
+                        <FileX className="w-3 h-3 inline-block mr-1"/>
+                        Rimuovi file
+                    </button>
+                </div>
+            )}
+            
+            <p className="text-muted-foreground text-sm mt-2">
+              {selectedFile ? 'Inserisci la data di scadenza' : 'Carica il tuo certificato per continuare.'}
+            </p>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept="application/pdf,image/jpeg,image/png"
+            />
+            
             <div className="space-y-2 w-full pt-4 text-left">
                 <Label>Data di Scadenza</Label>
                 <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
@@ -109,9 +162,19 @@ export function MedicalCertificate() {
                     </Select>
                 </div>
             </div>
-            <Button className="mt-4 w-full" onClick={handleUploadClick} disabled={!expirationDate}>
-              <Upload className="mr-2 h-4 w-4" /> Carica il Certificato
-            </Button>
+
+            {!selectedFile && (
+                <Button className="mt-4 w-full" onClick={handleButtonClick}>
+                    <Upload className="mr-2 h-4 w-4" /> Seleziona un file
+                </Button>
+            )}
+
+            {selectedFile && (
+                 <Button className="mt-4 w-full" onClick={handleRegisterCertificate} disabled={!expirationDate}>
+                    <Upload className="mr-2 h-4 w-4" /> Carica il Certificato
+                </Button>
+            )}
+
           </div>
         )}
       </CardContent>
