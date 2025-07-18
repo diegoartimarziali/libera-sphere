@@ -14,6 +14,7 @@ import {
   Info,
   FileText,
   LogOut,
+  Landmark,
 } from "lucide-react"
 
 import {
@@ -126,6 +127,7 @@ export default function DashboardLayout({
     { href: "/dashboard/associates", icon: Users, label: "Associati", hideWhenAssociationRequested: true },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico" },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
+    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti" },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami" },
   ]
   
@@ -146,7 +148,7 @@ export default function DashboardLayout({
     if (item.hideWhenAssociationRequested && associationRequested) {
         return false;
     }
-    if (!regulationsAccepted && item.href !== '/dashboard/regulations' && item.href !== '/dashboard/instructions' && item.href !== '/dashboard') {
+    if (!regulationsAccepted && !['/dashboard/regulations', '/dashboard/instructions', '/dashboard'].includes(item.href)) {
         return false;
     }
     return true;
