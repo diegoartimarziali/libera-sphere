@@ -100,30 +100,13 @@ export function PaymentHistory() {
           Qui trovi l'elenco di tutti i tuoi abbonamenti sottoscritti e il loro stato.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         {isLoading ? (
             <p>Caricamento...</p>
         ) : error ? (
           <p className="text-destructive">{error}</p>
         ) : subscriptions.length === 0 ? (
-          <div className="space-y-4">
-            <p className="text-muted-foreground">Nessun pagamento trovato.</p>
-            <h3 className="text-lg font-semibold mt-4">Seleziona la modalità di pagamento</h3>
-            <div className="grid w-full max-w-sm items-center gap-1.5">
-                <Label htmlFor="payment-method">Metodo di Pagamento</Label>
-                <Select>
-                    <SelectTrigger id="payment-method">
-                        <SelectValue placeholder="Scegli un'opzione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="online">Carta di Credito on Line</SelectItem>
-                        <SelectItem value="transfer">Bonifico Bancario</SelectItem>
-                        <SelectItem value="card-pos">Carta di credito o Bancomat in Palestra</SelectItem>
-                        <SelectItem value="cash">Contanti in Palestra</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-          </div>
+          <p className="text-muted-foreground">Nessun pagamento trovato.</p>
         ) : (
           <Table>
             <TableHeader>
@@ -152,6 +135,24 @@ export function PaymentHistory() {
             </TableBody>
           </Table>
         )}
+
+        <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Seleziona la modalità di pagamento</h3>
+            <div className="grid w-full max-w-sm items-center gap-1.5">
+                <Label htmlFor="payment-method">Metodo di Pagamento</Label>
+                <Select>
+                    <SelectTrigger id="payment-method">
+                        <SelectValue placeholder="Scegli un'opzione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="online">Carta di Credito on Line</SelectItem>
+                        <SelectItem value="transfer">Bonifico Bancario</SelectItem>
+                        <SelectItem value="card-pos">Carta di credito o Bancomat in Palestra</SelectItem>
+                        <SelectItem value="cash">Contanti in Palestra</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
       </CardContent>
     </Card>
   )
