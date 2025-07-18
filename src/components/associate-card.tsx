@@ -17,11 +17,14 @@ import { useEffect, useState } from "react"
 import { Separator } from "./ui/separator"
 import { Checkbox } from "./ui/checkbox"
 import { Label } from "./ui/label"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertTriangle } from "lucide-react"
   
 export function AssociateCard({ setAssociated, setAssociationRequested, setWantsToEdit }: { setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void, setWantsToEdit?: (value: boolean) => void }) {
     const { toast } = useToast();
     const router = useRouter();
     const [dataConfirmed, setDataConfirmed] = useState(false);
+    const [hasMedicalCertificate, setHasMedicalCertificate] = useState(false);
     const [userData, setUserData] = useState({
         name: '',
         codiceFiscale: '',
@@ -58,6 +61,12 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                     age--;
                 }
                 setIsMinor(age < 18);
+            }
+
+            const certDate = localStorage.getItem('medicalCertificateExpirationDate');
+            const certFile = localStorage.getItem('medicalCertificateFileName');
+            if (certDate && certFile) {
+                setHasMedicalCertificate(true);
             }
 
             setUserData({
@@ -113,6 +122,15 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
+                 {!hasMedicalCertificate && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Attenzione</AlertTitle>
+                        <AlertDescription>
+                            Per poter partecipare ai corsi è necessario essere in possesso di certificato medico non agonistico in corso di validità. Prenota subito la tua visita o carica il certificato.
+                        </AlertDescription>
+                    </Alert>
+                )}
                 <div className="space-y-4 text-sm text-muted-foreground">
                     <div>
                         <h4 className="font-semibold text-base mb-2 text-foreground">Dati Allievo</h4>
@@ -156,7 +174,7 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                     </Label>
                 </div>
                 <div className="self-end">
-                    <Button onClick={handleAssociation} disabled={!dataConfirmed}>Fai Domanda di Associazione</Button>
+                    <Button onClick={handleAssociation} disabled={!dataConfirmed || !hasMedicalCertificate}>Fai Domanda di Associazione</Button>
                 </div>
             </CardFooter>
         </Card>
