@@ -17,6 +17,10 @@ import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Separator } from "./ui/separator"
+import { db } from "@/lib/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { useToast } from "./ui/use-toast"
+import { useRouter } from "next/navigation"
 
 const plans = [
     { id: "stagionale", name: "Stagionale", price: "440", period: "stagione", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Paga in un'unica soluzione.", "Un mese gratis"], expiry: "L'Abbonamento Stagionale può essere acquistato dal 01/09 al 15/10" },
@@ -30,10 +34,13 @@ const paymentOptions = [
 ]
 
 export function SubscriptionManagement() {
+  const { toast } = useToast();
+  const router = useRouter();
   const [isStagionaleAvailable, setIsStagionaleAvailable] = useState(false);
   const [hasMedicalCertificate, setHasMedicalCertificate] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState("stagionale");
+  const [selectedPlan, setSelectedPlan] = useState<string | undefined>();
   const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     // Check for medical certificate
@@ -52,12 +59,80 @@ export function SubscriptionManagement() {
     const endDate = new Date(currentYear, 9, 15); // October 15th
     
     setIsStagionaleAvailable(today >= startDate && today <= endDate);
+    if (today >= startDate && today <= endDate) {
+        setSelectedPlan("stagionale");
+    } else {
+        setSelectedPlan("mensile");
+    }
   }, []);
 
   const handlePlanChange = (planId: string) => {
     setSelectedPlan(planId);
     setPaymentMethod(undefined); // Reset payment method when plan changes
   }
+
+  const handleSubscription = async (planId: string | undefined, payment: string | undefined) => {
+    if (!planId || !payment) return;
+
+    setIsSubmitting(true);
+    const userEmail = localStorage.getItem('registrationEmail');
+
+    if (!userEmail) {
+        toast({
+            title: "Errore",
+            description: "Utente non riconosciuto. Effettua nuovamente il login.",
+            variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+    }
+
+    const selectedPlanDetails = plans.find(p => p.id === planId);
+    if (!selectedPlanDetails) {
+         toast({
+            title: "Errore",
+            description: "Piano selezionato non valido.",
+            variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+    }
+
+    try {
+        await addDoc(collection(db, "subscriptions"), {
+            userEmail: userEmail,
+            planId: selectedPlanDetails.id,
+            planName: selectedPlanDetails.name,
+            price: selectedPlanDetails.price,
+            paymentMethod: payment,
+            subscriptionDate: serverTimestamp()
+        });
+
+        toast({
+            title: "Iscrizione Avvenuta!",
+            description: "Il tuo abbonamento è stato registrato con successo.",
+        });
+
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('subscriptionPlan', selectedPlanDetails.id);
+            localStorage.setItem('paymentMethod', payment);
+        }
+        
+        // Optional: redirect or refresh
+        router.push('/dashboard');
+
+    } catch (error) {
+        console.error("Error adding document: ", error);
+        toast({
+            title: "Errore nel salvataggio",
+            description: "Non è stato possibile registrare il tuo abbonamento. Riprova più tardi.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
+
 
   return (
     <Card>
@@ -125,8 +200,12 @@ export function SubscriptionManagement() {
                            )}
                         </CardContent>
                         <CardFooter>
-                            <Button className="w-full" disabled={isPlanDisabled || (isSelected && !paymentMethod)}>
-                                ISCRIVITI
+                            <Button 
+                                className="w-full" 
+                                disabled={isPlanDisabled || (isSelected && !paymentMethod) || isSubmitting}
+                                onClick={() => handleSubscription(selectedPlan, paymentMethod)}
+                            >
+                                {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
                             </Button>
                         </CardFooter>
                     </Card>
