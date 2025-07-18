@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { HeartPulse, Upload, AlertTriangle, FileCheck, FileX } from "lucide-react"
+import { HeartPulse, Upload, AlertTriangle, FileCheck, FileX, Eye, Download } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
@@ -32,6 +32,7 @@ export function MedicalCertificate() {
   const [isCertificateUploaded, setIsCertificateUploaded] = useState(false)
   const [expirationDate, setExpirationDate] = useState<Date | undefined>(undefined);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
   
   const [day, setDay] = useState<string | undefined>(undefined);
   const [month, setMonth] = useState<string | undefined>(undefined);
@@ -58,14 +59,15 @@ export function MedicalCertificate() {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      setFileUrl(url);
     }
   };
   
   const handleRegisterCertificate = () => {
     if (selectedFile && expirationDate) {
-      // Qui andrebbe la logica per caricare il file su Firebase Storage
-      // e salvare la data di scadenza nel database.
-      // Per ora, simuliamo il successo.
+      // In a real application, you would upload the file to Firebase Storage here.
+      // For this prototype, we simulate a successful upload.
       setIsCertificateUploaded(true);
       toast({
         title: "Certificato Caricato!",
@@ -75,9 +77,13 @@ export function MedicalCertificate() {
   }
 
   const handleNewUpload = () => {
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+    }
     setIsCertificateUploaded(false);
     setExpirationDate(undefined);
     setSelectedFile(null);
+    setFileUrl(null);
     setDay(undefined);
     setMonth(undefined);
     setYear(undefined);
@@ -93,16 +99,35 @@ export function MedicalCertificate() {
       </CardHeader>
       <CardContent className="flex flex-grow flex-col items-center justify-center text-center gap-4 p-8">
         {isCertificateUploaded ? (
-          <>
+          <div className="w-full max-w-sm flex flex-col items-center">
             <HeartPulse className="w-16 h-16 text-green-500" />
             <p className="font-semibold text-lg">Certificato Registrato</p>
             <p className="text-muted-foreground text-sm">
+              {selectedFile?.name}
+            </p>
+            <p className="text-muted-foreground text-sm">
               {expirationDate ? `Scade il: ${format(expirationDate, "PPP", { locale: it })}` : "Data di scadenza non impostata"}
             </p>
-            <Button variant="outline" className="mt-4" onClick={handleNewUpload}>
+            <div className="flex gap-2 mt-4">
+              {fileUrl && (
+                <>
+                  <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline">
+                      <Eye className="mr-2 h-4 w-4" /> Visualizza
+                    </Button>
+                  </a>
+                  <a href={fileUrl} download={selectedFile?.name}>
+                    <Button variant="outline">
+                      <Download className="mr-2 h-4 w-4" /> Scarica
+                    </Button>
+                  </a>
+                </>
+              )}
+            </div>
+            <Button variant="secondary" className="mt-4" onClick={handleNewUpload}>
               <Upload className="mr-2 h-4 w-4" /> Carica Nuovo
             </Button>
-          </>
+          </div>
         ) : (
           <div className="w-full max-w-sm flex flex-col items-center">
             {selectedFile ? (
@@ -120,7 +145,12 @@ export function MedicalCertificate() {
                     <p className="text-muted-foreground text-sm">
                         {selectedFile.name}
                     </p>
-                    <button onClick={() => setSelectedFile(null)} className="text-xs text-destructive hover:underline mt-1">
+                    <button onClick={() => {
+                        if (fileUrl) URL.revokeObjectURL(fileUrl);
+                        setSelectedFile(null);
+                        setFileUrl(null);
+                        if (fileInputRef.current) fileInputRef.current.value = "";
+                    }} className="text-xs text-destructive hover:underline mt-1">
                         <FileX className="w-3 h-3 inline-block mr-1"/>
                         Rimuovi file
                     </button>
