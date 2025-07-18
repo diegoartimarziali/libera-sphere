@@ -71,7 +71,7 @@ export function SubscriptionManagement() {
                         </CardContent>
                         <CardFooter>
                             <Button className="w-full" disabled={isDisabled}>
-                                ABBONAMENTO STAGIONALE
+                                ISCRIVITI
                             </Button>
                         </CardFooter>
                     </Card>
