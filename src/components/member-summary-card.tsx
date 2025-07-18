@@ -209,7 +209,7 @@ export function MemberSummaryCard() {
                   Email di registrazione: <span className="font-medium text-foreground">{registrationEmail}</span>
                 </div>
               <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
-                <span>CODICE FISCALE: </span>
+                <span>C.F.: </span>
                 {codiceFiscale ? (
                     <span className="font-medium text-foreground">{codiceFiscale}</span>
                 ) : (
