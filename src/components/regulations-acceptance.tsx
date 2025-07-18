@@ -32,24 +32,28 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
     const handleAccept = () => {
         if (accepted) {
             const acceptanceDate = format(new Date(), "dd/MM/yyyy");
-            toast({
-                title: "Regolamenti Accettati",
-                description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
-            })
-            if (setRegulationsAccepted) {
-                setRegulationsAccepted(true);
-            }
+            
             if (typeof window !== 'undefined') {
                 localStorage.setItem('regulationsAccepted', 'true');
                 localStorage.setItem('regulationsAcceptanceDate', acceptanceDate);
             }
+            
+            if (setRegulationsAccepted) {
+                setRegulationsAccepted(true);
+            }
+
+            toast({
+                title: "Regolamenti Accettati",
+                description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
+            });
+
             router.push('/dashboard');
         } else {
              toast({
                 title: "Attenzione",
                 description: "Devi dichiarare di aver letto i documenti.",
                 variant: "destructive"
-            })
+            });
         }
     }
 
