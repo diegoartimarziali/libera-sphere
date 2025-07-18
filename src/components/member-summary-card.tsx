@@ -111,7 +111,7 @@ export function MemberSummaryCard() {
       case 'approved':
         return <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">Valida</Badge>;
       case 'requested':
-        return <Badge variant="outline" className="border-yellow-500 text-yellow-600">Domanda Inviata</Badge>;
+        return <Badge className="bg-orange-500 text-white border-transparent">Domanda Inviata</Badge>;
       default:
         return <Badge variant="destructive">Non Associato</Badge>;
     }
@@ -214,15 +214,7 @@ export function MemberSummaryCard() {
               <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
                   <span>Comune: </span>
                   {comune ? (
-                    <span className="font-medium text-foreground">{comune}</span>
-                  ) : (
-                    <Badge variant="destructive">Non definito</Badge>
-                  )}
-              </div>
-              <div className="text-muted-foreground text-lg flex items-center gap-2">
-                  <span>Provincia: </span>
-                  {provincia ? (
-                    <span className="font-medium text-foreground">{provincia}</span>
+                    <span className="font-medium text-foreground">{comune} ({provincia})</span>
                   ) : (
                     <Badge variant="destructive">Non definito</Badge>
                   )}
