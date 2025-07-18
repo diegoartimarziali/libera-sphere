@@ -48,7 +48,9 @@ export function SubscriptionManagement() {
                            ))}
                         </CardContent>
                         <CardFooter>
-                            <Button className="w-full">Scegli Piano</Button>
+                            <Button className="w-full">
+                                {plan.id === 'stagionale' ? 'ABBONAMENTO STAGIONALE' : 'Scegli Piano'}
+                            </Button>
                         </CardFooter>
                     </Card>
                 </Label>
