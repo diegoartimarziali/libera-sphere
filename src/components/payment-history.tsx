@@ -101,9 +101,7 @@ export function PaymentHistory() {
       <CardContent>
         {isLoading ? (
             <div className="space-y-2">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+                <p>Caricamento...</p>
             </div>
         ) : error ? (
           <p className="text-destructive">{error}</p>
