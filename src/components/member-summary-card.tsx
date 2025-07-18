@@ -25,6 +25,7 @@ const capitalizeName = (name: string) => {
 
 export function MemberSummaryCard() {
   const [userName, setUserName] = useState("Utente");
+  const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
   const [codiceFiscale, setCodiceFiscale] = useState<string | null>(null);
   const [birthDateString, setBirthDateString] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
@@ -47,6 +48,7 @@ export function MemberSummaryCard() {
       if (storedName) {
         setUserName(capitalizeName(storedName));
       }
+      setRegistrationEmail(localStorage.getItem("registrationEmail"));
       setCodiceFiscale(localStorage.getItem("codiceFiscale"));
       setBirthDateString(localStorage.getItem("birthDate"));
       setBirthplace(localStorage.getItem("birthplace"));
@@ -156,7 +158,7 @@ export function MemberSummaryCard() {
                   }
               </div>
               <div className="text-muted-foreground text-lg">
-                {userName.toLowerCase().replace(' ', '.')}@example.com
+                {registrationEmail || 'Email non specificata'}
               </div>
               <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
                 <span>CODICE FISCALE: </span>
