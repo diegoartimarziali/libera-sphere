@@ -258,7 +258,7 @@ export function AssociateForm() {
                     <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
                 </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="cap">C.A.P.:</Label>
                     <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
