@@ -86,14 +86,15 @@ export function AssociateForm() {
             localStorage.setItem('address', address);
             localStorage.setItem('comune', comune);
             localStorage.setItem('provincia', provincia);
-            // Mark as having submitted data
-            localStorage.setItem('lessonSelected', 'true'); // Using this as a proxy for data submission
+            // This flag can be used to indicate the user has submitted their data.
+            // Let's use a more specific flag.
+            localStorage.setItem('hasSubmittedData', 'true');
         }
         toast({
             title: "Dati Salvati!",
-            description: "I tuoi dati sono stati registrati con successo.",
+            description: "I tuoi dati sono stati registrati con successo. Ora puoi procedere con la domanda di associazione.",
         })
-        // Force a re-render or redirect to update the view
+        // Refresh the page to re-evaluate the logic in `AssociatesPage`
         router.refresh();
     }
 
@@ -307,7 +308,7 @@ export function AssociateForm() {
         </CardContent>
         <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={() => router.push('/dashboard')}>Annulla</Button>
-            <Button onClick={handleSave}>Salva e Procedi all'Associazione</Button>
+            <Button onClick={handleSave}>Salva e Procedi</Button>
         </CardFooter>
     </Card>
   )

@@ -10,13 +10,17 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
+            // We check for essential data to determine if the user has already provided their info.
             const name = localStorage.getItem('userName');
-            const lessonSelected = localStorage.getItem('lessonSelected');
-            // We consider user data present if they have a name and have either
-            // gone through the selection process or have existing data.
-            // For now, `lessonSelected` is a good proxy.
-            if (name && lessonSelected === 'true') {
+            const codiceFiscale = localStorage.getItem('codiceFiscale');
+            const birthDate = localStorage.getItem('birthDate');
+            
+            // If these essential pieces of information exist, we show the confirmation card.
+            // Otherwise, we show the form to input the data.
+            if (name && codiceFiscale && birthDate) {
                 setHasUserData(true);
+            } else {
+                setHasUserData(false);
             }
         }
     }, []);
