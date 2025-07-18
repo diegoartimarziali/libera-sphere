@@ -127,8 +127,8 @@ export default function DashboardLayout({
     { href: "/dashboard/associates", icon: Users, label: "Associati", hideWhenAssociationRequested: true },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico" },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
-    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti" },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami" },
+    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti" },
   ]
   
   const bottomNavItems = [
