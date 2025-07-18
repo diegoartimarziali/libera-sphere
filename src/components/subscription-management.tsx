@@ -28,9 +28,9 @@ const plans = [
 ]
 
 const paymentOptions = [
-    { id: "cash", label: "Contanti o carta di credito in palestra" },
-    { id: "online", label: "Carta di Credito on line" },
-    { id: "transfer", label: "Bonifico Bancario" },
+    { id: "online", label: "Pagamento con carta di credito on line. Rapido e sicuro." },
+    { id: "transfer", label: "Bonifico Bancario." },
+    { id: "cash", label: "Contanti o bancomat e carta in palestra (€ 2 spese di gestione)" },
 ]
 
 export function SubscriptionManagement() {
