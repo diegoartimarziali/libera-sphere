@@ -18,7 +18,7 @@ import { Separator } from "./ui/separator"
 import { Checkbox } from "./ui/checkbox"
 import { Label } from "./ui/label"
   
-export function AssociateCard({ setAssociated, setAssociationRequested }: { setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void }) {
+export function AssociateCard({ setAssociated, setAssociationRequested, setWantsToEdit }: { setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void, setWantsToEdit?: (value: boolean) => void }) {
     const { toast } = useToast();
     const router = useRouter();
     const [dataConfirmed, setDataConfirmed] = useState(false);
@@ -142,14 +142,22 @@ export function AssociateCard({ setAssociated, setAssociationRequested }: { setA
                     Siamo una associazione senza scopo di lucro, nata dalla profonda passione per le arti marziali e dalla volontà di condividerne i valori autentici. Ogni aspetto della nostra gestione è guidato da principi di trasparenza e dedizione, tutti i ricavi derivanti dai contributi associativi vengono interamente reinvestiti in Didattica, Formazione, Aggiornamento e progetti di utilità sociale.
                 </p>
             </CardContent>
-            <CardFooter className="flex flex-col items-end gap-4">
-                <div className="flex items-center space-x-2 self-start">
-                    <Checkbox id="confirm-data" onCheckedChange={(checked) => setDataConfirmed(!!checked)} />
-                    <Label htmlFor="confirm-data" className="text-sm font-normal text-muted-foreground">
-                        Confermo che i dati riportati sono corretti.
+            <CardFooter className="flex flex-col items-start gap-4">
+                 <div className="flex items-center space-x-2">
+                    <Checkbox id="edit-data" onCheckedChange={(checked) => setWantsToEdit?.(!!checked)} />
+                    <Label htmlFor="edit-data" className="text-sm font-normal text-muted-foreground">
+                        Voglio modificare i dati.
                     </Label>
                 </div>
-                <Button onClick={handleAssociation} disabled={!dataConfirmed}>Fai Domanda di Associazione</Button>
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="confirm-data" onCheckedChange={(checked) => setDataConfirmed(!!checked)} />
+                    <Label htmlFor="confirm-data" className="text-sm font-normal text-muted-foreground">
+                        Confermo che i dati riportati sono corretti e procedo con la domanda di associazione.
+                    </Label>
+                </div>
+                <div className="self-end">
+                    <Button onClick={handleAssociation} disabled={!dataConfirmed}>Fai Domanda di Associazione</Button>
+                </div>
             </CardFooter>
         </Card>
     )

@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 export default function AssociatesPage({ setRegulationsAccepted, setAssociated, setAssociationRequested }: { setRegulationsAccepted?: (value: boolean) => void, setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void }) {
     const [hasUserData, setHasUserData] = useState(false);
+    const [wantsToEdit, setWantsToEdit] = useState(false);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -25,10 +26,14 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
         }
     }, []);
 
+    const handleWantsToEdit = (wantsToEdit: boolean) => {
+        setWantsToEdit(wantsToEdit);
+    };
+
     return (
         <div>
-            {hasUserData ? (
-                <AssociateCard setAssociated={setAssociated} setAssociationRequested={setAssociationRequested} />
+            {hasUserData && !wantsToEdit ? (
+                <AssociateCard setAssociated={setAssociated} setAssociationRequested={setAssociationRequested} setWantsToEdit={handleWantsToEdit} />
             ) : (
                 <AssociateForm />
             )}
