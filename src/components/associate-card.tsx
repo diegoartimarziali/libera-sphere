@@ -13,15 +13,36 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "./ui/use-toast"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { Separator } from "./ui/separator"
   
 export function AssociateCard({ setAssociated, setAssociationRequested }: { setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void }) {
     const { toast } = useToast();
     const router = useRouter();
+    const [userData, setUserData] = useState({
+        name: '',
+        codiceFiscale: '',
+        birthDate: '',
+        address: '',
+        comune: '',
+        provincia: '',
+    });
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setUserData({
+                name: localStorage.getItem('userName') || '',
+                codiceFiscale: localStorage.getItem('codiceFiscale') || '',
+                birthDate: localStorage.getItem('birthDate') || '',
+                address: localStorage.getItem('address') || '',
+                comune: localStorage.getItem('comune') || '',
+                provincia: localStorage.getItem('provincia') || '',
+            });
+        }
+    }, []);
 
     const handleAssociation = () => {
         const associationDate = format(new Date(), "dd/MM/yyyy");
-        // In a real app, this would trigger a request to the backend.
-        // For this prototype, we'll set a state in localStorage to indicate a request has been made.
         if (typeof window !== 'undefined') {
             localStorage.setItem('associationRequested', 'true');
             localStorage.setItem('associationRequestDate', associationDate);
@@ -37,16 +58,24 @@ export function AssociateCard({ setAssociated, setAssociationRequested }: { setA
         });
 
         router.push('/dashboard');
-        // We don't call setAssociated(true) here anymore, as it depends on manual approval.
-        // We can refresh the component state if needed, but for now a toast is enough.
     }
 
     return (
         <Card className="h-full flex flex-col">
             <CardHeader>
-                <CardTitle>Associati</CardTitle>
+                <CardTitle>Conferma i tuoi dati e Associati</CardTitle>
+                <CardDescription>
+                    Verifica che i tuoi dati siano corretti. Se devi modificarli, puoi farlo dalla tua scheda personale una volta approvata l'associazione.
+                </CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow">
+            <CardContent className="flex-grow space-y-4">
+                <div className="space-y-2 text-sm text-muted-foreground">
+                    <p><b>Nome e Cognome:</b> {userData.name || 'Non specificato'}</p>
+                    <p><b>Codice Fiscale:</b> {userData.codiceFiscale || 'Non specificato'}</p>
+                    <p><b>Data di Nascita:</b> {userData.birthDate || 'Non specificata'}</p>
+                    <p><b>Residenza:</b> {`${userData.address || ''}, ${userData.comune || ''} (${userData.provincia || ''})` || 'Non specificata'}</p>
+                </div>
+                <Separator />
                 <p className="text-sm text-muted-foreground">
                     Far parte della nostra associazione no profit non significa semplicemente iscriversi a un corso di Arti Marziali. Significa intraprendere un percorso di crescita condiviso, dove l'allenamento fisico è solo una parte di un'esperienza molto più ricca e profonda.
                     <br /><br />
