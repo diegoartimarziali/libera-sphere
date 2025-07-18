@@ -108,7 +108,7 @@ export default function AuthPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email-signup">Email</Label>
+                  <Label htmlFor="email-signup">Email (questa sarà l'email per le comunicazioni)</Label>
                   <Input id="email-signup" type="email" placeholder="m@example.com" required />
                 </div>
                 <div className="space-y-2">
