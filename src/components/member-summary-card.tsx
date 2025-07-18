@@ -76,7 +76,10 @@ export function MemberSummaryCard() {
         setAssociationStatus('none');
       }
     }
-    setRandomKanji(kanjiList[Math.floor(Math.random() * kanjiList.length)]);
+    const kanji = kanjiList[Math.floor(Math.random() * kanjiList.length)];
+    if(kanji) {
+      setRandomKanji(kanji);
+    }
   }, []);
 
   const getInitials = (name: string) => {
@@ -190,7 +193,7 @@ export function MemberSummaryCard() {
               </div>
               <div className="text-muted-foreground text-lg flex items-center gap-2">
                     <span>Data prima lezione di selezione: </span>
-                    {lessonDate ? (
+                    {lessonDate && selectedDojo ? (
                         <span className="font-medium text-foreground">
                             {`${lessonDate} presso il Dojo di ${capitalizeFirstLetter(selectedDojo)}`}
                         </span>

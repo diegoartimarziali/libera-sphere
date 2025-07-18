@@ -16,6 +16,7 @@ import { Checkbox } from "./ui/checkbox"
 import { Label } from "./ui/label"
 import { useState } from "react"
 import { format } from "date-fns"
+import { useRouter } from "next/navigation"
 
 const documents = [
   { name: "STATUTO", href: "#" },
@@ -25,6 +26,7 @@ const documents = [
 
 export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulationsAccepted?: (value: boolean) => void }) {
     const { toast } = useToast()
+    const router = useRouter();
     const [accepted, setAccepted] = useState(false);
 
     const handleAccept = () => {
@@ -41,6 +43,7 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
                 localStorage.setItem('regulationsAccepted', 'true');
                 localStorage.setItem('regulationsAcceptanceDate', acceptanceDate);
             }
+            router.push('/dashboard');
         } else {
              toast({
                 title: "Attenzione",
