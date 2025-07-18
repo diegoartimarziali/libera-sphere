@@ -16,6 +16,7 @@ import { it } from "date-fns/locale"
 import { Label } from "./ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "./ui/use-toast"
+import { useRouter } from "next/navigation"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
     value: String(i + 1),
@@ -27,6 +28,7 @@ const years = Array.from({ length: 10 }, (_, i) => String(currentYear + i));
 
 export function MedicalCertificate() {
   const { toast } = useToast();
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isCertificateUploaded, setIsCertificateUploaded] = useState(false)
@@ -38,6 +40,24 @@ export function MedicalCertificate() {
   const [month, setMonth] = useState<string | undefined>(undefined);
   const [year, setYear] = useState<string | undefined>(undefined);
   
+  useEffect(() => {
+    // Load existing certificate data from localStorage
+    if (typeof window !== 'undefined') {
+        const storedDate = localStorage.getItem('medicalCertificateExpirationDate');
+        const storedFileName = localStorage.getItem('medicalCertificateFileName');
+        const storedFileUrl = localStorage.getItem('medicalCertificateFileUrl');
+
+        if (storedDate && storedFileName) {
+            setIsCertificateUploaded(true);
+            setExpirationDate(new Date(storedDate));
+            setSelectedFile(new File([], storedFileName));
+            if(storedFileUrl) {
+                setFileUrl(storedFileUrl);
+            }
+        }
+    }
+  }, []);
+
   useEffect(() => {
     if (day && month && year) {
         const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
@@ -59,24 +79,41 @@ export function MedicalCertificate() {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
+      // Create a temporary URL for viewing/downloading
       const url = URL.createObjectURL(file);
       setFileUrl(url);
     }
   };
   
   const handleRegisterCertificate = () => {
-    if (selectedFile && expirationDate) {
-      // In a real application, you would upload the file to Firebase Storage here.
-      // For this prototype, we simulate a successful upload.
+    if (selectedFile && expirationDate && fileUrl) {
+      if (typeof window !== 'undefined') {
+        // In a real application, you would upload the file to Firebase Storage
+        // and store the permanent URL. For this prototype, we store it in localStorage.
+        localStorage.setItem('medicalCertificateExpirationDate', expirationDate.toISOString());
+        localStorage.setItem('medicalCertificateFileName', selectedFile.name);
+        
+        // This part is tricky with blob URLs as they expire.
+        // For a prototype, this will work for the session. A real app would use a permanent URL.
+        localStorage.setItem('medicalCertificateFileUrl', fileUrl);
+      }
+      
       setIsCertificateUploaded(true);
       toast({
         title: "Certificato Caricato!",
         description: `Il file "${selectedFile.name}" è stato registrato con successo.`,
       });
+      // A small delay to allow the user to see the toast before navigation
+      setTimeout(() => router.push('/dashboard'), 1000);
     }
   }
 
   const handleNewUpload = () => {
+    if (typeof window !== 'undefined') {
+        localStorage.removeItem('medicalCertificateExpirationDate');
+        localStorage.removeItem('medicalCertificateFileName');
+        localStorage.removeItem('medicalCertificateFileUrl');
+    }
     if (fileUrl) {
       URL.revokeObjectURL(fileUrl);
     }

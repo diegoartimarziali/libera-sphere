@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/card"
 import { useEffect, useState } from "react"
 import { Star } from "lucide-react"
+import { format, differenceInDays } from "date-fns"
+import { it } from "date-fns/locale"
 
 const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'];
 
@@ -41,6 +43,7 @@ export function MemberSummaryCard() {
   const [birthplace, setBirthplace] = useState<string | null>(null);
   const [civicNumber, setCivicNumber] = useState<string | null>(null);
   const [cap, setCap] = useState<string | null>(null);
+  const [certificateExpiration, setCertificateExpiration] = useState<Date | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -84,6 +87,11 @@ export function MemberSummaryCard() {
       } else {
         setAssociationStatus('none');
       }
+
+      const storedCertExp = localStorage.getItem('medicalCertificateExpirationDate');
+      if (storedCertExp) {
+        setCertificateExpiration(new Date(storedCertExp));
+      }
     }
     const kanji = kanjiList[Math.floor(Math.random() * kanjiList.length)];
     if(kanji) {
@@ -108,6 +116,25 @@ export function MemberSummaryCard() {
         return <Badge variant="destructive">Non Associato</Badge>;
     }
   }
+
+  const renderCertificateBadge = () => {
+    if (!certificateExpiration) {
+        return <Badge variant="destructive">Mancante</Badge>;
+    }
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const daysUntilExpiration = differenceInDays(certificateExpiration, today);
+    const formattedDate = format(certificateExpiration, "dd/MM/yyyy");
+
+    if (daysUntilExpiration < 0) {
+        return <Badge variant="destructive" className="bg-red-500/20 text-red-700 border-red-500/20">Scaduto il {formattedDate}</Badge>;
+    }
+    if (daysUntilExpiration <= 40) {
+        return <Badge variant="outline" className="bg-orange-500/20 text-orange-700 border-orange-500/20">In scadenza il {formattedDate}</Badge>;
+    }
+    return <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">Valido fino al {formattedDate}</Badge>;
+  };
 
   const simulateApproval = () => {
     if (typeof window !== 'undefined') {
@@ -231,9 +258,9 @@ export function MemberSummaryCard() {
               </div>
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
-                  Certificato medico scadenza:
+                  Certificato medico:
                 </span>
-                <Badge variant="destructive">Mancante</Badge>
+                {renderCertificateBadge()}
               </div>
             </div>
             <div className="grid gap-1.5 text-lg flex-1">
