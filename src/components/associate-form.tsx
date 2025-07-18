@@ -49,6 +49,14 @@ export function AssociateForm() {
     const [comune, setComune] = useState("");
     const [parentName, setParentName] = useState("");
     const [parentEmail, setParentEmail] = useState("");
+    const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
+    const [emailError, setEmailError] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setRegistrationEmail(localStorage.getItem('registrationEmail'));
+        }
+    }, []);
 
     useEffect(() => {
         if (day && month && year) {
@@ -64,6 +72,10 @@ export function AssociateForm() {
     }, [day, month, year]);
 
     const handleSave = () => {
+        if (isMinor && parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
+            setEmailError(true);
+            return;
+        }
         // Here you would typically send the data to a backend/Firebase
         if (typeof window !== 'undefined') {
             localStorage.setItem('userName', name);
@@ -120,6 +132,7 @@ export function AssociateForm() {
 
     const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setParentEmail(e.target.value.toLowerCase());
+        setEmailError(false);
     }
     
     const isMinor = useMemo(() => {
@@ -286,6 +299,7 @@ export function AssociateForm() {
                                 value={parentEmail}
                                 onChange={handleParentEmailChange}
                                 />
+                             {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                         </div>
                     </div>
                 </div>

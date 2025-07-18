@@ -27,20 +27,23 @@ const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
 export default function AuthPage() {
   const router = useRouter();
   const [name, setName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
 
   const handleLogin = () => {
     // In a real app, you would fetch user data. For this prototype, we'll use a default name.
     if (typeof window !== 'undefined') {
         localStorage.clear(); // Clear previous session
         localStorage.setItem('userName', 'Alex Doe');
+        localStorage.setItem('registrationEmail', 'm@example.com'); // Default for existing user
     }
     router.push('/dashboard');
   };
 
   const handleSignup = () => {
-    if (typeof window !== 'undefined' && name) {
+    if (typeof window !== 'undefined' && name && signupEmail) {
       localStorage.clear(); // Clear previous session
       localStorage.setItem('userName', name);
+      localStorage.setItem('registrationEmail', signupEmail);
       localStorage.setItem('codiceFiscale', '');
       localStorage.setItem('birthDate', '');
       localStorage.setItem('address', '');
@@ -109,7 +112,14 @@ export default function AuthPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email-signup">Email (questa sarà l'email per le comunicazioni)</Label>
-                  <Input id="email-signup" type="email" placeholder="m@example.com" required />
+                  <Input 
+                    id="email-signup" 
+                    type="email" 
+                    placeholder="m@example.com" 
+                    required 
+                    value={signupEmail}
+                    onChange={(e) => setSignupEmail(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password-signup">Password</Label>

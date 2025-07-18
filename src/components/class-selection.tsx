@@ -59,6 +59,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [comune, setComune] = useState("");
     const [parentName, setParentName] = useState("");
     const [parentEmail, setParentEmail] = useState("");
+    const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
+    const [emailError, setEmailError] = useState(false);
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
 
@@ -66,6 +68,12 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         // Reset lesson date if dojo changes
         setLessonDate("");
     }, [dojo]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            setRegistrationEmail(localStorage.getItem('registrationEmail'));
+        }
+    }, []);
 
     useEffect(() => {
         if (day && month && year) {
@@ -97,6 +105,11 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }
 
     const handleRegister = () => {
+        if (isMinor && parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
+            setEmailError(true);
+            return;
+        }
+
         if (typeof window !== 'undefined') {
             localStorage.setItem('userName', name);
             localStorage.setItem('codiceFiscale', codiceFiscale);
@@ -155,6 +168,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
 
     const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setParentEmail(e.target.value.toLowerCase());
+        setEmailError(false);
     }
     
     const isMinor = useMemo(() => {
@@ -387,6 +401,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                         value={parentEmail}
                                         onChange={handleParentEmailChange}
                                      />
+                                     {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                                 </div>
                             </div>
                         </div>
