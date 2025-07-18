@@ -194,9 +194,9 @@ export function MemberSummaryCard() {
               <div className="text-muted-foreground text-lg flex items-center gap-2">
                     <span>Data prima lezione di selezione: </span>
                     {lessonDate && selectedDojo ? (
-                        <span className="font-medium text-foreground">
+                        <Badge variant="outline" className="border-green-500 text-green-600">
                             {`${lessonDate} presso il Dojo di ${capitalizeFirstLetter(selectedDojo)}`}
-                        </span>
+                        </Badge>
                      ) : (
                         <Badge variant="destructive">Da definire</Badge>
                      )}

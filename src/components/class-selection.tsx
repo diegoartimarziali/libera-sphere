@@ -71,6 +71,28 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
+            const storedName = localStorage.getItem('userName');
+            const storedCodiceFiscale = localStorage.getItem('codiceFiscale');
+            const storedBirthDate = localStorage.getItem('birthDate');
+            const storedAddress = localStorage.getItem('address');
+            const storedComune = localStorage.getItem('comune');
+            const storedProvincia = localStorage.getItem('provincia');
+            
+            if(storedName) setName(storedName);
+            if(storedCodiceFiscale) setCodiceFiscale(storedCodiceFiscale);
+            if (storedAddress) setAddress(storedAddress);
+            if (storedComune) setComune(storedComune);
+            if (storedProvincia) setProvincia(storedProvincia);
+
+            if (storedBirthDate) {
+                const parts = storedBirthDate.split('/');
+                if (parts.length === 3) {
+                    setDay(parts[0]);
+                    setMonth(parts[1]);
+                    setYear(parts[2]);
+                }
+            }
+
             setRegistrationEmail(localStorage.getItem('registrationEmail'));
         }
     }, []);
