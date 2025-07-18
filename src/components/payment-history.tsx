@@ -22,6 +22,9 @@ import { db } from "@/lib/firebase"
 import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Label } from "./ui/label"
+import { Button } from "./ui/button"
 
 interface Subscription {
   id: string;
@@ -99,15 +102,27 @@ export function PaymentHistory() {
       </CardHeader>
       <CardContent>
         {isLoading ? (
-            <div className="space-y-2">
-                <p>Caricamento...</p>
-            </div>
+            <p>Caricamento...</p>
         ) : error ? (
           <p className="text-destructive">{error}</p>
         ) : subscriptions.length === 0 ? (
-          <div>
+          <div className="space-y-4">
             <p className="text-muted-foreground">Nessun pagamento trovato.</p>
             <h3 className="text-lg font-semibold mt-4">Seleziona la modalità di pagamento</h3>
+            <div className="grid w-full max-w-sm items-center gap-1.5">
+                <Label htmlFor="payment-method">Metodo di Pagamento</Label>
+                <Select>
+                    <SelectTrigger id="payment-method">
+                        <SelectValue placeholder="Scegli un'opzione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="online">Carta di Credito on Line</SelectItem>
+                        <SelectItem value="transfer">Bonifico Bancario</SelectItem>
+                        <SelectItem value="card-pos">Carta di credito o Bancomat in Palestra</SelectItem>
+                        <SelectItem value="cash">Contanti in Palestra</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
           </div>
         ) : (
           <Table>
