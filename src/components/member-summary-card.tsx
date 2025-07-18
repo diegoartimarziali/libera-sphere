@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card"
 import { useEffect, useState } from "react"
 import { Star } from "lucide-react"
-import { format, differenceInDays } from "date-fns"
+import { format, differenceInDays, parse, formatDistanceToNowStrict } from "date-fns"
 import { it } from "date-fns/locale"
 
 const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'];
@@ -27,7 +27,6 @@ const capitalizeName = (name: string) => {
 
 export function MemberSummaryCard() {
   const [userName, setUserName] = useState("Utente");
-  const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
   const [codiceFiscale, setCodiceFiscale] = useState<string | null>(null);
   const [birthDateString, setBirthDateString] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
@@ -40,6 +39,7 @@ export function MemberSummaryCard() {
   const [selectedDojo, setSelectedDojo] = useState<string | null>(null);
   const [associationStatus, setAssociationStatus] = useState<'none' | 'requested' | 'approved'>('none');
   const [associationDate, setAssociationDate] = useState<string | null>(null);
+  const [membershipDuration, setMembershipDuration] = useState<string | null>(null);
   const [birthplace, setBirthplace] = useState<string | null>(null);
   const [civicNumber, setCivicNumber] = useState<string | null>(null);
   const [cap, setCap] = useState<string | null>(null);
@@ -51,7 +51,6 @@ export function MemberSummaryCard() {
       if (storedName) {
         setUserName(capitalizeName(storedName));
       }
-      setRegistrationEmail(localStorage.getItem("registrationEmail"));
       setCodiceFiscale(localStorage.getItem("codiceFiscale"));
       setBirthDateString(localStorage.getItem("birthDate"));
       setBirthplace(localStorage.getItem("birthplace"));
@@ -77,15 +76,29 @@ export function MemberSummaryCard() {
       
       const isApproved = localStorage.getItem('associationApproved') === 'true';
       const isRequested = localStorage.getItem('associationRequested') === 'true';
+      const storedAssociationDate = localStorage.getItem('associationRequestDate');
 
       if (isApproved) {
         setAssociationStatus('approved');
-        setAssociationDate(localStorage.getItem('associationRequestDate')); // Or a real approval date from DB
+        setAssociationDate(storedAssociationDate); 
       } else if (isRequested) {
         setAssociationStatus('requested');
-        setAssociationDate(localStorage.getItem('associationRequestDate'));
+        setAssociationDate(storedAssociationDate);
       } else {
         setAssociationStatus('none');
+      }
+
+      if (isApproved && storedAssociationDate) {
+        try {
+            const parsedDate = parse(storedAssociationDate, 'dd/MM/yyyy', new Date());
+            if (!isNaN(parsedDate.getTime())) {
+                const duration = formatDistanceToNowStrict(parsedDate, { locale: it, addSuffix: true });
+                // Capitalize the first letter of the output, e.g., "circa 1 anno fa" -> "Circa 1 anno fa"
+                setMembershipDuration(duration.charAt(0).toUpperCase() + duration.slice(1));
+            }
+        } catch (error) {
+            console.error("Error parsing association date:", error);
+        }
       }
 
       const storedCertExp = localStorage.getItem('medicalCertificateExpirationDate');
@@ -141,6 +154,8 @@ export function MemberSummaryCard() {
         localStorage.setItem('associationApproved', 'true');
         localStorage.removeItem('associationRequested');
         setAssociationStatus('approved');
+        // to re-render with new status
+        window.location.reload();
     }
   }
 
@@ -184,9 +199,11 @@ export function MemberSummaryCard() {
                     <Badge variant="destructive">Non definito</Badge>
                   }
               </div>
-              <div className="text-muted-foreground text-lg">
-                {registrationEmail || 'Email non specificata'}
-              </div>
+               {membershipDuration && (
+                 <div className="text-muted-foreground text-lg">
+                    Sei socio da {membershipDuration}.
+                 </div>
+               )}
               <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
                 <span>CODICE FISCALE: </span>
                 {codiceFiscale ? (
