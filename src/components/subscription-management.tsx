@@ -16,15 +16,24 @@ import { CheckCircle, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Separator } from "./ui/separator"
 
 const plans = [
     { id: "stagionale", name: "Stagionale", price: "440", period: "stagione", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Paga in un'unica soluzione.", "Un mese gratis"], expiry: "L'Abbonamento Stagionale può essere acquistato dal 01/09 al 15/10" },
     { id: "mensile", name: "Mensile", price: "55", period: "mese", features: ["Accesso a tutte le palestre", "Corsi illimitati"] },
 ]
 
+const paymentOptions = [
+    { id: "cash", label: "Contanti o carta di credito in palestra" },
+    { id: "online", label: "Carta di Credito on line" },
+    { id: "transfer", label: "Bonifico Bancario" },
+]
+
 export function SubscriptionManagement() {
   const [isStagionaleAvailable, setIsStagionaleAvailable] = useState(false);
   const [hasMedicalCertificate, setHasMedicalCertificate] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState("stagionale");
+  const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
 
   useEffect(() => {
     // Check for medical certificate
@@ -44,6 +53,11 @@ export function SubscriptionManagement() {
     
     setIsStagionaleAvailable(today >= startDate && today <= endDate);
   }, []);
+
+  const handlePlanChange = (planId: string) => {
+    setSelectedPlan(planId);
+    setPaymentMethod(undefined); // Reset payment method when plan changes
+  }
 
   return (
     <Card>
@@ -65,10 +79,16 @@ export function SubscriptionManagement() {
                 </AlertDescription>
             </Alert>
         )}
-        <RadioGroup defaultValue="stagionale" className="grid gap-4" disabled={!hasMedicalCertificate}>
+        <RadioGroup 
+            value={selectedPlan} 
+            onValueChange={handlePlanChange} 
+            className="grid gap-4" 
+            disabled={!hasMedicalCertificate}
+        >
             {plans.map(plan => {
               const isStagionalePlan = plan.id === 'stagionale';
               const isPlanDisabled = (isStagionalePlan && !isStagionaleAvailable) || !hasMedicalCertificate;
+              const isSelected = selectedPlan === plan.id;
 
               return (
                 <Label key={plan.id} htmlFor={plan.id} className={cn("block h-full", isPlanDisabled ? "cursor-not-allowed" : "")}>
@@ -89,9 +109,23 @@ export function SubscriptionManagement() {
                                    <span>{feature}</span>
                                </div>
                            ))}
+                           {isSelected && !isPlanDisabled && (
+                               <div className="pt-4">
+                                   <Separator className="mb-4" />
+                                   <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
+                                   <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod}>
+                                       {paymentOptions.map(option => (
+                                           <div key={option.id} className="flex items-center space-x-2">
+                                               <RadioGroupItem value={option.id} id={`${plan.id}-${option.id}`} />
+                                               <Label htmlFor={`${plan.id}-${option.id}`} className="font-normal">{option.label}</Label>
+                                           </div>
+                                       ))}
+                                   </RadioGroup>
+                               </div>
+                           )}
                         </CardContent>
                         <CardFooter>
-                            <Button className="w-full" disabled={isPlanDisabled}>
+                            <Button className="w-full" disabled={isPlanDisabled || (isSelected && !paymentMethod)}>
                                 ISCRIVITI
                             </Button>
                         </CardFooter>
