@@ -78,21 +78,24 @@ export function MemberSummaryCard() {
       
       const isApproved = localStorage.getItem('associationApproved') === 'true';
       const isRequested = localStorage.getItem('associationRequested') === 'true';
-      const storedAssociationDate = localStorage.getItem('associationRequestDate');
+      const storedApprovalDate = localStorage.getItem('associationApprovalDate');
+      const storedRequestDate = localStorage.getItem('associationRequestDate');
+
 
       if (isApproved) {
         setAssociationStatus('approved');
-        setAssociationDate(storedAssociationDate); 
+        setAssociationDate(storedApprovalDate || storedRequestDate); 
       } else if (isRequested) {
         setAssociationStatus('requested');
-        setAssociationDate(storedAssociationDate);
+        setAssociationDate(storedRequestDate);
       } else {
         setAssociationStatus('none');
       }
 
-      if (isApproved && storedAssociationDate) {
+      if (isApproved && (storedApprovalDate || storedRequestDate)) {
         try {
-            const parsedDate = parse(storedAssociationDate, 'dd/MM/yyyy', new Date());
+            const dateToParse = storedApprovalDate || storedRequestDate;
+            const parsedDate = parse(dateToParse!, 'dd/MM/yyyy', new Date());
             if (!isNaN(parsedDate.getTime())) {
                 const duration = formatDistanceToNowStrict(parsedDate, { locale: it });
                 setMembershipDuration(duration);
@@ -153,9 +156,11 @@ export function MemberSummaryCard() {
   const simulateApproval = () => {
     if (typeof window !== 'undefined') {
         localStorage.setItem('associationApproved', 'true');
+        const approvalDate = localStorage.getItem('associationRequestDate') || format(new Date(), "dd/MM/yyyy");
+        localStorage.setItem('associationApprovalDate', approvalDate);
         localStorage.removeItem('associationRequested');
         setAssociationStatus('approved');
-        // to re-render with new status
+        setAssociationDate(approvalDate);
         window.location.reload();
     }
   }
@@ -209,7 +214,7 @@ export function MemberSummaryCard() {
                   Email di registrazione: <span className="font-medium text-foreground">{registrationEmail}</span>
                 </div>
               <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
-                <span>C.F.: </span>
+                <span className="text-muted-foreground">C.F.: </span>
                 {codiceFiscale ? (
                     <span className="font-medium text-foreground">{codiceFiscale}</span>
                 ) : (
@@ -328,5 +333,3 @@ export function MemberSummaryCard() {
     </Card>
   )
 }
-
-    
