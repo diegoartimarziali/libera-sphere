@@ -58,8 +58,10 @@ export function SubscriptionManagement() {
     const startDate = new Date(currentYear, 8, 1); // September 1st
     const endDate = new Date(currentYear, 9, 15); // October 15th
     
-    setIsStagionaleAvailable(today >= startDate && today <= endDate);
-    if (today >= startDate && today <= endDate) {
+    const isAvailable = today >= startDate && today <= endDate;
+    setIsStagionaleAvailable(isAvailable);
+    
+    if (isAvailable) {
         setSelectedPlan("stagionale");
     } else {
         setSelectedPlan("mensile");
@@ -105,12 +107,13 @@ export function SubscriptionManagement() {
             planName: selectedPlanDetails.name,
             price: selectedPlanDetails.price,
             paymentMethod: payment,
+            status: 'In attesa',
             subscriptionDate: serverTimestamp()
         });
 
         toast({
             title: "Iscrizione Avvenuta!",
-            description: "Il tuo abbonamento è stato registrato con successo.",
+            description: "Il tuo abbonamento è stato registrato. Vedrai lo stato del pagamento nella sezione 'Pagamenti'.",
         });
 
         if (typeof window !== 'undefined') {
@@ -118,8 +121,7 @@ export function SubscriptionManagement() {
             localStorage.setItem('paymentMethod', payment);
         }
         
-        // Optional: redirect or refresh
-        router.push('/dashboard');
+        router.push('/dashboard/payments');
 
     } catch (error) {
         console.error("Error adding document: ", error);
@@ -154,65 +156,71 @@ export function SubscriptionManagement() {
                 </AlertDescription>
             </Alert>
         )}
-        <RadioGroup 
-            value={selectedPlan} 
-            onValueChange={handlePlanChange} 
-            className="grid gap-4" 
-            disabled={!hasMedicalCertificate}
-        >
+        <div className="grid gap-4">
             {plans.map(plan => {
               const isStagionalePlan = plan.id === 'stagionale';
               const isPlanDisabled = (isStagionalePlan && !isStagionaleAvailable) || !hasMedicalCertificate;
               const isSelected = selectedPlan === plan.id;
 
               return (
-                <Label key={plan.id} htmlFor={plan.id} className={cn("block h-full", isPlanDisabled ? "cursor-not-allowed" : "")}>
-                    <RadioGroupItem value={plan.id} id={plan.id} className="sr-only" disabled={isPlanDisabled} />
-                    <Card className={cn(
-                      "cursor-pointer has-[:checked]:border-primary has-[:checked]:ring-2 has-[:checked]:ring-primary h-full flex flex-col",
-                      isPlanDisabled && "bg-muted/50 text-muted-foreground border-none ring-0"
-                    )}>
-                        <CardHeader>
-                            <CardTitle className={cn(isPlanDisabled && "text-muted-foreground")}>{plan.name}</CardTitle>
-                            {plan.expiry && <p className="text-sm text-muted-foreground">{plan.expiry}</p>}
-                            <p className="text-2xl font-bold">€{plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.period}</span></p>
-                        </CardHeader>
-                        <CardContent className="space-y-2 flex-grow">
-                           {plan.features.map(feature => (
-                               <div key={feature} className="flex items-center text-sm">
-                                   <CheckCircle className={cn("w-4 h-4 mr-2", isPlanDisabled ? "text-muted-foreground" : "text-green-500")} />
-                                   <span>{feature}</span>
-                               </div>
-                           ))}
-                           {isSelected && !isPlanDisabled && (
-                               <div className="pt-4">
-                                   <Separator className="mb-4" />
-                                   <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
-                                   <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod}>
-                                       {paymentOptions.map(option => (
-                                           <div key={option.id} className="flex items-center space-x-2">
-                                               <RadioGroupItem value={option.id} id={`${plan.id}-${option.id}`} />
-                                               <Label htmlFor={`${plan.id}-${option.id}`} className="font-normal">{option.label}</Label>
-                                           </div>
-                                       ))}
-                                   </RadioGroup>
-                               </div>
-                           )}
-                        </CardContent>
-                        <CardFooter>
-                            <Button 
+                <Card 
+                    key={plan.id}
+                    className={cn(
+                        "h-full flex flex-col",
+                        isSelected && "border-primary ring-2 ring-primary",
+                        isPlanDisabled && "bg-muted/50 text-muted-foreground border-none ring-0"
+                    )}
+                >
+                    <CardHeader>
+                        <CardTitle className={cn(isPlanDisabled && "text-muted-foreground")}>{plan.name}</CardTitle>
+                        {plan.expiry && <p className="text-sm text-muted-foreground">{plan.expiry}</p>}
+                        <p className="text-2xl font-bold">€{plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.period}</span></p>
+                    </CardHeader>
+                    <CardContent className="space-y-2 flex-grow">
+                        {plan.features.map(feature => (
+                            <div key={feature} className="flex items-center text-sm">
+                                <CheckCircle className={cn("w-4 h-4 mr-2", isPlanDisabled ? "text-muted-foreground" : "text-green-500")} />
+                                <span>{feature}</span>
+                            </div>
+                        ))}
+                        {isSelected && !isPlanDisabled && (
+                            <div className="pt-4">
+                                <Separator className="mb-4" />
+                                <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
+                                <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod}>
+                                    {paymentOptions.map(option => (
+                                        <Label htmlFor={`${plan.id}-${option.id}`} key={option.id} className="flex items-center space-x-2 cursor-pointer">
+                                            <RadioGroupItem value={option.id} id={`${plan.id}-${option.id}`} />
+                                            <span className="font-normal">{option.label}</span>
+                                        </Label>
+                                    ))}
+                                </RadioGroup>
+                            </div>
+                        )}
+                    </CardContent>
+                    <CardFooter>
+                        {!isSelected ? (
+                             <Button 
                                 className="w-full" 
-                                disabled={isPlanDisabled || (isSelected && !paymentMethod) || isSubmitting}
+                                disabled={isPlanDisabled}
+                                onClick={() => handlePlanChange(plan.id)}
+                            >
+                                Scegli Piano
+                            </Button>
+                        ) : (
+                             <Button 
+                                className="w-full" 
+                                disabled={isPlanDisabled || !paymentMethod || isSubmitting}
                                 onClick={() => handleSubscription(selectedPlan, paymentMethod)}
                             >
                                 {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
                             </Button>
-                        </CardFooter>
-                    </Card>
-                </Label>
+                        )}
+                    </CardFooter>
+                </Card>
               )
             })}
-        </RadioGroup>
+        </div>
       </CardContent>
     </Card>
   )
