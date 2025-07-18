@@ -41,6 +41,11 @@ export default function AuthPage() {
     if (typeof window !== 'undefined' && name) {
       localStorage.clear(); // Clear previous session
       localStorage.setItem('userName', name);
+      localStorage.setItem('codiceFiscale', '');
+      localStorage.setItem('birthDate', '');
+      localStorage.setItem('address', '');
+      localStorage.setItem('comune', '');
+      localStorage.setItem('provincia', '');
     }
     router.push('/dashboard');
   };
@@ -93,7 +98,7 @@ export default function AuthPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name-signup">Nome e Cognome</Label>
+                  <Label htmlFor="name-signup">Nome e Cognome Allievo</Label>
                   <Input 
                     id="name-signup" 
                     placeholder="Mario Rossi" 
