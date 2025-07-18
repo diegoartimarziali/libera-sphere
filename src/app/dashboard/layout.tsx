@@ -27,7 +27,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 // Custom Dumbbell Icon
 const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -72,6 +72,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [regulationsAccepted, setRegulationsAccepted] = React.useState(false);
   const [associated, setAssociated] = React.useState(false);
   const [associationRequested, setAssociationRequested] = React.useState(false);
@@ -83,10 +84,10 @@ export default function DashboardLayout({
       const storedAssociation = localStorage.getItem('associated');
       const storedLessonSelected = localStorage.getItem('lessonSelected');
       const storedAssociationRequested = localStorage.getItem('associationRequested');
+      const isRegulationsAccepted = storedRegulations === 'true';
       
-      if (storedRegulations === 'true') {
-        setRegulationsAccepted(true);
-      }
+      setRegulationsAccepted(isRegulationsAccepted);
+      
       if (storedAssociation === 'true') {
         setAssociated(true);
       }
@@ -96,8 +97,13 @@ export default function DashboardLayout({
       if (storedAssociationRequested === 'true') {
         setAssociationRequested(true);
       }
+
+      // Redirect logic
+      if (!isRegulationsAccepted && pathname !== '/dashboard/regulations' && pathname !== '/dashboard/instructions') {
+        router.push('/dashboard/regulations');
+      }
     }
-  }, []);
+  }, [pathname, router]);
   
   const handleLogout = (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
@@ -133,6 +139,9 @@ export default function DashboardLayout({
       return false;
     }
     if (item.hideWhenAssociationRequested && associationRequested) {
+        return false;
+    }
+    if (!regulationsAccepted && item.href !== '/dashboard/regulations' && item.href !== '/dashboard/instructions' && item.href !== '/dashboard') {
         return false;
     }
     return true;
