@@ -73,13 +73,18 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isClient, setIsClient] = React.useState(false);
   const [regulationsAccepted, setRegulationsAccepted] = React.useState(false);
   const [associated, setAssociated] = React.useState(false);
   const [associationRequested, setAssociationRequested] = React.useState(false);
   const [lessonSelected, setLessonSelected] = React.useState(false);
 
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
+    setIsClient(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (isClient) {
       const storedRegulations = localStorage.getItem('regulationsAccepted');
       const storedAssociation = localStorage.getItem('associated');
       const storedLessonSelected = localStorage.getItem('lessonSelected');
@@ -103,7 +108,7 @@ export default function DashboardLayout({
         router.push('/dashboard/regulations');
       }
     }
-  }, [pathname, router]);
+  }, [isClient, pathname, router]);
   
   const handleLogout = (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
@@ -160,6 +165,10 @@ export default function DashboardLayout({
     return child;
   });
 
+  if (!isClient) {
+    // Render a loading state or nothing on the server to avoid hydration mismatch
+    return null;
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
