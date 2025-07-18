@@ -108,8 +108,8 @@ export default function DashboardLayout({
   };
 
   const allNavItems = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "/dashboard/instructions", icon: Info, label: "Istruzioni", hideWhenAssociated: true },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti e Privacy", hideWhenRegulationsAccepted: true },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni di Selezione", hideWhenLessonSelected: true },
     { href: "/dashboard/associates", icon: Users, label: "Associati", hideWhenAssociationRequested: true },
