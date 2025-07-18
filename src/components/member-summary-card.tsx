@@ -109,7 +109,7 @@ export function MemberSummaryCard() {
   const renderAssociationBadge = () => {
     switch (associationStatus) {
       case 'approved':
-        return <Badge variant="outline" className="border-green-500 text-green-600">Valida</Badge>;
+        return <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">Valida</Badge>;
       case 'requested':
         return <Badge variant="outline" className="border-yellow-500 text-yellow-600">Domanda Inviata</Badge>;
       default:
@@ -180,7 +180,7 @@ export function MemberSummaryCard() {
               <div className="text-foreground text-lg flex items-center gap-2">
                   <span className="text-muted-foreground">Data prima associazione: </span>
                   {associationDate ? 
-                    <Badge variant="outline" className="border-green-500 text-green-600">{associationDate}</Badge> : 
+                    <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">{associationDate}</Badge> : 
                     <Badge variant="destructive">Non definito</Badge>
                   }
               </div>
@@ -230,7 +230,7 @@ export function MemberSummaryCard() {
               <div className="text-muted-foreground text-lg flex items-center gap-2">
                     <span>Data prima lezione di selezione: </span>
                     {lessonDate && selectedDojo ? (
-                        <Badge variant="outline" className="border-green-500 text-green-600">
+                        <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">
                             {`${lessonDate} presso il Dojo di ${capitalizeFirstLetter(selectedDojo)}`}
                         </Badge>
                      ) : (
@@ -243,7 +243,7 @@ export function MemberSummaryCard() {
                   Regolamento, Statuto e Privacy:
                 </span>
                 {regulationsAccepted ? (
-                    <Badge variant="outline" className="border-green-500 text-green-600">
+                    <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">
                         Accettati il {acceptanceDate}
                     </Badge>
                 ) : (
