@@ -187,7 +187,7 @@ export function MemberSummaryCard() {
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-1 gap-8">
-            <div className="grid gap-1.5 text-lg flex-1">
+            <div className="grid gap-1 text-lg flex-1">
               <div className="font-semibold text-xl flex items-center gap-2">
                 <span>{userName}</span>
                 <div className="flex items-center">
@@ -213,7 +213,7 @@ export function MemberSummaryCard() {
                 <div className="text-muted-foreground text-lg">
                   Email di registrazione: <span className="font-medium text-foreground">{registrationEmail}</span>
                 </div>
-              <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
+              <div className="text-muted-foreground text-lg flex items-center gap-2">
                 <span className="text-muted-foreground">C.F.: </span>
                 {codiceFiscale ? (
                     <span className="font-medium text-foreground">{codiceFiscale}</span>
@@ -229,7 +229,7 @@ export function MemberSummaryCard() {
                     <Badge variant="destructive">Non definito</Badge>
                   )}
               </div>
-              <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
+              <div className="text-muted-foreground text-lg flex items-center gap-2">
                   <span>Residente in: </span>
                   {address && civicNumber && cap ? (
                     <span className="font-medium text-foreground">{address}, {civicNumber} - {cap}</span>
@@ -237,7 +237,7 @@ export function MemberSummaryCard() {
                     <Badge variant="destructive">Non definito</Badge>
                   )}
               </div>
-              <div className="text-muted-foreground mt-2 text-lg flex items-center gap-2">
+              <div className="text-muted-foreground text-lg flex items-center gap-2">
                   <span>Comune: </span>
                   {comune ? (
                     <span className="font-medium text-foreground">{comune} ({provincia})</span>
