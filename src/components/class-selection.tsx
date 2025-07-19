@@ -207,6 +207,12 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         setAddress(capitalized);
     };
 
+    const handleComuneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        const capitalized = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+        setComune(capitalized);
+    };
+
     const handleParentNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         const capitalized = value
@@ -396,7 +402,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                 placeholder="Roma" 
                                 required 
                                 value={comune}
-                                onChange={(e) => setComune(e.target.value)}
+                                onChange={handleComuneChange}
                             />
                         </div>
                         <div className="space-y-2">
