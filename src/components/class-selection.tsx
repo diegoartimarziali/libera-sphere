@@ -426,6 +426,17 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                 <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)}/>
                             </div>
                             <div className="space-y-2">
+                                <Label htmlFor="amount-to-pay">Importo da pagare €</Label>
+                                <Select>
+                                    <SelectTrigger id="amount-to-pay">
+                                        <SelectValue placeholder="Seleziona importo" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="120">120,00</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2 col-span-full">
                                 <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
                                 <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange}/>
                                 {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
@@ -456,6 +467,17 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                     <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
                                 </div>
                                 <div className="space-y-2">
+                                    <Label htmlFor="parent-amount-to-pay">Importo da pagare €</Label>
+                                    <Select>
+                                        <SelectTrigger id="parent-amount-to-pay">
+                                            <SelectValue placeholder="Seleziona importo" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="120">120,00</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2 col-span-full">
                                     <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
                                     <Input 
                                         id="parent-email-confirm" 
