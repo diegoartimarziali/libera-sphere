@@ -343,8 +343,7 @@ export function AssociateForm() {
                 </div>
             )}
         </CardContent>
-        <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={() => router.push('/dashboard')}>Annulla</Button>
+        <CardFooter className="flex justify-end">
             <Button onClick={handleSave}>Salva e Procedi</Button>
         </CardFooter>
     </Card>
