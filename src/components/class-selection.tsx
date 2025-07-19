@@ -427,12 +427,12 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="amount-to-pay">Importo da pagare €</Label>
-                                <Select>
+                                <Select defaultValue="30">
                                     <SelectTrigger id="amount-to-pay">
                                         <SelectValue placeholder="Seleziona importo" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="120">120,00</SelectItem>
+                                        <SelectItem value="30">30,00</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -468,12 +468,12 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="parent-amount-to-pay">Importo da pagare €</Label>
-                                    <Select>
+                                    <Select defaultValue="30">
                                         <SelectTrigger id="parent-amount-to-pay">
                                             <SelectValue placeholder="Seleziona importo" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="120">120,00</SelectItem>
+                                            <SelectItem value="30">30,00</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
