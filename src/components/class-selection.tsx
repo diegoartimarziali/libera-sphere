@@ -364,15 +364,17 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             </div>
                         </div>
                     </div>
-                     <div className="space-y-2">
+                    <div className="space-y-2">
                         <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
-                        <Input 
-                            id="codice-fiscale" 
-                            placeholder="RSSMRA80A01H501U" 
-                            required
-                            value={codiceFiscale}
-                            onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
-                        />
+                        <div className="w-full md:w-1/2">
+                            <Input 
+                                id="codice-fiscale" 
+                                placeholder="RSSMRA80A01H501U" 
+                                required
+                                value={codiceFiscale}
+                                onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+                            />
+                        </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
                         <div className="space-y-2">
