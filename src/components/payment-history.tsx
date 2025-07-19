@@ -137,6 +137,7 @@ export function PaymentHistory() {
         )}
 
         <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Seleziona il Pagamento</h3>
             <h3 className="text-lg font-semibold">Seleziona la modalità di pagamento</h3>
             <div className="grid w-full max-w-sm items-center gap-1.5">
                 <Label htmlFor="payment-method">Metodo di Pagamento</Label>
