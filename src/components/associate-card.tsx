@@ -174,7 +174,7 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                     </Label>
                 </div>
                 <div className="self-end">
-                    <Button onClick={handleAssociation} disabled={!dataConfirmed || !hasMedicalCertificate}>Fai Domanda di Associazione</Button>
+                    <Button onClick={handleAssociation} disabled={!dataConfirmed}>Fai Domanda di Associazione</Button>
                 </div>
             </CardFooter>
         </Card>
