@@ -23,6 +23,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
+import { format } from "date-fns"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -79,7 +80,7 @@ export function AssociateForm() {
         }
     }, [day, month, year]);
 
-    const handleSave = () => {
+    const handleSaveAndApply = () => {
         if (isMinor) {
             if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
                 setEmailError(true);
@@ -115,12 +116,20 @@ export function AssociateForm() {
             }
             
             localStorage.setItem('hasSubmittedData', 'true');
+            
+            const associationDate = format(new Date(), "dd/MM/yyyy");
+            localStorage.setItem('associationRequested', 'true');
+            localStorage.setItem('associationRequestDate', associationDate);
         }
+        
         toast({
-            title: "Dati Salvati!",
-            description: "I tuoi dati sono stati registrati con successo. Ora puoi procedere con la domanda di associazione.",
-        })
-        router.refresh();
+            title: "Domanda Inviata!",
+            description: `I tuoi dati sono stati salvati e la domanda di associazione è stata inviata. Riceverai una notifica quando verrà approvata.`,
+        });
+        
+        router.push('/dashboard');
+        // We need a full refresh for the layout to correctly update
+        setTimeout(() => window.location.reload(), 500);
     }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -344,7 +353,7 @@ export function AssociateForm() {
             )}
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button onClick={handleSave}>Salva e Procedi</Button>
+            <Button onClick={handleSaveAndApply}>Fai Domanda di Associazione</Button>
         </CardFooter>
     </Card>
   )
