@@ -145,52 +145,76 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         }
     }
 
-    const handleRegister = () => {
-        // This is a placeholder function.
-        // The user wants to remove the previous logic.
-        // Let's just save the data and redirect.
-         if (typeof window !== 'undefined') {
-            // Save all data to localStorage
-            localStorage.setItem('martialArt', martialArt);
-            localStorage.setItem('selectedDojo', dojo);
-            localStorage.setItem('lessonDate', lessonDate);
-            localStorage.setItem('userName', name);
-            localStorage.setItem('codiceFiscale', codiceFiscale);
-            if (birthDate) {
-                localStorage.setItem('birthDate', `${day}/${month}/${year}`);
+    const handleRegister = async () => {
+        if (isMinor) {
+            if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                setEmailError(true);
+                return;
             }
-            localStorage.setItem('birthplace', birthplace);
-            localStorage.setItem('address', address);
-            localStorage.setItem('civicNumber', civicNumber);
-            localStorage.setItem('cap', cap);
-            localStorage.setItem('comune', comune);
-            localStorage.setItem('provincia', provincia);
-            
-            if (isMinor) {
-                localStorage.setItem('isMinor', 'true');
-                localStorage.setItem('parentName', parentName);
-                localStorage.setItem('parentCf', parentCf);
-                localStorage.setItem('parentPhone', parentPhone);
-                localStorage.setItem('parentEmail', parentEmail);
-            } else {
-                localStorage.setItem('isMinor', 'false');
-                localStorage.setItem('phone', phone);
-            }
-            
-            if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
-            if (amount) localStorage.setItem('paymentAmount', amount);
-            
-            if (setLessonSelected) {
-                setLessonSelected(true);
+        } else {
+            if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                setEmailError(true);
+                return;
             }
         }
         
-        toast({
-            title: "Dati Salvati!",
-            description: `I tuoi dati sono stati salvati. Ora procedi con il pagamento.`,
-        });
+        setIsSubmitting(true);
         
-        router.push('/dashboard/payments');
+        try {
+            if (typeof window !== 'undefined') {
+                // Save all data to localStorage
+                localStorage.setItem('martialArt', martialArt);
+                localStorage.setItem('selectedDojo', dojo);
+                localStorage.setItem('lessonDate', lessonDate);
+                localStorage.setItem('userName', name);
+                localStorage.setItem('codiceFiscale', codiceFiscale);
+                if (birthDate) {
+                    localStorage.setItem('birthDate', `${day}/${month}/${year}`);
+                }
+                localStorage.setItem('birthplace', birthplace);
+                localStorage.setItem('address', address);
+                localStorage.setItem('civicNumber', civicNumber);
+                localStorage.setItem('cap', cap);
+                localStorage.setItem('comune', comune);
+                localStorage.setItem('provincia', provincia);
+                
+                if (isMinor) {
+                    localStorage.setItem('isMinor', 'true');
+                    localStorage.setItem('parentName', parentName);
+                    localStorage.setItem('parentCf', parentCf);
+                    localStorage.setItem('parentPhone', parentPhone);
+                    localStorage.setItem('parentEmail', parentEmail);
+                } else {
+                    localStorage.setItem('isMinor', 'false');
+                    localStorage.setItem('phone', phone);
+                }
+                
+                if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
+                if (amount) localStorage.setItem('paymentAmount', amount);
+                
+                if (setLessonSelected) {
+                    setLessonSelected(true);
+                }
+
+                // Open summary in a new tab
+                window.open('/dashboard/selection-summary', '_blank');
+            }
+            
+            toast({
+                title: "Riepilogo pronto!",
+                description: `Controlla la nuova scheda per il riepilogo della tua iscrizione.`,
+            });
+            
+        } catch (error) {
+            console.error("Error during registration process: ", error);
+            toast({
+                title: "Errore",
+                description: "Si è verificato un errore durante il salvataggio dei dati.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -514,8 +538,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(1)}>Indietro</Button>
-                    <Button onClick={handleRegister} disabled={!paymentMethod || !amount}>
-                        Avanti
+                    <Button onClick={handleRegister} disabled={isSubmitting || !paymentMethod || !amount}>
+                        {isSubmitting ? 'Salvataggio...' : 'Avanti'}
                     </Button>
                 </CardFooter>
              </Card>
@@ -523,5 +547,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     </>
   )
 }
+
+    
 
     
