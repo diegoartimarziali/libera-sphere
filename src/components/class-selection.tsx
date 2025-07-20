@@ -150,10 +150,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 })
                 return;
             }
-            setCurrentStep(2);
-        } else if (currentStep === 2) {
-             setCurrentStep(3);
         }
+        setCurrentStep(currentStep + 1);
     }
 
     const handleRegister = () => {
@@ -308,10 +306,10 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 <form>
                 <div className="grid w-full items-center gap-4">
                     <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="gym">Arte marziale scelta</Label>
+                    <Label htmlFor="gym">Corso di:</Label>
                     <Select onValueChange={setMartialArt} value={martialArt}>
                         <SelectTrigger id="gym">
-                        <SelectValue placeholder="Seleziona un'arte marziale" />
+                        <SelectValue placeholder="Seleziona un corso" />
                         </SelectTrigger>
                         <SelectContent position="popper">
                         <SelectItem value="karate">Karate</SelectItem>
@@ -320,10 +318,10 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     </Select>
                     </div>
                     <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="dojo">Dojo di</Label>
+                    <Label htmlFor="dojo">Palestra di:</Label>
                     <Select onValueChange={setDojo} value={dojo}>
                         <SelectTrigger id="dojo">
-                        <SelectValue placeholder="Seleziona un dojo" />
+                        <SelectValue placeholder="Seleziona una palestra" />
                         </SelectTrigger>
                         <SelectContent position="popper">
                         <SelectItem value="aosta">Aosta</SelectItem>
@@ -334,7 +332,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     </div>
                     {dojo && (
                         <div className="flex flex-col space-y-1.5">
-                        <Label htmlFor="lesson-date">Data prima lezione</Label>
+                        <Label htmlFor="lesson-date">1a Lezione</Label>
                         <Select onValueChange={setLessonDate} value={lessonDate}>
                             <SelectTrigger id="lesson-date">
                             <SelectValue placeholder="Seleziona una data" />
@@ -359,7 +357,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         {currentStep === 2 && (
              <Card>
                 <CardHeader>
-                    <CardTitle>Lezioni di Selezione</CardTitle>
+                    <CardTitle>Controlla i dati Inseriti</CardTitle>
                     <CardDescription className="font-bold">Inserisci i tuoi dati</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -550,7 +548,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => setCurrentStep(1)}>Indietro</Button>
+                    <Button variant="outline" onClick={() => setCurrentStep(currentStep - 1)}>Indietro</Button>
                     <Button onClick={handleNextStep} disabled={!paymentMethod || !amount}>
                         Avanti
                     </Button>
@@ -570,9 +568,9 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                            <p><b>Arte Marziale:</b> <span className="text-foreground">{capitalize(martialArt)}</span></p>
-                            <p><b>Dojo:</b> <span className="text-foreground">{capitalize(dojo)}</span></p>
-                            <p><b>Data Prima Lezione:</b> <span className="text-foreground">{lessonDate}</span></p>
+                            <p><b>Corso di:</b> <span className="text-foreground">{capitalize(martialArt)}</span></p>
+                            <p><b>Palestra di:</b> <span className="text-foreground">{capitalize(dojo)}</span></p>
+                            <p><b>1a Lezione:</b> <span className="text-foreground">{lessonDate}</span></p>
                         </div>
                         <p className="text-sm text-muted-foreground mt-2">Potrai concordare le date delle prossime lezioni in palestra con l'istruttore.</p>
                     </div>

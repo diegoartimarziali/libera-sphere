@@ -3,9 +3,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Download } from 'lucide-react';
 
 const translatePaymentMethod = (method: string | null) => {
     if (!method) return 'Non specificato';
@@ -50,6 +51,12 @@ export default function SelectionSummaryPage() {
         }
     }, []);
 
+    const handlePrint = () => {
+        if (typeof window !== 'undefined') {
+            window.print();
+        }
+    };
+
     if (!isClient || !summaryData) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -73,9 +80,9 @@ export default function SelectionSummaryPage() {
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                            <p><b>Arte Marziale:</b> <span className="text-foreground">{capitalize(summaryData.martialArt)}</span></p>
-                            <p><b>Dojo:</b> <span className="text-foreground">{capitalize(summaryData.selectedDojo)}</span></p>
-                            <p><b>Data Prima Lezione:</b> <span className="text-foreground">{summaryData.lessonDate}</span></p>
+                            <p><b>Corso di:</b> <span className="text-foreground">{capitalize(summaryData.martialArt)}</span></p>
+                            <p><b>Palestra di:</b> <span className="text-foreground">{capitalize(summaryData.selectedDojo)}</span></p>
+                            <p><b>1a Lezione:</b> <span className="text-foreground">{summaryData.lessonDate}</span></p>
                         </div>
                     </div>
 
@@ -117,7 +124,12 @@ export default function SelectionSummaryPage() {
                            <p><b>Importo:</b> <span className="text-foreground">€ {summaryData.paymentAmount}</span></p>
                         </div>
                     </div>
-
+                     <CardFooter className="flex justify-end pt-6">
+                        <Button onClick={handlePrint} variant="outline">
+                            <Download className="mr-2 h-4 w-4" />
+                            Stampa / Salva PDF
+                        </Button>
+                    </CardFooter>
                 </CardContent>
             </Card>
         </div>
