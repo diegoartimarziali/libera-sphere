@@ -217,6 +217,49 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     }, [currentStep, paymentMethod, baseAmount]);
 
     const handleNextStep = () => {
+        const fieldsToValidate = [
+            { value: martialArt, name: "Corso" },
+            { value: dojo, name: "Palestra" },
+            { value: lessonDate, name: "Data della 1a Lezione" },
+            { value: name, name: "Nome e Cognome" },
+            { value: birthplace, name: "Luogo di nascita" },
+            { value: day, name: "Giorno di nascita" },
+            { value: month, name: "Mese di nascita" },
+            { value: year, name: "Anno di nascita" },
+            { value: codiceFiscale, name: "Codice Fiscale" },
+            { value: address, name: "Indirizzo di residenza" },
+            { value: civicNumber, name: "Numero civico" },
+            { value: cap, name: "CAP" },
+            { value: comune, name: "Comune" },
+            { value: provincia, name: "Provincia" },
+            { value: paymentMethod, name: "Metodo di pagamento" }
+        ];
+
+        if (!isMinor) {
+            fieldsToValidate.push(
+                { value: phone, name: "Numero di telefono" },
+                { value: emailConfirm, name: "Conferma email per contatti" }
+            );
+        } else {
+            fieldsToValidate.push(
+                { value: parentName, name: "Nome e Cognome Genitore/Tutore" },
+                { value: parentCf, name: "Codice Fiscale Genitore/Tutore" },
+                { value: parentPhone, name: "Numero di telefono Genitore/Tutore" },
+                { value: parentEmail, name: "Conferma email per contatti del Genitore/Tutore" }
+            );
+        }
+
+        for (const field of fieldsToValidate) {
+            if (!field.value) {
+                toast({
+                    title: "Campo Obbligatorio",
+                    description: `Il campo "${field.name}" non è stato compilato.`,
+                    variant: "destructive",
+                });
+                return;
+            }
+        }
+        
         if (isMinor) {
             if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
                 setEmailError(true);
@@ -238,23 +281,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 return;
             }
         }
-        if (!martialArt || !dojo || !lessonDate) {
-            toast({
-                title: "Attenzione",
-                description: "Per favore, seleziona un'arte marziale, un dojo e una data.",
-                variant: "destructive",
-            })
-            return;
-        }
-            if (!paymentMethod || !amount) {
-            toast({
-                title: "Attenzione",
-                description: "Per favore, seleziona un metodo di pagamento.",
-                variant: "destructive",
-            })
-            return;
-        }
-        // Save data to localStorage before going to next step
+       
         saveDataToLocalStorage();
         setCurrentStep(2);
     }
@@ -293,7 +320,11 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
 
     const handleRegister = () => {
-        // Funzioni del tasto Fine eliminate
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('isDojoPassportComplete', 'true');
+            if(setLessonSelected) setLessonSelected(true);
+        }
+        router.push('/dashboard');
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
