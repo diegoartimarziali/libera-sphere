@@ -522,17 +522,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         <CardDescription className="font-bold text-black">
                             Completa la tua iscrizione scegliendo un metodo di pagamento.
                         </CardDescription>
-                         <div className="space-y-2">
-                            <Label htmlFor="amount">Importo</Label>
-                            <Select onValueChange={setAmount} value={amount}>
-                                <SelectTrigger id="amount">
-                                    <SelectValue placeholder="Seleziona un importo" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="30">€ 30</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                         
                         <Select onValueChange={setPaymentMethod} value={paymentMethod}>
                             <SelectTrigger id="payment-method">
                                 <SelectValue placeholder="Seleziona un metodo di pagamento" />
@@ -545,6 +535,17 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                 ))}
                             </SelectContent>
                         </Select>
+                        <div className="space-y-2">
+                            <Label htmlFor="amount">Importo</Label>
+                            <Select onValueChange={setAmount} value={amount}>
+                                <SelectTrigger id="amount">
+                                    <SelectValue placeholder="Seleziona un importo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="30">€ 30</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
@@ -562,6 +563,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
 
 
