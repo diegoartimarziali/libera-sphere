@@ -46,7 +46,7 @@ export function AssociatePayment() {
     }, []);
     
     const handlePayment = async () => {
-        if (!paymentMethod || !hasMedicalCertificate) return;
+        if (!paymentMethod) return;
 
         setIsSubmitting(true);
         const userEmail = localStorage.getItem('registrationEmail');
@@ -104,19 +104,10 @@ export function AssociatePayment() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {!hasMedicalCertificate && (
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Attenzione</AlertTitle>
-                        <AlertDescription>
-                           Per poter partecipare ai corsi è necessario essere in possesso di certificato medico non agonistico in corso di validità. Carica il certificato per poter procedere.
-                        </AlertDescription>
-                    </Alert>
-                )}
                 <div className="pt-4">
                     <Separator className="mb-4" />
                     <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
-                    <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod} disabled={!hasMedicalCertificate}>
+                    <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod}>
                         {paymentOptions.map(option => (
                             <Label htmlFor={option.id} key={option.id} className="flex items-center space-x-2 cursor-pointer">
                                 <RadioGroupItem value={option.id} id={option.id} />
@@ -129,7 +120,7 @@ export function AssociatePayment() {
              <CardFooter>
                  <Button 
                     className="w-full" 
-                    disabled={!paymentMethod || isSubmitting || !hasMedicalCertificate}
+                    disabled={!paymentMethod || isSubmitting}
                     onClick={handlePayment}
                 >
                     {isSubmitting ? 'Salvataggio...' : 'CONFERMA E PAGA'}
