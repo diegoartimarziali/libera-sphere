@@ -10,7 +10,7 @@ import { Download } from 'lucide-react';
 const translatePaymentMethod = (method: string | null) => {
     if (!method) return 'Non specificato';
     switch (method) {
-        case 'online': return 'Carta di Credito on Line';
+        case 'online': return 'Carta di Credito On Line';
         case 'transfer': return 'Bonifico Bancario';
         case 'cash': return 'Contanti o bancomat e carta in palestra';
         default: return method;

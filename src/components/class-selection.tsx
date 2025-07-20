@@ -42,7 +42,7 @@ const lessonDatesByDojo: { [key: string]: string[] } = {
 };
 
 const paymentOptions = [
-    { id: "online", label: "Pagamento con carta di credito on line. Rapido e sicuro." },
+    { id: "online", label: "Carta di Credito On Line" },
     { id: "transfer", label: "Bonifico Bancario." },
     { id: "cash", label: "Contanti o bancomat e carta in palestra (€ 2 spese di gestione)" },
 ];
@@ -549,5 +549,3 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     </>
   )
 }
-
-    
