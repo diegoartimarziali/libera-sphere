@@ -43,14 +43,14 @@ const lessonDatesByDojo: { [key: string]: string[] } = {
 
 const paymentOptions = [
     { id: "online", label: "Carta di Credito on line (0 costi)" },
-    { id: "cash", label: "Contanti o Bancomat in palestra" },
+    { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ];
 
 const translatePaymentMethod = (method: string | null) => {
     if (!method) return 'Non specificato';
     switch (method) {
         case 'online': return 'Carta di Credito on line (0 costi)';
-        case 'cash': return 'Contanti o Bancomat in palestra';
+        case 'cash': return 'Contanti o Bancomat in Palestra ( 2 euro costi di gestione)';
         default: return method;
     }
 }
@@ -146,6 +146,16 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 toast({
                     title: "Attenzione",
                     description: "Per favore, seleziona un'arte marziale, un dojo e una data.",
+                    variant: "destructive",
+                })
+                return;
+            }
+        }
+        if (currentStep === 2) {
+             if (!paymentMethod || !amount) {
+                toast({
+                    title: "Attenzione",
+                    description: "Per favore, seleziona un metodo di pagamento e un importo.",
                     variant: "destructive",
                 })
                 return;
@@ -548,7 +558,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(currentStep - 1)}>Indietro</Button>
-                    <Button onClick={handleNextStep} disabled={!paymentMethod || !amount}>
+                    <Button onClick={handleNextStep}>
                         Avanti
                     </Button>
                 </CardFooter>
@@ -571,7 +581,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                            <p><b>Importo:</b> <span className="text-foreground font-bold">€ {amount}</span></p>
                         </div>
                     </div>
-
+                    
                     <Separator />
                     
                     <div>

@@ -37,7 +37,7 @@ interface Subscription {
 
 const translatePaymentMethod = (method: string) => {
     switch (method) {
-        case 'cash': return 'Contanti o Bancomat in palestra';
+        case 'cash': return 'Contanti o Bancomat in Palestra ( 2 euro costi di gestione)';
         case 'online': return 'Carta di Credito on line (0 costi)';
         default: return method;
     }

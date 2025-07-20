@@ -29,7 +29,7 @@ const plans = [
 
 const paymentOptions = [
     { id: "online", label: "Carta di Credito on line (0 costi)" },
-    { id: "cash", label: "Contanti o Bancomat in palestra" },
+    { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ]
 
 export function SubscriptionManagement() {

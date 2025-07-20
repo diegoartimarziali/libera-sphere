@@ -12,7 +12,7 @@ const translatePaymentMethod = (method: string | null) => {
     if (!method) return 'Non specificato';
     switch (method) {
         case 'online': return 'Carta di Credito on line (0 costi)';
-        case 'cash': return 'Contanti o Bancomat in palestra';
+        case 'cash': return 'Contanti o Bancomat in Palestra ( 2 euro costi di gestione)';
         default: return method;
     }
 }
