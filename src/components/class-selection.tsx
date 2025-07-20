@@ -168,7 +168,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }, [paymentMethod, baseAmount]);
     
     useEffect(() => {
-        if (currentStep === 1 && paymentMethod) {
+        if (currentStep === 2 && paymentMethod) {
              if (paymentMethod === 'cash') {
                 setAmount(String(baseAmount + 2));
             } else {
@@ -178,6 +178,28 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }, [currentStep, paymentMethod, baseAmount]);
 
     const handleNextStep = () => {
+        if (isMinor) {
+            if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                setEmailError(true);
+                toast({
+                    title: "Errore Email",
+                    description: "L'email di contatto del genitore deve essere uguale all'email di registrazione.",
+                    variant: "destructive"
+                });
+                return;
+            }
+        } else {
+            if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                setEmailError(true);
+                 toast({
+                    title: "Errore Email",
+                    description: "L'email di contatto deve essere uguale all'email di registrazione.",
+                    variant: "destructive"
+                });
+                return;
+            }
+        }
+
         if (currentStep === 1) {
             if (!martialArt || !dojo || !lessonDate) {
                 toast({
@@ -292,12 +314,16 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
     const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setEmailConfirm(e.target.value.toLowerCase());
-        setEmailError(false);
+        if (e.target.value.toLowerCase() === registrationEmail?.toLowerCase()) {
+            setEmailError(false);
+        }
     }
 
     const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setParentEmail(e.target.value.toLowerCase());
-        setEmailError(false);
+        if (e.target.value.toLowerCase() === registrationEmail?.toLowerCase()) {
+            setEmailError(false);
+        }
     }
     
     const isMinor = useMemo(() => {
@@ -373,51 +399,53 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 <CardHeader>
                     <CardTitle>Lezioni di Selezione</CardTitle>
                     <CardDescription>
-                        Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
+                       Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
                     </CardDescription>
-                    <CardDescription className="font-bold text-black pt-4">Inserisci i tuoi dati</CardDescription>
+                    <div className="pt-4">
+                        <div className="flex flex-col space-y-1.5">
+                            <Label htmlFor="gym">Corso di:</Label>
+                            <Select onValueChange={setMartialArt} value={martialArt}>
+                                <SelectTrigger id="gym">
+                                <SelectValue placeholder="Seleziona un corso" />
+                                </SelectTrigger>
+                                <SelectContent position="popper">
+                                <SelectItem value="karate">Karate</SelectItem>
+                                <SelectItem value="aikido">Aikido</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex flex-col space-y-1.5 pt-4">
+                            <Label htmlFor="dojo">Palestra di:</Label>
+                            <Select onValueChange={setDojo} value={dojo}>
+                                <SelectTrigger id="dojo">
+                                <SelectValue placeholder="Seleziona una palestra" />
+                                </SelectTrigger>
+                                <SelectContent position="popper">
+                                <SelectItem value="aosta">Aosta</SelectItem>
+                                <SelectItem value="villeneuve">Villeneuve</SelectItem>
+                                <SelectItem value="verres">Verres</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        {dojo && (
+                            <div className="flex flex-col space-y-1.5 pt-4">
+                                <Label htmlFor="lesson-date">1a Lezione</Label>
+                                <Select onValueChange={setLessonDate} value={lessonDate}>
+                                    <SelectTrigger id="lesson-date">
+                                    <SelectValue placeholder="Seleziona una data" />
+                                    </SelectTrigger>
+                                    <SelectContent position="popper">
+                                    {availableDates.map(date => (
+                                        <SelectItem key={date} value={date}>{date}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                    </div>
+                     <CardDescription className="font-bold text-black pt-4">Inserisci i tuoi dati</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="gym">Corso di:</Label>
-                    <Select onValueChange={setMartialArt} value={martialArt}>
-                        <SelectTrigger id="gym">
-                        <SelectValue placeholder="Seleziona un corso" />
-                        </SelectTrigger>
-                        <SelectContent position="popper">
-                        <SelectItem value="karate">Karate</SelectItem>
-                        <SelectItem value="aikido">Aikido</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    </div>
-                    <div className="flex flex-col space-y-1.5">
-                    <Label htmlFor="dojo">Palestra di:</Label>
-                    <Select onValueChange={setDojo} value={dojo}>
-                        <SelectTrigger id="dojo">
-                        <SelectValue placeholder="Seleziona una palestra" />
-                        </SelectTrigger>
-                        <SelectContent position="popper">
-                        <SelectItem value="aosta">Aosta</SelectItem>
-                        <SelectItem value="villeneuve">Villeneuve</SelectItem>
-                        <SelectItem value="verres">Verres</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    </div>
-                    {dojo && (
-                        <div className="flex flex-col space-y-1.5">
-                        <Label htmlFor="lesson-date">1a Lezione</Label>
-                        <Select onValueChange={setLessonDate} value={lessonDate}>
-                            <SelectTrigger id="lesson-date">
-                            <SelectValue placeholder="Seleziona una data" />
-                            </SelectTrigger>
-                            <SelectContent position="popper">
-                            {availableDates.map(date => (
-                                <SelectItem key={date} value={date}>{date}</SelectItem>
-                            ))}
-                            </SelectContent>
-                        </Select>
-                        </div>
-                    )}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="name">Nome e Cognome</Label>
@@ -612,6 +640,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         {currentStep === 2 && (
             <Card>
                 <CardHeader>
+                     <CardTitle>Lezioni di Selezione</CardTitle>
                     <CardDescription className="font-bold text-foreground">
                         Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.
                     </CardDescription>
@@ -720,7 +749,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
 
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleRegister}>
+                    <Button onClick={handleRegister} disabled={isSubmitting || !datesSaved}>
                         {isSubmitting ? 'Salvataggio...' : 'Fine'}
                     </Button>
                 </CardFooter>
@@ -730,3 +759,4 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
   )
 }
 
+    

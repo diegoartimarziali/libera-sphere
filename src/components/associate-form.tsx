@@ -84,11 +84,21 @@ export function AssociateForm() {
         if (isMinor) {
             if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
                 setEmailError(true);
+                toast({
+                    title: "Errore Email",
+                    description: "L'email di contatto del genitore deve essere uguale all'email di registrazione.",
+                    variant: "destructive"
+                });
                 return;
             }
         } else {
             if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
                 setEmailError(true);
+                 toast({
+                    title: "Errore Email",
+                    description: "L'email di contatto deve essere uguale all'email di registrazione.",
+                    variant: "destructive"
+                });
                 return;
             }
         }
@@ -171,12 +181,16 @@ export function AssociateForm() {
 
     const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setEmailConfirm(e.target.value.toLowerCase());
-        setEmailError(false);
+        if (e.target.value.toLowerCase() === registrationEmail?.toLowerCase()) {
+            setEmailError(false);
+        }
     }
     
     const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setParentEmail(e.target.value.toLowerCase());
-        setEmailError(false);
+        if (e.target.value.toLowerCase() === registrationEmail?.toLowerCase()) {
+            setEmailError(false);
+        }
     }
     
     const isMinor = useMemo(() => {
@@ -358,3 +372,5 @@ export function AssociateForm() {
     </Card>
   )
 }
+
+    
