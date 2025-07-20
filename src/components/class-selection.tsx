@@ -437,7 +437,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         {currentStep === 2 && (
              <Card>
                 <CardHeader>
-                    <CardTitle>Prenotazione Confermata!</CardTitle>
+                    <CardTitle>Lezioni di Selezione</CardTitle>
                     <CardDescription className="font-bold">Inserisci i tuoi dati</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -758,6 +758,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
 
 
