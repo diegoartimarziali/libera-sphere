@@ -517,8 +517,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     )}
                     <div className="pt-4 space-y-2">
                         <Separator />
-                        <CardTitle className="pt-4 text-muted-foreground">P30</CardTitle>
-                        <CardDescription>
+                        <CardTitle className="pt-4 text-slate-400">P30</CardTitle>
+                        <CardDescription className="font-bold text-black">
                             Completa la tua iscrizione scegliendo un metodo di pagamento.
                         </CardDescription>
                         <Select onValueChange={setPaymentMethod} value={paymentMethod}>
@@ -550,4 +550,5 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
