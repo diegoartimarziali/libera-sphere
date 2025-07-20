@@ -218,7 +218,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     }, [currentStep, paymentMethod, baseAmount]);
 
     const handleNextStep = () => {
-        const fieldsToValidate = {
+        const fieldsToValidate: { [key: string]: string | undefined } = {
             "Corso": martialArt,
             "Palestra": dojo,
             "Data Lezione": lessonDate,
@@ -264,7 +264,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     return;
                 }
             }
-            if (parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
+            if (registrationEmail && parentEmail.toLowerCase() !== registrationEmail.toLowerCase()) {
                 setEmailError(true);
                 toast({
                     title: "Errore Email",
@@ -288,7 +288,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     return;
                 }
             }
-            if (emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
+            if (registrationEmail && emailConfirm.toLowerCase() !== registrationEmail.toLowerCase()) {
                  setEmailError(true);
                  toast({
                     title: "Errore Email",
@@ -339,6 +339,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
 
     const handleRegister = () => {
+        handleExit();
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -383,7 +384,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newEmail = e.target.value.toLowerCase();
         setEmailConfirm(newEmail);
-        if (newEmail === registrationEmail?.toLowerCase()) {
+        if (registrationEmail && newEmail === registrationEmail.toLowerCase()) {
             setEmailError(false);
         } else {
             setEmailError(true);
@@ -393,7 +394,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newEmail = e.target.value.toLowerCase();
         setParentEmail(newEmail);
-        if (newEmail === registrationEmail?.toLowerCase()) {
+        if (registrationEmail && newEmail === registrationEmail.toLowerCase()) {
             setEmailError(false);
         } else {
             setEmailError(true);
@@ -685,7 +686,16 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         <div className="flex items-center space-x-2 pt-4">
                             <Checkbox 
                                 id="bonus-benvenuto" 
-                                onCheckedChange={(checked) => setBonusAccepted(!!checked)}
+                                onCheckedChange={(checked) => {
+                                    setBonusAccepted(!!checked)
+                                    if(!checked) {
+                                        toast({
+                                            title: "Bonus di Benvenuto",
+                                            description: "Devi accettare il bonus di benvenuto per procedere.",
+                                            variant: "destructive",
+                                        });
+                                    }
+                                }}
                                 checked={bonusAccepted}
                             />
                             <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
@@ -841,7 +851,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleRegister}>
-                        Fine
+                        Esci
                     </Button>
                 </CardFooter>
             </Card>
