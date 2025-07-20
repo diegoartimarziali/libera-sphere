@@ -89,6 +89,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    const baseAmount = 30;
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
     
@@ -139,6 +141,18 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             setBirthDate(undefined);
         }
     }, [day, month, year]);
+    
+     useEffect(() => {
+        if (paymentMethod) {
+            if (paymentMethod === 'cash') {
+                setAmount(String(baseAmount + 2));
+            } else {
+                setAmount(String(baseAmount));
+            }
+        } else {
+            setAmount(undefined);
+        }
+    }, [paymentMethod, baseAmount]);
 
     const handleNextStep = () => {
         if (currentStep === 1) {
@@ -155,7 +169,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
              if (!paymentMethod || !amount) {
                 toast({
                     title: "Attenzione",
-                    description: "Per favore, seleziona un metodo di pagamento e un importo.",
+                    description: "Per favore, seleziona un metodo di pagamento.",
                     variant: "destructive",
                 })
                 return;
@@ -366,7 +380,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         {currentStep === 2 && (
              <Card>
                 <CardHeader>
-                    <CardTitle>Controlla i dati Inseriti</CardTitle>
+                    <CardTitle>Prenotazione Confermata!</CardTitle>
                     <CardDescription className="font-bold">Inserisci i tuoi dati</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -543,16 +557,13 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                 ))}
                             </SelectContent>
                         </Select>
-                        <div className="space-y-2">
+                         <div className="space-y-2">
                             <Label htmlFor="amount">Importo</Label>
-                            <Select onValueChange={setAmount} value={amount}>
-                                <SelectTrigger id="amount">
-                                    <SelectValue placeholder="l'importo deve essere selezionato per poter procedere" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="30">€ 30</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <Input 
+                                id="amount"
+                                value={amount ? `€ ${amount}` : 'Seleziona un metodo di pagamento'}
+                                disabled
+                            />
                         </div>
                     </div>
                 </CardContent>
@@ -631,3 +642,5 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     </>
   )
 }
+
+    
