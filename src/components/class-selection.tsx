@@ -567,7 +567,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 <CardContent className="space-y-6">
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                        <div className="space-y-2 text-muted-foreground">
                             <p><b>Corso di:</b> <span className="text-foreground">{capitalize(martialArt)}</span></p>
                             <p><b>Palestra di:</b> <span className="text-foreground">{capitalize(dojo)}</span></p>
                             <p><b>1a Lezione:</b> <span className="text-foreground">{lessonDate}</span></p>
