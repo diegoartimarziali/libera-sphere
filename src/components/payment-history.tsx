@@ -39,7 +39,6 @@ const translatePaymentMethod = (method: string) => {
     switch (method) {
         case 'cash': return 'Contanti/POS';
         case 'online': return 'Carta di Credito';
-        case 'transfer': return 'Bonifico Bancario';
         default: return method;
     }
 }
@@ -147,7 +146,6 @@ export function PaymentHistory() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="online">Carta di Credito on Line</SelectItem>
-                        <SelectItem value="transfer">Bonifico Bancario</SelectItem>
                         <SelectItem value="card-pos">Carta di credito o Bancomat in Palestra</SelectItem>
                         <SelectItem value="cash">Contanti in Palestra</SelectItem>
                     </SelectContent>
