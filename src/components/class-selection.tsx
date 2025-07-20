@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -192,9 +193,10 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
                 if (amount) localStorage.setItem('paymentAmount', amount);
                 
-                if (setLessonSelected) {
-                    setLessonSelected(true);
-                }
+                // We don't set this anymore to keep the menu item visible
+                // if (setLessonSelected) {
+                //     setLessonSelected(true);
+                // }
 
                 // Open summary in a new tab
                 window.open('/dashboard/selection-summary', '_blank');
@@ -547,7 +549,5 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     </>
   )
 }
-
-    
 
     
