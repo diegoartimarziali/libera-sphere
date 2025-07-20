@@ -557,7 +557,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 <CardHeader>
                     <CardTitle>Prenotazione Confermata!</CardTitle>
                     <CardDescription>
-                        La tua prenotazione è stata salvata. Ecco il riepilogo.
+                        Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
