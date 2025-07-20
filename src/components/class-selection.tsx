@@ -42,14 +42,14 @@ const lessonDatesByDojo: { [key: string]: string[] } = {
 };
 
 const paymentOptions = [
-    { id: "online", label: "Carta di Credito On Line" },
+    { id: "online", label: "Carta di Credito on line (0 costi)" },
     { id: "cash", label: "Contanti o Bancomat in palestra" },
 ];
 
 const translatePaymentMethod = (method: string | null) => {
     if (!method) return 'Non specificato';
     switch (method) {
-        case 'online': return 'Carta di Credito On Line';
+        case 'online': return 'Carta di Credito on line (0 costi)';
         case 'cash': return 'Contanti o Bancomat in palestra';
         default: return method;
     }
