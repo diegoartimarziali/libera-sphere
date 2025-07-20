@@ -202,23 +202,9 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }
 
     const handleRegister = () => {
-        if (isMinor) {
-            if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
-                setEmailError(true);
-                return;
-            }
-        } else {
-            if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
-                setEmailError(true);
-                return;
-            }
-        }
-        
         setIsSubmitting(true);
-        
         try {
             if (typeof window !== 'undefined') {
-                // Save all data to localStorage
                 localStorage.setItem('martialArt', martialArt);
                 localStorage.setItem('selectedDojo', dojo);
                 localStorage.setItem('lessonDate', lessonDate);
@@ -247,14 +233,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
                 if (amount) localStorage.setItem('paymentAmount', amount);
                 
-                 if (setLessonSelected) {
-                    setLessonSelected(true);
-                }
-                localStorage.setItem('lessonSelected', 'true');
-
-                // Open summary in a new tab
                 window.open('/dashboard/selection-summary', '_blank');
-                 router.push('/dashboard');
+                router.push('/dashboard');
             }
             
             toast({
@@ -272,7 +252,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         } finally {
             setIsSubmitting(false);
         }
-    }
+    };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -652,12 +632,9 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div>
-                        <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                           <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(paymentMethod ?? null)}</span></p>
-                           <p><b>Importo:</b> <span className="text-foreground font-bold">€ {amount}</span></p>
-                        </div>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                       <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(paymentMethod ?? null)}</span></p>
+                       <p><b>Importo:</b> <span className="text-foreground font-bold">€ {amount}</span></p>
                     </div>
                     
                     <Separator />
@@ -757,9 +734,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     )}
 
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => setCurrentStep(2)}>Indietro</Button>
-                    <Button onClick={handleRegister} disabled={isSubmitting || !datesSaved}>
+                <CardFooter className="flex justify-end">
+                    <Button onClick={() => router.push('/dashboard')} disabled={isSubmitting}>
                         {isSubmitting ? 'Salvataggio...' : 'Fine'}
                     </Button>
                 </CardFooter>
@@ -772,6 +748,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
 
 
