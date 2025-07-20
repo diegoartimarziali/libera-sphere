@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
 import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
@@ -27,6 +28,7 @@ import { useRouter } from "next/navigation"
 import { Separator } from "./ui/separator"
 import { db } from "@/lib/firebase"
 import { addDoc, collection, serverTimestamp } from "firebase/firestore"
+import { Gift } from "lucide-react"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -597,8 +599,17 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             </div>
                         </div>
                     )}
-                    <div className="pt-4 space-y-2">
+                    <div className="space-y-2">
                         <Separator />
+                        <div className="flex items-center space-x-2 pt-4">
+                            <Checkbox id="bonus-benvenuto" />
+                            <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
+                                <Gift className="h-5 w-5 text-primary" />
+                                Riscuoti il tuo Bonus di Benvenuto!
+                            </Label>
+                        </div>
+                    </div>
+                    <div className="pt-4 space-y-2">
                         <CardTitle className="pt-4 text-slate-400">P30</CardTitle>
                         <CardDescription className="font-bold text-black">
                             Completa la tua iscrizione scegliendo un metodo di pagamento.
