@@ -470,7 +470,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                 <Label htmlFor="phone">Numero di telefono:</Label>
                                 <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)}/>
                             </div>
-                            <div className="space-y-2 col-span-full">
+                            <div className="space-y-2">
                                 <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
                                 <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange}/>
                                 {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
@@ -500,7 +500,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                     <Label htmlFor="parent-phone">Numero di telefono:</Label>
                                     <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
                                 </div>
-                                <div className="space-y-2 col-span-full">
+                                <div className="space-y-2">
                                     <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
                                     <Input 
                                         id="parent-email-confirm" 
