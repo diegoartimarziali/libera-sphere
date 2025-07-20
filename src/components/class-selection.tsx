@@ -581,7 +581,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dati Allievo</h3>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
                             <p><b>Nome e Cognome:</b> <span className="text-foreground">{name}</span></p>
-                            <p><b>Codice Fiscale:</b> <span className="text-foreground">{codiceFiscale}</span></p>
                             <p><b>Nato/a il:</b> <span className="text-foreground">{`${day}/${month}/${year}`}</span> a <span className="text-foreground">{birthplace}</span></p>
                             <p><b>Residenza:</b> <span className="text-foreground">{`${address}, ${civicNumber} - ${cap} ${comune} (${provincia})`}</span></p>
                              {!isMinor && <p><b>Telefono:</b> <span className="text-foreground">{phone}</span></p>}
@@ -595,7 +594,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                 <h3 className="font-semibold text-lg mb-2 text-primary">Dati Genitore/Tutore</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
                                     <p><b>Nome e Cognome:</b> <span className="text-foreground">{parentName}</span></p>
-                                    <p><b>Codice Fiscale:</b> <span className="text-foreground">{parentCf}</span></p>
                                     <p><b>Telefono:</b> <span className="text-foreground">{parentPhone}</span></p>
                                 </div>
                             </div>
