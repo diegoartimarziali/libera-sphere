@@ -27,7 +27,6 @@ const capitalizeName = (name: string) => {
 
 export function MemberSummaryCard() {
   const [userName, setUserName] = useState("Utente");
-  const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
   const [codiceFiscale, setCodiceFiscale] = useState<string | null>(null);
   const [birthDateString, setBirthDateString] = useState<string | null>(null);
   const [address, setAddress] = useState<string | null>(null);
@@ -52,7 +51,6 @@ export function MemberSummaryCard() {
       if (storedName) {
         setUserName(capitalizeName(storedName));
       }
-      setRegistrationEmail(localStorage.getItem('registrationEmail'));
       setCodiceFiscale(localStorage.getItem("codiceFiscale"));
       setBirthDateString(localStorage.getItem("birthDate"));
       setBirthplace(localStorage.getItem("birthplace"));

@@ -95,7 +95,7 @@ export default function SelectionSummaryPage() {
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
                             <p><b>Nome e Cognome:</b> <span className="text-foreground">{summaryData.userName}</span></p>
                             <p><b>Codice Fiscale:</b> <span className="text-foreground">{summaryData.codiceFiscale}</span></p>
-                            <p><b>Nato/a il:</b> <span className="text-foreground">{summaryData.birthDate}</span> a <span className="text-foreground">{summaryData.birthplace}</span></p>
+                            <p><b>Nato il:</b> <span className="text-foreground">{summaryData.birthDate}</span> a <span className="text-foreground">{summaryData.birthplace}</span></p>
                             <p><b>Residenza:</b> <span className="text-foreground">{`${summaryData.address}, ${summaryData.civicNumber} - ${summaryData.cap} ${summaryData.comune} (${summaryData.provincia})`}</span></p>
                              {!summaryData.isMinor && <p><b>Telefono:</b> <span className="text-foreground">{summaryData.phone}</span></p>}
                         </div>

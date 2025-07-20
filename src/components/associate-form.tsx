@@ -210,7 +210,7 @@ export function AssociateForm() {
                 </div>
                     <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
                         <div className="space-y-2">
-                        <Label htmlFor="birthplace">nato/a a:</Label>
+                        <Label htmlFor="birthplace">nato a:</Label>
                         <Input 
                             id="birthplace" 
                             type="text" 

@@ -36,14 +36,12 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
         comune: '',
         provincia: '',
         phone: '',
-        email: '',
     });
 
     const [parentData, setParentData] = useState({
         name: '',
         cf: '',
         phone: '',
-        email: '',
     });
 
     const [isMinor, setIsMinor] = useState(false);
@@ -80,7 +78,6 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                 comune: localStorage.getItem('comune') || '',
                 provincia: localStorage.getItem('provincia') || '',
                 phone: localStorage.getItem('phone') || '',
-                email: localStorage.getItem('registrationEmail') || '',
             });
 
             if (isMinor) {
@@ -88,7 +85,6 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                     name: localStorage.getItem('parentName') || '',
                     cf: localStorage.getItem('parentCf') || '',
                     phone: localStorage.getItem('parentPhone') || '',
-                    email: localStorage.getItem('parentEmail') || '',
                 });
             }
         }
@@ -135,7 +131,7 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                     <div>
                         <h4 className="font-semibold text-base mb-2 text-foreground">Dati Allievo</h4>
                         <p><b>Nome e Cognome:</b> {userData.name || 'Non specificato'}</p>
-                        <p><b>Nato/a il:</b> {userData.birthDate || 'Non specificata'} <b>a:</b> {userData.birthplace || 'Non specificato'}</p>
+                        <p><b>Nato il:</b> {userData.birthDate || 'Non specificata'} <b>a:</b> {userData.birthplace || 'Non specificato'}</p>
                         <p><b>Codice Fiscale:</b> {userData.codiceFiscale || 'Non specificato'}</p>
                         <p><b>Residenza:</b> {`${userData.address || ''}, ${userData.civicNumber || ''} - ${userData.cap || ''} ${userData.comune || ''} (${userData.provincia || ''})` || 'Non specificata'}</p>
                         {!isMinor && <p><b>Telefono:</b> {userData.phone || 'Non specificato'}</p>}
