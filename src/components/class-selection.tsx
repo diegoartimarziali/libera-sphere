@@ -233,7 +233,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
                 if (amount) localStorage.setItem('paymentAmount', amount);
                 
-                window.open('/dashboard/selection-summary', '_blank');
                 router.push('/dashboard');
             }
             
@@ -312,6 +311,17 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             age--;
         }
         return age < 18;
+    }, [birthDate]);
+
+    const age = useMemo(() => {
+        if (!birthDate) return null;
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+        }
+        return age;
     }, [birthDate]);
 
     const handleSaveDates = () => {
@@ -714,7 +724,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dati Allievo</h3>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
                             <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{name}</span></p>
-                            <p><b>Nato il:</b> <span className="text-foreground font-bold">{`${day}/${month}/${year}`}</span> a <span className="text-foreground font-bold">{birthplace}</span></p>
+                            <p><b>Età:</b> <span className="text-foreground font-bold">{age !== null ? `${age} anni` : ''}</span></p>
                             <p><b>Residenza:</b> <span className="text-foreground font-bold">{`${address}, ${civicNumber} - ${cap} ${comune} (${provincia})`}</span></p>
                              {!isMinor && <p><b>Telefono:</b> <span className="text-foreground font-bold">{phone}</span></p>}
                         </div>
@@ -735,7 +745,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
 
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={() => router.push('/dashboard')} disabled={isSubmitting}>
+                    <Button onClick={handleRegister} disabled={isSubmitting}>
                         {isSubmitting ? 'Salvataggio...' : 'Fine'}
                     </Button>
                 </CardFooter>
@@ -748,6 +758,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
 
 
