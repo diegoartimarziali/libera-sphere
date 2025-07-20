@@ -17,7 +17,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 import { AlertTriangle } from "lucide-react"
 
@@ -32,9 +32,21 @@ export function AssociatePayment() {
     const router = useRouter();
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [hasMedicalCertificate, setHasMedicalCertificate] = useState(false);
+
+    useEffect(() => {
+        // Check for medical certificate
+        if (typeof window !== 'undefined') {
+            const certDate = localStorage.getItem('medicalCertificateExpirationDate');
+            const certFile = localStorage.getItem('medicalCertificateFileName');
+            if (certDate && certFile) {
+                setHasMedicalCertificate(true);
+            }
+        }
+    }, []);
     
     const handlePayment = async () => {
-        if (!paymentMethod) return;
+        if (!paymentMethod || !hasMedicalCertificate) return;
 
         setIsSubmitting(true);
         const userEmail = localStorage.getItem('registrationEmail');
@@ -92,17 +104,19 @@ export function AssociatePayment() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Attenzione</AlertTitle>
-                    <AlertDescription>
-                       Per poter partecipare ai corsi è necessario essere in possesso di certificato medico non agonistico in corso di validità. Prenota subito la tua visita o carica il certificato.
-                    </AlertDescription>
-                </Alert>
+                {!hasMedicalCertificate && (
+                    <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Attenzione</AlertTitle>
+                        <AlertDescription>
+                           Per poter partecipare ai corsi è necessario essere in possesso di certificato medico non agonistico in corso di validità. Carica il certificato per poter procedere.
+                        </AlertDescription>
+                    </Alert>
+                )}
                 <div className="pt-4">
                     <Separator className="mb-4" />
                     <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
-                    <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod}>
+                    <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod} disabled={!hasMedicalCertificate}>
                         {paymentOptions.map(option => (
                             <Label htmlFor={option.id} key={option.id} className="flex items-center space-x-2 cursor-pointer">
                                 <RadioGroupItem value={option.id} id={option.id} />
@@ -115,7 +129,7 @@ export function AssociatePayment() {
              <CardFooter>
                  <Button 
                     className="w-full" 
-                    disabled={!paymentMethod || isSubmitting}
+                    disabled={!paymentMethod || isSubmitting || !hasMedicalCertificate}
                     onClick={handlePayment}
                 >
                     {isSubmitting ? 'Salvataggio...' : 'CONFERMA E PAGA'}
