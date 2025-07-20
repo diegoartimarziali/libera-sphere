@@ -217,62 +217,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     }, [currentStep, paymentMethod, baseAmount]);
 
     const handleNextStep = () => {
-        const fieldsToValidate = [
-            { value: martialArt, name: "Corso" },
-            { value: dojo, name: "Palestra" },
-            { value: lessonDate, name: "Data della 1a Lezione" },
-            { value: name, name: "Nome e Cognome" },
-            { value: birthplace, name: "Luogo di nascita" },
-            { value: day, name: "Giorno di nascita" },
-            { value: month, name: "Mese di nascita" },
-            { value: year, name: "Anno di nascita" },
-            { value: codiceFiscale, name: "Codice Fiscale" },
-            { value: address, name: "Indirizzo di residenza" },
-            { value: civicNumber, name: "Numero civico" },
-            { value: cap, name: "CAP" },
-            { value: comune, name: "Comune" },
-            { value: provincia, name: "Provincia" },
-            { value: paymentMethod, name: "Metodo di pagamento" },
-        ];
-    
-        if (!isMinor) {
-            fieldsToValidate.push(
-                { value: phone, name: "Numero di telefono" },
-                { value: emailConfirm, name: "Conferma email per contatti" }
-            );
-        } else {
-            fieldsToValidate.push(
-                { value: parentName, name: "Nome e Cognome Genitore/Tutore" },
-                { value: parentCf, name: "Codice Fiscale Genitore/Tutore" },
-                { value: parentPhone, name: "Numero di telefono Genitore/Tutore" },
-                { value: parentEmail, name: "Conferma email per contatti del Genitore/Tutore" }
-            );
-        }
-    
-        for (const field of fieldsToValidate) {
-            if (!field.value) {
-                toast({
-                    title: "Campo Obbligatorio",
-                    description: `Il campo "${field.name}" non è stato compilato.`,
-                    variant: "destructive",
-                });
-                return;
-            }
-        }
-    
-        const emailToCheck = isMinor ? parentEmail : emailConfirm;
-        if (emailToCheck.toLowerCase() !== registrationEmail?.toLowerCase()) {
-            setEmailError(true);
-            toast({
-                title: "Errore Email",
-                description: "L'email di contatto deve essere uguale all'email di registrazione.",
-                variant: "destructive",
-            });
-            return;
-        }
-    
-        saveDataToLocalStorage();
-        setCurrentStep(2);
+        // Funzione svuotata come richiesto
     };
     
     const saveDataToLocalStorage = () => {
