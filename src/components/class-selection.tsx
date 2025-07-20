@@ -218,7 +218,89 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     }, [currentStep, paymentMethod, baseAmount]);
 
     const handleNextStep = () => {
-        // Funzione svuotata come richiesto
+        const fieldsToValidate = {
+            "Corso": martialArt,
+            "Palestra": dojo,
+            "Data Lezione": lessonDate,
+            "Nome e Cognome": name,
+            "Luogo di nascita": birthplace,
+            "Giorno di nascita": day,
+            "Mese di nascita": month,
+            "Anno di nascita": year,
+            "Codice Fiscale": codiceFiscale,
+            "Indirizzo": address,
+            "Numero Civico": civicNumber,
+            "CAP": cap,
+            "Comune": comune,
+            "Provincia": provincia,
+            "Metodo di Pagamento": paymentMethod
+        };
+
+        for (const [fieldName, value] of Object.entries(fieldsToValidate)) {
+            if (!value) {
+                toast({
+                    title: "Campo Obbligatorio",
+                    description: `Il campo "${fieldName}" non è stato compilato.`,
+                    variant: "destructive",
+                });
+                return;
+            }
+        }
+
+        if (isMinor) {
+            const minorFields = {
+                "Nome Genitore": parentName,
+                "CF Genitore": parentCf,
+                "Telefono Genitore": parentPhone,
+                "Email Genitore": parentEmail
+            };
+            for (const [fieldName, value] of Object.entries(minorFields)) {
+                 if (!value) {
+                    toast({
+                        title: "Campo Obbligatorio",
+                        description: `Il campo "${fieldName}" non è stato compilato.`,
+                        variant: "destructive",
+                    });
+                    return;
+                }
+            }
+            if (parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                setEmailError(true);
+                toast({
+                    title: "Errore Email",
+                    description: "L'email di contatto del genitore deve essere uguale all'email di registrazione.",
+                    variant: "destructive"
+                });
+                return;
+            }
+        } else {
+             const adultFields = {
+                "Telefono": phone,
+                "Email di Conferma": emailConfirm
+            };
+            for (const [fieldName, value] of Object.entries(adultFields)) {
+                 if (!value) {
+                    toast({
+                        title: "Campo Obbligatorio",
+                        description: `Il campo "${fieldName}" non è stato compilato.`,
+                        variant: "destructive",
+                    });
+                    return;
+                }
+            }
+            if (emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                 setEmailError(true);
+                 toast({
+                    title: "Errore Email",
+                    description: "L'email di contatto deve essere uguale all'email di registrazione.",
+                    variant: "destructive"
+                });
+                return;
+            }
+        }
+
+        saveDataToLocalStorage();
+        setCurrentStep(2);
     };
     
     const saveDataToLocalStorage = () => {
@@ -243,9 +325,11 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 localStorage.setItem('parentName', parentName);
                 localStorage.setItem('parentCf', parentCf);
                 localStorage.setItem('parentPhone', parentPhone);
+                localStorage.setItem('parentEmail', parentEmail);
             } else {
                 localStorage.setItem('isMinor', 'false');
                 localStorage.setItem('phone', phone);
+                localStorage.setItem('emailConfirm', emailConfirm);
             }
             
             if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
