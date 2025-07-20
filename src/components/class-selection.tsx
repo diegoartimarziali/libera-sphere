@@ -218,6 +218,15 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     }, [currentStep, paymentMethod, baseAmount]);
 
     const handleNextStep = () => {
+        if (!bonusAccepted) {
+            toast({
+                title: "Bonus di Benvenuto",
+                description: "Devi assicurarti il bonus di benvenuto per procedere.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         const fieldsToValidate: { [key: string]: string | undefined } = {
             "Corso": martialArt,
             "Palestra": dojo,
@@ -278,7 +287,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 return;
             }
         }
-
+        
+        setEmailError(false);
         saveDataToLocalStorage();
         setCurrentStep(2);
     };
@@ -315,11 +325,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
             if (amount) localStorage.setItem('paymentAmount', amount);
         }
-    };
-
-
-    const handleRegister = () => {
-        handleExit();
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -666,16 +671,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         <div className="flex items-center space-x-2 pt-4">
                             <Checkbox 
                                 id="bonus-benvenuto" 
-                                onCheckedChange={(checked) => {
-                                    setBonusAccepted(!!checked)
-                                    if(!checked) {
-                                        toast({
-                                            title: "Bonus di Benvenuto",
-                                            description: "Devi accettare il bonus di benvenuto per procedere.",
-                                            variant: "destructive",
-                                        });
-                                    }
-                                }}
+                                onCheckedChange={(checked) => setBonusAccepted(!!checked)}
                                 checked={bonusAccepted}
                             />
                             <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
