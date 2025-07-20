@@ -168,7 +168,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }, [paymentMethod, baseAmount]);
     
     useEffect(() => {
-        if (currentStep === 2 && paymentMethod) {
+        if (currentStep === 1 && paymentMethod) {
              if (paymentMethod === 'cash') {
                 setAmount(String(baseAmount + 2));
             } else {
@@ -187,8 +187,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 })
                 return;
             }
-        }
-        if (currentStep === 2) {
              if (!paymentMethod || !amount) {
                 toast({
                     title: "Attenzione",
@@ -371,20 +369,15 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
   return (
     <>
         {currentStep === 1 && (
-            <Card className="h-full flex flex-col">
-            <CardHeader>
-                <CardTitle>Iscriviti alle Lezioni di Selezione</CardTitle>
-                <CardDescription>
-                Tre incontri per capire e farti capire più un <b>Bonus di inizio percorso di 5 lezioni gratuite</b>.
-                Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali.
-                Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
-                <br />
-                <b>Il contributo per le lezioni di selezione è di 30€.</b>
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow">
-                <form>
-                <div className="grid w-full items-center gap-4">
+             <Card>
+                <CardHeader>
+                    <CardTitle>Lezioni di Selezione</CardTitle>
+                    <CardDescription>
+                        Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
+                    </CardDescription>
+                    <CardDescription className="font-bold text-black pt-4">Inserisci i tuoi dati</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
                     <div className="flex flex-col space-y-1.5">
                     <Label htmlFor="gym">Corso di:</Label>
                     <Select onValueChange={setMartialArt} value={martialArt}>
@@ -425,22 +418,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         </Select>
                         </div>
                     )}
-                </div>
-                </form>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-                <Button onClick={handleNextStep}>Avanti</Button>
-            </CardFooter>
-            </Card>
-        )}
-
-        {currentStep === 2 && (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Lezioni di Selezione</CardTitle>
-                    <CardDescription className="font-bold">Inserisci i tuoi dati</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="name">Nome e Cognome</Label>
@@ -624,16 +601,15 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                    <Button variant="outline" onClick={() => setCurrentStep(currentStep - 1)}>Indietro</Button>
+                <CardFooter className="flex justify-end">
                     <Button onClick={handleNextStep}>
                         Avanti
                     </Button>
                 </CardFooter>
              </Card>
         )}
-
-        {currentStep === 3 && (
+        
+        {currentStep === 2 && (
             <Card>
                 <CardHeader>
                     <CardDescription className="font-bold text-foreground">
@@ -744,7 +720,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
 
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleRegister} disabled={isSubmitting}>
+                    <Button onClick={handleRegister}>
                         {isSubmitting ? 'Salvataggio...' : 'Fine'}
                     </Button>
                 </CardFooter>
@@ -753,17 +729,4 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     </>
   )
 }
-
-    
-
-    
-
-
-
-
-
-
-
-
-
 
