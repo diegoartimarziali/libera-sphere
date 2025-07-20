@@ -359,6 +359,24 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         }
     };
 
+    const canSaveDates = useMemo(() => {
+        return (
+            secondLessonDay &&
+            secondLessonMonth &&
+            secondLessonYear &&
+            thirdLessonDay &&
+            thirdLessonMonth &&
+            thirdLessonYear
+        );
+    }, [
+        secondLessonDay,
+        secondLessonMonth,
+        secondLessonYear,
+        thirdLessonDay,
+        thirdLessonMonth,
+        thirdLessonYear,
+    ]);
+
 
   return (
     <>
@@ -636,7 +654,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 <CardContent className="space-y-6">
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
-                        <div className="flex items-center gap-8 text-muted-foreground">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
                            <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(paymentMethod ?? null)}</span></p>
                            <p><b>Importo:</b> <span className="text-foreground font-bold">€ {amount}</span></p>
                         </div>
@@ -647,8 +665,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="space-y-2 text-muted-foreground">
-                            <p><b>Corso di:</b> <span className="text-foreground font-bold">{capitalize(martialArt)}</span></p>
-                            <p><b>Palestra di:</b> <span className="text-foreground font-bold">{capitalize(dojo)}</span></p>
                             <div className="flex items-center gap-2">
                                 <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{lessonDate}</span></p>
                                 <p className="text-sm">Concordare le date delle prossime lezioni in palestra con il Maestro.</p>
@@ -710,7 +726,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                         ) : null}
                                     </div>
                                 </div>
-                                {!datesSaved && <Button onClick={handleSaveDates} className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>}
+                                {!datesSaved && <Button onClick={handleSaveDates} disabled={!canSaveDates} className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>}
                             </div>
                         </div>
                     </div>
@@ -743,7 +759,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(2)}>Indietro</Button>
-                    <Button onClick={handleRegister} disabled={isSubmitting}>
+                    <Button onClick={handleRegister} disabled={isSubmitting || !datesSaved}>
                         {isSubmitting ? 'Salvataggio...' : 'Fine'}
                     </Button>
                 </CardFooter>
@@ -756,6 +772,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
 
 
