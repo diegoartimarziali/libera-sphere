@@ -625,53 +625,56 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                 <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{lessonDate}</span></p>
                                 <p className="text-sm">Concordare le date delle prossime lezioni in palestra con il Maestro.</p>
                             </div>
-                            <div className="flex items-center gap-4 mt-2">
-                                <Label className="min-w-max"><b>2a Lezione:</b></Label>
-                                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
-                                    <Select onValueChange={setSecondLessonDay} value={secondLessonDay}>
-                                        <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
-                                        <SelectContent>
-                                            {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select onValueChange={setSecondLessonMonth} value={secondLessonMonth}>
-                                        <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
-                                        <SelectContent>
-                                            {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select onValueChange={setSecondLessonYear} value={secondLessonYear}>
-                                        <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
-                                        <SelectContent>
-                                            {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
+                            <div className="flex items-start gap-4 mt-2">
+                                <div className="space-y-2 flex-grow">
+                                    <div className="flex items-center gap-4">
+                                        <Label className="min-w-max"><b>2a Lezione:</b></Label>
+                                        <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
+                                            <Select onValueChange={setSecondLessonDay} value={secondLessonDay}>
+                                                <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <Select onValueChange={setSecondLessonMonth} value={secondLessonMonth}>
+                                                <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <Select onValueChange={setSecondLessonYear} value={secondLessonYear}>
+                                                <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4 mt-2">
+                                        <Label className="min-w-max"><b>3a Lezione:</b></Label>
+                                        <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
+                                            <Select onValueChange={setThirdLessonDay} value={thirdLessonDay}>
+                                                <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <Select onValueChange={setThirdLessonMonth} value={thirdLessonMonth}>
+                                                <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <Select onValueChange={setThirdLessonYear} value={thirdLessonYear}>
+                                                <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
                                 </div>
-                                <Button className="bg-green-600 hover:bg-green-700">Salva</Button>
-                            </div>
-                             <div className="flex items-center gap-4 mt-2">
-                                <Label className="min-w-max"><b>3a Lezione:</b></Label>
-                                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
-                                    <Select onValueChange={setThirdLessonDay} value={thirdLessonDay}>
-                                        <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
-                                        <SelectContent>
-                                            {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select onValueChange={setThirdLessonMonth} value={thirdLessonMonth}>
-                                        <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
-                                        <SelectContent>
-                                            {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select onValueChange={setThirdLessonYear} value={thirdLessonYear}>
-                                        <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
-                                        <SelectContent>
-                                            {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <Button className="bg-green-600 hover:bg-green-700">Salva</Button>
+                                <Button className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>
                             </div>
                         </div>
                     </div>
@@ -717,5 +720,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
 
