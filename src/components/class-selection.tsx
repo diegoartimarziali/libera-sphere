@@ -79,7 +79,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
     const [emailError, setEmailError] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
-    const [amount, setAmount] = useState<string | undefined>("30");
+    const [amount, setAmount] = useState<string | undefined>();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
@@ -147,10 +147,10 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }
 
     const handleRegister = async () => {
-        if (!paymentMethod) {
+        if (!paymentMethod || !amount) {
              toast({
                 title: "Attenzione",
-                description: "Per favore, seleziona un metodo di pagamento.",
+                description: "Per favore, seleziona un metodo di pagamento e un importo.",
                 variant: "destructive",
             });
             return;
@@ -539,7 +539,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             <Label htmlFor="amount">Importo</Label>
                             <Select onValueChange={setAmount} value={amount}>
                                 <SelectTrigger id="amount">
-                                    <SelectValue placeholder="Seleziona un importo" />
+                                    <SelectValue placeholder="Importo" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="30">€ 30</SelectItem>
@@ -550,7 +550,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(1)}>Indietro</Button>
-                    <Button onClick={handleRegister} disabled={isSubmitting}>
+                    <Button onClick={handleRegister} disabled={isSubmitting || !paymentMethod || !amount}>
                         {isSubmitting ? 'Salvataggio...' : 'Conferma Iscrizione'}
                     </Button>
                 </CardFooter>
@@ -567,3 +567,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
 
 
 
+
+
+    
