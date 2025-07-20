@@ -178,44 +178,42 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }, [currentStep, paymentMethod, baseAmount]);
 
     const handleNextStep = () => {
-        if (currentStep === 1) {
-             if (isMinor) {
-                if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
-                    setEmailError(true);
+        if (isMinor) {
+            if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                setEmailError(true);
+                toast({
+                    title: "Errore Email",
+                    description: "L'email di contatto del genitore deve essere uguale all'email di registrazione.",
+                    variant: "destructive"
+                });
+                return;
+            }
+        } else {
+            if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                setEmailError(true);
                     toast({
-                        title: "Errore Email",
-                        description: "L'email di contatto del genitore deve essere uguale all'email di registrazione.",
-                        variant: "destructive"
-                    });
-                    return;
-                }
-            } else {
-                if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
-                    setEmailError(true);
-                     toast({
-                        title: "Errore Email",
-                        description: "L'email di contatto deve essere uguale all'email di registrazione.",
-                        variant: "destructive"
-                    });
-                    return;
-                }
-            }
-            if (!martialArt || !dojo || !lessonDate) {
-                toast({
-                    title: "Attenzione",
-                    description: "Per favore, seleziona un'arte marziale, un dojo e una data.",
-                    variant: "destructive",
-                })
+                    title: "Errore Email",
+                    description: "L'email di contatto deve essere uguale all'email di registrazione.",
+                    variant: "destructive"
+                });
                 return;
             }
-             if (!paymentMethod || !amount) {
-                toast({
-                    title: "Attenzione",
-                    description: "Per favore, seleziona un metodo di pagamento.",
-                    variant: "destructive",
-                })
-                return;
-            }
+        }
+        if (!martialArt || !dojo || !lessonDate) {
+            toast({
+                title: "Attenzione",
+                description: "Per favore, seleziona un'arte marziale, un dojo e una data.",
+                variant: "destructive",
+            })
+            return;
+        }
+            if (!paymentMethod || !amount) {
+            toast({
+                title: "Attenzione",
+                description: "Per favore, seleziona un metodo di pagamento.",
+                variant: "destructive",
+            })
+            return;
         }
         setCurrentStep(2);
     }
@@ -640,9 +638,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             <Card>
                 <CardHeader>
                      <CardTitle>Lezioni di Selezione</CardTitle>
-                    <CardDescription className="font-bold text-foreground">
-                        Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.
-                    </CardDescription>
+                     <CardDescription>Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
@@ -757,5 +753,3 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     </>
   )
 }
-
-    
