@@ -619,7 +619,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(2)}>Indietro</Button>
                     <Button onClick={handleRegister} disabled={isSubmitting}>
-                        {isSubmitting ? 'Salvataggio...' : 'Avanti'}
+                        {isSubmitting ? 'Salvataggio...' : 'Fine'}
                     </Button>
                 </CardFooter>
             </Card>
