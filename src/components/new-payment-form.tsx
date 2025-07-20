@@ -100,7 +100,7 @@ export function NewPaymentForm() {
             <CardContent>
                 <div className="pt-4 space-y-2">
                     <Separator className="mb-4" />
-                    <Label htmlFor="payment-method">Metodo di Pagamento</Label>
+                    <Label htmlFor="payment-method" className="font-bold">Metodo di Pagamento</Label>
                     <Select onValueChange={setPaymentMethod} value={paymentMethod}>
                         <SelectTrigger id="payment-method">
                             <SelectValue placeholder="Seleziona un metodo di pagamento" />
