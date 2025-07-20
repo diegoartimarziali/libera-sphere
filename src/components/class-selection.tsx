@@ -724,7 +724,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
                             <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{name}</span></p>
                             <p><b>Età:</b> <span className="text-foreground font-bold">{age !== null ? `${age} anni` : ''}</span></p>
-                            <p><b>Residenza:</b> <span className="text-foreground font-bold">{`${address}, ${civicNumber} - ${cap} ${comune} (${provincia})`}</span></p>
+                            <p><b>Residenza:</b> <span className="text-foreground font-bold">{comune}</span></p>
                              {!isMinor && <p><b>Telefono:</b> <span className="text-foreground font-bold">{phone}</span></p>}
                         </div>
                     </div>
@@ -757,6 +757,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
 
 
