@@ -371,7 +371,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         setEmailConfirm(newEmail);
         if (registrationEmail && newEmail === registrationEmail.toLowerCase()) {
             setEmailError(false);
-        } else {
+        } else if (newEmail) {
             setEmailError(true);
         }
     }
@@ -381,7 +381,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         setParentEmail(newEmail);
         if (registrationEmail && newEmail === registrationEmail.toLowerCase()) {
             setEmailError(false);
-        } else {
+        } else if (newEmail) {
             setEmailError(true);
         }
     }
@@ -709,7 +709,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleNextStep} disabled={!bonusAccepted}>
+                    <Button onClick={handleNextStep}>
                         Avanti
                     </Button>
                 </CardFooter>
