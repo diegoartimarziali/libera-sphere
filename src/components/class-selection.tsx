@@ -394,7 +394,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         {currentStep === 1 && (
              <Card>
                 <CardHeader>
-                    <CardTitle>Lezioni di Selezione</CardTitle>
+                    <CardTitle>Dojo Passport</CardTitle>
                     <CardDescription>
                        Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
                     </CardDescription>
@@ -637,8 +637,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         {currentStep === 2 && (
             <Card>
                 <CardHeader>
-                     <CardTitle>Lezioni di Selezione</CardTitle>
-                     <CardDescription>Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.</CardDescription>
+                     <CardTitle>Dojo Passport</CardTitle>
+                     <CardDescription>Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Dojo Passport. Ti verrà richiesta da un istruttore alla prima lezione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">

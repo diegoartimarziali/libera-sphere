@@ -63,7 +63,7 @@ export default function SelectionSummaryPage() {
         <div className="bg-background text-foreground min-h-screen p-4 sm:p-8">
             <Card className="max-w-3xl mx-auto">
                 <CardHeader>
-                    <CardTitle>Riepilogo Iscrizione Lezioni di Selezione</CardTitle>
+                    <CardTitle>Riepilogo Iscrizione Dojo Passport</CardTitle>
                     <CardDescription>
                         Conserva una copia di questo documento. Verrai contattato/a a breve per la conferma della lezione.
                     </CardDescription>
