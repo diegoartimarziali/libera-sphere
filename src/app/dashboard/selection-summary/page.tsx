@@ -39,11 +39,9 @@ export default function SelectionSummaryPage() {
                 provincia: localStorage.getItem('provincia'),
                 isMinor: localStorage.getItem('isMinor') === 'true',
                 phone: localStorage.getItem('phone'),
-                registrationEmail: localStorage.getItem('registrationEmail'),
                 parentName: localStorage.getItem('parentName'),
                 parentCf: localStorage.getItem('parentCf'),
                 parentPhone: localStorage.getItem('parentPhone'),
-                parentEmail: localStorage.getItem('parentEmail'),
                 paymentMethod: localStorage.getItem('paymentMethod'),
                 paymentAmount: localStorage.getItem('paymentAmount'),
             };
@@ -71,6 +69,16 @@ export default function SelectionSummaryPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    <div>
+                        <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                           <p><b>Metodo Pagamento:</b> <span className="text-foreground">{translatePaymentMethod(summaryData.paymentMethod)}</span></p>
+                           <p><b>Importo:</b> <span className="text-foreground">€ {summaryData.paymentAmount}</span></p>
+                        </div>
+                    </div>
+                    
+                    <Separator />
+
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="space-y-2 text-muted-foreground">
@@ -106,18 +114,6 @@ export default function SelectionSummaryPage() {
                             </div>
                         </>
                     )}
-
-                    <Separator />
-
-                    <div>
-                        <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                           <p><b>Metodo Pagamento:</b> <span className="text-foreground">{translatePaymentMethod(summaryData.paymentMethod)}</span></p>
-                           <p><b>Importo:</b> <span className="text-foreground">€ {summaryData.paymentAmount}</span></p>
-                        </div>
-                    </div>
-                     <CardFooter className="flex justify-end pt-6">
-                     </CardFooter>
                 </CardContent>
             </Card>
         </div>

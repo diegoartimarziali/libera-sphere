@@ -566,6 +566,16 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div>
+                        <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                           <p><b>Metodo Pagamento:</b> <span className="text-foreground">{translatePaymentMethod(paymentMethod ?? null)}</span></p>
+                           <p><b>Importo:</b> <span className="text-foreground">€ {amount}</span></p>
+                        </div>
+                    </div>
+
+                    <Separator />
+                    
+                    <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="space-y-2 text-muted-foreground">
                             <p><b>Corso di:</b> <span className="text-foreground">{capitalize(martialArt)}</span></p>
@@ -600,15 +610,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         </>
                     )}
 
-                    <Separator />
-
-                    <div>
-                        <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                           <p><b>Metodo Pagamento:</b> <span className="text-foreground">{translatePaymentMethod(paymentMethod ?? null)}</span></p>
-                           <p><b>Importo:</b> <span className="text-foreground">€ {amount}</span></p>
-                        </div>
-                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(2)}>Indietro</Button>
