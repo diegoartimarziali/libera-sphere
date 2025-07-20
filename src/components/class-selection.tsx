@@ -89,6 +89,10 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [thirdLessonDay, setThirdLessonDay] = useState<string | undefined>(undefined);
     const [thirdLessonMonth, setThirdLessonMonth] = useState<string | undefined>(undefined);
     const [thirdLessonYear, setThirdLessonYear] = useState<string | undefined>(undefined);
+
+    const [savedSecondLessonDate, setSavedSecondLessonDate] = useState<string | null>(null);
+    const [savedThirdLessonDate, setSavedThirdLessonDate] = useState<string | null>(null);
+    const [datesSaved, setDatesSaved] = useState(false);
     
     const baseAmount = 30;
 
@@ -329,6 +333,32 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         }
         return age < 18;
     }, [birthDate]);
+
+    const handleSaveDates = () => {
+        if (secondLessonDay && secondLessonMonth && secondLessonYear) {
+            const formattedDate = `${secondLessonDay}/${secondLessonMonth}/${secondLessonYear}`;
+            setSavedSecondLessonDate(formattedDate);
+        }
+        if (thirdLessonDay && thirdLessonMonth && thirdLessonYear) {
+            const formattedDate = `${thirdLessonDay}/${thirdLessonMonth}/${thirdLessonYear}`;
+            setSavedThirdLessonDate(formattedDate);
+        }
+        
+        if ( (secondLessonDay && secondLessonMonth && secondLessonYear) || (thirdLessonDay && thirdLessonMonth && thirdLessonYear) ) {
+            setDatesSaved(true);
+            toast({
+                title: "Date salvate!",
+                description: "Le date delle lezioni sono state aggiornate.",
+            });
+        } else {
+             toast({
+                title: "Attenzione",
+                description: "Per favore, seleziona almeno una data completa.",
+                variant: "destructive"
+            });
+        }
+    };
+
 
   return (
     <>
@@ -617,10 +647,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="space-y-2 text-muted-foreground">
-                            <div className="space-y-2">
-                                <p><b>Corso di:</b> <span className="text-foreground font-bold">{capitalize(martialArt)}</span></p>
-                                <p><b>Palestra di:</b> <span className="text-foreground font-bold">{capitalize(dojo)}</span></p>
-                            </div>
+                            <p><b>Corso di:</b> <span className="text-foreground font-bold">{capitalize(martialArt)}</span></p>
+                            <p><b>Palestra di:</b> <span className="text-foreground font-bold">{capitalize(dojo)}</span></p>
                             <div className="flex items-center gap-2">
                                 <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{lessonDate}</span></p>
                                 <p className="text-sm">Concordare le date delle prossime lezioni in palestra con il Maestro.</p>
@@ -629,52 +657,60 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                 <div className="space-y-2 flex-grow">
                                     <div className="flex items-center gap-4">
                                         <Label className="min-w-max"><b>2a Lezione:</b></Label>
-                                        <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
-                                            <Select onValueChange={setSecondLessonDay} value={secondLessonDay}>
-                                                <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                            <Select onValueChange={setSecondLessonMonth} value={secondLessonMonth}>
-                                                <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                            <Select onValueChange={setSecondLessonYear} value={secondLessonYear}>
-                                                <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                        {datesSaved && savedSecondLessonDate ? (
+                                            <span className="text-foreground font-bold">{savedSecondLessonDate}</span>
+                                        ) : !datesSaved ? (
+                                            <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
+                                                <Select onValueChange={setSecondLessonDay} value={secondLessonDay}>
+                                                    <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <Select onValueChange={setSecondLessonMonth} value={secondLessonMonth}>
+                                                    <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <Select onValueChange={setSecondLessonYear} value={secondLessonYear}>
+                                                    <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        ) : null}
                                     </div>
                                     <div className="flex items-center gap-4 mt-2">
                                         <Label className="min-w-max"><b>3a Lezione:</b></Label>
-                                        <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
-                                            <Select onValueChange={setThirdLessonDay} value={thirdLessonDay}>
-                                                <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                            <Select onValueChange={setThirdLessonMonth} value={thirdLessonMonth}>
-                                                <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                            <Select onValueChange={setThirdLessonYear} value={thirdLessonYear}>
-                                                <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
-                                                <SelectContent>
-                                                    {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                         {datesSaved && savedThirdLessonDate ? (
+                                            <span className="text-foreground font-bold">{savedThirdLessonDate}</span>
+                                        ) : !datesSaved ? (
+                                            <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
+                                                <Select onValueChange={setThirdLessonDay} value={thirdLessonDay}>
+                                                    <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <Select onValueChange={setThirdLessonMonth} value={thirdLessonMonth}>
+                                                    <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                                <Select onValueChange={setThirdLessonYear} value={thirdLessonYear}>
+                                                    <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                                    <SelectContent>
+                                                        {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        ) : null}
                                     </div>
                                 </div>
-                                <Button className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>
+                                {!datesSaved && <Button onClick={handleSaveDates} className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>}
                             </div>
                         </div>
                     </div>
@@ -720,6 +756,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
 
 
