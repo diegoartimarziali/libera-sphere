@@ -50,10 +50,10 @@ const paymentOptions = [
     { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ];
 
-export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (value: boolean) => void }) {
+export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLessonSelected?: (value: boolean) => void, initialStep?: number }) {
     const { toast } = useToast()
     const router = useRouter()
-    const [currentStep, setCurrentStep] = useState(1);
+    const [currentStep, setCurrentStep] = useState(initialStep);
     const [martialArt, setMartialArt] = useState("");
     const [dojo, setDojo] = useState("");
     const [lessonDate, setLessonDate] = useState("");
@@ -112,24 +112,50 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }
 
     useEffect(() => {
+        setCurrentStep(initialStep);
+    }, [initialStep]);
+
+    useEffect(() => {
         // Reset lesson date if dojo changes
         setLessonDate("");
     }, [dojo]);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const storedName = localStorage.getItem('userName');
-            const storedCodiceFiscale = localStorage.getItem('codiceFiscale');
+            const storedName = localStorage.getItem('userName') || '';
+            const storedCodiceFiscale = localStorage.getItem('codiceFiscale') || '';
             const storedBirthDate = localStorage.getItem('birthDate');
-            const storedAddress = localStorage.getItem('address');
-            const storedComune = localStorage.getItem('comune');
-            const storedProvincia = localStorage.getItem('provincia');
+            const storedAddress = localStorage.getItem('address') || '';
+            const storedComune = localStorage.getItem('comune') || '';
+            const storedProvincia = localStorage.getItem('provincia') || '';
+            const storedBirthplace = localStorage.getItem('birthplace') || '';
+            const storedCivicNumber = localStorage.getItem('civicNumber') || '';
+            const storedCap = localStorage.getItem('cap') || '';
+            const storedPhone = localStorage.getItem('phone') || '';
+            const storedParentName = localStorage.getItem('parentName') || '';
+            const storedParentCf = localStorage.getItem('parentCf') || '';
+            const storedParentPhone = localStorage.getItem('parentPhone') || '';
+            const storedMartialArt = localStorage.getItem('martialArt') || '';
+            const storedDojo = localStorage.getItem('selectedDojo') || '';
+            const storedLessonDate = localStorage.getItem('lessonDate') || '';
+            const storedPaymentMethod = localStorage.getItem('paymentMethod');
             
-            if(storedName) setName(storedName);
-            if(storedCodiceFiscale) setCodiceFiscale(storedCodiceFiscale);
-            if (storedAddress) setAddress(storedAddress);
-            if (storedComune) setComune(storedComune);
-            if (storedProvincia) setProvincia(storedProvincia);
+            setName(storedName);
+            setCodiceFiscale(storedCodiceFiscale);
+            setAddress(storedAddress);
+            setComune(storedComune);
+            setProvincia(storedProvincia);
+            setBirthplace(storedBirthplace);
+            setCivicNumber(storedCivicNumber);
+            setCap(storedCap);
+            setPhone(storedPhone);
+            setParentName(storedParentName);
+            setParentCf(storedParentCf);
+            setParentPhone(storedParentPhone);
+            setMartialArt(storedMartialArt);
+            setDojo(storedDojo);
+            setLessonDate(storedLessonDate);
+            if(storedPaymentMethod) setPaymentMethod(storedPaymentMethod);
 
             if (storedBirthDate) {
                 const parts = storedBirthDate.split('/');
@@ -141,6 +167,17 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             }
 
             setRegistrationEmail(localStorage.getItem('registrationEmail'));
+
+            const storedSecondDate = localStorage.getItem('secondLessonDate');
+            const storedThirdDate = localStorage.getItem('thirdLessonDate');
+            if (storedSecondDate) {
+                setSavedSecondLessonDate(storedSecondDate);
+                setDatesSaved(true);
+            }
+            if (storedThirdDate) {
+                setSavedThirdLessonDate(storedThirdDate);
+                setDatesSaved(true);
+            }
         }
     }, []);
 
@@ -170,7 +207,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }, [paymentMethod, baseAmount]);
     
     useEffect(() => {
-        if (currentStep === 2 && paymentMethod) {
+        if (paymentMethod) {
              if (paymentMethod === 'cash') {
                 setAmount(String(baseAmount + 2));
             } else {
@@ -217,43 +254,53 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             })
             return;
         }
+        // Save data to localStorage before going to next step
+        saveDataToLocalStorage();
         setCurrentStep(2);
     }
+    
+    const saveDataToLocalStorage = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('martialArt', martialArt);
+            localStorage.setItem('selectedDojo', dojo);
+            localStorage.setItem('lessonDate', lessonDate);
+            localStorage.setItem('userName', name);
+            localStorage.setItem('codiceFiscale', codiceFiscale);
+            if (birthDate) {
+                localStorage.setItem('birthDate', `${day}/${month}/${year}`);
+            }
+            localStorage.setItem('birthplace', birthplace);
+            localStorage.setItem('address', address);
+            localStorage.setItem('civicNumber', civicNumber);
+            localStorage.setItem('cap', cap);
+            localStorage.setItem('comune', comune);
+            localStorage.setItem('provincia', provincia);
+            
+            if (isMinor) {
+                localStorage.setItem('isMinor', 'true');
+                localStorage.setItem('parentName', parentName);
+                localStorage.setItem('parentCf', parentCf);
+                localStorage.setItem('parentPhone', parentPhone);
+            } else {
+                localStorage.setItem('isMinor', 'false');
+                localStorage.setItem('phone', phone);
+            }
+            
+            if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
+            if (amount) localStorage.setItem('paymentAmount', amount);
+        }
+    };
+
 
     const handleRegister = () => {
         setIsSubmitting(true);
         try {
+            saveDataToLocalStorage();
             if (typeof window !== 'undefined') {
-                localStorage.setItem('martialArt', martialArt);
-                localStorage.setItem('selectedDojo', dojo);
-                localStorage.setItem('lessonDate', lessonDate);
-                localStorage.setItem('userName', name);
-                localStorage.setItem('codiceFiscale', codiceFiscale);
-                if (birthDate) {
-                    localStorage.setItem('birthDate', `${day}/${month}/${year}`);
-                }
-                localStorage.setItem('birthplace', birthplace);
-                localStorage.setItem('address', address);
-                localStorage.setItem('civicNumber', civicNumber);
-                localStorage.setItem('cap', cap);
-                localStorage.setItem('comune', comune);
-                localStorage.setItem('provincia', provincia);
-                
-                if (isMinor) {
-                    localStorage.setItem('isMinor', 'true');
-                    localStorage.setItem('parentName', parentName);
-                    localStorage.setItem('parentCf', parentCf);
-                    localStorage.setItem('parentPhone', parentPhone);
-                } else {
-                    localStorage.setItem('isMinor', 'false');
-                    localStorage.setItem('phone', phone);
-                }
-                
-                if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
-                if (amount) localStorage.setItem('paymentAmount', amount);
-                
-                router.push('/dashboard');
+                localStorage.setItem('isDojoPassportComplete', 'true');
+                 if(setLessonSelected) setLessonSelected(true);
             }
+             router.push('/dashboard');
         } catch (error) {
             console.error("Error during registration process: ", error);
             toast({
@@ -348,16 +395,19 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }, [birthDate]);
 
     const handleSaveDates = () => {
+        let secondDate, thirdDate;
         if (secondLessonDay && secondLessonMonth && secondLessonYear) {
-            const formattedDate = `${secondLessonDay}/${secondLessonMonth}/${secondLessonYear}`;
-            setSavedSecondLessonDate(formattedDate);
+            secondDate = `${secondLessonDay}/${secondLessonMonth}/${secondLessonYear}`;
+            localStorage.setItem('secondLessonDate', secondDate);
+            setSavedSecondLessonDate(secondDate);
         }
         if (thirdLessonDay && thirdLessonMonth && thirdLessonYear) {
-            const formattedDate = `${thirdLessonDay}/${thirdLessonMonth}/${thirdLessonYear}`;
-            setSavedThirdLessonDate(formattedDate);
+            thirdDate = `${thirdLessonDay}/${thirdLessonMonth}/${thirdLessonYear}`;
+            localStorage.setItem('thirdLessonDate', thirdDate);
+            setSavedThirdLessonDate(thirdDate);
         }
         
-        if ( (secondLessonDay && secondLessonMonth && secondLessonYear) || (thirdLessonDay && thirdLessonMonth && thirdLessonYear) ) {
+        if (secondDate || thirdDate) {
             setDatesSaved(true);
             toast({
                 title: "Date salvate!",
@@ -373,14 +423,9 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     };
 
     const canSaveDates = useMemo(() => {
-        return (
-            secondLessonDay &&
-            secondLessonMonth &&
-            secondLessonYear &&
-            thirdLessonDay &&
-            thirdLessonMonth &&
-            thirdLessonYear
-        );
+        const secondDateValid = !!(secondLessonDay && secondLessonMonth && secondLessonYear);
+        const thirdDateValid = !!(thirdLessonDay && thirdLessonMonth && thirdLessonYear);
+        return secondDateValid && thirdDateValid;
     }, [
         secondLessonDay,
         secondLessonMonth,
@@ -389,6 +434,10 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         thirdLessonMonth,
         thirdLessonYear,
     ]);
+
+    const handleExit = () => {
+        router.push('/dashboard');
+    }
 
 
   return (
@@ -670,9 +719,9 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                 <div className="space-y-2 flex-grow">
                                     <div className="flex items-center gap-4">
                                         <Label className="min-w-max"><b>2a Lezione:</b></Label>
-                                        {datesSaved && savedSecondLessonDate ? (
+                                        {savedSecondLessonDate ? (
                                             <span className="text-foreground font-bold">{savedSecondLessonDate}</span>
-                                        ) : !datesSaved ? (
+                                        ) : (
                                             <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
                                                 <Select onValueChange={setSecondLessonDay} value={secondLessonDay}>
                                                     <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
@@ -693,13 +742,13 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                        ) : null}
+                                        )}
                                     </div>
                                     <div className="flex items-center gap-4 mt-2">
                                         <Label className="min-w-max"><b>3a Lezione:</b></Label>
-                                         {datesSaved && savedThirdLessonDate ? (
+                                         {savedThirdLessonDate ? (
                                             <span className="text-foreground font-bold">{savedThirdLessonDate}</span>
-                                        ) : !datesSaved ? (
+                                        ) : (
                                             <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
                                                 <Select onValueChange={setThirdLessonDay} value={thirdLessonDay}>
                                                     <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
@@ -720,7 +769,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-                                        ) : null}
+                                        )}
                                     </div>
                                 </div>
                                 {!datesSaved && <Button onClick={handleSaveDates} disabled={!canSaveDates} className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>}
@@ -755,9 +804,17 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
 
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleRegister}>
-                        Fine
-                    </Button>
+                    {initialStep === 1 ? (
+                         <Button onClick={handleRegister}>
+                            Fine
+                        </Button>
+                    ) : (
+                        <Button onClick={handleExit}>
+                           Esci
+                        </Button>
+                    )
+
+                    }
                 </CardFooter>
             </Card>
         )}
