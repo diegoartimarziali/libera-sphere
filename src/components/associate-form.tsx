@@ -127,7 +127,7 @@ export function AssociateForm() {
             description: `I tuoi dati sono stati salvati. Ora procedi con il pagamento.`,
         });
         
-        router.push('/dashboard/associates/payment');
+        router.push('/dashboard/payments');
     }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {

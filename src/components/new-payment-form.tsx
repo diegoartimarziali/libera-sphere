@@ -17,7 +17,9 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { Alert, AlertTitle, AlertDescription } from "./ui/alert"
+import { AlertTriangle } from "lucide-react"
 
 const paymentOptions = [
     { id: "online", label: "Pagamento con carta di credito on line. Rapido e sicuro." },
@@ -25,7 +27,7 @@ const paymentOptions = [
     { id: "cash", label: "Contanti o bancomat e carta in palestra (€ 2 spese di gestione)" },
 ]
 
-export function AssociatePayment() {
+export function NewPaymentForm() {
     const { toast } = useToast();
     const router = useRouter();
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
@@ -84,9 +86,9 @@ export function AssociatePayment() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Effettua Pagamento</CardTitle>
+                <CardTitle>Effettua un Pagamento</CardTitle>
                 <CardDescription>
-                    Completa la tua domanda di associazione scegliendo un metodo di pagamento.
+                    Completa la tua domanda scegliendo un metodo di pagamento.
                 </CardDescription>
             </CardHeader>
             <CardContent>
