@@ -519,9 +519,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         <Separator />
                         <CardTitle className="pt-4 text-muted-foreground">P30</CardTitle>
                         <CardDescription>
-                            Completa la tua domanda scegliendo un metodo di pagamento.
+                            Completa la tua iscrizione scegliendo un metodo di pagamento.
                         </CardDescription>
-                        <Label htmlFor="payment-method" className="font-bold">Metodo di Pagamento</Label>
                         <Select onValueChange={setPaymentMethod} value={paymentMethod}>
                             <SelectTrigger id="payment-method">
                                 <SelectValue placeholder="Seleziona un metodo di pagamento" />
@@ -551,3 +550,4 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
