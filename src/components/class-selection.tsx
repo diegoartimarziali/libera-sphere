@@ -87,7 +87,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
     const [emailError, setEmailError] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
-    const [amount, setAmount] = useState<string | undefined>();
+    const [amount, setAmount] = useState<string | undefined>("30");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
@@ -156,7 +156,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         }
     }
 
-    const handleRegister = async () => {
+    const handleRegister = () => {
         if (isMinor) {
             if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
                 setEmailError(true);
@@ -568,6 +568,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             <p><b>Dojo:</b> <span className="text-foreground">{capitalize(dojo)}</span></p>
                             <p><b>Data Prima Lezione:</b> <span className="text-foreground">{lessonDate}</span></p>
                         </div>
+                        <p className="text-sm text-muted-foreground mt-2">Potrai concordare le date delle prossime lezioni in palestra con l'istruttore.</p>
                     </div>
 
                     <Separator />
