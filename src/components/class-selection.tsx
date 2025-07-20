@@ -232,9 +232,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             { value: cap, name: "CAP" },
             { value: comune, name: "Comune" },
             { value: provincia, name: "Provincia" },
-            { value: paymentMethod, name: "Metodo di pagamento" }
+            { value: paymentMethod, name: "Metodo di pagamento" },
         ];
-
+    
         if (!isMinor) {
             fieldsToValidate.push(
                 { value: phone, name: "Numero di telefono" },
@@ -248,7 +248,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 { value: parentEmail, name: "Conferma email per contatti del Genitore/Tutore" }
             );
         }
-
+    
         for (const field of fieldsToValidate) {
             if (!field.value) {
                 toast({
@@ -259,32 +259,21 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 return;
             }
         }
-        
-        if (isMinor) {
-            if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
-                setEmailError(true);
-                toast({
-                    title: "Errore Email",
-                    description: "L'email di contatto del genitore deve essere uguale all'email di registrazione.",
-                    variant: "destructive"
-                });
-                return;
-            }
-        } else {
-            if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
-                setEmailError(true);
-                    toast({
-                    title: "Errore Email",
-                    description: "L'email di contatto deve essere uguale all'email di registrazione.",
-                    variant: "destructive"
-                });
-                return;
-            }
+    
+        const emailToCheck = isMinor ? parentEmail : emailConfirm;
+        if (emailToCheck.toLowerCase() !== registrationEmail?.toLowerCase()) {
+            setEmailError(true);
+            toast({
+                title: "Errore Email",
+                description: "L'email di contatto deve essere uguale all'email di registrazione.",
+                variant: "destructive",
+            });
+            return;
         }
-       
+    
         saveDataToLocalStorage();
         setCurrentStep(2);
-    }
+    };
     
     const saveDataToLocalStorage = () => {
         if (typeof window !== 'undefined') {
@@ -320,11 +309,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
 
     const handleRegister = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('isDojoPassportComplete', 'true');
-            if(setLessonSelected) setLessonSelected(true);
-        }
-        router.push('/dashboard');
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -450,6 +434,10 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     ]);
 
     const handleExit = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('isDojoPassportComplete', 'true');
+            if(setLessonSelected) setLessonSelected(true);
+        }
         router.push('/dashboard');
     }
 
@@ -818,17 +806,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    {initialStep === 1 ? (
-                         <Button onClick={handleRegister}>
-                            Fine
-                        </Button>
-                    ) : (
-                        <Button onClick={handleExit}>
-                           Esci
-                        </Button>
-                    )
-
-                    }
+                    <Button onClick={handleRegister}>
+                        Fine
+                    </Button>
                 </CardFooter>
             </Card>
         )}
