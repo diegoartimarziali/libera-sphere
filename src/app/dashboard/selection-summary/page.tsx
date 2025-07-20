@@ -11,7 +11,7 @@ const translatePaymentMethod = (method: string | null) => {
     if (!method) return 'Non specificato';
     switch (method) {
         case 'online': return 'Carta di Credito On Line';
-        case 'cash': return 'Contanti o bancomat e carta in palestra';
+        case 'cash': return 'Contanti o Bancomat in palestra';
         default: return method;
     }
 }

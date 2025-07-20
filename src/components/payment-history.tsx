@@ -37,8 +37,8 @@ interface Subscription {
 
 const translatePaymentMethod = (method: string) => {
     switch (method) {
-        case 'cash': return 'Contanti/POS';
-        case 'online': return 'Carta di Credito';
+        case 'cash': return 'Contanti o Bancomat in palestra';
+        case 'online': return 'Carta di Credito On Line';
         default: return method;
     }
 }

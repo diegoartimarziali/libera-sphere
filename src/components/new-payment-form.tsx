@@ -29,7 +29,7 @@ import { AlertTriangle } from "lucide-react"
 
 const paymentOptions = [
     { id: "online", label: "Carta di Credito On Line" },
-    { id: "cash", label: "Contanti o bancomat e carta in palestra (€ 2 spese di gestione)" },
+    { id: "cash", label: "Contanti o Bancomat in palestra" },
 ]
 
 export function NewPaymentForm() {
