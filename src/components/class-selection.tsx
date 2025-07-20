@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -171,10 +172,12 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         setIsSubmitting(true);
 
         if (typeof window !== 'undefined') {
+            // Save all data to localStorage to be read by the summary page
+            localStorage.setItem('martialArt', martialArt);
+            localStorage.setItem('selectedDojo', dojo);
+            localStorage.setItem('lessonDate', lessonDate);
             localStorage.setItem('userName', name);
             localStorage.setItem('codiceFiscale', codiceFiscale);
-            localStorage.setItem('lessonDate', lessonDate);
-            localStorage.setItem('selectedDojo', dojo);
             if (birthDate) {
                 localStorage.setItem('birthDate', `${day}/${month}/${year}`);
             }
@@ -186,15 +189,18 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             localStorage.setItem('provincia', provincia);
             
             if (isMinor) {
+                localStorage.setItem('isMinor', 'true');
                 localStorage.setItem('parentName', parentName);
                 localStorage.setItem('parentCf', parentCf);
                 localStorage.setItem('parentPhone', parentPhone);
                 localStorage.setItem('parentEmail', parentEmail);
             } else {
+                localStorage.setItem('isMinor', 'false');
                 localStorage.setItem('phone', phone);
             }
-
-            localStorage.setItem('lessonSelected', 'true');
+            
+            localStorage.setItem('paymentMethod', paymentMethod);
+            localStorage.setItem('paymentAmount', amount);
         }
 
         try {
@@ -208,14 +214,13 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 subscriptionDate: serverTimestamp()
             });
 
-            if (setLessonSelected) {
-                setLessonSelected(true);
-            }
             toast({
-                title: "Registrazione Riuscita!",
-                description: "Ti sei registrato al corso. Verrai contattato a breve.",
+                title: "Registrazione Inviata!",
+                description: "La tua richiesta è stata registrata. Si aprirà una nuova scheda con il riepilogo.",
             })
-            router.push('/dashboard');
+            
+            // Open summary in a new tab
+            window.open('/dashboard/selection-summary', '_blank');
 
         } catch (error) {
              console.error("Error adding document: ", error);
@@ -559,14 +564,3 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     </>
   )
 }
-
-    
-
-    
-
-
-
-
-
-
-    
