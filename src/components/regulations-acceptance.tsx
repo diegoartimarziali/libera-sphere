@@ -62,7 +62,7 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle>Accettazione Regolamenti e Privacy</CardTitle>
+        <CardTitle>Prima di cominciare</CardTitle>
         <CardDescription>
           Prima di associarti ti chiediamo di prendere visione dei seguenti documenti.
         </CardDescription>
