@@ -18,8 +18,6 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
 import { useState, useEffect } from "react"
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
-import { AlertTriangle } from "lucide-react"
 
 const paymentOptions = [
     { id: "online", label: "Pagamento con carta di credito on line. Rapido e sicuro." },
@@ -32,18 +30,6 @@ export function AssociatePayment() {
     const router = useRouter();
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [hasMedicalCertificate, setHasMedicalCertificate] = useState(false);
-
-    useEffect(() => {
-        // Check for medical certificate
-        if (typeof window !== 'undefined') {
-            const certDate = localStorage.getItem('medicalCertificateExpirationDate');
-            const certFile = localStorage.getItem('medicalCertificateFileName');
-            if (certDate && certFile) {
-                setHasMedicalCertificate(true);
-            }
-        }
-    }, []);
     
     const handlePayment = async () => {
         if (!paymentMethod) return;
@@ -100,7 +86,7 @@ export function AssociatePayment() {
             <CardHeader>
                 <CardTitle>Effettua Pagamento</CardTitle>
                 <CardDescription>
-                    Completa la tua domanda di associazione scegliendo un metodo di pagamento per la quota associativa di 30€.
+                    Completa la tua domanda di associazione scegliendo un metodo di pagamento.
                 </CardDescription>
             </CardHeader>
             <CardContent>
