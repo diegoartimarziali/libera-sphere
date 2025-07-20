@@ -84,6 +84,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [bonusAccepted, setBonusAccepted] = useState(false);
 
     const [secondLessonDay, setSecondLessonDay] = useState<string | undefined>(undefined);
     const [secondLessonMonth, setSecondLessonMonth] = useState<string | undefined>(undefined);
@@ -598,10 +599,14 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     <div className="space-y-2">
                         <Separator />
                         <div className="flex items-center space-x-2 pt-4">
-                            <Checkbox id="bonus-benvenuto" />
+                            <Checkbox 
+                                id="bonus-benvenuto" 
+                                onCheckedChange={(checked) => setBonusAccepted(!!checked)}
+                                checked={bonusAccepted}
+                            />
                             <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
                                 <Gift className="h-5 w-5 text-primary" />
-                                Riscuoti il tuo Bonus di Benvenuto!
+                                Assicurati il tuo Bonus di Benvenuto!
                             </Label>
                         </div>
                     </div>
@@ -634,7 +639,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleNextStep}>
+                    <Button onClick={handleNextStep} disabled={!bonusAccepted}>
                         Avanti
                     </Button>
                 </CardFooter>
