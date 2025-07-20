@@ -23,6 +23,9 @@ import { useToast } from "@/components/ui/use-toast"
 import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
+import { Separator } from "./ui/separator"
+import { db } from "@/lib/firebase"
+import { addDoc, collection, serverTimestamp } from "firebase/firestore"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -37,6 +40,12 @@ const lessonDatesByDojo: { [key: string]: string[] } = {
     villeneuve: ["2 Settembre 2024", "9 Settembre 2024", "16 Settembre 2024"],
     verres: ["3 Settembre 2024", "10 Settembre 2024", "17 Settembre 2024"],
 };
+
+const paymentOptions = [
+    { id: "online", label: "Pagamento con carta di credito on line. Rapido e sicuro." },
+    { id: "transfer", label: "Bonifico Bancario." },
+    { id: "cash", label: "Contanti o bancomat e carta in palestra (€ 2 spese di gestione)" },
+];
 
 export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (value: boolean) => void }) {
     const { toast } = useToast()
@@ -69,6 +78,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
     const [emailError, setEmailError] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
 
@@ -134,7 +145,16 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         }
     }
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
+        if (!paymentMethod) {
+             toast({
+                title: "Attenzione",
+                description: "Per favore, seleziona un metodo di pagamento.",
+                variant: "destructive",
+            });
+            return;
+        }
+
         if (isMinor) {
              if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()){
                 setEmailError(true);
@@ -146,6 +166,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 return;
             }
         }
+
+        setIsSubmitting(true);
 
         if (typeof window !== 'undefined') {
             localStorage.setItem('userName', name);
@@ -173,14 +195,37 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
 
             localStorage.setItem('lessonSelected', 'true');
         }
-        if (setLessonSelected) {
-            setLessonSelected(true);
+
+        try {
+            await addDoc(collection(db, "subscriptions"), {
+                userEmail: registrationEmail,
+                planId: "lezione_selezione",
+                planName: "Lezioni di Selezione",
+                price: "30",
+                paymentMethod: paymentMethod,
+                status: 'In attesa',
+                subscriptionDate: serverTimestamp()
+            });
+
+            if (setLessonSelected) {
+                setLessonSelected(true);
+            }
+            toast({
+                title: "Registrazione Riuscita!",
+                description: "Ti sei registrato al corso. Verrai contattato a breve.",
+            })
+            router.push('/dashboard');
+
+        } catch (error) {
+             console.error("Error adding document: ", error);
+            toast({
+                title: "Errore nel salvataggio",
+                description: "Non è stato possibile registrare la tua iscrizione. Riprova più tardi.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsSubmitting(false);
         }
-        toast({
-            title: "Registrazione Riuscita!",
-            description: "Ti sei registrato al corso. Verrai contattato a breve.",
-        })
-        router.push('/dashboard');
     }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -494,13 +539,36 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             </div>
                         </div>
                     )}
+                    <div className="pt-4 space-y-2">
+                        <Separator />
+                        <CardTitle className="pt-4">Effettua un pagamento</CardTitle>
+                        <CardDescription>
+                            Completa la tua domanda scegliendo un metodo di pagamento.
+                        </CardDescription>
+                        <Label htmlFor="payment-method" className="font-bold">Metodo di Pagamento</Label>
+                        <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+                            <SelectTrigger id="payment-method">
+                                <SelectValue placeholder="Seleziona un metodo di pagamento" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {paymentOptions.map(option => (
+                                    <SelectItem key={option.id} value={option.id}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(1)}>Indietro</Button>
-                    <Button onClick={handleRegister}>Conferma Iscrizione</Button>
+                    <Button onClick={handleRegister} disabled={isSubmitting}>
+                        {isSubmitting ? 'Salvataggio...' : 'Conferma Iscrizione'}
+                    </Button>
                 </CardFooter>
              </Card>
         )}
     </>
   )
 }
+
