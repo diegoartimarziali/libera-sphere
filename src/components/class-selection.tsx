@@ -48,15 +48,6 @@ const paymentOptions = [
     { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ];
 
-const translatePaymentMethod = (method: string | null) => {
-    if (!method) return 'Non specificato';
-    switch (method) {
-        case 'online': return 'Carta di Credito on line (0 costi)';
-        case 'cash': return 'Contanti o Bancomat in Palestra ( 2 euro costi di gestione)';
-        default: return method;
-    }
-}
-
 export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (value: boolean) => void }) {
     const { toast } = useToast()
     const router = useRouter()
@@ -95,6 +86,9 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [secondLessonDay, setSecondLessonDay] = useState<string | undefined>(undefined);
     const [secondLessonMonth, setSecondLessonMonth] = useState<string | undefined>(undefined);
     const [secondLessonYear, setSecondLessonYear] = useState<string | undefined>(undefined);
+    const [thirdLessonDay, setThirdLessonDay] = useState<string | undefined>(undefined);
+    const [thirdLessonMonth, setThirdLessonMonth] = useState<string | undefined>(undefined);
+    const [thirdLessonYear, setThirdLessonYear] = useState<string | undefined>(undefined);
     
     const baseAmount = 30;
 
@@ -623,8 +617,10 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="space-y-2 text-muted-foreground">
-                            <p><b>Corso di:</b> <span className="text-foreground font-bold">{capitalize(martialArt)}</span></p>
-                            <p><b>Palestra di:</b> <span className="text-foreground font-bold">{capitalize(dojo)}</span></p>
+                            <div className="space-y-2">
+                                <p><b>Corso di:</b> <span className="text-foreground font-bold">{capitalize(martialArt)}</span></p>
+                                <p><b>Palestra di:</b> <span className="text-foreground font-bold">{capitalize(dojo)}</span></p>
+                            </div>
                             <div className="flex items-center gap-2">
                                 <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{lessonDate}</span></p>
                                 <p className="text-sm">Concordare le date delle prossime lezioni in palestra con il Maestro.</p>
@@ -645,6 +641,30 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                         </SelectContent>
                                     </Select>
                                     <Select onValueChange={setSecondLessonYear} value={secondLessonYear}>
+                                        <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                        <SelectContent>
+                                            {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <Button className="bg-green-600 hover:bg-green-700">Salva</Button>
+                            </div>
+                             <div className="flex items-center gap-4 mt-2">
+                                <Label className="min-w-max"><b>3a Lezione:</b></Label>
+                                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
+                                    <Select onValueChange={setThirdLessonDay} value={thirdLessonDay}>
+                                        <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                        <SelectContent>
+                                            {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select onValueChange={setThirdLessonMonth} value={thirdLessonMonth}>
+                                        <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                        <SelectContent>
+                                            {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select onValueChange={setThirdLessonYear} value={thirdLessonYear}>
                                         <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
                                         <SelectContent>
                                             {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -697,4 +717,5 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
