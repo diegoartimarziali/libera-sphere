@@ -46,6 +46,15 @@ const paymentOptions = [
     { id: "cash", label: "Contanti o Bancomat in palestra" },
 ];
 
+const translatePaymentMethod = (method: string | null) => {
+    if (!method) return 'Non specificato';
+    switch (method) {
+        case 'online': return 'Carta di Credito On Line';
+        case 'cash': return 'Contanti o Bancomat in palestra';
+        default: return method;
+    }
+}
+
 export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (value: boolean) => void }) {
     const { toast } = useToast()
     const router = useRouter()
@@ -82,6 +91,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
+    
+    const capitalize = (s: string | null) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
     useEffect(() => {
         // Reset lesson date if dojo changes
@@ -140,8 +151,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 return;
             }
             setCurrentStep(2);
-        } else {
-             handleRegister();
+        } else if (currentStep === 2) {
+             setCurrentStep(3);
         }
     }
 
@@ -192,11 +203,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
                 if (amount) localStorage.setItem('paymentAmount', amount);
                 
-                // We don't set this anymore to keep the menu item visible
-                // if (setLessonSelected) {
-                //     setLessonSelected(true);
-                // }
-
                 // Open summary in a new tab
                 window.open('/dashboard/selection-summary', '_blank');
             }
@@ -539,11 +545,77 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(1)}>Indietro</Button>
-                    <Button onClick={handleRegister} disabled={isSubmitting || !paymentMethod || !amount}>
-                        {isSubmitting ? 'Salvataggio...' : 'Avanti'}
+                    <Button onClick={handleNextStep} disabled={!paymentMethod || !amount}>
+                        Avanti
                     </Button>
                 </CardFooter>
              </Card>
+        )}
+
+        {currentStep === 3 && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Controlla i dati Inseriti</CardTitle>
+                    <CardDescription>
+                        Verifica che tutte le informazioni siano corrette prima di confermare.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div>
+                        <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                            <p><b>Arte Marziale:</b> <span className="text-foreground">{capitalize(martialArt)}</span></p>
+                            <p><b>Dojo:</b> <span className="text-foreground">{capitalize(dojo)}</span></p>
+                            <p><b>Data Prima Lezione:</b> <span className="text-foreground">{lessonDate}</span></p>
+                        </div>
+                    </div>
+
+                    <Separator />
+                    
+                    <div>
+                        <h3 className="font-semibold text-lg mb-2 text-primary">Dati Allievo</h3>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                            <p><b>Nome e Cognome:</b> <span className="text-foreground">{name}</span></p>
+                            <p><b>Codice Fiscale:</b> <span className="text-foreground">{codiceFiscale}</span></p>
+                            <p><b>Nato/a il:</b> <span className="text-foreground">{`${day}/${month}/${year}`}</span> a <span className="text-foreground">{birthplace}</span></p>
+                            <p><b>Residenza:</b> <span className="text-foreground">{`${address}, ${civicNumber} - ${cap} ${comune} (${provincia})`}</span></p>
+                             {!isMinor && <p><b>Telefono:</b> <span className="text-foreground">{phone}</span></p>}
+                            <p><b>Email:</b> <span className="text-foreground">{registrationEmail}</span></p>
+                        </div>
+                    </div>
+
+                    {isMinor && (
+                         <>
+                            <Separator />
+                            <div>
+                                <h3 className="font-semibold text-lg mb-2 text-primary">Dati Genitore/Tutore</h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                                    <p><b>Nome e Cognome:</b> <span className="text-foreground">{parentName}</span></p>
+                                    <p><b>Codice Fiscale:</b> <span className="text-foreground">{parentCf}</span></p>
+                                    <p><b>Telefono:</b> <span className="text-foreground">{parentPhone}</span></p>
+                                    <p><b>Email:</b> <span className="text-foreground">{parentEmail}</span></p>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    <Separator />
+
+                    <div>
+                        <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                           <p><b>Metodo Pagamento:</b> <span className="text-foreground">{translatePaymentMethod(paymentMethod ?? null)}</span></p>
+                           <p><b>Importo:</b> <span className="text-foreground">€ {amount}</span></p>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                    <Button variant="outline" onClick={() => setCurrentStep(2)}>Indietro</Button>
+                    <Button onClick={handleRegister} disabled={isSubmitting}>
+                        {isSubmitting ? 'Salvataggio...' : 'Conferma Iscrizione'}
+                    </Button>
+                </CardFooter>
+            </Card>
         )}
     </>
   )
