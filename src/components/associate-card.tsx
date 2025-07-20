@@ -139,7 +139,6 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                         <p><b>Codice Fiscale:</b> {userData.codiceFiscale || 'Non specificato'}</p>
                         <p><b>Residenza:</b> {`${userData.address || ''}, ${userData.civicNumber || ''} - ${userData.cap || ''} ${userData.comune || ''} (${userData.provincia || ''})` || 'Non specificata'}</p>
                         {!isMinor && <p><b>Telefono:</b> {userData.phone || 'Non specificato'}</p>}
-                        <p><b>Email:</b> {userData.email || 'Non specificata'}</p>
                     </div>
 
                     {isMinor && (
@@ -149,7 +148,6 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                             <p><b>Nome e Cognome:</b> {parentData.name || 'Non specificato'}</p>
                             <p><b>Codice Fiscale:</b> {parentData.cf || 'Non specificato'}</p>
                             <p><b>Telefono:</b> {parentData.phone || 'Non specificato'}</p>
-                            <p><b>Email di contatto:</b> {parentData.email || 'Non specificata'}</p>
                         </div>
                     )}
                 </div>

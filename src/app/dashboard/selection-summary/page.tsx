@@ -90,7 +90,6 @@ export default function SelectionSummaryPage() {
                             <p><b>Nato/a il:</b> <span className="text-foreground">{summaryData.birthDate}</span> a <span className="text-foreground">{summaryData.birthplace}</span></p>
                             <p><b>Residenza:</b> <span className="text-foreground">{`${summaryData.address}, ${summaryData.civicNumber} - ${summaryData.cap} ${summaryData.comune} (${summaryData.provincia})`}</span></p>
                              {!summaryData.isMinor && <p><b>Telefono:</b> <span className="text-foreground">{summaryData.phone}</span></p>}
-                            <p><b>Email:</b> <span className="text-foreground">{summaryData.registrationEmail}</span></p>
                         </div>
                     </div>
 
@@ -103,7 +102,6 @@ export default function SelectionSummaryPage() {
                                     <p><b>Nome e Cognome:</b> <span className="text-foreground">{summaryData.parentName}</span></p>
                                     <p><b>Codice Fiscale:</b> <span className="text-foreground">{summaryData.parentCf}</span></p>
                                     <p><b>Telefono:</b> <span className="text-foreground">{summaryData.parentPhone}</span></p>
-                                    <p><b>Email:</b> <span className="text-foreground">{summaryData.parentEmail}</span></p>
                                 </div>
                             </div>
                         </>

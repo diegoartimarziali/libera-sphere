@@ -210,10 +210,7 @@ export function MemberSummaryCard() {
                     Sei socio da {membershipDuration}.
                  </div>
                )}
-                <div className="text-muted-foreground text-lg">
-                  Email di registrazione: <span className="font-medium text-foreground">{registrationEmail}</span>
-                </div>
-              <div className="text-muted-foreground text-lg flex items-center gap-2">
+                <div className="text-muted-foreground text-lg flex items-center gap-2">
                 <span className="text-muted-foreground">C.F.: </span>
                 {codiceFiscale ? (
                     <span className="font-medium text-foreground">{codiceFiscale}</span>

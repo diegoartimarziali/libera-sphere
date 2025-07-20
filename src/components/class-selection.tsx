@@ -585,7 +585,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             <p><b>Nato/a il:</b> <span className="text-foreground">{`${day}/${month}/${year}`}</span> a <span className="text-foreground">{birthplace}</span></p>
                             <p><b>Residenza:</b> <span className="text-foreground">{`${address}, ${civicNumber} - ${cap} ${comune} (${provincia})`}</span></p>
                              {!isMinor && <p><b>Telefono:</b> <span className="text-foreground">{phone}</span></p>}
-                            <p><b>Email:</b> <span className="text-foreground">{registrationEmail}</span></p>
                         </div>
                     </div>
 
@@ -598,7 +597,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                                     <p><b>Nome e Cognome:</b> <span className="text-foreground">{parentName}</span></p>
                                     <p><b>Codice Fiscale:</b> <span className="text-foreground">{parentCf}</span></p>
                                     <p><b>Telefono:</b> <span className="text-foreground">{parentPhone}</span></p>
-                                    <p><b>Email:</b> <span className="text-foreground">{parentEmail}</span></p>
                                 </div>
                             </div>
                         </>
