@@ -64,7 +64,7 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
       <CardHeader>
         <CardTitle>Prima di cominciare</CardTitle>
         <CardDescription>
-          Prima di associarti ti chiediamo di prendere visione dei seguenti documenti.
+          Leggi lo Statuto, conoscere lo statuto della propria associazione è fondamentale per un socio perché permette di comprendere i propri diritti e doveri all'interno dell'ente, le regole di funzionamento dell'associazione, le modalità di gestione e gli scopi sociali. Leggi il regolamento interno e attieniti alle regole, leggi il documento sulla Privacy e su come verranno trattati i tuoi dati.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow space-y-4">
