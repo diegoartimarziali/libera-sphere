@@ -358,7 +358,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
              <Card>
                 <CardHeader>
                     <CardTitle>Inserisci i tuoi dati</CardTitle>
-                    <CardDescription>Completa con le tue informazioni per finalizzare l'iscrizione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
