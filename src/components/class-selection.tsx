@@ -79,6 +79,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
     const [emailError, setEmailError] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
+    const [amount, setAmount] = useState<string | undefined>("30");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
@@ -201,7 +202,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 userEmail: registrationEmail,
                 planId: "lezione_selezione",
                 planName: "Lezioni di Selezione",
-                price: "30",
+                price: amount,
                 paymentMethod: paymentMethod,
                 status: 'In attesa',
                 subscriptionDate: serverTimestamp()
@@ -521,6 +522,17 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         <CardDescription className="font-bold text-black">
                             Completa la tua iscrizione scegliendo un metodo di pagamento.
                         </CardDescription>
+                         <div className="space-y-2">
+                            <Label htmlFor="amount">Importo</Label>
+                            <Select onValueChange={setAmount} value={amount}>
+                                <SelectTrigger id="amount">
+                                    <SelectValue placeholder="Seleziona un importo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="30">€ 30</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
                         <Select onValueChange={setPaymentMethod} value={paymentMethod}>
                             <SelectTrigger id="payment-method">
                                 <SelectValue placeholder="Seleziona un metodo di pagamento" />
@@ -550,5 +562,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
 
