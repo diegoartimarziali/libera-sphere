@@ -11,7 +11,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
@@ -92,17 +98,21 @@ export function NewPaymentForm() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="pt-4">
+                <div className="pt-4 space-y-2">
                     <Separator className="mb-4" />
-                    <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
-                    <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod}>
-                        {paymentOptions.map(option => (
-                            <Label htmlFor={option.id} key={option.id} className="flex items-center space-x-2 cursor-pointer">
-                                <RadioGroupItem value={option.id} id={option.id} />
-                                <span className="font-normal">{option.label}</span>
-                            </Label>
-                        ))}
-                    </RadioGroup>
+                    <Label htmlFor="payment-method">Metodo di Pagamento</Label>
+                    <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+                        <SelectTrigger id="payment-method">
+                            <SelectValue placeholder="Seleziona un metodo di pagamento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {paymentOptions.map(option => (
+                                <SelectItem key={option.id} value={option.id}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             </CardContent>
              <CardFooter>
