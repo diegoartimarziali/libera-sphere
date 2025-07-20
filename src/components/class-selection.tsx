@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -7,7 +6,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -147,32 +145,12 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         }
     }
 
-    const handleRegister = async () => {
-        if (!paymentMethod || !amount) {
-             toast({
-                title: "Attenzione",
-                description: "Per favore, seleziona un metodo di pagamento e un importo.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        if (isMinor) {
-             if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()){
-                setEmailError(true);
-                return;
-            }
-        } else {
-            if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
-                setEmailError(true);
-                return;
-            }
-        }
-
-        setIsSubmitting(true);
-
-        if (typeof window !== 'undefined') {
-            // Save all data to localStorage to be read by the summary page
+    const handleRegister = () => {
+        // This is a placeholder function.
+        // The user wants to remove the previous logic.
+        // Let's just save the data and redirect.
+         if (typeof window !== 'undefined') {
+            // Save all data to localStorage
             localStorage.setItem('martialArt', martialArt);
             localStorage.setItem('selectedDojo', dojo);
             localStorage.setItem('lessonDate', lessonDate);
@@ -199,39 +177,20 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 localStorage.setItem('phone', phone);
             }
             
-            localStorage.setItem('paymentMethod', paymentMethod);
-            localStorage.setItem('paymentAmount', amount);
+            if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
+            if (amount) localStorage.setItem('paymentAmount', amount);
             
-             // Open summary in a new tab immediately
-            window.open('/dashboard/selection-summary', '_blank');
+            if (setLessonSelected) {
+                setLessonSelected(true);
+            }
         }
-
-        try {
-            await addDoc(collection(db, "subscriptions"), {
-                userEmail: registrationEmail,
-                planId: "lezione_selezione",
-                planName: "Lezioni di Selezione",
-                price: amount,
-                paymentMethod: paymentMethod,
-                status: 'In attesa',
-                subscriptionDate: serverTimestamp()
-            });
-
-            toast({
-                title: "Registrazione Inviata!",
-                description: "La tua richiesta è stata registrata. Si aprirà una nuova scheda con il riepilogo.",
-            })
-
-        } catch (error) {
-             console.error("Error adding document: ", error);
-            toast({
-                title: "Errore nel salvataggio",
-                description: "Non è stato possibile registrare la tua iscrizione. Riprova più tardi.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
+        
+        toast({
+            title: "Dati Salvati!",
+            description: `I tuoi dati sono stati salvati. Ora procedi con il pagamento.`,
+        });
+        
+        router.push('/dashboard/payments');
     }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -555,8 +514,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 </CardContent>
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(1)}>Indietro</Button>
-                    <Button onClick={handleRegister} disabled={isSubmitting || !paymentMethod || !amount}>
-                        {isSubmitting ? 'Salvataggio...' : 'Avanti'}
+                    <Button onClick={handleRegister} disabled={!paymentMethod || !amount}>
+                        Avanti
                     </Button>
                 </CardFooter>
              </Card>
@@ -564,3 +523,5 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     </>
   )
 }
+
+    

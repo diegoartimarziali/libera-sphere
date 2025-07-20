@@ -123,7 +123,7 @@ export default function DashboardLayout({
     { href: "/dashboard/instructions", icon: Info, label: "Istruzioni", hideWhenAssociated: true },
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "/dashboard/regulations", icon: FileText, label: "Prima di cominciare", hideWhenRegulationsAccepted: true },
-    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni di Selezione" },
+    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni di Selezione", hideWhenLessonSelected: true },
     { href: "/dashboard/associates", icon: Users, label: "Associati", hideWhenAssociationRequested: true },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico" },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
@@ -143,6 +143,9 @@ export default function DashboardLayout({
       return false;
     }
     if (item.hideWhenAssociationRequested && associationRequested) {
+        return false;
+    }
+    if (item.hideWhenLessonSelected && lessonSelected) {
         return false;
     }
     if (!regulationsAccepted && !['/dashboard/regulations', '/dashboard/instructions', '/dashboard'].includes(item.href)) {
