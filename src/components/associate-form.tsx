@@ -123,13 +123,11 @@ export function AssociateForm() {
         }
         
         toast({
-            title: "Domanda Inviata!",
-            description: `I tuoi dati sono stati salvati e la domanda di associazione è stata inviata. Riceverai una notifica quando verrà approvata.`,
+            title: "Dati Salvati!",
+            description: `I tuoi dati sono stati salvati. Ora procedi con il pagamento.`,
         });
         
-        router.push('/dashboard');
-        // We need a full refresh for the layout to correctly update
-        setTimeout(() => window.location.reload(), 500);
+        router.push('/dashboard/associates/payment');
     }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
