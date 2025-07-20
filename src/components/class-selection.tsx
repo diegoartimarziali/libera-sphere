@@ -236,6 +236,16 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             "Metodo di Pagamento": paymentMethod
         };
 
+        if (isMinor) {
+            fieldsToValidate["Nome Genitore"] = parentName;
+            fieldsToValidate["CF Genitore"] = parentCf;
+            fieldsToValidate["Telefono Genitore"] = parentPhone;
+            fieldsToValidate["Email Genitore"] = parentEmail;
+        } else {
+            fieldsToValidate["Telefono"] = phone;
+            fieldsToValidate["Email di Conferma"] = emailConfirm;
+        }
+
         for (const [fieldName, value] of Object.entries(fieldsToValidate)) {
             if (!value) {
                 toast({
@@ -248,22 +258,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         }
 
         if (isMinor) {
-            const minorFields = {
-                "Nome Genitore": parentName,
-                "CF Genitore": parentCf,
-                "Telefono Genitore": parentPhone,
-                "Email Genitore": parentEmail
-            };
-            for (const [fieldName, value] of Object.entries(minorFields)) {
-                 if (!value) {
-                    toast({
-                        title: "Campo Obbligatorio",
-                        description: `Il campo "${fieldName}" non è stato compilato.`,
-                        variant: "destructive",
-                    });
-                    return;
-                }
-            }
             if (registrationEmail && parentEmail.toLowerCase() !== registrationEmail.toLowerCase()) {
                 setEmailError(true);
                 toast({
@@ -274,20 +268,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 return;
             }
         } else {
-             const adultFields = {
-                "Telefono": phone,
-                "Email di Conferma": emailConfirm
-            };
-            for (const [fieldName, value] of Object.entries(adultFields)) {
-                 if (!value) {
-                    toast({
-                        title: "Campo Obbligatorio",
-                        description: `Il campo "${fieldName}" non è stato compilato.`,
-                        variant: "destructive",
-                    });
-                    return;
-                }
-            }
             if (registrationEmail && emailConfirm.toLowerCase() !== registrationEmail.toLowerCase()) {
                  setEmailError(true);
                  toast({
@@ -744,7 +724,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             <Card>
                 <CardHeader>
                      <CardTitle>Dojo Passport</CardTitle>
-                     <CardDescription>Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Dojo Passport. Ti verrà richiesta da un istruttore alla prima lezione.</CardDescription>
+                     <CardDescription>Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
@@ -850,7 +830,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleRegister}>
+                    <Button onClick={handleExit}>
                         Esci
                     </Button>
                 </CardFooter>
