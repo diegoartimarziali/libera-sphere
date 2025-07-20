@@ -293,24 +293,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
 
     const handleRegister = () => {
-        setIsSubmitting(true);
-        try {
-            saveDataToLocalStorage();
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('isDojoPassportComplete', 'true');
-                 if(setLessonSelected) setLessonSelected(true);
-            }
-             router.push('/dashboard');
-        } catch (error) {
-            console.error("Error during registration process: ", error);
-            toast({
-                title: "Errore",
-                description: "Si è verificato un errore durante il salvataggio dei dati.",
-                variant: "destructive",
-            });
-        } finally {
-            setIsSubmitting(false);
-        }
+        // Funzioni del tasto Fine eliminate
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
