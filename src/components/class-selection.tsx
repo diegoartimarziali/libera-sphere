@@ -567,8 +567,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                           <p><b>Metodo Pagamento:</b> <span className="text-foreground">{translatePaymentMethod(paymentMethod ?? null)}</span></p>
-                           <p><b>Importo:</b> <span className="text-foreground">€ {amount}</span></p>
+                           <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethod(paymentMethod ?? null)}</span></p>
+                           <p><b>Importo:</b> <span className="text-foreground font-bold">€ {amount}</span></p>
                         </div>
                     </div>
 
@@ -577,9 +577,9 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="space-y-2 text-muted-foreground">
-                            <p><b>Corso di:</b> <span className="text-foreground">{capitalize(martialArt)}</span></p>
-                            <p><b>Palestra di:</b> <span className="text-foreground">{capitalize(dojo)}</span></p>
-                            <p><b>1a Lezione:</b> <span className="text-foreground">{lessonDate}</span></p>
+                            <p><b>Corso di:</b> <span className="text-foreground font-bold">{capitalize(martialArt)}</span></p>
+                            <p><b>Palestra di:</b> <span className="text-foreground font-bold">{capitalize(dojo)}</span></p>
+                            <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{lessonDate}</span></p>
                         </div>
                         <p className="text-sm text-muted-foreground mt-2">Potrai concordare le date delle prossime lezioni in palestra con l'istruttore.</p>
                     </div>
@@ -589,10 +589,10 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dati Allievo</h3>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                            <p><b>Nome e Cognome:</b> <span className="text-foreground">{name}</span></p>
-                            <p><b>Nato il:</b> <span className="text-foreground">{`${day}/${month}/${year}`}</span> a <span className="text-foreground">{birthplace}</span></p>
-                            <p><b>Residenza:</b> <span className="text-foreground">{`${address}, ${civicNumber} - ${cap} ${comune} (${provincia})`}</span></p>
-                             {!isMinor && <p><b>Telefono:</b> <span className="text-foreground">{phone}</span></p>}
+                            <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{name}</span></p>
+                            <p><b>Nato il:</b> <span className="text-foreground font-bold">{`${day}/${month}/${year}`}</span> a <span className="text-foreground font-bold">{birthplace}</span></p>
+                            <p><b>Residenza:</b> <span className="text-foreground font-bold">{`${address}, ${civicNumber} - ${cap} ${comune} (${provincia})`}</span></p>
+                             {!isMinor && <p><b>Telefono:</b> <span className="text-foreground font-bold">{phone}</span></p>}
                         </div>
                     </div>
 
@@ -602,8 +602,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             <div>
                                 <h3 className="font-semibold text-lg mb-2 text-primary">Dati Genitore/Tutore</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                                    <p><b>Nome e Cognome:</b> <span className="text-foreground">{parentName}</span></p>
-                                    <p><b>Telefono:</b> <span className="text-foreground">{parentPhone}</span></p>
+                                    <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{parentName}</span></p>
+                                    <p><b>Telefono:</b> <span className="text-foreground font-bold">{parentPhone}</span></p>
                                 </div>
                             </div>
                         </>
