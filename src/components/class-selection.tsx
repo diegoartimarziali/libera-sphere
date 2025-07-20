@@ -636,7 +636,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         {currentStep === 3 && (
             <Card>
                 <CardHeader>
-                    <CardTitle>La tua prenotazione è stata salvata. Ecco il riepilogo.</CardTitle>
                     <CardDescription className="font-bold text-foreground">
                         Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.
                     </CardDescription>
@@ -758,6 +757,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
 
 
 
