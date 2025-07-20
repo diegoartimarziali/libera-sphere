@@ -203,8 +203,14 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
                 if (amount) localStorage.setItem('paymentAmount', amount);
                 
+                 if (setLessonSelected) {
+                    setLessonSelected(true);
+                }
+                localStorage.setItem('lessonSelected', 'true');
+
                 // Open summary in a new tab
                 window.open('/dashboard/selection-summary', '_blank');
+                 router.push('/dashboard');
             }
             
             toast({
@@ -556,7 +562,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             <Card>
                 <CardHeader>
                     <CardTitle>Prenotazione Confermata!</CardTitle>
-                    <CardDescription>
+                    <CardDescription className="font-bold text-foreground">
                         Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.
                     </CardDescription>
                 </CardHeader>
@@ -613,7 +619,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={() => setCurrentStep(2)}>Indietro</Button>
                     <Button onClick={handleRegister} disabled={isSubmitting}>
-                        {isSubmitting ? 'Salvataggio...' : 'Conferma Iscrizione'}
+                        {isSubmitting ? 'Salvataggio...' : 'Avanti'}
                     </Button>
                 </CardFooter>
             </Card>
