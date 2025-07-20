@@ -201,6 +201,9 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             
             localStorage.setItem('paymentMethod', paymentMethod);
             localStorage.setItem('paymentAmount', amount);
+            
+             // Open summary in a new tab immediately
+            window.open('/dashboard/selection-summary', '_blank');
         }
 
         try {
@@ -218,9 +221,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 title: "Registrazione Inviata!",
                 description: "La tua richiesta è stata registrata. Si aprirà una nuova scheda con il riepilogo.",
             })
-            
-            // Open summary in a new tab
-            window.open('/dashboard/selection-summary', '_blank');
 
         } catch (error) {
              console.error("Error adding document: ", error);
