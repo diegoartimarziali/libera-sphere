@@ -178,29 +178,28 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     }, [currentStep, paymentMethod, baseAmount]);
 
     const handleNextStep = () => {
-        if (isMinor) {
-            if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
-                setEmailError(true);
-                toast({
-                    title: "Errore Email",
-                    description: "L'email di contatto del genitore deve essere uguale all'email di registrazione.",
-                    variant: "destructive"
-                });
-                return;
-            }
-        } else {
-            if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
-                setEmailError(true);
-                 toast({
-                    title: "Errore Email",
-                    description: "L'email di contatto deve essere uguale all'email di registrazione.",
-                    variant: "destructive"
-                });
-                return;
-            }
-        }
-
         if (currentStep === 1) {
+             if (isMinor) {
+                if(parentEmail.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                    setEmailError(true);
+                    toast({
+                        title: "Errore Email",
+                        description: "L'email di contatto del genitore deve essere uguale all'email di registrazione.",
+                        variant: "destructive"
+                    });
+                    return;
+                }
+            } else {
+                if(emailConfirm.toLowerCase() !== registrationEmail?.toLowerCase()) {
+                    setEmailError(true);
+                     toast({
+                        title: "Errore Email",
+                        description: "L'email di contatto deve essere uguale all'email di registrazione.",
+                        variant: "destructive"
+                    });
+                    return;
+                }
+            }
             if (!martialArt || !dojo || !lessonDate) {
                 toast({
                     title: "Attenzione",
@@ -218,7 +217,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 return;
             }
         }
-        setCurrentStep(currentStep + 1);
+        setCurrentStep(2);
     }
 
     const handleRegister = () => {
@@ -255,12 +254,6 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 
                 router.push('/dashboard');
             }
-            
-            toast({
-                title: "Riepilogo pronto!",
-                description: `Controlla la nuova scheda per il riepilogo della tua iscrizione.`,
-            });
-            
         } catch (error) {
             console.error("Error during registration process: ", error);
             toast({
@@ -313,16 +306,22 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     };
     
     const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setEmailConfirm(e.target.value.toLowerCase());
-        if (e.target.value.toLowerCase() === registrationEmail?.toLowerCase()) {
+        const newEmail = e.target.value.toLowerCase();
+        setEmailConfirm(newEmail);
+        if (newEmail === registrationEmail?.toLowerCase()) {
             setEmailError(false);
+        } else {
+            setEmailError(true);
         }
     }
 
     const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setParentEmail(e.target.value.toLowerCase());
-        if (e.target.value.toLowerCase() === registrationEmail?.toLowerCase()) {
+        const newEmail = e.target.value.toLowerCase();
+        setParentEmail(newEmail);
+        if (newEmail === registrationEmail?.toLowerCase()) {
             setEmailError(false);
+        } else {
+            setEmailError(true);
         }
     }
     
@@ -749,8 +748,8 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
 
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleRegister} disabled={isSubmitting || !datesSaved}>
-                        {isSubmitting ? 'Salvataggio...' : 'Fine'}
+                    <Button onClick={handleRegister}>
+                        Fine
                     </Button>
                 </CardFooter>
             </Card>
