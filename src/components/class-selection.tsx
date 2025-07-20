@@ -555,9 +555,9 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         {currentStep === 3 && (
             <Card>
                 <CardHeader>
-                    <CardTitle>Controlla i dati Inseriti</CardTitle>
+                    <CardTitle>Prenotazione Confermata!</CardTitle>
                     <CardDescription>
-                        Verifica che tutte le informazioni siano corrette prima di confermare.
+                        La tua prenotazione è stata salvata. Ecco il riepilogo.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
