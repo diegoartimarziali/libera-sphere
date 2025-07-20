@@ -87,7 +87,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
     const [emailError, setEmailError] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
-    const [amount, setAmount] = useState<string | undefined>("30");
+    const [amount, setAmount] = useState<string | undefined>();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
@@ -538,7 +538,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             <Label htmlFor="amount">Importo</Label>
                             <Select onValueChange={setAmount} value={amount}>
                                 <SelectTrigger id="amount">
-                                    <SelectValue placeholder="Importo" />
+                                    <SelectValue placeholder="l'importo deve essere selezionato per poter procedere" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="30">€ 30</SelectItem>
