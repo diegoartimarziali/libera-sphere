@@ -596,7 +596,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 <CardContent className="space-y-6">
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                        <div className="flex justify-between text-muted-foreground">
                            <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(paymentMethod ?? null)}</span></p>
                            <p><b>Importo:</b> <span className="text-foreground font-bold">€ {amount}</span></p>
                         </div>
@@ -609,9 +609,11 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                         <div className="space-y-2 text-muted-foreground">
                             <p><b>Corso di:</b> <span className="text-foreground font-bold">{capitalize(martialArt)}</span></p>
                             <p><b>Palestra di:</b> <span className="text-foreground font-bold">{capitalize(dojo)}</span></p>
-                            <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{lessonDate}</span></p>
+                            <div className="flex items-center gap-2">
+                                <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{lessonDate}</span></p>
+                                <p className="text-sm">Concordare le date delle prossime lezioni in palestra con il Maestro.</p>
+                            </div>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2">Potrai concordare le date delle prossime lezioni in palestra con l'istruttore.</p>
                     </div>
 
                     <Separator />
