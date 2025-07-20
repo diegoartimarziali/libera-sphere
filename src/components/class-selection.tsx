@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -34,6 +35,7 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(currentYear - i));
+const futureYears = Array.from({ length: 5 }, (_, i) => String(currentYear + i));
 
 const lessonDatesByDojo: { [key: string]: string[] } = {
     aosta: ["1 Settembre 2024", "8 Settembre 2024", "15 Settembre 2024"],
@@ -89,6 +91,10 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [secondLessonDay, setSecondLessonDay] = useState<string | undefined>(undefined);
+    const [secondLessonMonth, setSecondLessonMonth] = useState<string | undefined>(undefined);
+    const [secondLessonYear, setSecondLessonYear] = useState<string | undefined>(undefined);
     
     const baseAmount = 30;
 
@@ -162,6 +168,16 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
             setAmount(undefined);
         }
     }, [paymentMethod, baseAmount]);
+    
+    useEffect(() => {
+        if (currentStep === 2 && paymentMethod) {
+             if (paymentMethod === 'cash') {
+                setAmount(String(baseAmount + 2));
+            } else {
+                setAmount(String(baseAmount));
+            }
+        }
+    }, [currentStep, paymentMethod, baseAmount]);
 
     const handleNextStep = () => {
         if (currentStep === 1) {
@@ -588,7 +604,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
         {currentStep === 3 && (
             <Card>
                 <CardHeader>
-                    <CardTitle>Prenotazione Confermata!</CardTitle>
+                    <CardTitle>La tua prenotazione è stata salvata. Ecco il riepilogo.</CardTitle>
                     <CardDescription className="font-bold text-foreground">
                         Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.
                     </CardDescription>
@@ -596,7 +612,7 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                 <CardContent className="space-y-6">
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
-                        <div className="flex justify-between text-muted-foreground">
+                        <div className="flex items-center gap-8 text-muted-foreground">
                            <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(paymentMethod ?? null)}</span></p>
                            <p><b>Importo:</b> <span className="text-foreground font-bold">€ {amount}</span></p>
                         </div>
@@ -612,6 +628,30 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
                             <div className="flex items-center gap-2">
                                 <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{lessonDate}</span></p>
                                 <p className="text-sm">Concordare le date delle prossime lezioni in palestra con il Maestro.</p>
+                            </div>
+                            <div className="flex items-center gap-4 mt-2">
+                                <Label className="min-w-max"><b>2a Lezione:</b></Label>
+                                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
+                                    <Select onValueChange={setSecondLessonDay} value={secondLessonDay}>
+                                        <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                        <SelectContent>
+                                            {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select onValueChange={setSecondLessonMonth} value={secondLessonMonth}>
+                                        <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                        <SelectContent>
+                                            {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <Select onValueChange={setSecondLessonYear} value={secondLessonYear}>
+                                        <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                        <SelectContent>
+                                            {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <Button className="bg-green-600 hover:bg-green-700">Salva</Button>
                             </div>
                         </div>
                     </div>
@@ -657,3 +697,4 @@ export function ClassSelection({ setLessonSelected }: { setLessonSelected?: (val
     
 
     
+
