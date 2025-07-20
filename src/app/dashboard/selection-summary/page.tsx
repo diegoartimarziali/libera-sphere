@@ -1,11 +1,11 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Download } from 'lucide-react';
 
 const translatePaymentMethod = (method: string | null) => {
     if (!method) return 'Non specificato';
@@ -50,12 +50,6 @@ export default function SelectionSummaryPage() {
         }
     }, []);
 
-    const handlePrint = () => {
-        if (typeof window !== 'undefined') {
-            window.print();
-        }
-    };
-
     if (!isClient || !summaryData) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -67,23 +61,8 @@ export default function SelectionSummaryPage() {
     const capitalize = (s: string | null) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
     return (
-        <div className="bg-background text-foreground min-h-screen p-4 sm:p-8 print:p-0">
-             <style jsx global>{`
-                @media print {
-                    body {
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                    }
-                    .no-print {
-                        display: none !important;
-                    }
-                    .print-container {
-                        box-shadow: none !important;
-                        border: none !important;
-                    }
-                }
-            `}</style>
-            <Card className="max-w-3xl mx-auto print-container">
+        <div className="bg-background text-foreground min-h-screen p-4 sm:p-8">
+            <Card className="max-w-3xl mx-auto">
                 <CardHeader>
                     <CardTitle>Riepilogo Iscrizione Lezioni di Selezione</CardTitle>
                     <CardDescription>
@@ -137,13 +116,6 @@ export default function SelectionSummaryPage() {
                            <p><b>Metodo Pagamento:</b> <span className="text-foreground">{translatePaymentMethod(summaryData.paymentMethod)}</span></p>
                            <p><b>Importo:</b> <span className="text-foreground">€ {summaryData.paymentAmount}</span></p>
                         </div>
-                    </div>
-
-                    <div className="pt-6 flex justify-end no-print">
-                        <Button onClick={handlePrint}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Stampa / Salva PDF
-                        </Button>
                     </div>
 
                 </CardContent>
