@@ -348,8 +348,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         }
 
         const formatDate = (day: string, month: string, year: string): string => {
-            const monthName = months.find(m => m.value === month)?.label || '';
-            return `${day} ${monthName} ${year}`;
+            const monthLabel = months.find(m => m.value === month)?.label || '';
+            return `${day} ${monthLabel} ${year}`;
         }
         
         const secondDate = formatDate(secondLessonDay, secondLessonMonth, secondLessonYear);
@@ -684,9 +684,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="space-y-2 text-muted-foreground">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col items-start gap-2">
                                 <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{lessonDate}</span></p>
-                                <p className="text-sm">Concordare le date delle prossime lezioni in palestra con il Maestro.</p>
+                                <p className="text-foreground">Date da concordare col Maestro:</p>
                             </div>
                             <div className="flex items-start gap-4 mt-2">
                                 <div className="space-y-2 flex-grow">
