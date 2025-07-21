@@ -36,7 +36,7 @@ const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(cu
 
 const paymentOptions = [
     { id: "online", label: "Carta di Credito on line (0 costi)" },
-    { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
+    { id: "bank-transfer", label: "Bonifico Bancario" },
 ]
 
 export function AssociateForm() {
@@ -412,7 +412,5 @@ export function AssociateForm() {
     </Card>
   )
 }
-
-    
 
     
