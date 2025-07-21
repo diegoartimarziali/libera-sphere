@@ -11,7 +11,7 @@ export default function ClassSelectionPage({ setLessonSelected }: { setLessonSel
     useEffect(() => {
         setIsClient(true);
         if (typeof window !== 'undefined') {
-            const completed = localStorage.getItem('isDojoPassportComplete') === 'true';
+            const completed = localStorage.getItem('isSelectionPassportComplete') === 'true';
             setIsCompleted(completed);
         }
     }, []);

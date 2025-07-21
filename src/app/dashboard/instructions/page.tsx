@@ -11,11 +11,11 @@ export default function InstructionsPage() {
             <div className="grid md:grid-cols-2 gap-8">
                 <div>
                 <p className="text-base text-muted-foreground">
-                    <b>Dojo Passport, segui questi passaggi:</b>
+                    <b>Passaporto Selezioni, segui questi passaggi:</b>
                 </p>
                 <ol className="list-decimal list-inside text-base text-muted-foreground space-y-2 mt-2">
                     <li>Prendi visione e accetta i regolamenti nella scheda <b>"Accettazione Regolamenti e Privacy"</b>.</li>
-                    <li>Iscriviti al Dojo Passport tramite la scheda <b>"Dojo Passport"</b>.</li>
+                    <li>Iscriviti al Passaporto Selezioni tramite la scheda <b>"Passaporto Selezioni"</b>.</li>
                     <li>Carica il tuo certificato medico nella sezione <b>"Certificato Medico"</b>.</li>
                     <li>Inserisci i tuoi dati e quelli di un genitore se sei minorenne.</li>
                     <li>Verrai contattato telefonicamente per scegliere la tua prima lezione.</li>
@@ -24,7 +24,7 @@ export default function InstructionsPage() {
                 </div>
                 <div>
                 <p className="text-base text-muted-foreground">
-                    <b>Associazione dopo il Dojo Passport o già associato nella stagione precedente:</b>
+                    <b>Associazione dopo il Passaporto Selezioni o già associato nella stagione precedente:</b>
                 </p>
                 <ol className="list-decimal list-inside text-base text-muted-foreground space-y-2 mt-2">
                     <li>Controlla che il tuo certificato medico sia caricato e in corso di validità.</li>

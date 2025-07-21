@@ -380,7 +380,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
     const handleExit = () => {
         if (typeof window !== 'undefined') {
-            localStorage.setItem('isDojoPassportComplete', 'true');
+            localStorage.setItem('isSelectionPassportComplete', 'true');
             if(setLessonSelected) setLessonSelected(true);
         }
         router.push('/dashboard');
@@ -668,7 +668,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         {currentStep === 2 && (
             <Card>
                 <CardHeader>
-                     <CardTitle>Dojo Passport</CardTitle>
+                     <CardTitle>Passaporto Selezioni</CardTitle>
                      <CardDescription>Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
