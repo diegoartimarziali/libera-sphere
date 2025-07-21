@@ -407,10 +407,8 @@ export function AssociateForm() {
 
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button onClick={handleSaveAndApply} disabled={!paymentMethod}>Fai Domanda di Associazione</Button>
+            <Button onClick={handleSaveAndApply} disabled={!paymentMethod}>Procedi</Button>
         </CardFooter>
     </Card>
   )
 }
-
-    
