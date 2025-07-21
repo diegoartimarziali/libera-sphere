@@ -703,7 +703,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         {currentStep === 2 && (
             <Card>
                 <CardHeader>
-                     <CardTitle>Lezioni di Selezione</CardTitle>
+                     <CardTitle className="bg-green-600 text-white p-4 -mt-6 -mx-6 rounded-t-lg mb-4">Passaporto Selezioni</CardTitle>
                      <CardDescription className="text-foreground">Troverai questa scheda cliccando sulla voce di menu Lezioni di Selezione. Presentala al Maestro alla prima lezione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
