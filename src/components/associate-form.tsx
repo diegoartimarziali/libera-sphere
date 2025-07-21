@@ -221,7 +221,7 @@ export function AssociateForm() {
     <Card>
         <CardHeader>
             <CardTitle className="bg-blue-600 text-white p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Domanda di Associazione</CardTitle>
-            <CardDescription>Completa con le tue informazioni per la domanda di associazione.</CardDescription>
+            <CardDescription className="text-foreground font-bold">Prepara la tua domanda di associazione.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
