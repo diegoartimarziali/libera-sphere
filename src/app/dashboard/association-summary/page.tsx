@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 const translatePaymentMethod = (method: string | null) => {
     if (!method) return 'Non specificato';
     switch (method) {
-        case 'online': return 'Carta di Credito on line (0 costi)';
+        case 'online': return 'Carta di Credito on line';
         case 'cash': return 'Contanti o Bancomat in Palestra ( 2 euro costi di gestione)';
         case 'bank-transfer': return 'Bonifico Bancario';
         default: return method;

@@ -35,7 +35,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(currentYear - i));
 
 const paymentOptions = [
-    { id: "online", label: "Carta di Credito on line (0 costi)" },
+    { id: "online", label: "Carta di Credito on line" },
     { id: "bank-transfer", label: "Bonifico Bancario" },
 ]
 

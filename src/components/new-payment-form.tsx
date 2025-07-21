@@ -28,7 +28,7 @@ import { Alert, AlertTitle, AlertDescription } from "./ui/alert"
 import { AlertTriangle } from "lucide-react"
 
 const paymentOptions = [
-    { id: "online", label: "Carta di Credito on line (0 costi)" },
+    { id: "online", label: "Carta di Credito on line" },
     { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ]
 
