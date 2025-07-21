@@ -418,7 +418,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             localStorage.setItem('isSelectionPassportComplete', 'true');
             if(setLessonSelected) setLessonSelected(true);
         }
-        router.push('/dashboard');
+        router.push('/dashboard/payment-gateway');
     }
 
     // Sequential validation state
@@ -703,7 +703,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         {currentStep === 2 && (
             <Card>
                 <CardHeader>
-                     <CardTitle>Passaporto Selezioni</CardTitle>
+                     <CardTitle>Lezioni di Selezione</CardTitle>
                      <CardDescription className="text-foreground">Troverai questa scheda cliccando sulla voce di menu Lezioni di Selezione. Presentala al Maestro alla prima lezione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
