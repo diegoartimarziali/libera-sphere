@@ -59,7 +59,7 @@ export default function AssociationSummaryPage() {
         <div className="bg-background text-foreground min-h-screen p-4 sm:p-8">
             <Card className="max-w-3xl mx-auto">
                 <CardHeader>
-                    <CardTitle>Riepilogo Passaporto Associazione</CardTitle>
+                    <CardTitle>Passaporto Associazione</CardTitle>
                     <CardDescription>
                         Controlla i tuoi dati e procedi con il pagamento per completare la domanda.
                     </CardDescription>
