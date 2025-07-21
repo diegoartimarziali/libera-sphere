@@ -338,31 +338,33 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     }, [birthDate]);
 
     const handleSaveDates = () => {
-        let secondDate, thirdDate;
-        if (secondLessonDay && secondLessonMonth && secondLessonYear) {
-            secondDate = `${secondLessonDay}/${secondLessonMonth}/${secondLessonYear}`;
-            localStorage.setItem('secondLessonDate', secondDate);
-            setSavedSecondLessonDate(secondDate);
-        }
-        if (thirdLessonDay && thirdLessonMonth && thirdLessonYear) {
-            thirdDate = `${thirdLessonDay}/${thirdLessonMonth}/${thirdLessonYear}`;
-            localStorage.setItem('thirdLessonDate', thirdDate);
-            setSavedThirdLessonDate(thirdDate);
-        }
-        
-        if (secondDate || thirdDate) {
-            setDatesSaved(true);
+        if (!secondLessonDay || !secondLessonMonth || !secondLessonYear || !thirdLessonDay || !thirdLessonMonth || !thirdLessonYear) {
             toast({
-                title: "Date salvate!",
-                description: "Le date delle lezioni sono state aggiornate.",
-            });
-        } else {
-             toast({
                 title: "Attenzione",
-                description: "Per favore, seleziona almeno una data completa.",
+                description: "Per favore, seleziona le date complete per entrambe le lezioni.",
                 variant: "destructive"
             });
+            return;
         }
+
+        const formatDate = (day: string, month: string, year: string): string => {
+            const monthName = months.find(m => m.value === month)?.label || '';
+            return `${day} ${monthName} ${year}`;
+        }
+        
+        const secondDate = formatDate(secondLessonDay, secondLessonMonth, secondLessonYear);
+        const thirdDate = formatDate(thirdLessonDay, thirdLessonMonth, thirdLessonYear);
+
+        localStorage.setItem('secondLessonDate', secondDate);
+        setSavedSecondLessonDate(secondDate);
+        localStorage.setItem('thirdLessonDate', thirdDate);
+        setSavedThirdLessonDate(thirdDate);
+
+        setDatesSaved(true);
+        toast({
+            title: "Date salvate!",
+            description: "Le date delle lezioni sono state aggiornate.",
+        });
     };
 
     const canSaveDates = useMemo(() => {
