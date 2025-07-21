@@ -223,7 +223,7 @@ export function AssociateForm() {
   return (
     <Card>
         <CardHeader>
-            <CardTitle>Inserisci i tuoi dati</CardTitle>
+            <CardTitle className="bg-blue-600 text-white p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Domanda di Associazione</CardTitle>
             <CardDescription>Completa con le tue informazioni per la domanda di associazione.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -388,8 +388,7 @@ export function AssociateForm() {
                     <Label htmlFor="payment-method">Metodo di Pagamento</Label>
                     <Select onValueChange={setPaymentMethod} value={paymentMethod}>
                         <SelectTrigger id="payment-method">
-                            <SelectValue placeholder="Seleziona un metodo di pagamento" />
-                        </SelectTrigger>
+                            <SelectValue placeholder="Seleziona un metodo di pagamento" /></SelectTrigger>
                         <SelectContent>
                             {paymentOptions.map(option => (
                                 <SelectItem key={option.id} value={option.id}>
