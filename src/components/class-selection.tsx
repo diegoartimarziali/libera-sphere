@@ -594,8 +594,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                             </div>
                         )}
                     </div>
-                    
-                    {/* Payment */}
+
+                     {/* Payment */}
                     <div className="space-y-4 pt-4">
                         <p className="text-lg font-bold text-slate-400">P30</p>
                         <Label className="text-sm font-bold text-black" htmlFor="payment-method">Completa la tua iscrizione scegliendo un metodo di pagamento.</Label>
