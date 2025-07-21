@@ -418,7 +418,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             localStorage.setItem('isSelectionPassportComplete', 'true');
             if(setLessonSelected) setLessonSelected(true);
         }
-        router.push('/dashboard/payment-gateway');
+        router.push('/dashboard');
     }
 
     // Sequential validation state
@@ -712,7 +712,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                        <div className="flex items-center gap-4">
                             <p><b>Importo:</b> <span className="text-foreground font-bold">€ {summaryData.amount}</span></p>
                             {summaryData.paymentMethod === 'online' && !onlinePaymentCompleted && (
-                                <Button onClick={() => router.push('/dashboard/payment-gateway')}>
+                                <Button onClick={() => router.push('/dashboard/payment-gateway')} className="bg-green-600 hover:bg-green-700">
                                     Effettua pagamento
                                 </Button>
                             )}
@@ -821,7 +821,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={() => router.push('/dashboard')}>
+                    <Button onClick={handleExit}>
                         Esci
                     </Button>
                 </CardFooter>
