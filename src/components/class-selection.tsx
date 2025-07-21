@@ -237,7 +237,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         saveDataToLocalStorage();
         setCurrentStep(2);
         if (typeof window !== 'undefined') {
-            const storedBirthDate = localStorage.getItem('birthDate');
+             const storedBirthDate = localStorage.getItem('birthDate');
              let age = null;
              if (storedBirthDate) {
                 const [day, month, year] = storedBirthDate.split('/');
@@ -716,8 +716,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="space-y-2 text-muted-foreground">
-                            <div className="flex flex-col items-start gap-2">
+                            <div className="flex flex-col items-start">
                                 <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{summaryData.firstLesson}</span></p>
+                                <Separator className="my-2" />
                                 <p className="text-foreground">Date da concordare col Maestro:</p>
                             </div>
                             <div className="flex items-start gap-4 mt-2">
@@ -818,5 +819,3 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
-
-    
