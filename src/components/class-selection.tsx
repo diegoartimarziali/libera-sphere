@@ -93,7 +93,20 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const [savedSecondLessonDate, setSavedSecondLessonDate] = useState<string | null>(null);
     const [savedThirdLessonDate, setSavedThirdLessonDate] = useState<string | null>(null);
     const [datesSaved, setDatesSaved] = useState(false);
-    
+
+    const [summaryData, setSummaryData] = useState({
+        firstLesson: '',
+        paymentMethod: '',
+        amount: '',
+        name: '',
+        age: null as number | null,
+        comune: '',
+        phone: '',
+        isMinor: false,
+        parentName: '',
+        parentPhone: ''
+    });
+
     const baseAmount = 30;
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
@@ -109,6 +122,33 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
     useEffect(() => {
         setCurrentStep(initialStep);
+        if (initialStep === 2 && typeof window !== 'undefined') {
+             const storedBirthDate = localStorage.getItem('birthDate');
+             let age = null;
+             if (storedBirthDate) {
+                const [day, month, year] = storedBirthDate.split('/');
+                const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
+                const today = new Date();
+                age = today.getFullYear() - birthDateObj.getFullYear();
+                const m = today.getMonth() - birthDateObj.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
+                    age--;
+                }
+             }
+
+            setSummaryData({
+                firstLesson: localStorage.getItem('lessonDate') || '',
+                paymentMethod: localStorage.getItem('paymentMethod') || '',
+                amount: localStorage.getItem('paymentAmount') || '',
+                name: localStorage.getItem('userName') || '',
+                age: age,
+                comune: localStorage.getItem('comune') || '',
+                phone: localStorage.getItem('phone') || '',
+                isMinor: localStorage.getItem('isMinor') === 'true',
+                parentName: localStorage.getItem('parentName') || '',
+                parentPhone: localStorage.getItem('parentPhone') || ''
+            });
+        }
     }, [initialStep]);
 
     useEffect(() => {
@@ -131,11 +171,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             const storedParentName = localStorage.getItem('parentName') || '';
             const storedParentCf = localStorage.getItem('parentCf') || '';
             const storedParentPhone = localStorage.getItem('parentPhone') || '';
-            const storedMartialArt = localStorage.getItem('martialArt') || '';
-            const storedDojo = localStorage.getItem('selectedDojo') || '';
-            const storedLessonDate = localStorage.getItem('lessonDate') || '';
-            const storedPaymentMethod = localStorage.getItem('paymentMethod');
-            const storedAmount = localStorage.getItem('paymentAmount');
             
             setName(storedName);
             setCodiceFiscale(storedCodiceFiscale);
@@ -149,12 +184,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             setParentName(storedParentName);
             setParentCf(storedParentCf);
             setParentPhone(storedParentPhone);
-            setMartialArt(storedMartialArt);
-            setDojo(storedDojo);
-            setLessonDate(storedLessonDate);
-            if(storedPaymentMethod) setPaymentMethod(storedPaymentMethod);
-            if(storedAmount) setAmount(storedAmount);
-
+           
             if (storedBirthDate) {
                 const parts = storedBirthDate.split('/');
                 if (parts.length === 3) {
@@ -166,7 +196,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
             setRegistrationEmail(localStorage.getItem('registrationEmail'));
         }
-    }, [initialStep]);
+    }, []);
 
     useEffect(() => {
         if (day && month && year) {
@@ -191,7 +221,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         } else {
             setAmount(undefined);
         }
-    }, [paymentMethod, baseAmount]);
+    }, [paymentMethod]);
     
     useEffect(() => {
         if (paymentMethod) {
@@ -201,11 +231,37 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 setAmount(String(baseAmount));
             }
         }
-    }, [currentStep, paymentMethod, baseAmount]);
+    }, [currentStep, paymentMethod]);
 
     const handleNextStep = () => {
         saveDataToLocalStorage();
         setCurrentStep(2);
+        if (typeof window !== 'undefined') {
+            const storedBirthDate = localStorage.getItem('birthDate');
+             let age = null;
+             if (storedBirthDate) {
+                const [day, month, year] = storedBirthDate.split('/');
+                const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
+                const today = new Date();
+                age = today.getFullYear() - birthDateObj.getFullYear();
+                const m = today.getMonth() - birthDateObj.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
+                    age--;
+                }
+             }
+            setSummaryData({
+                firstLesson: localStorage.getItem('lessonDate') || '',
+                paymentMethod: localStorage.getItem('paymentMethod') || '',
+                amount: localStorage.getItem('paymentAmount') || '',
+                name: localStorage.getItem('userName') || '',
+                age: age,
+                comune: localStorage.getItem('comune') || '',
+                phone: localStorage.getItem('phone') || '',
+                isMinor: localStorage.getItem('isMinor') === 'true',
+                parentName: localStorage.getItem('parentName') || '',
+                parentPhone: localStorage.getItem('parentPhone') || ''
+            });
+        }
     };
     
     const saveDataToLocalStorage = () => {
@@ -651,8 +707,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                       <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(paymentMethod ?? null)}</span></p>
-                       <p><b>Importo:</b> <span className="text-foreground font-bold">€ {amount}</span></p>
+                       <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(summaryData.paymentMethod ?? null)}</span></p>
+                       <p><b>Importo:</b> <span className="text-foreground font-bold">€ {summaryData.amount}</span></p>
                     </div>
                     
                     <Separator />
@@ -661,7 +717,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
                         <div className="space-y-2 text-muted-foreground">
                             <div className="flex flex-col items-start gap-2">
-                                <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{lessonDate}</span></p>
+                                <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{summaryData.firstLesson}</span></p>
                                 <p className="text-foreground">Date da concordare col Maestro:</p>
                             </div>
                             <div className="flex items-start gap-4 mt-2">
@@ -731,21 +787,21 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     <div>
                         <h3 className="font-semibold text-lg mb-2 text-primary">Dati Allievo</h3>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                            <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{name}</span></p>
-                            <p><b>Età:</b> <span className="text-foreground font-bold">{age !== null ? `${age} anni` : ''}</span></p>
-                            <p><b>Residenza:</b> <span className="text-foreground font-bold">{comune}</span></p>
-                             {!isMinor && <p><b>Telefono:</b> <span className="text-foreground font-bold">{phone}</span></p>}
+                            <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{summaryData.name}</span></p>
+                            <p><b>Età:</b> <span className="text-foreground font-bold">{summaryData.age !== null ? `${summaryData.age} anni` : ''}</span></p>
+                            <p><b>Residenza:</b> <span className="text-foreground font-bold">{summaryData.comune}</span></p>
+                             {!summaryData.isMinor && <p><b>Telefono:</b> <span className="text-foreground font-bold">{summaryData.phone}</span></p>}
                         </div>
                     </div>
 
-                    {isMinor && (
+                    {summaryData.isMinor && (
                          <>
                             <Separator />
                             <div>
                                 <h3 className="font-semibold text-lg mb-2 text-primary">Dati Genitore/Tutore</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                                    <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{parentName}</span></p>
-                                    <p><b>Telefono:</b> <span className="text-foreground font-bold">{parentPhone}</span></p>
+                                    <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{summaryData.parentName}</span></p>
+                                    <p><b>Telefono:</b> <span className="text-foreground font-bold">{summaryData.parentPhone}</span></p>
                                 </div>
                             </div>
                         </>
