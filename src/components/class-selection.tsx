@@ -122,32 +122,41 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
     useEffect(() => {
         setCurrentStep(initialStep);
-        if (initialStep === 2 && typeof window !== 'undefined') {
-             const storedBirthDate = localStorage.getItem('birthDate');
-             let age = null;
-             if (storedBirthDate) {
-                const [day, month, year] = storedBirthDate.split('/');
-                const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
-                const today = new Date();
-                age = today.getFullYear() - birthDateObj.getFullYear();
-                const m = today.getMonth() - birthDateObj.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
-                    age--;
-                }
-             }
+        if (typeof window !== 'undefined') {
+            const savedDatesFlag = localStorage.getItem('selectionLessonDatesSaved') === 'true';
+            if (savedDatesFlag) {
+                setDatesSaved(true);
+                setSavedSecondLessonDate(localStorage.getItem('savedSecondLessonDate'));
+                setSavedThirdLessonDate(localStorage.getItem('savedThirdLessonDate'));
+            }
 
-            setSummaryData({
-                firstLesson: localStorage.getItem('lessonDate') || '',
-                paymentMethod: localStorage.getItem('paymentMethod') || '',
-                amount: localStorage.getItem('paymentAmount') || '',
-                name: localStorage.getItem('userName') || '',
-                age: age,
-                comune: localStorage.getItem('comune') || '',
-                phone: localStorage.getItem('phone') || '',
-                isMinor: localStorage.getItem('isMinor') === 'true',
-                parentName: localStorage.getItem('parentName') || '',
-                parentPhone: localStorage.getItem('parentPhone') || ''
-            });
+            if (initialStep === 2) {
+                const storedBirthDate = localStorage.getItem('birthDate');
+                let age = null;
+                if (storedBirthDate) {
+                    const [day, month, year] = storedBirthDate.split('/');
+                    const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
+                    const today = new Date();
+                    age = today.getFullYear() - birthDateObj.getFullYear();
+                    const m = today.getMonth() - birthDateObj.getMonth();
+                    if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
+                        age--;
+                    }
+                }
+
+                setSummaryData({
+                    firstLesson: localStorage.getItem('lessonDate') || '',
+                    paymentMethod: localStorage.getItem('paymentMethod') || '',
+                    amount: localStorage.getItem('paymentAmount') || '',
+                    name: localStorage.getItem('userName') || '',
+                    age: age,
+                    comune: localStorage.getItem('comune') || '',
+                    phone: localStorage.getItem('phone') || '',
+                    isMinor: localStorage.getItem('isMinor') === 'true',
+                    parentName: localStorage.getItem('parentName') || '',
+                    parentPhone: localStorage.getItem('parentPhone') || ''
+                });
+            }
         }
     }, [initialStep]);
 
@@ -258,12 +267,48 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     };
     
     const handleNextStep = () => {
+        // Validation logic
+        if (!bonusAccepted) {
+            toast({ title: "Errore", description: "Devi accettare il Bonus di Benvenuto per procedere.", variant: "destructive" });
+            return;
+        }
+        const requiredFields = { martialArt, dojo, lessonDate, name, day, month, year, birthplace, codiceFiscale, address, civicNumber, cap, comune, provincia, paymentMethod };
+        for (const [fieldName, fieldValue] of Object.entries(requiredFields)) {
+            if (!fieldValue) {
+                toast({ title: "Campo Mancante", description: `Il campo ${fieldName} è obbligatorio.`, variant: "destructive" });
+                return;
+            }
+        }
+        if (isMinor) {
+            const requiredMinorFields = { parentName, parentCf, parentPhone, parentEmail };
+             for (const [fieldName, fieldValue] of Object.entries(requiredMinorFields)) {
+                if (!fieldValue) {
+                    toast({ title: "Campo Mancante", description: `Il campo genitore ${fieldName} è obbligatorio.`, variant: "destructive" });
+                    return;
+                }
+            }
+        } else {
+            const requiredAdultFields = { phone, emailConfirm };
+             for (const [fieldName, fieldValue] of Object.entries(requiredAdultFields)) {
+                if (!fieldValue) {
+                    toast({ title: "Campo Mancante", description: `Il campo ${fieldName} è obbligatorio.`, variant: "destructive" });
+                    return;
+                }
+            }
+        }
+        if (emailError) {
+             toast({ title: "Errore Email", description: "L'email di contatto deve corrispondere all'email di registrazione.", variant: "destructive" });
+            return;
+        }
+
         saveDataToLocalStorage();
         setCurrentStep(2);
+
+        // Update summary data for the next step
         if (typeof window !== 'undefined') {
-             const storedBirthDate = localStorage.getItem('birthDate');
-             let age = null;
-             if (storedBirthDate) {
+            const storedBirthDate = localStorage.getItem('birthDate');
+            let age = null;
+            if (storedBirthDate) {
                 const [day, month, year] = storedBirthDate.split('/');
                 const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
                 const today = new Date();
@@ -272,7 +317,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
                     age--;
                 }
-             }
+            }
             setSummaryData({
                 firstLesson: localStorage.getItem('lessonDate') || '',
                 paymentMethod: localStorage.getItem('paymentMethod') || '',
@@ -368,6 +413,12 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         const secondDate = formatDate(secondLessonDay, secondLessonMonth, secondLessonYear);
         const thirdDate = formatDate(thirdLessonDay, thirdLessonMonth, thirdLessonYear);
 
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('selectionLessonDatesSaved', 'true');
+            localStorage.setItem('savedSecondLessonDate', secondDate);
+            localStorage.setItem('savedThirdLessonDate', thirdDate);
+        }
+
         setSavedSecondLessonDate(secondDate);
         setSavedThirdLessonDate(thirdDate);
 
@@ -401,18 +452,17 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
     // Sequential validation state
     const isCourseSectionComplete = martialArt && dojo && lessonDate;
-    const isPersonalInfoComplete = isCourseSectionComplete && name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia;
+    const isPersonalInfoComplete = name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia;
     const isContactInfoComplete = useMemo(() => {
-        if (!isPersonalInfoComplete) return false;
         if (isMinor) {
             return parentName && parentCf && parentPhone && parentEmail && !emailError;
         }
         return phone && emailConfirm && !emailError;
-    }, [isPersonalInfoComplete, isMinor, parentName, parentCf, parentPhone, parentEmail, phone, emailConfirm, emailError]);
+    }, [isMinor, parentName, parentCf, parentPhone, parentEmail, phone, emailConfirm, emailError]);
     
-    const isPaymentSectionComplete = isContactInfoComplete && paymentMethod;
+    const isPaymentSectionComplete = paymentMethod;
 
-    const isFormComplete = isPaymentSectionComplete && bonusAccepted;
+    const isFormComplete = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted;
 
 
   return (
@@ -439,7 +489,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         </div>
                         <div className="flex flex-col space-y-1.5 pt-4">
                             <Label htmlFor="dojo">Palestra di:</Label>
-                            <Select onValueChange={setDojo} value={dojo}>
+                            <Select onValueChange={setDojo} value={dojo} disabled={!martialArt}>
                                 <SelectTrigger id="dojo">
                                 <SelectValue placeholder="Seleziona una palestra" />
                                 </SelectTrigger>
@@ -453,7 +503,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         {dojo && (
                             <div className="flex flex-col space-y-1.5 pt-4">
                                 <Label htmlFor="lesson-date">1a Lezione</Label>
-                                <Select onValueChange={setLessonDate} value={lessonDate}>
+                                <Select onValueChange={setLessonDate} value={lessonDate} disabled={!dojo}>
                                     <SelectTrigger id="lesson-date">
                                     <SelectValue placeholder="Seleziona una data" />
                                     </SelectTrigger>
@@ -574,7 +624,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         </div>
                     </fieldset>
 
-                    <fieldset disabled={!isPersonalInfoComplete} className="space-y-4 disabled:opacity-50">
+                    <fieldset disabled={!isCourseSectionComplete || !isPersonalInfoComplete} className="space-y-4 disabled:opacity-50">
                         {!isMinor ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -626,21 +676,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         )}
                     </fieldset>
                     
-                    <fieldset disabled={!isContactInfoComplete} className="space-y-4 disabled:opacity-50">
-                        <div className="space-y-2">
-                            <Separator />
-                            <div className="flex items-center space-x-2 pt-4">
-                                <Checkbox 
-                                    id="bonus-benvenuto" 
-                                    onCheckedChange={(checked) => setBonusAccepted(!!checked)}
-                                    checked={bonusAccepted}
-                                />
-                                <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
-                                    <Gift className="h-5 w-5 text-primary" />
-                                    Assicurati il tuo Bonus di Benvenuto!
-                                </Label>
-                            </div>
-                        </div>
+                    <fieldset disabled={!isCourseSectionComplete || !isPersonalInfoComplete || !isContactInfoComplete} className="space-y-4 disabled:opacity-50">
                          <div className="pt-4 space-y-2">
                             <CardTitle className="pt-4 text-slate-400">P30</CardTitle>
                             <CardDescription className="font-bold text-black">
@@ -667,6 +703,21 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     disabled
                                 />
                             </div>
+                        </div>
+                    </fieldset>
+
+                    <fieldset disabled={!isPaymentSectionComplete || !isCourseSectionComplete || !isPersonalInfoComplete || !isContactInfoComplete} className="space-y-4 disabled:opacity-50">
+                        <Separator />
+                        <div className="flex items-center space-x-2 pt-4">
+                            <Checkbox 
+                                id="bonus-benvenuto" 
+                                onCheckedChange={(checked) => setBonusAccepted(!!checked)}
+                                checked={bonusAccepted}
+                            />
+                            <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
+                                <Gift className="h-5 w-5 text-primary" />
+                                Assicurati il tuo Bonus di Benvenuto!
+                            </Label>
                         </div>
                     </fieldset>
                 </CardContent>
@@ -798,3 +849,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
+
+
+    
