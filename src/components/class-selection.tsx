@@ -441,7 +441,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         {currentStep === 1 && (
              <Card>
                 <CardHeader>
-                    <CardTitle className="bg-primary text-primary-foreground p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Passaporto Selezioni</CardTitle>
+                    <CardTitle className="bg-primary text-primary-foreground p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Lezioni Selezione</CardTitle>
                     <CardDescription>
                        Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
                     </CardDescription>
@@ -821,7 +821,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleExit}>
+                    <Button onClick={() => router.push('/dashboard')}>
                         Esci
                     </Button>
                 </CardFooter>
