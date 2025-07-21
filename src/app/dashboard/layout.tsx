@@ -79,8 +79,6 @@ export default function DashboardLayout({
   const [associated, setAssociated] = React.useState(false);
   const [associationRequested, setAssociationRequested] = React.useState(false);
   const [lessonSelected, setLessonSelected] = React.useState(false);
-  const [isSelectionPassportComplete, setIsSelectionPassportComplete] = React.useState(false);
-
 
   React.useEffect(() => {
     setIsClient(true);
@@ -93,10 +91,8 @@ export default function DashboardLayout({
       const storedLessonSelected = localStorage.getItem('lessonSelected');
       const storedAssociationRequested = localStorage.getItem('associationRequested');
       const isRegulationsAccepted = storedRegulations === 'true';
-      const isSelectionPassportCompleted = localStorage.getItem('isSelectionPassportComplete') === 'true';
       
       setRegulationsAccepted(isRegulationsAccepted);
-      setIsSelectionPassportComplete(isSelectionPassportCompleted);
       
       if (storedAssociation === 'true') {
         setAssociated(true);
@@ -128,7 +124,6 @@ export default function DashboardLayout({
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "/dashboard/regulations", icon: FileText, label: "Prima di cominciare", hideWhenRegulationsAccepted: true },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Passaporto Selezioni" },
-    { href: "/dashboard/payment-gateway", icon: CreditCard, label: "Effettua il Pagamento", showOnlyWhenSelectionComplete: true },
     { href: "/dashboard/associates", icon: Users, label: "Associati", hideWhenAssociationRequested: true },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico" },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
@@ -149,9 +144,6 @@ export default function DashboardLayout({
     }
     if (item.hideWhenAssociationRequested && associationRequested) {
         return false;
-    }
-    if (item.showOnlyWhenSelectionComplete) {
-        return isSelectionPassportComplete;
     }
     if (!regulationsAccepted && !['/dashboard/regulations', '/dashboard/instructions', '/dashboard'].includes(item.href)) {
         return false;

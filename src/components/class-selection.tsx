@@ -408,7 +408,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             localStorage.setItem('isSelectionPassportComplete', 'true');
             if(setLessonSelected) setLessonSelected(true);
         }
-        router.push('/dashboard/payment-gateway');
+        router.push('/dashboard');
     }
 
     // Sequential validation state
