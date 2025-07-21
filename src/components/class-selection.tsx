@@ -140,6 +140,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             const storedDojo = localStorage.getItem('selectedDojo') || '';
             const storedLessonDate = localStorage.getItem('lessonDate') || '';
             const storedPaymentMethod = localStorage.getItem('paymentMethod');
+            const storedAmount = localStorage.getItem('paymentAmount');
             
             setName(storedName);
             setCodiceFiscale(storedCodiceFiscale);
@@ -157,6 +158,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             setDojo(storedDojo);
             setLessonDate(storedLessonDate);
             if(storedPaymentMethod) setPaymentMethod(storedPaymentMethod);
+            if(storedAmount) setAmount(storedAmount);
 
             if (storedBirthDate) {
                 const parts = storedBirthDate.split('/');
@@ -180,7 +182,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 setDatesSaved(true);
             }
         }
-    }, []);
+    }, [initialStep]);
 
     useEffect(() => {
         if (day && month && year) {
@@ -341,7 +343,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         if (!secondLessonDay || !secondLessonMonth || !secondLessonYear || !thirdLessonDay || !thirdLessonMonth || !thirdLessonYear) {
             toast({
                 title: "Attenzione",
-                description: "Per favore, seleziona le date complete per entrambe le lezioni.",
+                description: "Per favore, seleziona le date complete for entrambe le lezioni.",
                 variant: "destructive"
             });
             return;
