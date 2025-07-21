@@ -612,8 +612,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                             </SelectContent>
                         </Select>
                         <div className="space-y-2">
-                            <Label htmlFor="amount">Importo</Label>
-                            <Input id="amount" value={amount ? `€ ${amount}` : 'L\\'importo verrà calcolato in base al metodo di pagamento'} disabled />
+                           <Label htmlFor="amount">Importo</Label>
+                           <Input id="amount" value={amount ? `€ ${amount}` : 'L\'importo verrà calcolato in base al metodo di pagamento'} disabled />
                         </div>
                     </div>
 
@@ -767,3 +767,5 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
+
+    
