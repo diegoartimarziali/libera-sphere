@@ -439,7 +439,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
   return (
     <>
         {currentStep === 1 && (
-             <Card>
+            <Card>
                 <CardHeader>
                     <CardTitle className="bg-primary text-primary-foreground p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Lezioni Selezione</CardTitle>
                     <CardDescription className="text-foreground">
@@ -698,7 +698,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         Avanti
                     </Button>
                 </CardFooter>
-             </Card>
+            </Card>
         )}
         
         {currentStep === 2 && (
