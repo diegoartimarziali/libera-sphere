@@ -71,6 +71,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const [comune, setComune] = useState("");
     const [phone, setPhone] = useState("");
     const [emailConfirm, setEmailConfirm] = useState("");
+    const [emailError, setEmailError] = useState(false);
 
     const [parentName, setParentName] = useState("");
     const [parentCf, setParentCf] = useState("");
@@ -78,7 +79,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const [parentEmail, setParentEmail] = useState("");
     
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
-    const [emailError, setEmailError] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
     const [bonusAccepted, setBonusAccepted] = useState(false);
@@ -223,47 +223,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         }
     }, [paymentMethod]);
     
-    useEffect(() => {
-        if (paymentMethod) {
-             if (paymentMethod === 'cash') {
-                setAmount(String(baseAmount + 2));
-            } else {
-                setAmount(String(baseAmount));
-            }
-        }
-    }, [currentStep, paymentMethod]);
-
-    const handleNextStep = () => {
-        saveDataToLocalStorage();
-        setCurrentStep(2);
-        if (typeof window !== 'undefined') {
-             const storedBirthDate = localStorage.getItem('birthDate');
-             let age = null;
-             if (storedBirthDate) {
-                const [day, month, year] = storedBirthDate.split('/');
-                const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
-                const today = new Date();
-                age = today.getFullYear() - birthDateObj.getFullYear();
-                const m = today.getMonth() - birthDateObj.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
-                    age--;
-                }
-             }
-            setSummaryData({
-                firstLesson: localStorage.getItem('lessonDate') || '',
-                paymentMethod: localStorage.getItem('paymentMethod') || '',
-                amount: localStorage.getItem('paymentAmount') || '',
-                name: localStorage.getItem('userName') || '',
-                age: age,
-                comune: localStorage.getItem('comune') || '',
-                phone: localStorage.getItem('phone') || '',
-                isMinor: localStorage.getItem('isMinor') === 'true',
-                parentName: localStorage.getItem('parentName') || '',
-                parentPhone: localStorage.getItem('parentPhone') || ''
-            });
-        }
-    };
-    
     const saveDataToLocalStorage = () => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('martialArt', martialArt);
@@ -295,6 +254,37 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             
             if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
             if (amount) localStorage.setItem('paymentAmount', amount);
+        }
+    };
+    
+    const handleNextStep = () => {
+        saveDataToLocalStorage();
+        setCurrentStep(2);
+        if (typeof window !== 'undefined') {
+             const storedBirthDate = localStorage.getItem('birthDate');
+             let age = null;
+             if (storedBirthDate) {
+                const [day, month, year] = storedBirthDate.split('/');
+                const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
+                const today = new Date();
+                age = today.getFullYear() - birthDateObj.getFullYear();
+                const m = today.getMonth() - birthDateObj.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
+                    age--;
+                }
+             }
+            setSummaryData({
+                firstLesson: localStorage.getItem('lessonDate') || '',
+                paymentMethod: localStorage.getItem('paymentMethod') || '',
+                amount: localStorage.getItem('paymentAmount') || '',
+                name: localStorage.getItem('userName') || '',
+                age: age,
+                comune: localStorage.getItem('comune') || '',
+                phone: localStorage.getItem('phone') || '',
+                isMinor: localStorage.getItem('isMinor') === 'true',
+                parentName: localStorage.getItem('parentName') || '',
+                parentPhone: localStorage.getItem('parentPhone') || ''
+            });
         }
     };
 
@@ -368,17 +358,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         return age < 18;
     }, [birthDate]);
 
-    const age = useMemo(() => {
-        if (!birthDate) return null;
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        return age;
-    }, [birthDate]);
-
     const handleSaveDates = () => {
         const formatDate = (day: string | undefined, month: string | undefined, year: string | undefined): string => {
             if (!day || !month || !year) return '';
@@ -441,7 +420,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         {currentStep === 1 && (
              <Card>
                 <CardHeader>
-                    <CardTitle className="bg-primary text-primary-foreground p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Lezioni di Selezione</CardTitle>
+                    <CardTitle className="bg-primary text-primary-foreground p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Passaporto Selezioni</CardTitle>
                     <CardDescription>
                        Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
                     </CardDescription>
@@ -662,7 +641,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 </Label>
                             </div>
                         </div>
-                        <div className="pt-4 space-y-2">
+                         <div className="pt-4 space-y-2">
                             <CardTitle className="pt-4 text-slate-400">P30</CardTitle>
                             <CardDescription className="font-bold text-black">
                                 Completa la tua iscrizione scegliendo un metodo di pagamento.
@@ -725,7 +704,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 <div className="space-y-2 flex-grow">
                                     <div className="flex items-center gap-4">
                                         <Label className="min-w-max"><b>2a Lezione:</b></Label>
-                                        {savedSecondLessonDate ? (
+                                        {datesSaved && savedSecondLessonDate ? (
                                             <span className="text-foreground font-bold">{savedSecondLessonDate}</span>
                                         ) : (
                                             <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
@@ -752,7 +731,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     </div>
                                     <div className="flex items-center gap-4 mt-2">
                                         <Label className="min-w-max"><b>3a Lezione:</b></Label>
-                                         {savedThirdLessonDate ? (
+                                         {datesSaved && savedThirdLessonDate ? (
                                             <span className="text-foreground font-bold">{savedThirdLessonDate}</span>
                                         ) : (
                                             <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
