@@ -91,19 +91,6 @@ export function AssociateForm() {
     }, [day, month, year]);
 
     const handleSaveAndApply = () => {
-        const isFormComplete = isMinor ? 
-            (name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia && parentName && parentCf && parentPhone && parentEmail && paymentMethod && !emailError) :
-            (name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia && phone && emailConfirm && paymentMethod && !emailError);
-        
-        if (!isFormComplete) {
-            toast({
-                title: "Modulo Incompleto",
-                description: "Per favore, compila tutti i campi richiesti.",
-                variant: "destructive"
-            });
-            return;
-        }
-        
         if (typeof window !== 'undefined') {
             localStorage.setItem('userName', name);
             localStorage.setItem('codiceFiscale', codiceFiscale);
@@ -217,6 +204,17 @@ export function AssociateForm() {
         return age < 18;
     }, [birthDate]);
 
+    // Sequential validation states
+    const isNameComplete = name.trim() !== '';
+    const isBirthInfoComplete = isNameComplete && birthplace.trim() !== '' && !!birthDate;
+    const isCfComplete = isBirthInfoComplete && codiceFiscale.trim().length === 16;
+    const isAddressComplete = isCfComplete && address.trim() !== '' && civicNumber.trim() !== '';
+    const isLocationComplete = isAddressComplete && cap.trim() !== '' && comune.trim() !== '' && provincia.trim() !== '';
+    const isStudentInfoComplete = isLocationComplete && (isMinor || (phone.trim() !== '' && emailConfirm.trim() !== '' && !emailError));
+
+    const isParentInfoComplete = isMinor && parentName.trim() !== '' && parentCf.trim().length === 16 && parentPhone.trim() !== '' && parentEmail.trim() !== '' && !emailError;
+    const isPaymentComplete = (isStudentInfoComplete && !isMinor && !!paymentMethod) || (isStudentInfoComplete && isParentInfoComplete && !!paymentMethod);
+
   return (
     <Card>
         <CardHeader>
@@ -245,24 +243,25 @@ export function AssociateForm() {
                             required 
                             value={birthplace}
                             onChange={handleBirthplaceChange}
+                            disabled={!isNameComplete}
                         />
                     </div>
                     <div className="space-y-2">
                         <Label>Data di nascita:</Label>
                         <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
-                            <Select onValueChange={setDay} value={day}>
+                            <Select onValueChange={setDay} value={day} disabled={!isNameComplete}>
                                 <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
                                 <SelectContent>
                                     {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                                 </SelectContent>
                             </Select>
-                            <Select onValueChange={setMonth} value={month}>
+                            <Select onValueChange={setMonth} value={month} disabled={!isNameComplete}>
                                 <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
                                 <SelectContent>
                                     {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                                 </SelectContent>
                             </Select>
-                            <Select onValueChange={setYear} value={year}>
+                            <Select onValueChange={setYear} value={year} disabled={!isNameComplete}>
                                 <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
                                 <SelectContent>
                                     {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -281,6 +280,7 @@ export function AssociateForm() {
                         required
                         value={codiceFiscale}
                         onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+                        disabled={!isBirthInfoComplete}
                      />
                 </div>
             </div>
@@ -293,17 +293,18 @@ export function AssociateForm() {
                         required 
                         value={address}
                         onChange={handleAddressChange}
+                        disabled={!isCfComplete}
                     />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="civic-number">N° civico:</Label>
-                    <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
+                    <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} disabled={!isCfComplete}/>
                 </div>
             </div>
              <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="cap">C.A.P.:</Label>
-                    <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
+                    <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} disabled={!isAddressComplete}/>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="comune">Comune:</Label>
@@ -313,6 +314,7 @@ export function AssociateForm() {
                         required 
                         value={comune}
                         onChange={handleComuneChange}
+                        disabled={!isAddressComplete}
                     />
                 </div>
                 <div className="space-y-2">
@@ -323,7 +325,8 @@ export function AssociateForm() {
                         required 
                         value={provincia}
                          onChange={(e) => setProvincia(e.target.value.toUpperCase())}
-                        />
+                        disabled={!isAddressComplete}
+                    />
                 </div>
             </div>
 
@@ -331,17 +334,17 @@ export function AssociateForm() {
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="phone">Numero di telefono:</Label>
-                        <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                        <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!isLocationComplete} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange} />
+                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange} disabled={!isLocationComplete}/>
                         {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                     </div>
                 </div>
             )}
 
-            {isMinor && (
+            {isMinor && isLocationComplete && (
                  <div className="space-y-4 pt-4 mt-4 border-t">
                     <h3 className="text-lg font-semibold">Dati Genitore o tutore</h3>
                      <div className="space-y-2">
@@ -356,12 +359,12 @@ export function AssociateForm() {
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
-                        <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} />
+                        <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} disabled={parentName.trim() === ''}/>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                            <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+                            <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} disabled={parentCf.trim().length !== 16} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
@@ -372,6 +375,7 @@ export function AssociateForm() {
                                 required={isMinor}
                                 value={parentEmail}
                                 onChange={handleParentEmailChange}
+                                disabled={parentPhone.trim() === ''}
                                  />
                             {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                         </div>
@@ -384,7 +388,7 @@ export function AssociateForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                 <div className="space-y-2">
                     <Label htmlFor="payment-method">Metodo di Pagamento</Label>
-                    <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+                    <Select onValueChange={setPaymentMethod} value={paymentMethod} disabled={!isStudentInfoComplete && (!isMinor || !isParentInfoComplete)}>
                         <SelectTrigger id="payment-method">
                             <SelectValue placeholder="Seleziona un metodo di pagamento" /></SelectTrigger>
                         <SelectContent>
@@ -404,7 +408,7 @@ export function AssociateForm() {
 
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button onClick={handleSaveAndApply} className="bg-blue-600 hover:bg-blue-700">Procedi</Button>
+            <Button onClick={handleSaveAndApply} disabled={!isPaymentComplete} className="bg-blue-600 hover:bg-blue-700">Procedi</Button>
         </CardFooter>
     </Card>
   )
