@@ -130,6 +130,7 @@ export function AssociateForm() {
             const associationDate = format(new Date(), "dd/MM/yyyy");
             localStorage.setItem('associationRequested', 'true');
             localStorage.setItem('associationRequestDate', associationDate);
+            localStorage.setItem('lessonSelected', 'true'); // Hide menu item
         }
         
         toast({

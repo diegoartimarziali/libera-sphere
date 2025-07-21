@@ -95,6 +95,7 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
         if (typeof window !== 'undefined') {
             localStorage.setItem('associationRequested', 'true');
             localStorage.setItem('associationRequestDate', associationDate);
+            localStorage.setItem('lessonSelected', 'true'); // Hide menu item
         }
         
         if (setAssociationRequested) {
