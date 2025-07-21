@@ -443,7 +443,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             <Card>
                 <CardHeader>
                     <CardTitle className="bg-primary text-primary-foreground p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Lezioni Selezione</CardTitle>
-                    <CardDescription className="text-foreground">
+                    <CardDescription className="text-foreground font-bold">
                        Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
                     </CardDescription>
                 </CardHeader>
@@ -491,7 +491,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         )}
                     </div>
                     
-                    <div className="space-y-4">
+                    <fieldset className="space-y-4" disabled={!isCourseSectionComplete}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Nome e Cognome</Label>
@@ -501,7 +501,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     required 
                                     value={name}
                                     onChange={handleNameChange}
-                                    disabled={!isCourseSectionComplete}
                                 />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
@@ -514,25 +513,24 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                         required 
                                         value={birthplace}
                                         onChange={handleBirthplaceChange}
-                                        disabled={!isCourseSectionComplete}
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Data di nascita:</Label>
                                     <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
-                                        <Select onValueChange={setDay} value={day} disabled={!isCourseSectionComplete}>
+                                        <Select onValueChange={setDay} value={day}>
                                             <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
                                             <SelectContent>
                                                 {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
-                                        <Select onValueChange={setMonth} value={month} disabled={!isCourseSectionComplete}>
+                                        <Select onValueChange={setMonth} value={month}>
                                             <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
                                             <SelectContent>
                                                 {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
-                                        <Select onValueChange={setYear} value={year} disabled={!isCourseSectionComplete}>
+                                        <Select onValueChange={setYear} value={year}>
                                             <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
                                             <SelectContent>
                                                 {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -551,7 +549,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     required
                                     value={codiceFiscale}
                                     onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
-                                    disabled={!isCourseSectionComplete}
                                 />
                             </div>
                         </div>
@@ -564,18 +561,17 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     required 
                                     value={address}
                                     onChange={handleAddressChange}
-                                    disabled={!isCourseSectionComplete}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="civic-number">N° civico:</Label>
-                                <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} disabled={!isCourseSectionComplete} />
+                                <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="cap">C.A.P.:</Label>
-                                <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} disabled={!isCourseSectionComplete} />
+                                <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="comune">Comune:</Label>
@@ -585,7 +581,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     required 
                                     value={comune}
                                     onChange={handleComuneChange}
-                                    disabled={!isCourseSectionComplete}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -596,23 +591,21 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     required 
                                     value={provincia}
                                     onChange={(e) => setProvincia(e.target.value.toUpperCase())}
-                                    disabled={!isCourseSectionComplete}
                                 />
                             </div>
                         </div>
-                    </div>
-
+                    </fieldset>
                     
-                    <div className="space-y-4">
+                    <fieldset className="space-y-4" disabled={!isPersonalInfoComplete}>
                         {!isMinor ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="phone">Numero di telefono:</Label>
-                                    <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!isPersonalInfoComplete}/>
+                                    <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)}/>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                                    <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange} disabled={!isPersonalInfoComplete}/>
+                                    <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange}/>
                                     {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                                 </div>
                             </div>
@@ -627,17 +620,16 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                         required={isMinor} 
                                         value={parentName}
                                         onChange={handleParentNameChange}
-                                        disabled={!isPersonalInfoComplete}
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
-                                    <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} disabled={!isPersonalInfoComplete}/>
+                                    <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                                        <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} disabled={!isPersonalInfoComplete} />
+                                        <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
@@ -648,17 +640,16 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                             required={isMinor}
                                             value={parentEmail}
                                             onChange={handleParentEmailChange}
-                                            disabled={!isPersonalInfoComplete}
                                         />
                                         {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                                     </div>
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </fieldset>
                     
                     
-                    <div className="space-y-4">
+                    <fieldset className="space-y-4" disabled={!isContactInfoComplete}>
                          <div className="pt-4 space-y-2">
                             <CardTitle className="pt-4 text-slate-400">
                                 P30
@@ -667,7 +658,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 Completa la tua iscrizione scegliendo un metodo di pagamento.
                             </CardDescription>
                             
-                            <Select onValueChange={setPaymentMethod} value={paymentMethod} disabled={!isContactInfoComplete}>
+                            <Select onValueChange={setPaymentMethod} value={paymentMethod}>
                                 <SelectTrigger id="payment-method">
                                     <SelectValue placeholder="Seleziona un metodo di pagamento" />
                                 </SelectTrigger>
@@ -688,24 +679,23 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 />
                             </div>
                         </div>
-                    </div>
+                    </fieldset>
 
                     
-                    <div className="space-y-4">
+                    <fieldset className="space-y-4" disabled={!isPaymentSectionComplete}>
                         <Separator />
                         <div className="flex items-center space-x-2 pt-4">
                             <Checkbox 
                                 id="bonus-benvenuto" 
                                 onCheckedChange={(checked) => setBonusAccepted(!!checked)}
                                 checked={bonusAccepted}
-                                disabled={!isPaymentSectionComplete}
                             />
                             <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
                                 <Gift className="h-5 w-5 text-primary" />
                                 Assicurati il tuo Bonus di Benvenuto!
                             </Label>
                         </div>
-                    </div>
+                    </fieldset>
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleNextStep} disabled={!isFormComplete}>
