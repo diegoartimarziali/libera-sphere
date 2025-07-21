@@ -26,8 +26,6 @@ import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { Separator } from "./ui/separator"
-import { db } from "@/lib/firebase"
-import { addDoc, collection, serverTimestamp } from "firebase/firestore"
 import { Gift } from "lucide-react"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
@@ -83,7 +81,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const [emailError, setEmailError] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [bonusAccepted, setBonusAccepted] = useState(false);
 
     const [secondLessonDay, setSecondLessonDay] = useState<string | undefined>(undefined);
@@ -100,8 +97,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const baseAmount = 30;
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
-    
-    const capitalize = (s: string | null) => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
     
     const translatePaymentMethodLocal = (method: string | null) => {
         if (!method) return 'Non specificato';
@@ -170,17 +165,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             }
 
             setRegistrationEmail(localStorage.getItem('registrationEmail'));
-
-            const storedSecondDate = localStorage.getItem('secondLessonDate');
-            const storedThirdDate = localStorage.getItem('thirdLessonDate');
-            if (storedSecondDate) {
-                setSavedSecondLessonDate(storedSecondDate);
-                setDatesSaved(true);
-            }
-            if (storedThirdDate) {
-                setSavedThirdLessonDate(storedThirdDate);
-                setDatesSaved(true);
-            }
         }
     }, [initialStep]);
 
@@ -340,16 +324,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     }, [birthDate]);
 
     const handleSaveDates = () => {
-        if (!secondLessonDay || !secondLessonMonth || !secondLessonYear || !thirdLessonDay || !thirdLessonMonth || !thirdLessonYear) {
-            toast({
-                title: "Attenzione",
-                description: "Per favore, seleziona le date complete for entrambe le lezioni.",
-                variant: "destructive"
-            });
-            return;
-        }
-
-        const formatDate = (day: string, month: string, year: string): string => {
+        const formatDate = (day: string | undefined, month: string | undefined, year: string | undefined): string => {
+            if (!day || !month || !year) return '';
             const monthLabel = months.find(m => m.value === month)?.label || '';
             return `${day} ${monthLabel} ${year}`;
         }
@@ -357,9 +333,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         const secondDate = formatDate(secondLessonDay, secondLessonMonth, secondLessonYear);
         const thirdDate = formatDate(thirdLessonDay, thirdLessonMonth, thirdLessonYear);
 
-        localStorage.setItem('secondLessonDate', secondDate);
         setSavedSecondLessonDate(secondDate);
-        localStorage.setItem('thirdLessonDate', thirdDate);
         setSavedThirdLessonDate(thirdDate);
 
         setDatesSaved(true);
@@ -788,3 +762,5 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
+
+    
