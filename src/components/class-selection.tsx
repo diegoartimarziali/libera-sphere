@@ -422,16 +422,17 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     }
 
     // Sequential validation state
-    const isCourseSectionComplete = martialArt && dojo && lessonDate;
-    const isPersonalInfoComplete = name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia;
+    const isCourseSectionComplete = !!(martialArt && dojo && lessonDate);
+    const isPersonalInfoComplete = !!(name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia);
     const isContactInfoComplete = useMemo(() => {
+        if (!isPersonalInfoComplete) return false;
         if (isMinor) {
-            return parentName && parentCf && parentPhone && parentEmail && !emailError;
+            return !!(parentName && parentCf && parentPhone && parentEmail && !emailError);
         }
-        return phone && emailConfirm && !emailError;
-    }, [isMinor, parentName, parentCf, parentPhone, parentEmail, phone, emailConfirm, emailError]);
+        return !!(phone && emailConfirm && !emailError);
+    }, [isMinor, isPersonalInfoComplete, parentName, parentCf, parentPhone, parentEmail, phone, emailConfirm, emailError]);
     
-    const isPaymentSectionComplete = !!paymentMethod;
+    const isPaymentSectionComplete = !!(paymentMethod);
 
     const isFormComplete = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted;
 
@@ -489,8 +490,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                             </div>
                         )}
                     </div>
-                    
-                    <CardTitle className="pt-4 text-slate-400">P30</CardTitle>
                     
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -661,6 +660,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     
                     <div className="space-y-4">
                          <div className="pt-4 space-y-2">
+                            <CardTitle className="pt-4 text-slate-400">
+                                P30
+                            </CardTitle>
                             <CardDescription className="font-bold text-black">
                                 Completa la tua iscrizione scegliendo un metodo di pagamento.
                             </CardDescription>
