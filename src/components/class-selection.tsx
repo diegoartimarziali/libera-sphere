@@ -717,7 +717,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 </Button>
                             )}
                             {summaryData.paymentMethod === 'online' && onlinePaymentCompleted && (
-                                <p className="text-green-600 font-bold">Pagamento effettuato il: {onlinePaymentDate}</p>
+                                <p className="text-foreground font-normal">{onlinePaymentDate}</p>
                             )}
                        </div>
                     </div>
@@ -789,7 +789,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                         )}
                                     </div>
                                 </div>
-                                {(!datesSaved) && <Button onClick={handleSaveDates} disabled={!canSaveDates} className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>}
+                                {(!datesSaved && !datesSaved) && <Button onClick={handleSaveDates} disabled={!canSaveDates} className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>}
                             </div>
                         </div>
                     </div>
