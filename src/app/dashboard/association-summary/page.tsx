@@ -67,7 +67,7 @@ export default function AssociationSummaryPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div>
-                        <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Pagamento</h3>
+                        <h3 className="font-semibold text-lg mb-2 text-blue-600">Dettagli Pagamento</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
                            <p><b>Metodo Pagamento:</b> <span className="text-foreground">{translatePaymentMethod(summaryData.paymentMethod)}</span></p>
                            <p><b>Importo:</b> <span className="text-foreground">€ {summaryData.paymentAmount}</span></p>
@@ -77,7 +77,7 @@ export default function AssociationSummaryPage() {
                     <Separator />
                     
                     <div>
-                        <h3 className="font-semibold text-lg mb-2 text-primary">Dati Allievo</h3>
+                        <h3 className="font-semibold text-lg mb-2 text-blue-600">Dati Allievo</h3>
                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
                             <p><b>Nome e Cognome:</b> <span className="text-foreground">{summaryData.userName}</span></p>
                             <p><b>Codice Fiscale:</b> <span className="text-foreground">{summaryData.codiceFiscale}</span></p>
@@ -91,7 +91,7 @@ export default function AssociationSummaryPage() {
                          <>
                             <Separator />
                             <div>
-                                <h3 className="font-semibold text-lg mb-2 text-primary">Dati Genitore/Tutore</h3>
+                                <h3 className="font-semibold text-lg mb-2 text-blue-600">Dati Genitore/Tutore</h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
                                     <p><b>Nome e Cognome:</b> <span className="text-foreground">{summaryData.parentName}</span></p>
                                     <p><b>Codice Fiscale:</b> <span className="text-foreground">{summaryData.parentCf}</span></p>
@@ -108,5 +108,3 @@ export default function AssociationSummaryPage() {
         </div>
     );
 }
-
-    
