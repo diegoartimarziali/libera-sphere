@@ -240,16 +240,6 @@ export function MemberSummaryCard() {
                     <Badge variant="destructive">Non definito</Badge>
                   )}
               </div>
-              <div className="text-muted-foreground text-lg flex items-center gap-2">
-                    <span>Data prima lezione del Passaporto Selezioni: </span>
-                    {lessonDate && selectedDojo ? (
-                        <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">
-                            {`${lessonDate} presso il Dojo di ${capitalizeFirstLetter(selectedDojo)}`}
-                        </Badge>
-                     ) : (
-                        <Badge variant="destructive">Da definire</Badge>
-                     )}
-               </div>
                
               <div className="flex items-center pt-2 gap-2 text-lg">
                 <span className="text-muted-foreground">
