@@ -704,7 +704,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             <Card>
                 <CardHeader>
                      <CardTitle className="bg-green-600 text-white p-4 -mt-6 -mx-6 rounded-t-lg mb-4">Passaporto Selezioni</CardTitle>
-                     <CardDescription className="text-foreground">Troverai questa scheda cliccando sulla voce di menu Lezioni di Selezione. Presentala al Maestro alla prima lezione.</CardDescription>
+                     <CardDescription className="text-foreground font-bold">Ti verrà richiesto alla prima lezione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground items-center">
@@ -736,7 +736,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 <div className="space-y-2 flex-grow">
                                     <div className="flex items-center gap-4">
                                         <Label className="min-w-max"><b>2a Lezione:</b></Label>
-                                        {datesSaved && savedSecondLessonDate ? (
+                                        {datesSaved ? (
                                             <span className="text-foreground font-bold">{savedSecondLessonDate}</span>
                                         ) : (
                                             <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
@@ -763,7 +763,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     </div>
                                     <div className="flex items-center gap-4 mt-2">
                                         <Label className="min-w-max"><b>3a Lezione:</b></Label>
-                                         {datesSaved && savedThirdLessonDate ? (
+                                         {datesSaved ? (
                                             <span className="text-foreground font-bold">{savedThirdLessonDate}</span>
                                         ) : (
                                             <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
