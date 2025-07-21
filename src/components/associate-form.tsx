@@ -24,6 +24,7 @@ import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
+import { Separator } from "./ui/separator"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -32,6 +33,11 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(currentYear - i));
+
+const paymentOptions = [
+    { id: "online", label: "Carta di Credito on line (0 costi)" },
+    { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
+]
 
 export function AssociateForm() {
     const { toast } = useToast()
@@ -60,6 +66,10 @@ export function AssociateForm() {
     
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
     const [emailError, setEmailError] = useState(false);
+
+    const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
+    const amount = "120"; // Fisso come da richiesta
+
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -125,6 +135,9 @@ export function AssociateForm() {
                 localStorage.setItem('phone', phone);
             }
             
+            if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
+            localStorage.setItem('paymentAmount', amount);
+
             localStorage.setItem('hasSubmittedData', 'true');
             
             const associationDate = format(new Date(), "dd/MM/yyyy");
@@ -366,9 +379,33 @@ export function AssociateForm() {
                     </div>
                 </div>
             )}
+
+            <Separator />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                 <div className="space-y-2">
+                    <Label htmlFor="payment-method">Metodo di Pagamento</Label>
+                    <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+                        <SelectTrigger id="payment-method">
+                            <SelectValue placeholder="Seleziona un metodo di pagamento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {paymentOptions.map(option => (
+                                <SelectItem key={option.id} value={option.id}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="amount">Importo</Label>
+                    <Input id="amount" value={`€ ${amount}`} disabled />
+                 </div>
+            </div>
+
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button onClick={handleSaveAndApply}>Fai Domanda di Associazione</Button>
+            <Button onClick={handleSaveAndApply} disabled={!paymentMethod}>Fai Domanda di Associazione</Button>
         </CardFooter>
     </Card>
   )
