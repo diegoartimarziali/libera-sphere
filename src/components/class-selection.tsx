@@ -704,7 +704,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             <Card>
                 <CardHeader>
                      <CardTitle className="bg-green-600 text-white p-4 -mt-6 -mx-6 rounded-t-lg mb-4">Passaporto Selezioni</CardTitle>
-                     <CardDescription className="text-foreground font-bold">Ti verrà richiesto alla prima lezione.</CardDescription>
+                     <CardDescription className="text-foreground font-bold">Questa scheda ti verrà richiesta alla prima lezione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground items-center">
