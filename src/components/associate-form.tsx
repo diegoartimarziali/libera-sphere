@@ -65,8 +65,7 @@ export function AssociateForm() {
     const [parentEmail, setParentEmail] = useState("");
     
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
-    const [emailError, setEmailError] = useState(false);
-
+    
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const amount = "120"; // Fisso come da richiesta
 
@@ -91,10 +90,24 @@ export function AssociateForm() {
     }, [day, month, year]);
 
     const handleSaveAndApply = () => {
+        const isFormComplete = isMinor ? 
+            (name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia && parentName && parentCf && parentPhone && parentEmail && paymentMethod) :
+            (name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia && phone && emailConfirm && paymentMethod);
+        
         if (!isFormComplete) {
             toast({
                 title: "Modulo Incompleto",
                 description: "Per favore, compila tutti i campi richiesti.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        const emailToValidate = isMinor ? parentEmail : emailConfirm;
+        if (registrationEmail && emailToValidate.toLowerCase() !== registrationEmail.toLowerCase()) {
+             toast({
+                title: "Email non corrispondente",
+                description: "L'email di contatto deve essere uguale a quella di registrazione.",
                 variant: "destructive"
             });
             return;
@@ -181,26 +194,6 @@ export function AssociateForm() {
             .join(' ');
         setParentName(capitalized);
     };
-
-    const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newEmail = e.target.value.toLowerCase();
-        setEmailConfirm(newEmail);
-        if (registrationEmail && newEmail && newEmail !== registrationEmail.toLowerCase()) {
-            setEmailError(true);
-        } else {
-            setEmailError(false);
-        }
-    };
-    
-    const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newEmail = e.target.value.toLowerCase();
-        setParentEmail(newEmail);
-        if (registrationEmail && newEmail && newEmail !== registrationEmail.toLowerCase()) {
-            setEmailError(true);
-        } else {
-            setEmailError(false);
-        }
-    };
     
     const isMinor = useMemo(() => {
         if (!birthDate) return false;
@@ -213,24 +206,6 @@ export function AssociateForm() {
         return age < 18;
     }, [birthDate]);
 
-    // --- Sequential Validation States ---
-    const isStudentInfoComplete = useMemo(() => {
-        return name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia;
-    }, [name, birthDate, birthplace, codiceFiscale, address, civicNumber, cap, comune, provincia]);
-
-    const isContactInfoComplete = useMemo(() => {
-        if (!isStudentInfoComplete) return false;
-        if (isMinor) {
-            return parentName && parentCf && parentPhone && parentEmail && !emailError;
-        }
-        return phone && emailConfirm && !emailError;
-    }, [isStudentInfoComplete, isMinor, parentName, parentCf, parentPhone, parentEmail, phone, emailConfirm, emailError]);
-
-    const isFormComplete = useMemo(() => {
-        return isContactInfoComplete && paymentMethod;
-    }, [isContactInfoComplete, paymentMethod]);
-
-
   return (
     <Card>
         <CardHeader>
@@ -238,198 +213,186 @@ export function AssociateForm() {
             <CardDescription>Completa con le tue informazioni per la domanda di associazione.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-            {/* Student Info Section */}
-            <fieldset className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Nome e Cognome</Label>
-                        <Input 
-                            id="name" 
-                            placeholder="Mario Rossi" 
-                            required 
-                            value={name}
-                            onChange={handleNameChange}
-                        />
-                    </div>
-                        <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
-                            <div className="space-y-2">
-                            <Label htmlFor="birthplace">nato a:</Label>
-                            <Input 
-                                id="birthplace" 
-                                type="text" 
-                                placeholder="Roma" 
-                                required 
-                                value={birthplace}
-                                onChange={handleBirthplaceChange}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Data di nascita:</Label>
-                            <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
-                                <Select onValueChange={setDay} value={day}>
-                                    <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
-                                    <SelectContent>
-                                        {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <Select onValueChange={setMonth} value={month}>
-                                    <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
-                                    <SelectContent>
-                                        {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                <Select onValueChange={setYear} value={year}>
-                                    <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
-                                    <SelectContent>
-                                        {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                    <Label htmlFor="name">Nome e Cognome</Label>
+                    <Input 
+                        id="name" 
+                        placeholder="Mario Rossi" 
+                        required 
+                        value={name}
+                        onChange={handleNameChange}
+                    />
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
-                    <div className="w-full md:w-1/2">
+                 <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="birthplace">nato a:</Label>
                         <Input 
-                            id="codice-fiscale" 
-                            placeholder="RSSMRA80A01H501U" 
-                            required
-                            value={codiceFiscale}
-                            onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
-                        />
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="address">Residente in:</Label>
-                        <Input 
-                            id="address" 
-                            placeholder="Via, Piazza, etc." 
-                            required 
-                            value={address}
-                            onChange={handleAddressChange}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="civic-number">N° civico:</Label>
-                        <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="cap">C.A.P.:</Label>
-                        <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="comune">Comune:</Label>
-                        <Input 
-                            id="comune" 
+                            id="birthplace" 
+                            type="text" 
                             placeholder="Roma" 
                             required 
-                            value={comune}
-                            onChange={handleComuneChange}
+                            value={birthplace}
+                            onChange={handleBirthplaceChange}
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="provincia">Provincia:</Label>
+                        <Label>Data di nascita:</Label>
+                        <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
+                            <Select onValueChange={setDay} value={day}>
+                                <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                <SelectContent>
+                                    {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <Select onValueChange={setMonth} value={month}>
+                                <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                <SelectContent>
+                                    {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <Select onValueChange={setYear} value={year}>
+                                <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                <SelectContent>
+                                    {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
+                <div className="w-full md:w-1/2">
+                    <Input 
+                        id="codice-fiscale" 
+                        placeholder="RSSMRA80A01H501U" 
+                        required
+                        value={codiceFiscale}
+                        onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+                     />
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="address">Residente in:</Label>
+                    <Input 
+                        id="address" 
+                        placeholder="Via, Piazza, etc." 
+                        required 
+                        value={address}
+                        onChange={handleAddressChange}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="civic-number">N° civico:</Label>
+                    <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
+                </div>
+            </div>
+             <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="cap">C.A.P.:</Label>
+                    <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="comune">Comune:</Label>
+                    <Input 
+                        id="comune" 
+                        placeholder="Roma" 
+                        required 
+                        value={comune}
+                        onChange={handleComuneChange}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="provincia">Provincia:</Label>
+                    <Input 
+                        id="provincia" 
+                        placeholder="RM" 
+                        required 
+                        value={provincia}
+                         onChange={(e) => setProvincia(e.target.value.toUpperCase())}
+                        />
+                </div>
+            </div>
+
+            {!isMinor && (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="phone">Numero di telefono:</Label>
+                        <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
+                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={(e) => setEmailConfirm(e.target.value.toLowerCase())} />
+                    </div>
+                </div>
+            )}
+
+            {isMinor && (
+                 <div className="space-y-4 pt-4 mt-4 border-t">
+                    <h3 className="text-lg font-semibold">Dati Genitore o tutore</h3>
+                     <div className="space-y-2">
+                        <Label htmlFor="parent-name">Nome e Cognome Genitore/Tutore</Label>
                         <Input 
-                            id="provincia" 
-                            placeholder="RM" 
-                            required 
-                            value={provincia}
-                            onChange={(e) => setProvincia(e.target.value.toUpperCase())}
-                            />
+                            id="parent-name" 
+                            placeholder="Paolo Bianchi" 
+                            required={isMinor} 
+                            value={parentName}
+                            onChange={handleParentNameChange}
+                        />
                     </div>
-                </div>
-            </fieldset>
-
-            {/* Contact Info Section */}
-            <fieldset disabled={!isStudentInfoComplete} className="space-y-4 disabled:opacity-50">
-                {!isMinor && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
+                        <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} />
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="phone">Numero di telefono:</Label>
-                            <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                            <Label htmlFor="parent-phone">Numero di telefono:</Label>
+                            <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                            <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange} />
-                            {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
-                        </div>
-                    </div>
-                )}
-
-                {isMinor && (
-                    <div className="space-y-4 pt-4 mt-4 border-t">
-                        <h3 className="text-lg font-semibold">Dati Genitore o tutore</h3>
-                            <div className="space-y-2">
-                            <Label htmlFor="parent-name">Nome e Cognome Genitore/Tutore</Label>
+                            <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
                             <Input 
-                                id="parent-name" 
-                                placeholder="Paolo Bianchi" 
-                                required={isMinor} 
-                                value={parentName}
-                                onChange={handleParentNameChange}
-                            />
+                                id="parent-email-confirm" 
+                                type="email" 
+                                placeholder="m@example.com" 
+                                required={isMinor}
+                                value={parentEmail}
+                                onChange={(e) => setParentEmail(e.target.value.toLowerCase())}
+                                 />
                         </div>
-                            <div className="space-y-2">
-                            <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
-                            <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} />
-                        </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                                <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
-                                <Input 
-                                    id="parent-email-confirm" 
-                                    type="email" 
-                                    placeholder="m@example.com" 
-                                    required={isMinor}
-                                    value={parentEmail}
-                                    onChange={handleParentEmailChange}
-                                    />
-                                {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </fieldset>
-            
-            {/* Payment Section */}
-            <fieldset disabled={!isContactInfoComplete} className="space-y-4 disabled:opacity-50">
-                <Separator />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="payment-method">Metodo di Pagamento</Label>
-                        <Select onValueChange={setPaymentMethod} value={paymentMethod}>
-                            <SelectTrigger id="payment-method">
-                                <SelectValue placeholder="Seleziona un metodo di pagamento" /></SelectTrigger>
-                            <SelectContent>
-                                {paymentOptions.map(option => (
-                                    <SelectItem key={option.id} value={option.id}>
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="amount">Importo</Label>
-                        <Input id="amount" value={`€ ${amount}`} disabled />
                     </div>
                 </div>
-            </fieldset>
+            )}
+            
+            <Separator />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                <div className="space-y-2">
+                    <Label htmlFor="payment-method">Metodo di Pagamento</Label>
+                    <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+                        <SelectTrigger id="payment-method">
+                            <SelectValue placeholder="Seleziona un metodo di pagamento" /></SelectTrigger>
+                        <SelectContent>
+                            {paymentOptions.map(option => (
+                                <SelectItem key={option.id} value={option.id}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="amount">Importo</Label>
+                    <Input id="amount" value={`€ ${amount}`} disabled />
+                </div>
+            </div>
 
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button onClick={handleSaveAndApply} disabled={!isFormComplete} className="bg-blue-600 hover:bg-blue-700">Procedi</Button>
+            <Button onClick={handleSaveAndApply} className="bg-blue-600 hover:bg-blue-700">Procedi</Button>
         </CardFooter>
     </Card>
   )
 }
-
-    
