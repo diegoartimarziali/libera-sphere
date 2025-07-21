@@ -119,15 +119,6 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
-                 {!hasMedicalCertificate && (
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Attenzione</AlertTitle>
-                        <AlertDescription>
-                            Per poter partecipare ai corsi è necessario essere in possesso di certificato medico non agonistico in corso di validità. Prenota subito la tua visita o carica il certificato.
-                        </AlertDescription>
-                    </Alert>
-                )}
                 <div className="space-y-4 text-sm text-muted-foreground">
                     <div>
                         <h4 className="font-semibold text-base mb-2 text-foreground">Dati Allievo</h4>
