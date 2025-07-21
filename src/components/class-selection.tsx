@@ -163,7 +163,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     phone: localStorage.getItem('phone') || '',
                     isMinor: localStorage.getItem('isMinor') === 'true',
                     parentName: localStorage.getItem('parentName') || '',
-                    parentPhone: localStorage.getItem('parentPhone') || ''
+                    parentPhone: ''
                 });
             }
         }
@@ -829,7 +829,5 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
-
-    
 
     
