@@ -68,6 +68,7 @@ export function AssociateForm() {
     
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const amount = "120"; // Fisso come da richiesta
+    const [emailError, setEmailError] = useState(false);
 
 
     useEffect(() => {
@@ -91,23 +92,13 @@ export function AssociateForm() {
 
     const handleSaveAndApply = () => {
         const isFormComplete = isMinor ? 
-            (name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia && parentName && parentCf && parentPhone && parentEmail && paymentMethod) :
-            (name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia && phone && emailConfirm && paymentMethod);
+            (name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia && parentName && parentCf && parentPhone && parentEmail && paymentMethod && !emailError) :
+            (name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia && phone && emailConfirm && paymentMethod && !emailError);
         
         if (!isFormComplete) {
             toast({
                 title: "Modulo Incompleto",
                 description: "Per favore, compila tutti i campi richiesti.",
-                variant: "destructive"
-            });
-            return;
-        }
-
-        const emailToValidate = isMinor ? parentEmail : emailConfirm;
-        if (registrationEmail && emailToValidate.toLowerCase() !== registrationEmail.toLowerCase()) {
-             toast({
-                title: "Email non corrispondente",
-                description: "L'email di contatto deve essere uguale a quella di registrazione.",
                 variant: "destructive"
             });
             return;
@@ -194,6 +185,26 @@ export function AssociateForm() {
             .join(' ');
         setParentName(capitalized);
     };
+
+    const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newEmail = e.target.value.toLowerCase();
+        setEmailConfirm(newEmail);
+        if (registrationEmail && newEmail && newEmail !== registrationEmail.toLowerCase()) {
+            setEmailError(true);
+        } else {
+            setEmailError(false);
+        }
+    }
+
+    const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newEmail = e.target.value.toLowerCase();
+        setParentEmail(newEmail);
+        if (registrationEmail && newEmail && newEmail !== registrationEmail.toLowerCase()) {
+            setEmailError(true);
+        } else {
+            setEmailError(false);
+        }
+    }
     
     const isMinor = useMemo(() => {
         if (!birthDate) return false;
@@ -324,7 +335,8 @@ export function AssociateForm() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={(e) => setEmailConfirm(e.target.value.toLowerCase())} />
+                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange} />
+                        {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                     </div>
                 </div>
             )}
@@ -359,8 +371,9 @@ export function AssociateForm() {
                                 placeholder="m@example.com" 
                                 required={isMinor}
                                 value={parentEmail}
-                                onChange={(e) => setParentEmail(e.target.value.toLowerCase())}
+                                onChange={handleParentEmailChange}
                                  />
+                            {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                         </div>
                     </div>
                 </div>
