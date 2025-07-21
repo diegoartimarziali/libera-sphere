@@ -431,7 +431,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         return phone && emailConfirm && !emailError;
     }, [isMinor, parentName, parentCf, parentPhone, parentEmail, phone, emailConfirm, emailError]);
     
-    const isPaymentSectionComplete = paymentMethod;
+    const isPaymentSectionComplete = !!paymentMethod;
 
     const isFormComplete = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted;
 
@@ -445,7 +445,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     <CardDescription className="text-foreground">
                        Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
                     </CardDescription>
-                    <div className="pt-4">
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-4">
                         <div className="flex flex-col space-y-1.5">
                             <Label htmlFor="gym">Corso di:</Label>
                             <Select onValueChange={setMartialArt} value={martialArt}>
@@ -458,7 +460,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="flex flex-col space-y-1.5 pt-4">
+                        <div className="flex flex-col space-y-1.5">
                             <Label htmlFor="dojo">Palestra di:</Label>
                             <Select onValueChange={setDojo} value={dojo} disabled={!martialArt}>
                                 <SelectTrigger id="dojo">
@@ -472,7 +474,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                             </Select>
                         </div>
                         {dojo && (
-                            <div className="flex flex-col space-y-1.5 pt-4">
+                            <div className="flex flex-col space-y-1.5">
                                 <Label htmlFor="lesson-date">1a Lezione</Label>
                                 <Select onValueChange={setLessonDate} value={lessonDate} disabled={!dojo}>
                                     <SelectTrigger id="lesson-date">
@@ -487,9 +489,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                             </div>
                         )}
                     </div>
-                     <CardDescription className="font-bold text-black pt-4">Inserisci i tuoi dati</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                    
+                    <CardDescription className="font-bold text-black pt-4">Inserisci i tuoi dati</CardDescription>
+                    
                     <fieldset disabled={!isCourseSectionComplete} className="space-y-4 disabled:opacity-50">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
