@@ -127,11 +127,13 @@ export function AssociateForm() {
             localStorage.setItem('provincia', provincia);
             
             if (isMinor) {
+                localStorage.setItem('isMinor', 'true');
                 localStorage.setItem('parentName', parentName);
                 localStorage.setItem('parentCf', parentCf);
                 localStorage.setItem('parentPhone', parentPhone);
                 localStorage.setItem('parentEmail', parentEmail);
             } else {
+                 localStorage.setItem('isMinor', 'false');
                 localStorage.setItem('phone', phone);
             }
             
@@ -148,10 +150,10 @@ export function AssociateForm() {
         
         toast({
             title: "Dati Salvati!",
-            description: `I tuoi dati sono stati salvati. Ora procedi con il pagamento.`,
+            description: `I tuoi dati sono stati salvati. Ora visualizza il riepilogo.`,
         });
         
-        router.push('/dashboard/payments');
+        router.push('/dashboard/association-summary');
     }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
