@@ -301,7 +301,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 phone: localStorage.getItem('phone') || '',
                 isMinor: localStorage.getItem('isMinor') === 'true',
                 parentName: localStorage.getItem('parentName') || '',
-                parentPhone: localStorage.getItem('parentPhone') || ''
+                parentPhone: ''
             });
         }
     };
@@ -649,7 +649,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     
                     <fieldset disabled={!isCourseSectionComplete || !isPersonalInfoComplete || !isContactInfoComplete} className="space-y-4 disabled:opacity-50">
                          <div className="pt-4 space-y-2">
-                            <CardTitle className="pt-4 text-slate-400">P30</CardTitle>
                             <CardDescription className="font-bold text-black">
                                 Completa la tua iscrizione scegliendo un metodo di pagamento.
                             </CardDescription>
@@ -670,7 +669,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 <Label htmlFor="amount">Importo</Label>
                                 <Input 
                                     id="amount"
-                                    value={amount ? `€ ${amount}` : 'L\'importo verrà calcolato in base al metodo di pagamento'}
+                                    value={amount ? `€ ${amount}` : 'L\\'importo verrà calcolato in base al metodo di pagamento'}
                                     disabled
                                 />
                             </div>
@@ -830,5 +829,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
+
+    
 
     
