@@ -842,5 +842,3 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
-
-    
