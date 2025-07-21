@@ -388,7 +388,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
     // Sequential validation state
     const isCourseSectionComplete = martialArt && dojo && lessonDate;
-    const isPersonalInfoComplete = name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia;
+    const isPersonalInfoComplete = isCourseSectionComplete && name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia;
     const isContactInfoComplete = useMemo(() => {
         if (!isPersonalInfoComplete) return false;
         if (isMinor) {
@@ -399,7 +399,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     
     const isPaymentSectionComplete = isContactInfoComplete && paymentMethod;
 
-    const isFormComplete = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted;
+    const isFormComplete = isPaymentSectionComplete && bonusAccepted;
 
 
   return (
@@ -561,7 +561,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         </div>
                     </fieldset>
 
-                    <fieldset disabled={!isPersonalInfoComplete} className="disabled:opacity-50">
+                    <fieldset disabled={!isPersonalInfoComplete} className="space-y-4 disabled:opacity-50">
                         {!isMinor ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -613,7 +613,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         )}
                     </fieldset>
                     
-                    <fieldset disabled={!isContactInfoComplete} className="disabled:opacity-50">
+                    <fieldset disabled={!isContactInfoComplete} className="space-y-4 disabled:opacity-50">
                         <div className="space-y-2">
                             <Separator />
                             <div className="flex items-center space-x-2 pt-4">
@@ -669,7 +669,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             <Card>
                 <CardHeader>
                      <CardTitle>Passaporto Selezioni</CardTitle>
-                     <CardDescription>Questa scheda è stata salvata. La troverai cliccando sulla voce di menu Lezioni di Selezione. Ti verrà richiesta da un istruttore alla prima lezione.</CardDescription>
+                     <CardDescription className="text-foreground">Troverai questa scheda cliccando sulla voce di menu Lezioni di Selezione. Presentala al Maestro alla prima lezione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
