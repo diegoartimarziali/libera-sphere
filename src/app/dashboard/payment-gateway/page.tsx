@@ -22,7 +22,7 @@ export default function PaymentGatewayPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Effettua il Pagamento</CardTitle>
-                    <CardDescription className="text-foreground">
+                    <CardDescription className="text-foreground font-bold">
                         Completa la transazione tramite il portale sicuro di SumUp. Paga come ospite inserendo nome e cognome allievo. Una volta terminato, clicca sul pulsante in basso "Torna a Passaporto Selezioni".
                     </CardDescription>
                 </CardHeader>
