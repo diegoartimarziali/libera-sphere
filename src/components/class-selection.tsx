@@ -697,9 +697,16 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                      <CardDescription className="text-foreground">Troverai questa scheda cliccando sulla voce di menu Lezioni di Selezione. Presentala al Maestro alla prima lezione.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground items-center">
                        <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(summaryData.paymentMethod ?? null)}</span></p>
-                       <p><b>Importo:</b> <span className="text-foreground font-bold">€ {summaryData.amount}</span></p>
+                       <div className="flex items-center gap-4">
+                            <p><b>Importo:</b> <span className="text-foreground font-bold">€ {summaryData.amount}</span></p>
+                            {summaryData.paymentMethod === 'online' && (
+                                <Button onClick={() => router.push('/dashboard/payment-gateway')}>
+                                    Effettua pagamento
+                                </Button>
+                            )}
+                       </div>
                     </div>
                     
                     <Separator />
@@ -769,7 +776,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                         )}
                                     </div>
                                 </div>
-                                {!datesSaved && <Button onClick={handleSaveDates} disabled={!canSaveDates} className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>}
+                                {(!datesSaved) && <Button onClick={handleSaveDates} disabled={!canSaveDates} className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>}
                             </div>
                         </div>
                     </div>
