@@ -406,7 +406,7 @@ export function AssociateForm() {
 
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button onClick={handleSaveAndApply} disabled={!paymentMethod}>Procedi</Button>
+            <Button onClick={handleSaveAndApply} disabled={!paymentMethod} className="bg-blue-600 hover:bg-blue-700">Procedi</Button>
         </CardFooter>
     </Card>
   )
