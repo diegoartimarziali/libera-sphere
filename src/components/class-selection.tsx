@@ -491,7 +491,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         )}
                     </div>
                     
-                    <fieldset className="space-y-4" disabled={!isCourseSectionComplete}>
+                    <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Nome e Cognome</Label>
@@ -501,6 +501,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     required 
                                     value={name}
                                     onChange={handleNameChange}
+                                    disabled={!isCourseSectionComplete}
                                 />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
@@ -513,24 +514,25 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                         required 
                                         value={birthplace}
                                         onChange={handleBirthplaceChange}
+                                        disabled={!isCourseSectionComplete}
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Data di nascita:</Label>
                                     <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
-                                        <Select onValueChange={setDay} value={day}>
+                                        <Select onValueChange={setDay} value={day} disabled={!isCourseSectionComplete}>
                                             <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
                                             <SelectContent>
                                                 {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
-                                        <Select onValueChange={setMonth} value={month}>
+                                        <Select onValueChange={setMonth} value={month} disabled={!isCourseSectionComplete}>
                                             <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
                                             <SelectContent>
                                                 {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
-                                        <Select onValueChange={setYear} value={year}>
+                                        <Select onValueChange={setYear} value={year} disabled={!isCourseSectionComplete}>
                                             <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
                                             <SelectContent>
                                                 {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -549,6 +551,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     required
                                     value={codiceFiscale}
                                     onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
+                                    disabled={!isCourseSectionComplete}
                                 />
                             </div>
                         </div>
@@ -561,17 +564,18 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     required 
                                     value={address}
                                     onChange={handleAddressChange}
+                                    disabled={!isCourseSectionComplete}
                                 />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="civic-number">N° civico:</Label>
-                                <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
+                                <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} disabled={!isCourseSectionComplete} />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="cap">C.A.P.:</Label>
-                                <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
+                                <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} disabled={!isCourseSectionComplete} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="comune">Comune:</Label>
@@ -581,6 +585,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     required 
                                     value={comune}
                                     onChange={handleComuneChange}
+                                    disabled={!isCourseSectionComplete}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -591,21 +596,22 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     required 
                                     value={provincia}
                                     onChange={(e) => setProvincia(e.target.value.toUpperCase())}
+                                    disabled={!isCourseSectionComplete}
                                 />
                             </div>
                         </div>
-                    </fieldset>
+                    </div>
                     
-                    <fieldset className="space-y-4" disabled={!isPersonalInfoComplete}>
+                    <div className="space-y-4">
                         {!isMinor ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="phone">Numero di telefono:</Label>
-                                    <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)}/>
+                                    <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!isPersonalInfoComplete} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                                    <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange}/>
+                                    <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange} disabled={!isPersonalInfoComplete}/>
                                     {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                                 </div>
                             </div>
@@ -620,16 +626,17 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                         required={isMinor} 
                                         value={parentName}
                                         onChange={handleParentNameChange}
+                                        disabled={!isPersonalInfoComplete}
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
-                                    <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} />
+                                    <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} disabled={!isPersonalInfoComplete} />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                                        <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+                                        <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} disabled={!isPersonalInfoComplete} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
@@ -640,25 +647,24 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                             required={isMinor}
                                             value={parentEmail}
                                             onChange={handleParentEmailChange}
+                                            disabled={!isPersonalInfoComplete}
                                         />
                                         {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                                     </div>
                                 </div>
                             </div>
                         )}
-                    </fieldset>
+                    </div>
                     
                     
-                    <fieldset className="space-y-4" disabled={!isContactInfoComplete}>
+                    <div className="space-y-4">
                          <div className="pt-4 space-y-2">
-                            <CardTitle className="pt-4 text-slate-400">
-                                P30
-                            </CardTitle>
-                            <CardDescription className="font-bold text-black">
+                            <p className="pt-4 text-lg font-bold text-slate-400">P30</p>
+                            <label className="text-sm font-bold text-black">
                                 Completa la tua iscrizione scegliendo un metodo di pagamento.
-                            </CardDescription>
+                            </label>
                             
-                            <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+                            <Select onValueChange={setPaymentMethod} value={paymentMethod} disabled={!isContactInfoComplete}>
                                 <SelectTrigger id="payment-method">
                                     <SelectValue placeholder="Seleziona un metodo di pagamento" />
                                 </SelectTrigger>
@@ -679,23 +685,24 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 />
                             </div>
                         </div>
-                    </fieldset>
+                    </div>
 
                     
-                    <fieldset className="space-y-4" disabled={!isPaymentSectionComplete}>
+                    <div className="space-y-4">
                         <Separator />
                         <div className="flex items-center space-x-2 pt-4">
                             <Checkbox 
                                 id="bonus-benvenuto" 
                                 onCheckedChange={(checked) => setBonusAccepted(!!checked)}
                                 checked={bonusAccepted}
+                                disabled={!isPaymentSectionComplete}
                             />
                             <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
                                 <Gift className="h-5 w-5 text-primary" />
                                 Assicurati il tuo Bonus di Benvenuto!
                             </Label>
                         </div>
-                    </fieldset>
+                    </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
                     <Button onClick={handleNextStep} disabled={!isFormComplete}>
@@ -835,3 +842,5 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
+
+    
