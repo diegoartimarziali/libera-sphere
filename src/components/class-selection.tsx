@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -267,44 +266,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     };
     
     const handleNextStep = () => {
-        // Validation logic
-        if (!bonusAccepted) {
-            toast({ title: "Errore", description: "Devi accettare il Bonus di Benvenuto per procedere.", variant: "destructive" });
-            return;
-        }
-        const requiredFields = { martialArt, dojo, lessonDate, name, day, month, year, birthplace, codiceFiscale, address, civicNumber, cap, comune, provincia, paymentMethod };
-        for (const [fieldName, fieldValue] of Object.entries(requiredFields)) {
-            if (!fieldValue) {
-                toast({ title: "Campo Mancante", description: `Il campo ${fieldName} è obbligatorio.`, variant: "destructive" });
-                return;
-            }
-        }
-        if (isMinor) {
-            const requiredMinorFields = { parentName, parentCf, parentPhone, parentEmail };
-             for (const [fieldName, fieldValue] of Object.entries(requiredMinorFields)) {
-                if (!fieldValue) {
-                    toast({ title: "Campo Mancante", description: `Il campo genitore ${fieldName} è obbligatorio.`, variant: "destructive" });
-                    return;
-                }
-            }
-        } else {
-            const requiredAdultFields = { phone, emailConfirm };
-             for (const [fieldName, fieldValue] of Object.entries(requiredAdultFields)) {
-                if (!fieldValue) {
-                    toast({ title: "Campo Mancante", description: `Il campo ${fieldName} è obbligatorio.`, variant: "destructive" });
-                    return;
-                }
-            }
-        }
-        if (emailError) {
-             toast({ title: "Errore Email", description: "L'email di contatto deve corrispondere all'email di registrazione.", variant: "destructive" });
-            return;
-        }
-
         saveDataToLocalStorage();
         setCurrentStep(2);
-
-        // Update summary data for the next step
         if (typeof window !== 'undefined') {
             const storedBirthDate = localStorage.getItem('birthDate');
             let age = null;
@@ -406,8 +369,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const handleSaveDates = () => {
         const formatDate = (day: string | undefined, month: string | undefined, year: string | undefined): string => {
             if (!day || !month || !year) return '';
-            const monthLabel = months.find(m => m.value === month)?.label || '';
-            return `${day} ${monthLabel} ${year}`;
+            return `${day} ${months.find(m => m.value === month)?.label} ${year}`;
         }
         
         const secondDate = formatDate(secondLessonDay, secondLessonMonth, secondLessonYear);
@@ -421,7 +383,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
         setSavedSecondLessonDate(secondDate);
         setSavedThirdLessonDate(thirdDate);
-
         setDatesSaved(true);
         toast({
             title: "Date salvate!",
@@ -447,7 +408,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             localStorage.setItem('isSelectionPassportComplete', 'true');
             if(setLessonSelected) setLessonSelected(true);
         }
-        router.push('/dashboard');
+        router.push('/dashboard/payment-gateway');
     }
 
     // Sequential validation state
@@ -849,6 +810,3 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
-
-
-    
