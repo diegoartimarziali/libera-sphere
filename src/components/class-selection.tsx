@@ -447,7 +447,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                        Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
+                    {/* Course Selection */}
                     <div className="space-y-4">
                         <div className="flex flex-col space-y-1.5">
                             <Label htmlFor="gym">Corso di:</Label>
@@ -491,52 +492,32 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         )}
                     </div>
                     
+                    {/* Personal Info */}
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Nome e Cognome</Label>
-                                <Input 
-                                    id="name" 
-                                    placeholder="Mario Rossi" 
-                                    required 
-                                    value={name}
-                                    onChange={handleNameChange}
-                                    disabled={!isCourseSectionComplete}
-                                />
+                                <Input id="name" placeholder="Mario Rossi" required value={name} onChange={handleNameChange} disabled={!isCourseSectionComplete} />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="birthplace">Nato a:</Label>
-                                    <Input 
-                                        id="birthplace" 
-                                        type="text" 
-                                        placeholder="Roma" 
-                                        required 
-                                        value={birthplace}
-                                        onChange={handleBirthplaceChange}
-                                        disabled={!isCourseSectionComplete}
-                                    />
+                                    <Input id="birthplace" type="text" placeholder="Roma" required value={birthplace} onChange={handleBirthplaceChange} disabled={!isCourseSectionComplete}/>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Data di nascita:</Label>
                                     <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
                                         <Select onValueChange={setDay} value={day} disabled={!isCourseSectionComplete}>
                                             <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
-                                            <SelectContent>
-                                                {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                            </SelectContent>
+                                            <SelectContent>{Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                                         </Select>
                                         <Select onValueChange={setMonth} value={month} disabled={!isCourseSectionComplete}>
                                             <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
-                                            <SelectContent>
-                                                {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                                            </SelectContent>
+                                            <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                                         </Select>
                                         <Select onValueChange={setYear} value={year} disabled={!isCourseSectionComplete}>
                                             <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
-                                            <SelectContent>
-                                                {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                            </SelectContent>
+                                            <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                 </div>
@@ -545,27 +526,13 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         <div className="space-y-2">
                             <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
                             <div className="w-full md:w-1/2">
-                                <Input 
-                                    id="codice-fiscale" 
-                                    placeholder="RSSMRA80A01H501U" 
-                                    required
-                                    value={codiceFiscale}
-                                    onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
-                                    disabled={!isCourseSectionComplete}
-                                />
+                                <Input id="codice-fiscale" placeholder="RSSMRA80A01H501U" required value={codiceFiscale} onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())} disabled={!isCourseSectionComplete} />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="address">Residente in:</Label>
-                                <Input 
-                                    id="address" 
-                                    placeholder="Via, Piazza, etc." 
-                                    required 
-                                    value={address}
-                                    onChange={handleAddressChange}
-                                    disabled={!isCourseSectionComplete}
-                                />
+                                <Input id="address" placeholder="Via, Piazza, etc." required value={address} onChange={handleAddressChange} disabled={!isCourseSectionComplete} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="civic-number">N° civico:</Label>
@@ -579,29 +546,16 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="comune">Comune:</Label>
-                                <Input 
-                                    id="comune" 
-                                    placeholder="Roma" 
-                                    required 
-                                    value={comune}
-                                    onChange={handleComuneChange}
-                                    disabled={!isCourseSectionComplete}
-                                />
+                                <Input id="comune" placeholder="Roma" required value={comune} onChange={handleComuneChange} disabled={!isCourseSectionComplete} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="provincia">Provincia:</Label>
-                                <Input 
-                                    id="provincia" 
-                                    placeholder="RM" 
-                                    required 
-                                    value={provincia}
-                                    onChange={(e) => setProvincia(e.target.value.toUpperCase())}
-                                    disabled={!isCourseSectionComplete}
-                                />
+                                <Input id="provincia" placeholder="RM" required value={provincia} onChange={(e) => setProvincia(e.target.value.toUpperCase())} disabled={!isCourseSectionComplete}/>
                             </div>
                         </div>
                     </div>
-                    
+
+                    {/* Contact Info (Adult or Minor) */}
                     <div className="space-y-4">
                         {!isMinor ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -620,14 +574,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 <h3 className="text-lg font-semibold">Dati Genitore o tutore</h3>
                                 <div className="space-y-2">
                                     <Label htmlFor="parent-name">Nome e Cognome Genitore/Tutore</Label>
-                                    <Input 
-                                        id="parent-name" 
-                                        placeholder="Paolo Bianchi" 
-                                        required={isMinor} 
-                                        value={parentName}
-                                        onChange={handleParentNameChange}
-                                        disabled={!isPersonalInfoComplete}
-                                    />
+                                    <Input id="parent-name" placeholder="Paolo Bianchi" required={isMinor} value={parentName} onChange={handleParentNameChange} disabled={!isPersonalInfoComplete} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
@@ -640,15 +587,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
-                                        <Input 
-                                            id="parent-email-confirm" 
-                                            type="email" 
-                                            placeholder="m@example.com" 
-                                            required={isMinor}
-                                            value={parentEmail}
-                                            onChange={handleParentEmailChange}
-                                            disabled={!isPersonalInfoComplete}
-                                        />
+                                        <Input id="parent-email-confirm" type="email" placeholder="m@example.com" required={isMinor} value={parentEmail} onChange={handleParentEmailChange} disabled={!isPersonalInfoComplete} />
                                         {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                                     </div>
                                 </div>
@@ -656,47 +595,33 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         )}
                     </div>
                     
-                    
-                    <div className="space-y-4">
-                         <div className="pt-4 space-y-2">
-                            <p className="pt-4 text-lg font-bold text-slate-400">P30</p>
-                            <label className="text-sm font-bold text-black">
-                                Completa la tua iscrizione scegliendo un metodo di pagamento.
-                            </label>
-                            
-                            <Select onValueChange={setPaymentMethod} value={paymentMethod} disabled={!isContactInfoComplete}>
-                                <SelectTrigger id="payment-method">
-                                    <SelectValue placeholder="Seleziona un metodo di pagamento" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {paymentOptions.map(option => (
-                                        <SelectItem key={option.id} value={option.id}>
-                                            {option.label}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <div className="space-y-2">
-                                <Label htmlFor="amount">Importo</Label>
-                                <Input 
-                                    id="amount"
-                                    value={amount ? `€ ${amount}` : 'L\\'importo verrà calcolato in base al metodo di pagamento'}
-                                    disabled
-                                />
-                            </div>
+                    {/* Payment */}
+                    <div className="space-y-4 pt-4">
+                        <p className="text-lg font-bold text-slate-400">P30</p>
+                        <label className="text-sm font-bold text-black">Completa la tua iscrizione scegliendo un metodo di pagamento.</label>
+                        <Select onValueChange={setPaymentMethod} value={paymentMethod} disabled={!isContactInfoComplete}>
+                            <SelectTrigger id="payment-method">
+                                <SelectValue placeholder="Seleziona un metodo di pagamento" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {paymentOptions.map(option => (
+                                    <SelectItem key={option.id} value={option.id}>
+                                        {option.label}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <div className="space-y-2">
+                            <Label htmlFor="amount">Importo</Label>
+                            <Input id="amount" value={amount ? `€ ${amount}` : 'L\\'importo verrà calcolato in base al metodo di pagamento'} disabled />
                         </div>
                     </div>
 
-                    
+                    {/* Bonus */}
                     <div className="space-y-4">
                         <Separator />
                         <div className="flex items-center space-x-2 pt-4">
-                            <Checkbox 
-                                id="bonus-benvenuto" 
-                                onCheckedChange={(checked) => setBonusAccepted(!!checked)}
-                                checked={bonusAccepted}
-                                disabled={!isPaymentSectionComplete}
-                            />
+                            <Checkbox id="bonus-benvenuto" onCheckedChange={(checked) => setBonusAccepted(!!checked)} checked={bonusAccepted} disabled={!isPaymentSectionComplete} />
                             <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
                                 <Gift className="h-5 w-5 text-primary" />
                                 Assicurati il tuo Bonus di Benvenuto!
