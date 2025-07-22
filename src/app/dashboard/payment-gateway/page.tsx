@@ -59,7 +59,7 @@ export default function PaymentGatewayPage() {
         <div className="flex flex-col h-screen bg-background">
             <header className="flex items-center justify-between p-4 border-b">
                  <h1 className="text-lg font-semibold">Completa il Pagamento</h1>
-                <Button variant="outline" onClick={handleReturn}>
+                <Button onClick={handleReturn}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Torna indietro quando hai finito
                 </Button>
