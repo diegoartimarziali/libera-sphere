@@ -126,9 +126,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         if (value === 'aikido') {
             setDojo('aosta');
         } else {
-            setDojo(''); // Reset dojo when switching back to karate
+            setDojo('');
         }
-        setLessonDate(""); // Reset lesson date when martial art changes
+        setLessonDate("");
     };
 
     useEffect(() => {
