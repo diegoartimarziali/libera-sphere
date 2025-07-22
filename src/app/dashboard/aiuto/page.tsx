@@ -6,7 +6,7 @@ export default function AiutoPage() {
         <Card>
             <CardHeader>
                 <CardTitle>Aiuto</CardTitle>
-                <CardDescription>Se riscontri problemi o hai bisogno di un aiuto per utilizzare l'app:</CardDescription>
+                <CardDescription className="text-foreground font-bold">Se riscontri problemi o hai bisogno di un aiuto per utilizzare l'app:</CardDescription>
             </CardHeader>
             <CardContent>
                 <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
