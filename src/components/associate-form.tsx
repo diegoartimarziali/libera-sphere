@@ -128,10 +128,10 @@ export function AssociateForm() {
         
         toast({
             title: "Dati Salvati!",
-            description: `I tuoi dati sono stati salvati. Ora visualizza il riepilogo.`,
+            description: `I tuoi dati sono stati salvati e la domanda di associazione inviata.`,
         });
         
-        router.push('/dashboard/association-summary');
+        router.push('/dashboard');
     }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -408,7 +408,7 @@ export function AssociateForm() {
 
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => router.push('/dashboard/association-summary')}>Procedi</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveAndApply}>Procedi</Button>
         </CardFooter>
     </Card>
   )
