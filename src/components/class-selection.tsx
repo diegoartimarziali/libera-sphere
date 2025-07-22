@@ -121,6 +121,16 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         }
     }
 
+    const handleMartialArtChange = (value: string) => {
+        setMartialArt(value);
+        if (value === 'aikido') {
+            setDojo('aosta');
+        } else {
+            setDojo(''); // Reset dojo when switching back to karate
+        }
+        setLessonDate(""); // Reset lesson date when martial art changes
+    };
+
     useEffect(() => {
         if (paymentMethod === 'online') {
             setAmount("30");
@@ -296,10 +306,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     };
 
     const handleOnlinePayment = () => {
-        if (typeof window !== 'undefined') {
-            saveDataToLocalStorage();
-            window.location.href = SUMUP_PAYMENT_LINK;
-        }
+        saveDataToLocalStorage();
+        window.open(SUMUP_PAYMENT_LINK, '_blank');
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -448,7 +456,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     <div className="space-y-4">
                         <div className="flex flex-col space-y-1.5">
                             <Label htmlFor="gym">Corso di:</Label>
-                            <Select onValueChange={setMartialArt} value={martialArt}>
+                            <Select onValueChange={handleMartialArtChange} value={martialArt}>
                                 <SelectTrigger id="gym">
                                 <SelectValue placeholder="Seleziona un corso" />
                                 </SelectTrigger>
@@ -460,14 +468,14 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         </div>
                         <div className="flex flex-col space-y-1.5">
                             <Label htmlFor="dojo">Palestra di:</Label>
-                            <Select onValueChange={setDojo} value={dojo} disabled={!martialArt}>
+                            <Select onValueChange={setDojo} value={dojo} disabled={!martialArt || martialArt === 'aikido'}>
                                 <SelectTrigger id="dojo">
                                 <SelectValue placeholder="Seleziona una palestra" />
                                 </SelectTrigger>
                                 <SelectContent position="popper">
-                                <SelectItem value="aosta">Aosta</SelectItem>
-                                <SelectItem value="villeneuve">Villeneuve</SelectItem>
-                                <SelectItem value="verres">Verres</SelectItem>
+                                    <SelectItem value="aosta">Aosta</SelectItem>
+                                    <SelectItem value="villeneuve">Villeneuve</SelectItem>
+                                    <SelectItem value="verres">Verres</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
