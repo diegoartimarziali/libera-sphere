@@ -43,7 +43,6 @@ const lessonDatesByDojo: { [key: string]: string[] } = {
 };
 
 const paymentOptions = [
-    { id: "online", label: "Carta di Credito on line" },
     { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ];
 
@@ -92,9 +91,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const [savedSecondLessonDate, setSavedSecondLessonDate] = useState<string | null>(null);
     const [savedThirdLessonDate, setSavedThirdLessonDate] = useState<string | null>(null);
     const [datesSaved, setDatesSaved] = useState(false);
-    
-    const [onlinePaymentCompleted, setOnlinePaymentCompleted] = useState(false);
-    const [onlinePaymentDate, setOnlinePaymentDate] = useState<string | null>(null);
 
     const [summaryData, setSummaryData] = useState({
         firstLesson: '',
@@ -116,7 +112,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const translatePaymentMethodLocal = (method: string | null) => {
         if (!method) return 'Non specificato';
         switch (method) {
-            case 'online': return 'Carta di Credito on line';
             case 'cash': return 'Contanti o Bancomat in Palestra';
             default: return method;
         }
@@ -126,13 +121,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         setCurrentStep(initialStep);
         if (typeof window !== 'undefined') {
             const savedDatesFlag = localStorage.getItem('selectionLessonDatesSaved') === 'true';
-            const paymentCompleted = localStorage.getItem('onlinePaymentCompleted') === 'true';
             
-            if (paymentCompleted) {
-                setOnlinePaymentCompleted(true);
-                setOnlinePaymentDate(localStorage.getItem('onlinePaymentDate'));
-            }
-
             if (savedDatesFlag) {
                 setDatesSaved(true);
                 setSavedSecondLessonDate(localStorage.getItem('savedSecondLessonDate'));
@@ -648,14 +637,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                        <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(summaryData.paymentMethod ?? null)}</span></p>
                        <div className="flex items-center gap-4">
                             <p><b>Importo:</b> <span className="text-foreground font-bold">€ {summaryData.amount}</span></p>
-                            {summaryData.paymentMethod === 'online' && !onlinePaymentCompleted && (
-                                <Button onClick={() => router.push('/dashboard/payment-gateway')} className="bg-green-600 hover:bg-green-700">
-                                    Effettua pagamento
-                                </Button>
-                            )}
-                            {summaryData.paymentMethod === 'online' && onlinePaymentCompleted && (
-                                <p className="text-foreground font-normal">{onlinePaymentDate}</p>
-                            )}
                        </div>
                     </div>
                     
@@ -767,5 +748,3 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
-
-    

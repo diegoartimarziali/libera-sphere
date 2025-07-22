@@ -38,7 +38,6 @@ interface Subscription {
 const translatePaymentMethod = (method: string) => {
     switch (method) {
         case 'cash': return 'Contanti o Bancomat in Palestra ( 2 euro costi di gestione)';
-        case 'online': return 'Carta di Credito on line';
         default: return method;
     }
 }
@@ -145,7 +144,6 @@ export function PaymentHistory() {
                         <SelectValue placeholder="Scegli un'opzione" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="online">Carta di Credito on Line</SelectItem>
                         <SelectItem value="card-pos">Carta di credito o Bancomat in Palestra</SelectItem>
                         <SelectItem value="cash">Contanti in Palestra</SelectItem>
                     </SelectContent>
