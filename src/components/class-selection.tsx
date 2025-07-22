@@ -307,7 +307,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
     const handleOnlinePayment = () => {
         saveDataToLocalStorage();
-        window.open(SUMUP_PAYMENT_LINK, '_blank');
+        const paymentUrl = encodeURIComponent(SUMUP_PAYMENT_LINK);
+        const returnUrl = encodeURIComponent('/dashboard/class-selection');
+        router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
