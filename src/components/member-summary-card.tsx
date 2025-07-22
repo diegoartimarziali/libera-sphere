@@ -216,7 +216,7 @@ export function MemberSummaryCard() {
           <div className="text-center">
             <div className="font-semibold text-2xl">{userName}</div>
             <div className="text-muted-foreground">{codiceFiscale}</div>
-            <div className="text-muted-foreground flex justify-center gap-4">
+            <div className="text-foreground flex justify-center gap-4">
               <span>Associato dal: {firstAssociationYear}</span>
               <span>Grado attuale: {grade || 'Nessuno'}</span>
               <span>Numero tessera: </span>
