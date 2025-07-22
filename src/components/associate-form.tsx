@@ -408,7 +408,7 @@ export function AssociateForm() {
 
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button className="bg-blue-600 hover:bg-blue-700">Procedi</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => router.push('/dashboard/association-summary')}>Procedi</Button>
         </CardFooter>
     </Card>
   )
