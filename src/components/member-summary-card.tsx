@@ -214,7 +214,7 @@ export function MemberSummaryCard() {
                 <span>{userName}</span>
               </div>
               <div className="text-muted-foreground">
-                <span className="font-medium text-foreground">{codiceFiscale || <Badge variant="destructive">Non disponibile</Badge>}</span>
+                <span className="font-medium text-foreground">{codiceFiscale}</span>
               </div>
               <div className="text-muted-foreground">
                 Nato il: <span className="font-medium text-foreground">{birthDateString ? `${birthDateString} a ${birthplace}` : <Badge variant="destructive">Non definito</Badge>}</span>
