@@ -198,7 +198,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            setName(localStorage.getItem('userName') || '');
+            const storedName = localStorage.getItem('userName') || '';
+            setName(storedName);
             const storedCodiceFiscale = localStorage.getItem('codiceFiscale') || '';
             const storedBirthDate = localStorage.getItem('birthDate');
             const storedAddress = localStorage.getItem('address') || '';
@@ -440,6 +441,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const handleExit = () => {
         if (typeof window !== 'undefined') {
             localStorage.setItem('isSelectionPassportComplete', 'true');
+            localStorage.setItem('isInsured', 'true');
             if(setLessonSelected) setLessonSelected(true);
         }
         router.push('/dashboard');

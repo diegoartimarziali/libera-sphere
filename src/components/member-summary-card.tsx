@@ -48,6 +48,7 @@ export function MemberSummaryCard() {
   const [certificateExpiration, setCertificateExpiration] = useState<Date | null>(null);
   const [firstAssociationYear, setFirstAssociationYear] = useState<string | null>(null);
   const [grade, setGrade] = useState<string | null>(null);
+  const [isInsured, setIsInsured] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -114,6 +115,11 @@ export function MemberSummaryCard() {
 
       setFirstAssociationYear(localStorage.getItem('firstAssociationYear'));
       setGrade(localStorage.getItem('grade'));
+
+      const storedIsInsured = localStorage.getItem('isInsured');
+        if (storedIsInsured === 'true') {
+        setIsInsured(true);
+      }
     }
     const kanji = kanjiList[Math.floor(Math.random() * kanjiList.length)];
     if(kanji) {
@@ -242,7 +248,11 @@ export function MemberSummaryCard() {
               </div>
                <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Assicurato:</span>
-                <span className="font-medium text-red-600">No</span>
+                 {isInsured ? (
+                    <span className="font-medium text-green-700">Sì</span>
+                  ) : (
+                    <span className="font-medium text-red-600">No</span>
+                  )}
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Associazione:</span>
