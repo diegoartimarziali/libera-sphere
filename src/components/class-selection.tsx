@@ -25,7 +25,8 @@ import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { Separator } from "./ui/separator"
-import { Gift } from "lucide-react"
+import { Gift, Info } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -106,6 +107,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         parentPhone: ''
     });
 
+    const [onlinePaymentInitiated, setOnlinePaymentInitiated] = useState(false);
+
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
     
@@ -126,6 +129,13 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             setAmount(undefined);
         }
     }, [paymentMethod]);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const paymentInitiated = localStorage.getItem('onlinePaymentInitiated') === 'true';
+            setOnlinePaymentInitiated(paymentInitiated);
+        }
+    }, []);
 
     useEffect(() => {
         setCurrentStep(initialStep);
@@ -296,9 +306,21 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const handleOnlinePayment = () => {
         if (typeof window !== 'undefined') {
             saveDataToLocalStorage();
+            localStorage.setItem('onlinePaymentInitiated', 'true');
             window.location.href = 'https://pay.sumup.com/b2c/Q25VI0NJ';
         }
     };
+    
+    const handleConfirmOnlinePayment = () => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('isSelectionPassportComplete', 'true');
+            localStorage.removeItem('onlinePaymentInitiated');
+            if(setLessonSelected) setLessonSelected(true);
+            router.push('/dashboard/class-selection');
+            // A small delay to allow router to push before reload
+            setTimeout(() => window.location.reload(), 100);
+        }
+    }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -429,7 +451,30 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const isPaymentSectionComplete = !!(paymentMethod);
 
     const isFormComplete = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted && paymentMethod !== 'online';
-
+    
+    if (onlinePaymentInitiated) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Conferma Pagamento</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Hai completato il pagamento?</AlertTitle>
+                        <AlertDescription>
+                            Una volta che hai terminato la procedura di pagamento su SumUp, clicca sul pulsante qui sotto per confermare e completare la tua iscrizione al Passaporto Selezioni.
+                        </AlertDescription>
+                    </Alert>
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleConfirmOnlinePayment} className="w-full">
+                        Ho completato il pagamento, procedi
+                    </Button>
+                </CardFooter>
+            </Card>
+        )
+    }
 
   return (
     <>
@@ -759,9 +804,3 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
-
-    
-    
-
-    
-
