@@ -48,6 +48,9 @@ const paymentOptions = [
     { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ];
 
+const SUMUP_PAYMENT_LINK = 'https://pay.sumup.com/b2c/Q25VI0NJ';
+
+
 export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLessonSelected?: (value: boolean) => void, initialStep?: number }) {
     const { toast } = useToast()
     const router = useRouter()
@@ -297,7 +300,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const handleOnlinePayment = () => {
         if (typeof window !== 'undefined') {
             saveDataToLocalStorage();
-            router.push('/dashboard/payment-gateway');
+            window.location.href = SUMUP_PAYMENT_LINK;
         }
     };
 
@@ -430,6 +433,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const isPaymentSectionComplete = !!(paymentMethod);
 
     const isFormCompleteForCash = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted && paymentMethod === 'cash';
+    const isFormCompleteForOnline = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && paymentMethod === 'online';
     
     return (
     <>
@@ -612,7 +616,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         )}
                         {paymentMethod === 'online' && (
                             <div className="mt-2">
-                                <Button onClick={handleOnlinePayment} className="w-full" disabled={!isContactInfoComplete}>Procedi con il Pagamento</Button>
+                                <Button onClick={handleOnlinePayment} className="w-full" disabled={!isFormCompleteForOnline}>Procedi con il Pagamento</Button>
                             </div>
                         )}
                     </div>
@@ -759,3 +763,5 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
+
+    
