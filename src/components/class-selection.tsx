@@ -118,6 +118,14 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     }
 
     useEffect(() => {
+        if (paymentMethod === 'online') {
+            setAmount("30");
+        } else if (paymentMethod === 'cash') {
+            setAmount("32");
+        }
+    }, [paymentMethod]);
+
+    useEffect(() => {
         setCurrentStep(initialStep);
         if (typeof window !== 'undefined') {
             const savedDatesFlag = localStorage.getItem('selectionLessonDatesSaved') === 'true';
@@ -737,4 +745,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 }
 
     
+    
+
     
