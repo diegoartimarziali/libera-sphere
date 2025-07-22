@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,7 @@ const grades = [
 ];
 
 export default function LiberaSpherePage() {
+    const router = useRouter();
     const [isFormerMember, setIsFormerMember] = useState<string | undefined>();
     const [startYear, setStartYear] = useState<string | undefined>();
     const [grade, setGrade] = useState<string | undefined>();
@@ -37,6 +39,22 @@ export default function LiberaSpherePage() {
         // Reset dependent fields when the main choice changes
         setStartYear(undefined);
         setGrade(undefined);
+    };
+
+    const handleEnterLiberaSphere = () => {
+        if (typeof window === 'undefined') return;
+
+        if (isFormerMember === 'no') {
+            localStorage.setItem('firstAssociationYear', String(currentYear));
+            localStorage.setItem('grade', 'Nessuno');
+            localStorage.setItem('isFormerMember', 'no');
+        } else if (isFormerMember === 'yes' && startYear && grade) {
+            localStorage.setItem('firstAssociationYear', startYear);
+            localStorage.setItem('grade', grade);
+            localStorage.setItem('isFormerMember', 'yes');
+        }
+        
+        router.push('/dashboard/regulations');
     };
 
     return (
@@ -91,7 +109,13 @@ export default function LiberaSpherePage() {
                 )}
             </CardContent>
             <CardFooter className="flex justify-end">
-                <Button disabled={isButtonDisabled()} className="bg-stone-800 text-amber-400 hover:bg-stone-700 disabled:bg-stone-800/50 disabled:text-amber-400/50">Entra in Libera Sphere</Button>
+                <Button 
+                    onClick={handleEnterLiberaSphere} 
+                    disabled={isButtonDisabled()} 
+                    className="bg-stone-800 text-amber-400 hover:bg-stone-700 disabled:bg-stone-800/50 disabled:text-amber-400/50"
+                >
+                    Entra in Libera Sphere
+                </Button>
             </CardFooter>
         </Card>
     );
