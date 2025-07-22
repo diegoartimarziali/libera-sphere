@@ -82,26 +82,27 @@ export function MedicalCertificate() {
       // Create a temporary URL for viewing/downloading
       const url = URL.createObjectURL(file);
       setFileUrl(url);
+      handleRegisterCertificate(file, url);
     }
   };
   
-  const handleRegisterCertificate = () => {
-    if (selectedFile && expirationDate && fileUrl) {
+  const handleRegisterCertificate = (file: File, url: string) => {
+    if (file && expirationDate && url) {
       if (typeof window !== 'undefined') {
         // In a real application, you would upload the file to Firebase Storage
         // and store the permanent URL. For this prototype, we store it in localStorage.
         localStorage.setItem('medicalCertificateExpirationDate', expirationDate.toISOString());
-        localStorage.setItem('medicalCertificateFileName', selectedFile.name);
+        localStorage.setItem('medicalCertificateFileName', file.name);
         
         // This part is tricky with blob URLs as they expire.
         // For a prototype, this will work for the session. A real app would use a permanent URL.
-        localStorage.setItem('medicalCertificateFileUrl', fileUrl);
+        localStorage.setItem('medicalCertificateFileUrl', url);
       }
       
       setIsCertificateUploaded(true);
       toast({
         title: "Certificato Caricato!",
-        description: `Il file "${selectedFile.name}" è stato registrato con successo.`,
+        description: `Il file "${file.name}" è stato registrato con successo.`,
       });
       // A small delay to allow the user to see the toast before navigation
       setTimeout(() => router.push('/dashboard'), 1000);
@@ -167,35 +168,14 @@ export function MedicalCertificate() {
           </div>
         ) : (
           <div className="w-full max-w-sm flex flex-col items-center">
-            {selectedFile ? (
-                <FileCheck className="w-16 h-16 text-primary" />
-            ) : (
-                <AlertTriangle className="w-16 h-16 text-destructive" />
-            )}
+            <AlertTriangle className="w-16 h-16 text-destructive" />
             
             <p className="font-semibold text-lg mt-4">
-              {selectedFile ? 'File Selezionato' : 'Certificato Mancante'}
+              Certificato Mancante
             </p>
             
-            {selectedFile && (
-                <div className="text-center mt-2">
-                    <p className="text-muted-foreground text-sm">
-                        {selectedFile.name}
-                    </p>
-                    <button onClick={() => {
-                        if (fileUrl) URL.revokeObjectURL(fileUrl);
-                        setSelectedFile(null);
-                        setFileUrl(null);
-                        if (fileInputRef.current) fileInputRef.current.value = "";
-                    }} className="text-xs text-destructive hover:underline mt-1">
-                        <FileX className="w-3 h-3 inline-block mr-1"/>
-                        Rimuovi file
-                    </button>
-                </div>
-            )}
-            
             <p className="text-muted-foreground text-sm mt-2">
-              {selectedFile ? 'Inserisci la data di scadenza' : 'Carica il tuo certificato per continuare.'}
+              Seleziona prima la data di scadenza, poi carica il file.
             </p>
             
             <input
@@ -204,24 +184,25 @@ export function MedicalCertificate() {
               onChange={handleFileChange}
               className="hidden"
               accept="application/pdf,image/jpeg,image/png"
+              disabled={!expirationDate}
             />
             
             <div className="space-y-2 w-full pt-4 text-left">
                 <Label>Data di Scadenza</Label>
                 <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
-                    <Select onValueChange={setDay} value={day} disabled={!selectedFile}>
+                    <Select onValueChange={setDay} value={day}>
                         <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
                         <SelectContent>
                             {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                    <Select onValueChange={setMonth} value={month} disabled={!selectedFile}>
+                    <Select onValueChange={setMonth} value={month}>
                         <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
                         <SelectContent>
                             {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                    <Select onValueChange={setYear} value={year} disabled={!selectedFile}>
+                    <Select onValueChange={setYear} value={year}>
                         <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
                         <SelectContent>
                             {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -230,16 +211,9 @@ export function MedicalCertificate() {
                 </div>
             </div>
 
-            {!selectedFile ? (
-                <Button className="mt-4 w-full" onClick={handleButtonClick}>
-                    <Upload className="mr-2 h-4 w-4" /> Seleziona un file
-                </Button>
-            ) : (
-                 <Button className="mt-4 w-full" onClick={handleRegisterCertificate} disabled={!expirationDate}>
-                    <Upload className="mr-2 h-4 w-4" /> Carica il Certificato
-                </Button>
-            )}
-
+            <Button className="mt-4 w-full" onClick={handleButtonClick} disabled={!expirationDate}>
+                <Upload className="mr-2 h-4 w-4" /> Seleziona un file
+            </Button>
           </div>
         )}
       </CardContent>
