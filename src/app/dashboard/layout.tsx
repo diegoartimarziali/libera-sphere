@@ -180,7 +180,7 @@ export default function DashboardLayout({
         <nav className="flex flex-col items-center gap-4 px-2 sm:py-5 flex-1">
           <Link
             href="#"
-            className="group flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:text-base"
+            className="group flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-stone-800 text-lg font-semibold text-amber-400 md:h-8 md:text-base"
           >
             <KanjiIcon className="h-4 w-4 transition-all group-hover:scale-110" />
             <span>LiberaSphere</span>
@@ -225,7 +225,7 @@ export default function DashboardLayout({
               <nav className="grid gap-6 text-lg font-medium">
                 <Link
                     href="#"
-                    className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                    className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-stone-800 text-lg font-semibold text-amber-400 md:text-base"
                 >
                     <KanjiIcon className="h-5 w-5 transition-all group-hover:scale-110" />
                     <span className="sr-only">LiberaSphere</span>
