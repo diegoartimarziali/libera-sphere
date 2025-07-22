@@ -2,10 +2,11 @@
 'use client';
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 
 export default function LiberaSpherePage() {
     const [isFormerMember, setIsFormerMember] = useState<string | undefined>();
@@ -34,6 +35,9 @@ export default function LiberaSpherePage() {
                     </RadioGroup>
                 </div>
             </CardContent>
+            <CardFooter className="flex justify-end">
+                <Button className="bg-stone-800 text-amber-400 hover:bg-stone-700">Entra in Libera Sphere</Button>
+            </CardFooter>
         </Card>
     )
 }
