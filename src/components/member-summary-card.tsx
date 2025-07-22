@@ -242,7 +242,7 @@ export function MemberSummaryCard() {
               </div>
                <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Assicurato:</span>
-                {/* Placeholder for insurance status */}
+                <span className="font-medium text-red-600">No</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Associazione:</span>
