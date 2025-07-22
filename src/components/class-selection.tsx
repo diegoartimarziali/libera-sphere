@@ -296,8 +296,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const handleOnlinePayment = () => {
         if (typeof window !== 'undefined') {
             saveDataToLocalStorage();
-            // ATTENZIONE: Sostituisci questo URL con il tuo link di pagamento SumUp reale.
-            window.location.href = 'https://pay.sumup.io/b2c/QGV4G74B';
+            window.location.href = 'https://pay.sumup.com/b2c/Q25VI0NJ';
         }
     };
 
@@ -765,3 +764,4 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     
 
     
+
