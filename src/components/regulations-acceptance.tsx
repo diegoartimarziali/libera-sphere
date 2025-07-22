@@ -62,7 +62,7 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle>Prima di cominciare</CardTitle>
+        <CardTitle className="bg-green-600 text-white p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Prima di cominciare</CardTitle>
         <CardDescription className="text-foreground">
           Leggi lo Statuto, conoscere lo statuto della propria associazione è fondamentale per un socio perché permette di comprendere i propri diritti e doveri all'interno dell'ente, le regole di funzionamento dell'associazione, le modalità di gestione e gli scopi sociali. Leggi il regolamento interno e attieniti alle regole, leggi il documento sulla Privacy e su come verranno trattati i tuoi dati.
         </CardDescription>
