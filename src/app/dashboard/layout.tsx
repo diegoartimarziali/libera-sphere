@@ -130,7 +130,7 @@ export default function DashboardLayout({
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami" },
     { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti" },
-    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", hideWhenRegulationsAccepted: true },
+    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere" },
   ]
   
   const bottomNavItems = [
@@ -263,5 +263,3 @@ export default function DashboardLayout({
     </div>
   )
 }
-
-    
