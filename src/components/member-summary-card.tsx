@@ -126,11 +126,11 @@ export function MemberSummaryCard() {
   const renderAssociationBadge = () => {
     switch (associationStatus) {
       case 'approved':
-        return <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">Valida</Badge>;
+        return <span className="font-medium text-green-700">Valida</span>;
       case 'requested':
-        return <Badge className="bg-orange-500 text-white border-transparent">Domanda Inviata</Badge>;
+        return <span className="font-medium text-orange-500">Domanda Inviata</span>;
       default:
-        return <Badge variant="destructive">Non Associato</Badge>;
+        return <span className="font-medium text-red-600">Non Associato</span>;
     }
   }
 
@@ -226,11 +226,11 @@ export function MemberSummaryCard() {
               <div className="flex items-center pt-2 gap-2">
                 <span className="text-muted-foreground">Regolamenti:</span>
                 {regulationsAccepted ? (
-                    <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">
+                    <span className="font-medium text-green-700">
                         Accettati il {acceptanceDate}
-                    </Badge>
+                    </span>
                 ) : (
-                    <Badge variant="destructive">Non Accettati</Badge>
+                    <span className="font-medium text-red-600">Non Accettati</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -246,31 +246,31 @@ export function MemberSummaryCard() {
             {/* --- Right Column: Martial Arts Info --- */}
             <div className="grid gap-2">
                <div className="text-muted-foreground">
-                    Socio da: <span className="font-medium text-foreground">{membershipDuration || <Badge variant="destructive">N/D</Badge>}</span>
+                    Socio da: <span className="font-medium text-foreground">{membershipDuration ? membershipDuration : <span className="text-red-600">N/D</span>}</span>
                 </div>
               <div className="text-muted-foreground">
-                  Grado attuale: <Badge variant="destructive">Nessuno</Badge>
+                  Grado attuale: <span className="font-medium text-red-600">Nessuno</span>
               </div>
               <div className="text-muted-foreground">
-                  Prossimo esame: <Badge variant="destructive">Nessuno</Badge>
+                  Prossimo esame: <span className="font-medium text-red-600">Nessuno</span>
               </div>
                <div className="text-muted-foreground">
-                  Abbonamento corsi: <Badge variant="destructive">Non attivo</Badge>
+                  Abbonamento corsi: <span className="font-medium text-red-600">Non attivo</span>
               </div>
               <div className="text-muted-foreground">
-                  Partecipazione stage: <Badge variant="destructive">N/D</Badge>
+                  Partecipazione stage: <span className="font-medium text-red-600">N/D</span>
               </div>
               <div className="text-muted-foreground">
-                  Regolarità allenamenti: <Badge variant="destructive">N/D</Badge>
+                  Regolarità allenamenti: <span className="font-medium text-red-600">N/D</span>
               </div>
               <div className="text-muted-foreground">
-                  Taiso: <Badge variant="destructive">N/D</Badge>
+                  Taiso: <span className="font-medium text-red-600">N/D</span>
               </div>
               <div className="text-muted-foreground">
-                  Kihon: <Badge variant="destructive">N/D</Badge>
+                  Kihon: <span className="font-medium text-red-600">N/D</span>
               </div>
               <div className="text-muted-foreground">
-                  Bunkai/Kumite: <Badge variant="destructive">N/D</Badge>
+                  Bunkai/Kumite: <span className="font-medium text-red-600">N/D</span>
               </div>
             </div>
         </div>
