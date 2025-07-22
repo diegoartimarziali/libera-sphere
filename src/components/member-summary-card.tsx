@@ -46,6 +46,8 @@ export function MemberSummaryCard() {
   const [civicNumber, setCivicNumber] = useState<string | null>(null);
   const [cap, setCap] = useState<string | null>(null);
   const [certificateExpiration, setCertificateExpiration] = useState<Date | null>(null);
+  const [firstAssociationYear, setFirstAssociationYear] = useState<string | null>(null);
+  const [grade, setGrade] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -109,6 +111,9 @@ export function MemberSummaryCard() {
       if (storedCertExp) {
         setCertificateExpiration(new Date(storedCertExp));
       }
+
+      setFirstAssociationYear(localStorage.getItem('firstAssociationYear'));
+      setGrade(localStorage.getItem('grade'));
     }
     const kanji = kanjiList[Math.floor(Math.random() * kanjiList.length)];
     if(kanji) {
@@ -212,7 +217,7 @@ export function MemberSummaryCard() {
             <div className="font-semibold text-2xl">{userName}</div>
             <div className="text-muted-foreground">{codiceFiscale}</div>
             <div className="text-muted-foreground flex justify-center gap-4">
-              <span>Associato dal: </span>
+              <span>Associato dal: {firstAssociationYear}</span>
               <span>Numero tessera: </span>
               <span>Palestra di: {capitalizeFirstLetter(selectedDojo)}</span>
             </div>
@@ -247,7 +252,7 @@ export function MemberSummaryCard() {
             {/* --- Right Column: Martial Arts Info --- */}
             <div className="grid gap-2">
               <div className="text-muted-foreground">
-                  Grado attuale: <span className="font-medium text-red-600">Nessuno</span>
+                  Grado attuale: <span className="font-medium text-foreground">{grade || 'Nessuno'}</span>
               </div>
               <div className="text-muted-foreground">
                   Prossimo esame: <span className="font-medium text-red-600">Nessuno</span>
