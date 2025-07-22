@@ -11,9 +11,10 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useEffect, useState } from "react"
-import { Star } from "lucide-react"
+import { Star, AlertTriangle, CheckCircle } from "lucide-react"
 import { format, differenceInDays, parse, formatDistanceToNowStrict } from "date-fns"
 import { it } from "date-fns/locale"
+import { cn } from "@/lib/utils"
 
 const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'];
 
@@ -132,23 +133,45 @@ export function MemberSummaryCard() {
     }
   }
 
-  const renderCertificateBadge = () => {
+  const renderCertificateStatus = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     if (!certificateExpiration) {
-        return <Badge variant="destructive">Mancante</Badge>;
+        return (
+            <div className="flex items-center text-red-600 font-medium">
+                <AlertTriangle className="mr-2 h-5 w-5" />
+                <span>Attenzione, certificato medico mancante o scaduto.</span>
+            </div>
+        );
     }
 
-    const today = new Date();
-    today.setHours(0,0,0,0);
     const daysUntilExpiration = differenceInDays(certificateExpiration, today);
-    const formattedDate = format(certificateExpiration, "dd/MM/yyyy");
 
     if (daysUntilExpiration < 0) {
-        return <Badge variant="destructive" className="bg-red-500/20 text-red-700 border-red-500/20">Scaduto il {formattedDate}</Badge>;
+        return (
+            <div className="flex items-center text-red-600 font-medium">
+                <AlertTriangle className="mr-2 h-5 w-5" />
+                <span>Attenzione, certificato medico mancante o scaduto.</span>
+            </div>
+        );
     }
-    if (daysUntilExpiration <= 40) {
-        return <Badge variant="outline" className="bg-orange-500/20 text-orange-700 border-orange-500/20">In scadenza il {formattedDate}</Badge>;
+
+    if (daysUntilExpiration <= 30) {
+        return (
+            <div className="flex items-center text-orange-500 font-medium">
+                <AlertTriangle className="mr-2 h-5 w-5" />
+                <span>Attenzione, il tuo certificato è in scadenza, prenota la tua visita.</span>
+            </div>
+        );
     }
-    return <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">Valido fino al {formattedDate}</Badge>;
+
+    return (
+        <div className="flex items-center text-green-600 font-medium">
+            <CheckCircle className="mr-2 h-5 w-5" />
+            <span>Certificato valido.</span>
+        </div>
+    );
   };
 
   const simulateApproval = () => {
@@ -263,7 +286,7 @@ export function MemberSummaryCard() {
                 <span className="text-muted-foreground">
                   Certificato medico:
                 </span>
-                {renderCertificateBadge()}
+                {renderCertificateStatus()}
               </div>
             </div>
             <div className="grid gap-1.5 text-lg flex-1">
@@ -318,3 +341,7 @@ export function MemberSummaryCard() {
     </Card>
   )
 }
+
+    
+
+    
