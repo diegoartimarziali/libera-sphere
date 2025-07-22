@@ -106,8 +106,8 @@ export default function DashboardLayout({
       }
 
       // Redirect logic
-      if (!isRegulationsAccepted && pathname !== '/dashboard/regulations' && pathname !== '/dashboard/aiuto') {
-        router.push('/dashboard/regulations');
+      if (!isRegulationsAccepted && !['/dashboard/liberasphere', '/dashboard/regulations', '/dashboard/aiuto'].includes(pathname)) {
+        router.push('/dashboard/liberasphere');
       }
     }
   }, [isClient, pathname, router]);
@@ -130,6 +130,7 @@ export default function DashboardLayout({
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami" },
     { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti" },
+    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", hideWhenRegulationsAccepted: true },
   ]
   
   const bottomNavItems = [
@@ -150,7 +151,7 @@ export default function DashboardLayout({
     if (item.hideWhenLessonSelected && lessonSelected) {
         return false;
     }
-    if (!regulationsAccepted && !['/dashboard/regulations', '/dashboard/aiuto', '/dashboard'].includes(item.href)) {
+    if (!regulationsAccepted && !['/dashboard/liberasphere', '/dashboard/regulations', '/dashboard/aiuto', '/dashboard'].includes(item.href)) {
         return false;
     }
     return true;
