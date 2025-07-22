@@ -179,7 +179,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            const storedName = localStorage.getItem('userName') || '';
             const storedCodiceFiscale = localStorage.getItem('codiceFiscale') || '';
             const storedBirthDate = localStorage.getItem('birthDate');
             const storedAddress = localStorage.getItem('address') || '';
@@ -193,7 +192,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             const storedParentCf = localStorage.getItem('parentCf') || '';
             const storedParentPhone = localStorage.getItem('parentPhone') || '';
             
-            setName(storedName);
             setCodiceFiscale(storedCodiceFiscale);
             setAddress(storedAddress);
             setComune(storedComune);
@@ -763,5 +761,3 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
-
-    
