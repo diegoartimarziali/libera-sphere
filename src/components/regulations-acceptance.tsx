@@ -92,7 +92,7 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
             </Label>
         </div>
         <div className="w-full flex justify-end">
-            <Button onClick={handleAccept}>Accetto i Termini</Button>
+            <Button onClick={handleAccept} className="bg-green-600 hover:bg-green-700">Accetto i Termini</Button>
         </div>
       </CardFooter>
     </Card>
