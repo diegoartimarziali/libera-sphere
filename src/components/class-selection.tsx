@@ -22,6 +22,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
 import { useState, useMemo, useEffect } from "react"
+import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { Separator } from "./ui/separator"
@@ -100,6 +101,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const [summaryData, setSummaryData] = useState({
         firstLesson: '',
         paymentMethod: '',
+        paymentDate: null as string | null,
         amount: '',
         name: '',
         age: null as number | null,
@@ -165,10 +167,17 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         age--;
                     }
                 }
+                
+                let paymentDate = localStorage.getItem('paymentDate');
+                if (localStorage.getItem('paymentMethod') === 'online' && !paymentDate) {
+                    paymentDate = format(new Date(), "dd/MM/yyyy HH:mm");
+                    localStorage.setItem('paymentDate', paymentDate);
+                }
 
                 setSummaryData({
                     firstLesson: localStorage.getItem('lessonDate') || '',
                     paymentMethod: localStorage.getItem('paymentMethod') || '',
+                    paymentDate: paymentDate,
                     amount: localStorage.getItem('paymentAmount') || '',
                     name: localStorage.getItem('userName') || '',
                     age: age,
@@ -176,7 +185,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     phone: localStorage.getItem('phone') || '',
                     isMinor: localStorage.getItem('isMinor') === 'true',
                     parentName: localStorage.getItem('parentName') || '',
-                    parentPhone: ''
+                    parentPhone: localStorage.getItem('parentPhone') || ''
                 });
             }
         }
@@ -189,6 +198,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
+            setName(localStorage.getItem('userName') || '');
             const storedCodiceFiscale = localStorage.getItem('codiceFiscale') || '';
             const storedBirthDate = localStorage.getItem('birthDate');
             const storedAddress = localStorage.getItem('address') || '';
@@ -271,6 +281,13 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             
             if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
             if (amount) localStorage.setItem('paymentAmount', amount);
+
+            if (paymentMethod === 'cash') {
+                const paymentDate = format(new Date(), "dd/MM/yyyy HH:mm");
+                localStorage.setItem('paymentDate', paymentDate);
+            } else {
+                localStorage.removeItem('paymentDate');
+            }
         }
     };
     
@@ -293,6 +310,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             setSummaryData({
                 firstLesson: localStorage.getItem('lessonDate') || '',
                 paymentMethod: localStorage.getItem('paymentMethod') || '',
+                paymentDate: localStorage.getItem('paymentDate'),
                 amount: localStorage.getItem('paymentAmount') || '',
                 name: localStorage.getItem('userName') || '',
                 age: age,
@@ -300,7 +318,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 phone: localStorage.getItem('phone') || '',
                 isMinor: localStorage.getItem('isMinor') === 'true',
                 parentName: localStorage.getItem('parentName') || '',
-                parentPhone: ''
+                parentPhone: localStorage.getItem('parentPhone') || ''
             });
         }
     };
@@ -657,7 +675,10 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 </CardHeader>
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground items-center">
-                       <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(summaryData.paymentMethod ?? null)}</span></p>
+                       <div>
+                           <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(summaryData.paymentMethod ?? null)}</span></p>
+                           {summaryData.paymentDate && <p><b>Data Pagamento:</b> <span className="text-foreground font-bold">{summaryData.paymentDate}</span></p>}
+                       </div>
                        <div className="flex items-center gap-4">
                             <p><b>Importo:</b> <span className="text-foreground font-bold">€ {summaryData.amount}</span></p>
                        </div>
