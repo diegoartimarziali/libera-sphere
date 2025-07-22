@@ -212,6 +212,7 @@ export function MemberSummaryCard() {
             <div className="font-semibold text-2xl">{userName}</div>
             <div className="text-muted-foreground">{codiceFiscale}</div>
             <div className="text-muted-foreground flex justify-center gap-4">
+              <span>Associato dal: </span>
               <span>Numero tessera: </span>
               <span>Palestra di: {capitalizeFirstLetter(selectedDojo)}</span>
             </div>
