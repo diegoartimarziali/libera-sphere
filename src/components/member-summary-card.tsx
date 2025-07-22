@@ -141,7 +141,7 @@ export function MemberSummaryCard() {
         return (
             <div className="flex items-center text-red-600 font-medium">
                 <AlertTriangle className="mr-2 h-5 w-5" />
-                <span>Attenzione, certificato medico mancante o scaduto.</span>
+                <span>Mancante o Scaduto</span>
             </div>
         );
     }
@@ -152,7 +152,7 @@ export function MemberSummaryCard() {
         return (
             <div className="flex items-center text-red-600 font-medium">
                 <AlertTriangle className="mr-2 h-5 w-5" />
-                <span>Attenzione, certificato medico mancante o scaduto.</span>
+                <span>Scaduto</span>
             </div>
         );
     }
@@ -161,7 +161,7 @@ export function MemberSummaryCard() {
         return (
             <div className="flex items-center text-orange-500 font-medium">
                 <AlertTriangle className="mr-2 h-5 w-5" />
-                <span>Attenzione, il tuo certificato è in scadenza, prenota la tua visita.</span>
+                <span>In Scadenza</span>
             </div>
         );
     }
@@ -169,7 +169,7 @@ export function MemberSummaryCard() {
     return (
         <div className="flex items-center text-green-600 font-medium">
             <CheckCircle className="mr-2 h-5 w-5" />
-            <span>Certificato valido.</span>
+            <span>Valido</span>
         </div>
     );
   };
@@ -207,67 +207,24 @@ export function MemberSummaryCard() {
               {randomKanji ? randomKanji : getInitials(userName)}
             </AvatarFallback>
           </Avatar>
-          <div className="flex flex-1 gap-8">
-            <div className="grid gap-1 text-lg flex-1">
-              <div className="font-semibold text-xl flex items-center gap-2">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 text-lg">
+            {/* --- Left Column: Personal & Admin Info --- */}
+            <div className="grid gap-2">
+              <div className="font-semibold text-2xl flex items-center gap-2">
                 <span>{userName}</span>
-                <div className="flex items-center">
-                  <Star className="w-5 h-5 text-muted-foreground/50" />
-                  <Star className="w-5 h-5 text-muted-foreground/50" />
-                  <Star className="w-5 h-5 text-muted-foreground/50" />
-                  <Star className="w-5 h-5 text-muted-foreground/50" />
-                  <Star className="w-5 h-5 text-muted-foreground/50" />
-                </div>
               </div>
-              <div className="text-foreground text-lg flex items-center gap-2">
-                  <span className="text-muted-foreground">Data prima associazione: </span>
-                  {associationDate ? 
-                    <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">{associationDate}</Badge> : 
-                    <Badge variant="destructive">Non definito</Badge>
-                  }
+              <div className="text-muted-foreground">
+                <span className="font-medium text-foreground">{codiceFiscale || <Badge variant="destructive">Non disponibile</Badge>}</span>
               </div>
-               {associationStatus === 'approved' && membershipDuration && (
-                 <div className="text-muted-foreground text-lg">
-                    Sei socio da {membershipDuration}.
-                 </div>
-               )}
-                <div className="text-muted-foreground text-lg flex items-center gap-2">
-                <span className="text-muted-foreground">C.F.: </span>
-                {codiceFiscale ? (
-                    <span className="font-medium text-foreground">{codiceFiscale}</span>
-                ) : (
-                    <Badge variant="destructive">Non disponibile</Badge>
-                )}
+              <div className="text-muted-foreground">
+                Nato il: <span className="font-medium text-foreground">{birthDateString ? `${birthDateString} a ${birthplace}` : <Badge variant="destructive">Non definito</Badge>}</span>
               </div>
-              <div className="text-muted-foreground text-lg flex items-center gap-2">
-                  <span>Nato il: </span>
-                  {birthDateString ? (
-                    <span className="font-medium text-foreground">{birthDateString} a {birthplace}</span>
-                  ) : (
-                    <Badge variant="destructive">Non definito</Badge>
-                  )}
+              <div className="text-muted-foreground">
+                Residente in: <span className="font-medium text-foreground">{address ? `${address}, ${civicNumber} - ${cap} ${comune} (${provincia})` : <Badge variant="destructive">Non definito</Badge>}</span>
               </div>
-              <div className="text-muted-foreground text-lg flex items-center gap-2">
-                  <span>Residente in: </span>
-                  {address && civicNumber && cap ? (
-                    <span className="font-medium text-foreground">{address}, {civicNumber} - {cap}</span>
-                  ) : (
-                    <Badge variant="destructive">Non definito</Badge>
-                  )}
-              </div>
-              <div className="text-muted-foreground text-lg flex items-center gap-2">
-                  <span>Comune: </span>
-                  {comune ? (
-                    <span className="font-medium text-foreground">{comune} ({provincia})</span>
-                  ) : (
-                    <Badge variant="destructive">Non definito</Badge>
-                  )}
-              </div>
-               
-              <div className="flex items-center pt-2 gap-2 text-lg">
-                <span className="text-muted-foreground">
-                  Regolamento, Statuto e Privacy:
-                </span>
+              
+              <div className="flex items-center pt-2 gap-2">
+                <span className="text-muted-foreground">Regolamenti:</span>
                 {regulationsAccepted ? (
                     <Badge variant="outline" className="bg-green-500/20 text-green-700 border-green-500/20">
                         Accettati il {acceptanceDate}
@@ -276,63 +233,44 @@ export function MemberSummaryCard() {
                     <Badge variant="destructive">Non Accettati</Badge>
                 )}
               </div>
-              <div className="flex items-center pt-2 gap-2 text-lg">
-                <span className="text-muted-foreground">
-                  Associazione stagione: 2024/2025
-                </span>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Associazione:</span>
                 {renderAssociationBadge()}
               </div>
-              <div className="flex items-center pt-2 gap-2 text-lg">
-                <span className="text-muted-foreground">
-                  Certificato medico:
-                </span>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Certificato medico:</span>
                 {renderCertificateStatus()}
               </div>
             </div>
-            <div className="grid gap-1.5 text-lg flex-1">
-              <div className="text-muted-foreground text-lg flex items-center gap-2">
-                  <span>Grado attuale: </span>
-                  <Badge variant="destructive">Nessuno</Badge>
+
+            {/* --- Right Column: Martial Arts Info --- */}
+            <div className="grid gap-2">
+               <div className="text-muted-foreground">
+                    Socio da: <span className="font-medium text-foreground">{membershipDuration || <Badge variant="destructive">N/D</Badge>}</span>
+                </div>
+              <div className="text-muted-foreground">
+                  Grado attuale: <Badge variant="destructive">Nessuno</Badge>
               </div>
-              <div className="text-muted-foreground text-lg flex items-center gap-2">
-                  <span>Prossimo esame: </span>
-                  <Badge variant="destructive">Nessuno</Badge>
+              <div className="text-muted-foreground">
+                  Prossimo esame: <Badge variant="destructive">Nessuno</Badge>
               </div>
-               <div className="flex items-center pt-2 gap-2 text-lg">
-                <span className="text-muted-foreground">
-                  Abbonamento ai corsi:
-                </span>
-                <Badge variant="destructive">Non attivo</Badge>
+               <div className="text-muted-foreground">
+                  Abbonamento corsi: <Badge variant="destructive">Non attivo</Badge>
               </div>
-              <div className="flex items-center pt-2 gap-2 text-lg">
-                <span className="text-muted-foreground">
-                  Partecipazione agli stage:
-                </span>
-                <Badge variant="destructive">N/D</Badge>
+              <div className="text-muted-foreground">
+                  Partecipazione stage: <Badge variant="destructive">N/D</Badge>
               </div>
-              <div className="flex items-center pt-2 gap-2 text-lg">
-                <span className="text-muted-foreground">
-                  Regolarità allenamenti:
-                </span>
-                <Badge variant="destructive">N/D</Badge>
+              <div className="text-muted-foreground">
+                  Regolarità allenamenti: <Badge variant="destructive">N/D</Badge>
               </div>
-              <div className="flex items-center pt-2 gap-2 text-lg">
-                <span className="text-muted-foreground">
-                  Taiso:
-                </span>
-                <Badge variant="destructive">N/D</Badge>
+              <div className="text-muted-foreground">
+                  Taiso: <Badge variant="destructive">N/D</Badge>
               </div>
-              <div className="flex items-center pt-2 gap-2 text-lg">
-                <span className="text-muted-foreground">
-                  Kihon:
-                </span>
-                <Badge variant="destructive">N/D</Badge>
+              <div className="text-muted-foreground">
+                  Kihon: <Badge variant="destructive">N/D</Badge>
               </div>
-              <div className="flex items-center pt-2 gap-2 text-lg">
-                <span className="text-muted-foreground">
-                  Bunkai/Kumite:
-                </span>
-                <Badge variant="destructive">N/D</Badge>
+              <div className="text-muted-foreground">
+                  Bunkai/Kumite: <Badge variant="destructive">N/D</Badge>
               </div>
             </div>
           </div>
