@@ -79,7 +79,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
-    const [amount, setAmount] = useState<string | undefined>("30");
+    const [amount, setAmount] = useState<string | undefined>();
     const [bonusAccepted, setBonusAccepted] = useState(false);
 
     const [secondLessonDay, setSecondLessonDay] = useState<string | undefined>(undefined);
@@ -122,6 +122,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             setAmount("30");
         } else if (paymentMethod === 'cash') {
             setAmount("32");
+        } else {
+            setAmount(undefined);
         }
     }, [paymentMethod]);
 
@@ -419,7 +421,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     
     const isPaymentSectionComplete = !!(paymentMethod);
 
-    const isFormComplete = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted;
+    const isFormComplete = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted && paymentMethod !== 'online';
 
 
   return (
@@ -595,17 +597,24 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                 ))}
                             </SelectContent>
                         </Select>
-                        <div className="space-y-2">
-                           <Label htmlFor="amount">Importo</Label>
-                           <Input id="amount" value={`€ ${amount}`} disabled />
-                        </div>
+                        {paymentMethod && (
+                            <div className="space-y-2">
+                                <Label htmlFor="amount">Importo</Label>
+                                <Input id="amount" value={amount ? `€ ${amount}`: ''} disabled />
+                            </div>
+                        )}
+                        {paymentMethod === 'online' && (
+                            <div className="mt-2">
+                                <Button className="w-full">Procedi con il Pagamento</Button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Bonus */}
                     <div className="space-y-4">
                         <Separator />
                         <div className="flex items-center space-x-2 pt-4">
-                            <Checkbox id="bonus-benvenuto" onCheckedChange={(checked) => setBonusAccepted(!!checked)} checked={bonusAccepted} disabled={!isPaymentSectionComplete} />
+                            <Checkbox id="bonus-benvenuto" onCheckedChange={(checked) => setBonusAccepted(!!checked)} checked={bonusAccepted} disabled={!isPaymentSectionComplete || paymentMethod === 'online'} />
                             <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
                                 <Gift className="h-5 w-5 text-primary" />
                                 Assicurati il tuo Bonus di Benvenuto!
