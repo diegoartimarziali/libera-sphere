@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useToast } from "@/components/ui/use-toast"
 
 const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg 
@@ -26,10 +27,21 @@ const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function AuthPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [name, setName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
 
   const handleLogin = () => {
+    if (loginPassword.length < 6) {
+        toast({
+            title: "Password non valida",
+            description: "La password deve contenere almeno 6 caratteri.",
+            variant: "destructive",
+        });
+        return;
+    }
     // In a real app, you would fetch user data. For this prototype, we'll use a default name.
     if (typeof window !== 'undefined') {
         localStorage.clear(); // Clear previous session
@@ -40,6 +52,14 @@ export default function AuthPage() {
   };
 
   const handleSignup = () => {
+     if (signupPassword.length < 6) {
+        toast({
+            title: "Password non valida",
+            description: "La password deve contenere almeno 6 caratteri.",
+            variant: "destructive",
+        });
+        return;
+    }
     if (typeof window !== 'undefined' && name && signupEmail) {
       localStorage.clear(); // Clear previous session
       localStorage.setItem('userName', name);
@@ -50,7 +70,7 @@ export default function AuthPage() {
       localStorage.setItem('comune', '');
       localStorage.setItem('provincia', '');
     }
-    router.push('/dashboard');
+    router.push('/dashboard/liberasphere');
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,7 +114,14 @@ export default function AuthPage() {
                       Password dimenticata?
                     </Link>
                   </div>
-                  <Input id="password-login" type="password" required />
+                  <Input 
+                    id="password-login" 
+                    type="password" 
+                    required 
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                  />
+                   <p className="text-xs text-muted-foreground">La password deve essere minimo di 6 caratteri/numeri</p>
                 </div>
                 <Button type="submit" className="w-full" onClick={handleLogin}>
                   Accedi
@@ -132,7 +159,14 @@ export default function AuthPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password-signup">Password</Label>
-                  <Input id="password-signup" type="password" required />
+                  <Input 
+                    id="password-signup" 
+                    type="password" 
+                    required 
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">La password deve essere minimo di 6 caratteri/numeri</p>
                 </div>
                 <Button type="submit" className="w-full" onClick={handleSignup}>
                   Registrati
