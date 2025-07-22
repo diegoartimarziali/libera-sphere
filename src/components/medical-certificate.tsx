@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { HeartPulse, Upload, AlertTriangle, FileCheck, FileX, Eye, Download } from "lucide-react"
+import { HeartPulse, Upload, AlertTriangle, FileCheck, FileX, Eye, Download, CheckCircle } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { format, differenceInDays } from "date-fns"
 import { it } from "date-fns/locale"
@@ -142,6 +142,47 @@ export function MedicalCertificate() {
     setYear(undefined);
   }
 
+  const renderCertificateStatus = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (!expirationDate) {
+        return (
+            <div className="flex flex-col items-center text-center text-red-600 font-medium">
+                <AlertTriangle className="mr-2 h-8 w-8 mb-2" />
+                <span>Attenzione, certificato medico mancante o scaduto.</span>
+            </div>
+        );
+    }
+
+    const daysUntilExpiration = differenceInDays(expirationDate, today);
+
+    if (daysUntilExpiration < 0) {
+        return (
+             <div className="flex flex-col items-center text-center text-red-600 font-medium">
+                <AlertTriangle className="mr-2 h-8 w-8 mb-2" />
+                <span>Attenzione, certificato medico mancante o scaduto.</span>
+            </div>
+        );
+    }
+
+    if (daysUntilExpiration <= 30) {
+        return (
+            <div className="flex flex-col items-center text-center text-orange-500 font-medium">
+                <AlertTriangle className="mr-2 h-8 w-8 mb-2" />
+                <span>Attenzione, il tuo certificato è in scadenza, prenota la tua visita.</span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col items-center text-center text-green-600 font-medium">
+            <CheckCircle className="mr-2 h-8 w-8 mb-2" />
+            <span>Certificato valido.</span>
+        </div>
+    );
+  };
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -153,9 +194,8 @@ export function MedicalCertificate() {
       <CardContent className="flex flex-grow flex-col items-center justify-center text-center gap-4 p-8">
         {isCertificateUploaded ? (
           <div className="w-full max-w-sm flex flex-col items-center">
-            <HeartPulse className="w-16 h-16 text-green-500" />
-            <p className="font-semibold text-lg">Certificato Registrato</p>
-            <p className="text-muted-foreground text-sm">
+            {renderCertificateStatus()}
+            <p className="text-muted-foreground text-sm mt-4">
               {selectedFile?.name}
             </p>
             <p className="text-muted-foreground text-sm">
@@ -243,3 +283,5 @@ export function MedicalCertificate() {
     </Card>
   )
 }
+
+    
