@@ -183,7 +183,6 @@ export function MedicalCertificate() {
           </div>
         ) : (
           <div className="w-full max-w-sm flex flex-col items-center">
-            <HeartPulse className="w-16 h-16 text-primary" />
             
             <p className="font-semibold text-lg mt-4">
               Carica Certificato Medico
@@ -244,5 +243,3 @@ export function MedicalCertificate() {
     </Card>
   )
 }
-
-    
