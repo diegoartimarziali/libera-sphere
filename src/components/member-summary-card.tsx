@@ -240,6 +240,10 @@ export function MemberSummaryCard() {
                     <span className="font-medium text-red-600">Non Accettati</span>
                 )}
               </div>
+               <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Assicurato:</span>
+                {/* Placeholder for insurance status */}
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Associazione:</span>
                 {renderAssociationBadge()}
