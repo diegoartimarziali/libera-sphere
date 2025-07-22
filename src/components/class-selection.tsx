@@ -293,6 +293,14 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         }
     };
 
+    const handleOnlinePayment = () => {
+        if (typeof window !== 'undefined') {
+            saveDataToLocalStorage();
+            // ATTENZIONE: Sostituisci questo URL con il tuo link di pagamento SumUp reale.
+            window.location.href = 'https://pay.sumup.io/b2c/QGV4G74B';
+        }
+    };
+
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         const capitalized = value
@@ -605,7 +613,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         )}
                         {paymentMethod === 'online' && (
                             <div className="mt-2">
-                                <Button className="w-full">Procedi con il Pagamento</Button>
+                                <Button onClick={handleOnlinePayment} className="w-full">Procedi con il Pagamento</Button>
                             </div>
                         )}
                     </div>
