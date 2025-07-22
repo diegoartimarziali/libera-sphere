@@ -11,12 +11,13 @@ import {
 } from "@/components/ui/card"
 import { HeartPulse, Upload, AlertTriangle, FileCheck, FileX, Eye, Download } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
-import { format } from "date-fns"
+import { format, differenceInDays } from "date-fns"
 import { it } from "date-fns/locale"
 import { Label } from "./ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
     value: String(i + 1),
@@ -39,6 +40,7 @@ export function MedicalCertificate() {
   const [day, setDay] = useState<string | undefined>(undefined);
   const [month, setMonth] = useState<string | undefined>(undefined);
   const [year, setYear] = useState<string | undefined>(undefined);
+  const [dateMessage, setDateMessage] = useState<{type: 'error' | 'warning', text: string} | null>(null);
   
   useEffect(() => {
     // Load existing certificate data from localStorage
@@ -59,10 +61,23 @@ export function MedicalCertificate() {
   }, []);
 
   useEffect(() => {
+    setDateMessage(null); // Reset message on date change
     if (day && month && year) {
         const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         if (date.getFullYear() === parseInt(year) && date.getMonth() === parseInt(month) - 1 && date.getDate() === parseInt(day)) {
             setExpirationDate(date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Compare date part only
+            const diffInDays = differenceInDays(date, today);
+
+            if (diffInDays <= 5) {
+                setDateMessage({ type: 'error', text: 'Certificato medico scaduto, o scadente a breve, non è possibile caricarlo.' });
+            } else if (diffInDays <= 15) {
+                setDateMessage({ type: 'warning', text: 'Attenzione, il tuo certificato è in scadenza, se non lo hai già fatto prenota subito la visita.' });
+            } else {
+                setDateMessage(null);
+            }
+
         } else {
             setExpirationDate(undefined);
         }
@@ -168,10 +183,10 @@ export function MedicalCertificate() {
           </div>
         ) : (
           <div className="w-full max-w-sm flex flex-col items-center">
-            <AlertTriangle className="w-16 h-16 text-destructive" />
+            <HeartPulse className="w-16 h-16 text-primary" />
             
             <p className="font-semibold text-lg mt-4">
-              Certificato Mancante
+              Carica Certificato Medico
             </p>
             
             <p className="text-muted-foreground text-sm mt-2">
@@ -184,7 +199,6 @@ export function MedicalCertificate() {
               onChange={handleFileChange}
               className="hidden"
               accept="application/pdf,image/jpeg,image/png"
-              disabled={!expirationDate}
             />
             
             <div className="space-y-2 w-full pt-4 text-left">
@@ -211,7 +225,17 @@ export function MedicalCertificate() {
                 </div>
             </div>
 
-            <Button className="mt-4 w-full" onClick={handleButtonClick} disabled={!expirationDate}>
+            {dateMessage && (
+                <Alert variant={dateMessage.type === 'error' ? 'destructive' : 'default'} className={dateMessage.type === 'warning' ? 'mt-4 border-orange-400 text-orange-700 [&>svg]:text-orange-700' : 'mt-4'}>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{dateMessage.type === 'error' ? 'Errore' : 'Attenzione'}</AlertTitle>
+                    <AlertDescription>
+                        {dateMessage.text}
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            <Button className="mt-4 w-full" onClick={handleButtonClick} disabled={!expirationDate || dateMessage?.type === 'error'}>
                 <Upload className="mr-2 h-4 w-4" /> Seleziona un file
             </Button>
           </div>
@@ -220,3 +244,5 @@ export function MedicalCertificate() {
     </Card>
   )
 }
+
+    
