@@ -218,6 +218,7 @@ export function MemberSummaryCard() {
             <div className="text-muted-foreground">{codiceFiscale}</div>
             <div className="text-muted-foreground flex justify-center gap-4">
               <span>Associato dal: {firstAssociationYear}</span>
+              <span>Grado attuale: {grade || 'Nessuno'}</span>
               <span>Numero tessera: </span>
               <span>Palestra di: {capitalizeFirstLetter(selectedDojo)}</span>
             </div>
@@ -251,9 +252,6 @@ export function MemberSummaryCard() {
 
             {/* --- Right Column: Martial Arts Info --- */}
             <div className="grid gap-2">
-              <div className="text-muted-foreground">
-                  Grado attuale: <span className="font-medium text-foreground">{grade || 'Nessuno'}</span>
-              </div>
               <div className="text-muted-foreground">
                   Prossimo esame: <span className="font-medium text-red-600">Nessuno</span>
               </div>
