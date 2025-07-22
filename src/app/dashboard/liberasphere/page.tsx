@@ -13,7 +13,7 @@ export default function LiberaSpherePage() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>LiberaSphere</CardTitle>
+                <CardTitle className="bg-stone-800 text-amber-400 p-6 -mt-6 -mx-6 rounded-t-lg mb-6">LiberaSphere</CardTitle>
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground">
