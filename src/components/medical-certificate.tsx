@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { HeartPulse, Upload, AlertTriangle, FileCheck, FileX, Eye, Download, CheckCircle } from "lucide-react"
+import { Upload, AlertTriangle, CheckCircle } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { format, differenceInDays } from "date-fns"
 import { it } from "date-fns/locale"
@@ -120,7 +120,7 @@ export function MedicalCertificate() {
         description: `Il file "${file.name}" è stato registrato con successo.`,
       });
       // A small delay to allow the user to see the toast before navigation
-      setTimeout(() => router.push('/dashboard'), 1000);
+      setTimeout(() => window.location.reload(), 1000);
     }
   }
 
@@ -146,7 +146,10 @@ export function MedicalCertificate() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (!expirationDate) {
+    const certDateStr = typeof window !== 'undefined' ? localStorage.getItem('medicalCertificateExpirationDate') : null;
+    const certDate = certDateStr ? new Date(certDateStr) : null;
+
+    if (!certDate) {
         return (
             <div className="flex flex-col items-center text-center text-red-600 font-medium">
                 <AlertTriangle className="mr-2 h-8 w-8 mb-2" />
@@ -155,7 +158,7 @@ export function MedicalCertificate() {
         );
     }
 
-    const daysUntilExpiration = differenceInDays(expirationDate, today);
+    const daysUntilExpiration = differenceInDays(certDate, today);
 
     if (daysUntilExpiration < 0) {
         return (
@@ -192,94 +195,81 @@ export function MedicalCertificate() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-grow flex-col items-center justify-center text-center gap-4 p-8">
-        {isCertificateUploaded ? (
-          <div className="w-full max-w-sm flex flex-col items-center">
+        <div className="w-full max-w-sm flex flex-col items-center">
             {renderCertificateStatus()}
-            <p className="text-muted-foreground text-sm mt-4">
-              {selectedFile?.name}
-            </p>
-            <p className="text-muted-foreground text-sm">
-              {expirationDate ? `Scade il: ${format(expirationDate, "PPP", { locale: it })}` : "Data di scadenza non impostata"}
-            </p>
-            <div className="flex gap-2 mt-4">
-              {fileUrl && (
-                <>
-                  <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline">
-                      <Eye className="mr-2 h-4 w-4" /> Visualizza
-                    </Button>
-                  </a>
-                  <a href={fileUrl} download={selectedFile?.name}>
-                    <Button variant="outline">
-                      <Download className="mr-2 h-4 w-4" /> Scarica
-                    </Button>
-                  </a>
-                </>
-              )}
-            </div>
-            <Button variant="secondary" className="mt-4" onClick={handleNewUpload}>
-              <Upload className="mr-2 h-4 w-4" /> Carica Nuovo
-            </Button>
-          </div>
-        ) : (
-          <div className="w-full max-w-sm flex flex-col items-center">
-            
-            <p className="font-semibold text-lg mt-4">
-              Carica Certificato Medico
-            </p>
-            
-            <p className="text-muted-foreground text-sm mt-2">
-              Seleziona prima la data di scadenza, poi carica il file.
-            </p>
-            
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-              accept="application/pdf,image/jpeg,image/png"
-            />
-            
-            <div className="space-y-2 w-full pt-4 text-left">
-                <Label>Data di Scadenza</Label>
-                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
-                    <Select onValueChange={setDay} value={day}>
-                        <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
-                        <SelectContent>
-                            {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <Select onValueChange={setMonth} value={month}>
-                        <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
-                        <SelectContent>
-                            {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <Select onValueChange={setYear} value={year}>
-                        <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
-                        <SelectContent>
-                            {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+            {!isCertificateUploaded ? (
+            <>
+                <p className="font-semibold text-lg mt-4">
+                Carica Certificato Medico
+                </p>
+                
+                <p className="text-muted-foreground text-sm mt-2">
+                Seleziona prima la data di scadenza, poi carica il file.
+                </p>
+                
+                <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+                accept="application/pdf,image/jpeg,image/png"
+                />
+                
+                <div className="space-y-2 w-full pt-4 text-left">
+                    <Label>Data di Scadenza</Label>
+                    <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
+                        <Select onValueChange={setDay} value={day}>
+                            <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                            <SelectContent>
+                                {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select onValueChange={setMonth} value={month}>
+                            <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                            <SelectContent>
+                                {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select onValueChange={setYear} value={year}>
+                            <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                            <SelectContent>
+                                {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
-            </div>
 
-            {dateMessage && (
-                <Alert variant={dateMessage.type === 'error' ? 'destructive' : 'default'} className={dateMessage.type === 'warning' ? 'mt-4 border-orange-400 text-orange-700 [&>svg]:text-orange-700' : 'mt-4'}>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>{dateMessage.type === 'error' ? 'Errore' : 'Attenzione'}</AlertTitle>
-                    <AlertDescription>
-                        {dateMessage.text}
-                    </AlertDescription>
-                </Alert>
+                {dateMessage && (
+                    <Alert variant={dateMessage.type === 'error' ? 'destructive' : 'default'} className={dateMessage.type === 'warning' ? 'mt-4 border-orange-400 text-orange-700 [&>svg]:text-orange-700' : 'mt-4'}>
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>{dateMessage.type === 'error' ? 'Errore' : 'Attenzione'}</AlertTitle>
+                        <AlertDescription>
+                            {dateMessage.text}
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                <Button className="mt-4 w-full" onClick={handleButtonClick} disabled={!expirationDate || dateMessage?.type === 'error'}>
+                    <Upload className="mr-2 h-4 w-4" /> Seleziona un file
+                </Button>
+            </>
+            ) : (
+                <>
+                    <p className="text-muted-foreground text-sm mt-4">
+                        {selectedFile?.name}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                        {expirationDate ? `Scade il: ${format(expirationDate, "PPP", { locale: it })}` : "Data di scadenza non impostata"}
+                    </p>
+                    <Button variant="secondary" className="mt-4" onClick={handleNewUpload}>
+                        <Upload className="mr-2 h-4 w-4" /> Carica Nuovo
+                    </Button>
+                </>
             )}
-
-            <Button className="mt-4 w-full" onClick={handleButtonClick} disabled={!expirationDate || dateMessage?.type === 'error'}>
-                <Upload className="mr-2 h-4 w-4" /> Seleziona un file
-            </Button>
-          </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   )
 }
+
+    
