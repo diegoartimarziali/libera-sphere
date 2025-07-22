@@ -230,14 +230,12 @@ export function MedicalCertificate() {
                 </div>
             </div>
 
-            {!selectedFile && (
+            {!selectedFile ? (
                 <Button className="mt-4 w-full" onClick={handleButtonClick}>
                     <Upload className="mr-2 h-4 w-4" /> Seleziona un file
                 </Button>
-            )}
-
-            {selectedFile && (
-                 <Button className="mt-4 w-full" onClick={handleRegisterCertificate} disabled={!expirationDate || !selectedFile}>
+            ) : (
+                 <Button className="mt-4 w-full" onClick={handleRegisterCertificate} disabled={!expirationDate}>
                     <Upload className="mr-2 h-4 w-4" /> Carica il Certificato
                 </Button>
             )}
