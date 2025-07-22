@@ -122,6 +122,7 @@ export default function DashboardLayout({
 
   const allNavItems = [
     { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto" },
+    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", hideWhenRegulationsAccepted: true },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", hideWhenRegulationsAccepted: true },
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", hideWhenLessonSelected: true },
@@ -130,7 +131,6 @@ export default function DashboardLayout({
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami" },
     { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti" },
-    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere" },
   ]
   
   const bottomNavItems = [

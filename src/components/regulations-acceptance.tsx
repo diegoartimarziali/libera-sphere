@@ -36,26 +36,31 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
             if (typeof window !== 'undefined') {
                 localStorage.setItem('regulationsAccepted', 'true');
                 localStorage.setItem('regulationsAcceptanceDate', acceptanceDate);
-            }
-            
-            if (setRegulationsAccepted) {
-                setRegulationsAccepted(true);
-            }
+                
+                if (setRegulationsAccepted) {
+                    setRegulationsAccepted(true);
+                }
 
-            toast({
-                title: "Regolamenti Accettati",
-                description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
-            });
-            
-            // Force a reload to ensure layout state is updated
-            window.location.href = '/dashboard';
+                toast({
+                    title: "Regolamenti Accettati",
+                    description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
+                });
 
-        } else {
-             toast({
-                title: "Attenzione",
-                description: "Devi dichiarare di aver letto i documenti.",
-                variant: "destructive"
-            });
+                const isFormerMember = localStorage.getItem('isFormerMember');
+
+                if (isFormerMember === 'yes') {
+                    router.push('/dashboard/associates');
+                } else {
+                    router.push('/dashboard/class-selection');
+                }
+
+            } else {
+                 toast({
+                    title: "Attenzione",
+                    description: "Devi dichiarare di aver letto i documenti.",
+                    variant: "destructive"
+                });
+            }
         }
     }
 
@@ -92,7 +97,7 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
             </Label>
         </div>
         <div className="w-full flex justify-end">
-            <Button onClick={handleAccept} className="bg-green-600 hover:bg-green-700">Accetto i Termini</Button>
+            <Button onClick={handleAccept} disabled={!accepted} className="bg-green-600 hover:bg-green-700">Accetto i Termini</Button>
         </div>
       </CardFooter>
     </Card>
