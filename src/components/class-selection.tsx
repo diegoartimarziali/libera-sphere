@@ -79,7 +79,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
-    const [amount, setAmount] = useState<string | undefined>();
+    const [amount, setAmount] = useState<string | undefined>("30");
     const [bonusAccepted, setBonusAccepted] = useState(false);
 
     const [secondLessonDay, setSecondLessonDay] = useState<string | undefined>(undefined);
@@ -106,7 +106,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         parentPhone: ''
     });
 
-    const baseAmount = 30;
 
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
     
@@ -218,18 +217,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             setBirthDate(undefined);
         }
     }, [day, month, year]);
-    
-     useEffect(() => {
-        if (paymentMethod) {
-            if (paymentMethod === 'cash') {
-                setAmount(String(baseAmount + 2));
-            } else {
-                setAmount(String(baseAmount));
-            }
-        } else {
-            setAmount(undefined);
-        }
-    }, [paymentMethod]);
     
     const saveDataToLocalStorage = () => {
         if (typeof window !== 'undefined') {
@@ -602,7 +589,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         </Select>
                         <div className="space-y-2">
                            <Label htmlFor="amount">Importo</Label>
-                           <Input id="amount" value={amount ? `€ ${amount}` : 'L\'importo verrà calcolato in base al metodo di pagamento'} disabled />
+                           <Input id="amount" value={`€ ${amount}`} disabled />
                         </div>
                     </div>
 
@@ -749,4 +736,5 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
   )
 }
 
+    
     
