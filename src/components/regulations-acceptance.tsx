@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -86,7 +85,7 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
       </CardContent>
       <CardFooter className="flex-col items-start gap-4">
         <div className="flex items-center space-x-2">
-            <Checkbox id="terms" onCheckedChange={(checked) => setAccepted(!!checked)} />
+            <Checkbox id="terms" variant="green" onCheckedChange={(checked) => setAccepted(!!checked)} />
             <Label htmlFor="terms" className="text-sm font-normal text-muted-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                 Dichiaro di aver letto lo Statuto, Il documento sulla Privacy ed il Regolamento.
             </Label>
