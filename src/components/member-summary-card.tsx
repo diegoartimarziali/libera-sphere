@@ -216,7 +216,7 @@ export function MemberSummaryCard() {
           <div className="text-center">
             <div className="font-semibold text-2xl">{userName}</div>
             <div className="text-muted-foreground">{codiceFiscale}</div>
-            <div className="text-foreground flex justify-center gap-4">
+            <div className="text-foreground flex justify-center gap-4 text-black">
               <span>Associato dal: {firstAssociationYear}</span>
               <span>Grado attuale: {grade || 'Nessuno'}</span>
               <span>Numero tessera: </span>
@@ -248,15 +248,16 @@ export function MemberSummaryCard() {
                 <span className="text-muted-foreground">Certificato medico:</span>
                 {renderCertificateStatus()}
               </div>
+               <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Abbonamento ai corsi:</span>
+                <span className="font-medium text-red-600">Non attivo</span>
+              </div>
             </div>
 
             {/* --- Right Column: Martial Arts Info --- */}
             <div className="grid gap-2">
               <div className="text-muted-foreground">
                   Prossimo esame: <span className="font-medium text-red-600">Nessuno</span>
-              </div>
-               <div className="text-muted-foreground">
-                  Abbonamento corsi: <span className="font-medium text-red-600">Non attivo</span>
               </div>
               <div className="text-muted-foreground">
                   Partecipazione stage: <span className="font-medium text-red-600">N/D</span>
