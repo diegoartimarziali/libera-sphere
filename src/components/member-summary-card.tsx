@@ -15,6 +15,7 @@ import { Star, AlertTriangle, CheckCircle } from "lucide-react"
 import { format, differenceInDays, parse, formatDistanceToNowStrict } from "date-fns"
 import { it } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { Separator } from "./ui/separator"
 
 const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'];
 
@@ -201,21 +202,23 @@ export function MemberSummaryCard() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-start space-x-6">
+        <div className="flex flex-col items-center space-y-4">
           <Avatar className="h-24 w-24">
             <AvatarFallback className="text-5xl font-serif bg-primary/10 text-primary">
               {randomKanji ? randomKanji : getInitials(userName)}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 text-lg">
+          <div className="text-center">
+            <div className="font-semibold text-2xl">{userName}</div>
+            <div className="text-muted-foreground">{codiceFiscale}</div>
+          </div>
+        </div>
+        
+        <Separator className="my-6" />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-lg">
             {/* --- Left Column: Personal & Admin Info --- */}
             <div className="grid gap-2">
-              <div className="font-semibold text-2xl flex items-center gap-2">
-                <span>{userName}</span>
-              </div>
-              <div className="text-muted-foreground">
-                <span className="font-medium text-foreground">{codiceFiscale}</span>
-              </div>
               <div className="text-muted-foreground">
                 Nato il: <span className="font-medium text-foreground">{birthDateString ? `${birthDateString} a ${birthplace}` : <Badge variant="destructive">Non definito</Badge>}</span>
               </div>
@@ -273,7 +276,6 @@ export function MemberSummaryCard() {
                   Bunkai/Kumite: <Badge variant="destructive">N/D</Badge>
               </div>
             </div>
-          </div>
         </div>
       </CardContent>
     </Card>
