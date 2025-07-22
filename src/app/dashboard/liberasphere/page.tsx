@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 2016 + 1 }, (_, i) => String(currentYear - i));
@@ -80,6 +82,26 @@ export default function LiberaSpherePage() {
                         </div>
                     </RadioGroup>
                 </div>
+
+                {isFormerMember === 'no' && (
+                    <Alert className="mt-4">
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Prossimo passo</AlertTitle>
+                        <AlertDescription>
+                            Procederai con l'iscrizione per le lezioni di selezione.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {isFormerMember === 'yes' && (
+                     <Alert className="mt-4" variant="default">
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Prossimo passo</AlertTitle>
+                        <AlertDescription>
+                            Procederai con la domanda di associazione per la nuova stagione.
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 {isFormerMember === 'yes' && (
                     <div className="grid md:grid-cols-2 gap-4 mt-6 animate-in fade-in-50 duration-500">
