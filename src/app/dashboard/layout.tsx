@@ -15,6 +15,7 @@ import {
   FileText,
   LogOut,
   Landmark,
+  HelpCircle,
 } from "lucide-react"
 
 import {
@@ -105,7 +106,7 @@ export default function DashboardLayout({
       }
 
       // Redirect logic
-      if (!isRegulationsAccepted && pathname !== '/dashboard/regulations' && pathname !== '/dashboard/instructions') {
+      if (!isRegulationsAccepted && pathname !== '/dashboard/regulations' && pathname !== '/dashboard/aiuto') {
         router.push('/dashboard/regulations');
       }
     }
@@ -120,7 +121,7 @@ export default function DashboardLayout({
   };
 
   const allNavItems = [
-    { href: "/dashboard/instructions", icon: Info, label: "Istruzioni", hideWhenAssociated: true },
+    { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto" },
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
     { href: "/dashboard/regulations", icon: FileText, label: "Prima di cominciare", hideWhenRegulationsAccepted: true },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", hideWhenLessonSelected: true },
@@ -149,7 +150,7 @@ export default function DashboardLayout({
     if (item.hideWhenLessonSelected && lessonSelected) {
         return false;
     }
-    if (!regulationsAccepted && !['/dashboard/regulations', '/dashboard/instructions', '/dashboard'].includes(item.href)) {
+    if (!regulationsAccepted && !['/dashboard/regulations', '/dashboard/aiuto', '/dashboard'].includes(item.href)) {
         return false;
     }
     return true;
@@ -261,3 +262,5 @@ export default function DashboardLayout({
     </div>
   )
 }
+
+    
