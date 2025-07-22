@@ -209,19 +209,19 @@ export function MedicalCertificate() {
             <div className="space-y-2 w-full pt-4 text-left">
                 <Label>Data di Scadenza</Label>
                 <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
-                    <Select onValueChange={setDay} value={day}>
+                    <Select onValueChange={setDay} value={day} disabled={!selectedFile}>
                         <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
                         <SelectContent>
                             {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                    <Select onValueChange={setMonth} value={month}>
+                    <Select onValueChange={setMonth} value={month} disabled={!selectedFile}>
                         <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
                         <SelectContent>
                             {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                    <Select onValueChange={setYear} value={year}>
+                    <Select onValueChange={setYear} value={year} disabled={!selectedFile}>
                         <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
                         <SelectContent>
                             {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -237,7 +237,7 @@ export function MedicalCertificate() {
             )}
 
             {selectedFile && (
-                 <Button className="mt-4 w-full" onClick={handleRegisterCertificate} disabled={!expirationDate}>
+                 <Button className="mt-4 w-full" onClick={handleRegisterCertificate} disabled={!expirationDate || !selectedFile}>
                     <Upload className="mr-2 h-4 w-4" /> Carica il Certificato
                 </Button>
             )}
