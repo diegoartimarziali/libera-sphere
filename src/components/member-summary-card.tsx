@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -11,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useEffect, useState } from "react"
-import { Star, AlertTriangle, CheckCircle } from "lucide-react"
+import { Star, AlertTriangle, CheckCircle, HeartPulse } from "lucide-react"
 import { format, differenceInDays, parse, formatDistanceToNowStrict } from "date-fns"
 import { it } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -341,3 +340,5 @@ export function MemberSummaryCard() {
     </Card>
   )
 }
+
+    
