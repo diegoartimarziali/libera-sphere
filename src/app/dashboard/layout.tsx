@@ -124,7 +124,6 @@ export default function DashboardLayout({
     { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto" },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", hideWhenRegulationsAccepted: true },
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
-    { href: "/dashboard/liberasphere", icon: Info, label: "LiberaSphere" },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", hideWhenLessonSelected: true },
     { href: "/dashboard/associates", icon: Users, label: "Associati", hideWhenAssociationRequested: true },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico" },
