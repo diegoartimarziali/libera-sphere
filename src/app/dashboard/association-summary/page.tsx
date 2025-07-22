@@ -102,7 +102,7 @@ export default function AssociationSummaryPage() {
                     )}
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={() => router.push('/dashboard/payments')} className="bg-blue-600 hover:bg-blue-700">Procedi al Pagamento</Button>
+                    <Button className="bg-blue-600 hover:bg-blue-700">Procedi al Pagamento</Button>
                 </CardFooter>
             </Card>
         </div>
