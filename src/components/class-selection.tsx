@@ -107,15 +107,13 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         parentPhone: ''
     });
 
-    const [onlinePaymentInitiated, setOnlinePaymentInitiated] = useState(false);
-
-
     const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
     
     const translatePaymentMethodLocal = (method: string | null) => {
         if (!method) return 'Non specificato';
         switch (method) {
             case 'cash': return 'Contanti o Bancomat in Palestra';
+            case 'online': return 'Carta di Credito on line';
             default: return method;
         }
     }
@@ -129,13 +127,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             setAmount(undefined);
         }
     }, [paymentMethod]);
-
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const paymentInitiated = localStorage.getItem('onlinePaymentInitiated') === 'true';
-            setOnlinePaymentInitiated(paymentInitiated);
-        }
-    }, []);
 
     useEffect(() => {
         setCurrentStep(initialStep);
@@ -306,21 +297,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const handleOnlinePayment = () => {
         if (typeof window !== 'undefined') {
             saveDataToLocalStorage();
-            localStorage.setItem('onlinePaymentInitiated', 'true');
-            window.location.href = 'https://pay.sumup.com/b2c/Q25VI0NJ';
+            router.push('/dashboard/payment-gateway');
         }
     };
-    
-    const handleConfirmOnlinePayment = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('isSelectionPassportComplete', 'true');
-            localStorage.removeItem('onlinePaymentInitiated');
-            if(setLessonSelected) setLessonSelected(true);
-            router.push('/dashboard/class-selection');
-            // A small delay to allow router to push before reload
-            setTimeout(() => window.location.reload(), 100);
-        }
-    }
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -450,33 +429,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     
     const isPaymentSectionComplete = !!(paymentMethod);
 
-    const isFormComplete = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted && paymentMethod !== 'online';
+    const isFormCompleteForCash = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted && paymentMethod === 'cash';
     
-    if (onlinePaymentInitiated) {
-        return (
-            <Card>
-                <CardHeader>
-                    <CardTitle>Conferma Pagamento</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>Hai completato il pagamento?</AlertTitle>
-                        <AlertDescription>
-                            Una volta che hai terminato la procedura di pagamento su SumUp, clicca sul pulsante qui sotto per confermare e completare la tua iscrizione al Passaporto Selezioni.
-                        </AlertDescription>
-                    </Alert>
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleConfirmOnlinePayment} className="w-full">
-                        Ho completato il pagamento, procedi
-                    </Button>
-                </CardFooter>
-            </Card>
-        )
-    }
-
-  return (
+    return (
     <>
         {currentStep === 1 && (
             <Card>
@@ -657,7 +612,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         )}
                         {paymentMethod === 'online' && (
                             <div className="mt-2">
-                                <Button onClick={handleOnlinePayment} className="w-full">Procedi con il Pagamento</Button>
+                                <Button onClick={handleOnlinePayment} className="w-full" disabled={!isContactInfoComplete}>Procedi con il Pagamento</Button>
                             </div>
                         )}
                     </div>
@@ -675,7 +630,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                    <Button onClick={handleNextStep} disabled={!isFormComplete}>
+                    <Button onClick={handleNextStep} disabled={!isFormCompleteForCash}>
                         Avanti
                     </Button>
                 </CardFooter>
