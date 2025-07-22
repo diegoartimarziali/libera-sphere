@@ -53,6 +53,15 @@ export default function AuthPage() {
     router.push('/dashboard');
   };
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const capitalized = value
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+    setName(capitalized);
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md mx-auto">
@@ -107,7 +116,7 @@ export default function AuthPage() {
                     placeholder="Mario Rossi" 
                     required 
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={handleNameChange}
                   />
                 </div>
                 <div className="space-y-2">
