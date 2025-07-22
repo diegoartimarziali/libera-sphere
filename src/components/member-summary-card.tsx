@@ -246,9 +246,6 @@ export function MemberSummaryCard() {
 
             {/* --- Right Column: Martial Arts Info --- */}
             <div className="grid gap-2">
-               <div className="text-muted-foreground">
-                    Socio da: <span className="font-medium text-foreground">{membershipDuration ? membershipDuration : <span className="text-red-600">N/D</span>}</span>
-                </div>
               <div className="text-muted-foreground">
                   Grado attuale: <span className="font-medium text-red-600">Nessuno</span>
               </div>
