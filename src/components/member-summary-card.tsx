@@ -223,13 +223,6 @@ export function MemberSummaryCard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-lg">
             {/* --- Left Column: Personal & Admin Info --- */}
             <div className="grid gap-2">
-              <div className="text-muted-foreground">
-                Nato il: <span className="font-medium text-foreground">{birthDateString ? `${birthDateString} a ${birthplace}` : <Badge variant="destructive">Non definito</Badge>}</span>
-              </div>
-              <div className="text-muted-foreground">
-                Residente in: <span className="font-medium text-foreground">{address ? `${address}, ${civicNumber} - ${cap} ${comune} (${provincia})` : <Badge variant="destructive">Non definito</Badge>}</span>
-              </div>
-              
               <div className="flex items-center pt-2 gap-2">
                 <span className="text-muted-foreground">Regolamenti:</span>
                 {regulationsAccepted ? (
