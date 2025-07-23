@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -504,6 +505,10 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         setAssociationChoice(undefined); // Reset the choice
     }
 
+    const handleAssociateClick = () => {
+        router.push('/dashboard/associates');
+    };
+
     // Sequential validation state
     const isCourseSectionComplete = !!(martialArt && dojo && lessonDate);
     const isPersonalInfoComplete = !!(name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia);
@@ -891,7 +896,13 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     />
                                     <Label htmlFor="associate-no">NO</Label>
                                 </div>
-                                <Button disabled={!associationEnabled || associationChoice !== 'yes'} className="bg-green-600 hover:bg-green-700 text-white">Associati</Button>
+                                <Button 
+                                    onClick={handleAssociateClick}
+                                    disabled={!associationEnabled || associationChoice !== 'yes'} 
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                    Associati
+                                </Button>
                             </div>
                         </div>
                     </CardFooter>
