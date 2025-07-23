@@ -76,6 +76,29 @@ export function AssociateForm() {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setRegistrationEmail(localStorage.getItem('registrationEmail'));
+            
+            // Pre-fill form with data from localStorage
+            setName(localStorage.getItem('userName') || "");
+            setCodiceFiscale(localStorage.getItem('codiceFiscale') || "");
+            const storedBirthDate = localStorage.getItem('birthDate');
+            if (storedBirthDate) {
+                const parts = storedBirthDate.split('/');
+                if (parts.length === 3) {
+                    setDay(parts[0]);
+                    setMonth(parts[1]);
+                    setYear(parts[2]);
+                }
+            }
+            setBirthplace(localStorage.getItem('birthplace') || "");
+            setAddress(localStorage.getItem('address') || "");
+            setCivicNumber(localStorage.getItem('civicNumber') || "");
+            setCap(localStorage.getItem('cap') || "");
+            setComune(localStorage.getItem('comune') || "");
+            setProvincia(localStorage.getItem('provincia') || "");
+            setPhone(localStorage.getItem('phone') || "");
+            setParentName(localStorage.getItem('parentName') || "");
+            setParentCf(localStorage.getItem('parentCf') || "");
+            setParentPhone(localStorage.getItem('parentPhone') || "");
         }
     }, []);
 
@@ -436,7 +459,3 @@ export function AssociateForm() {
     </Card>
   )
 }
-
-    
-
-    
