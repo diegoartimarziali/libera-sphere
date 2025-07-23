@@ -19,12 +19,23 @@ import { Checkbox } from "./ui/checkbox"
 import { Label } from "./ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle } from "lucide-react"
+
+const translatePaymentMethod = (method: string | null) => {
+    if (!method) return 'Non specificato';
+    switch (method) {
+        case 'online': return 'Carta di Credito on line';
+        case 'bank': return 'Bonifico Bancario';
+        case 'cash': return 'Contanti o Bancomat in Palestra (+ 2 € costi di gestione)';
+        default: return method;
+    }
+}
   
 export function AssociateCard({ setAssociated, setAssociationRequested, setWantsToEdit }: { setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void, setWantsToEdit?: (value: boolean) => void }) {
     const { toast } = useToast();
     const router = useRouter();
     const [dataConfirmed, setDataConfirmed] = useState(false);
     const [hasMedicalCertificate, setHasMedicalCertificate] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
     const [userData, setUserData] = useState({
         name: '',
         codiceFiscale: '',
@@ -66,6 +77,8 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
             if (certDate && certFile) {
                 setHasMedicalCertificate(true);
             }
+            
+            setPaymentMethod(localStorage.getItem('paymentMethod'));
 
             setUserData({
                 name: localStorage.getItem('userName') || '',
@@ -140,6 +153,11 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                             </div>
                         </div>
                     )}
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                    <h4 className="font-semibold text-lg text-foreground">Metodo di Pagamento Scelto</h4>
+                    <p className="text-muted-foreground"><b>Metodo:</b> <span className="text-foreground font-bold">{translatePaymentMethod(paymentMethod)}</span></p>
                 </div>
                 <Separator />
                 <p className="text-sm text-muted-foreground">
