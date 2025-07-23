@@ -41,6 +41,9 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     const { toast } = useToast()
     const router = useRouter()
     
+    const [martialArt, setMartialArt] = useState<string | undefined>();
+    const [dojo, setDojo] = useState<string | undefined>();
+
     const [name, setName] = useState("");
     const [day, setDay] = useState<string | undefined>(undefined);
     const [month, setMonth] = useState<string | undefined>(undefined);
@@ -140,6 +143,8 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
 
     const saveData = () => {
          if (typeof window !== 'undefined') {
+            if (martialArt) localStorage.setItem('martialArt', martialArt);
+            if (dojo) localStorage.setItem('selectedDojo', dojo);
             localStorage.setItem('userName', name);
             localStorage.setItem('codiceFiscale', codiceFiscale);
             if (birthDate) {
@@ -199,6 +204,15 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
             description: "Effettua il bonifico usando i dati forniti. La tua domanda verrà approvata alla ricezione del pagamento.",
         });
         proceedToConfirmation();
+    };
+
+    const handleMartialArtChange = (value: string) => {
+        setMartialArt(value);
+        if (value === 'aikido') {
+            setDojo('aosta');
+        } else {
+            setDojo(undefined);
+        }
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,7 +286,8 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     }, [birthDate]);
 
     // Sequential validation states
-    const isNameComplete = name.trim() !== '';
+    const isCourseSelectionComplete = !!(martialArt && dojo);
+    const isNameComplete = isCourseSelectionComplete && name.trim() !== '';
     const isBirthInfoComplete = isNameComplete && birthplace.trim() !== '' && !!birthDate;
     const isCfComplete = isBirthInfoComplete && codiceFiscale.trim().length === 16;
     const isAddressComplete = isCfComplete && address.trim() !== '' && civicNumber.trim() !== '';
@@ -293,6 +308,33 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="martial-art">Corso di:</Label>
+                    <Select onValueChange={handleMartialArtChange} value={martialArt}>
+                        <SelectTrigger id="martial-art">
+                            <SelectValue placeholder="Seleziona un corso" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="karate">Karate</SelectItem>
+                            <SelectItem value="aikido">Aikido</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="dojo">Palestra di:</Label>
+                    <Select onValueChange={setDojo} value={dojo} disabled={martialArt === 'aikido' || !martialArt}>
+                        <SelectTrigger id="dojo">
+                            <SelectValue placeholder="Seleziona una palestra" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="aosta">Aosta</SelectItem>
+                            <SelectItem value="verres">Verres</SelectItem>
+                            <SelectItem value="villeneuve">Villeneuve</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div className="space-y-2">
                     <Label htmlFor="name">Nome e Cognome</Label>
                     <Input 
@@ -301,6 +343,7 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                         required 
                         value={name}
                         onChange={handleNameChange}
+                        disabled={!isCourseSelectionComplete}
                     />
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
