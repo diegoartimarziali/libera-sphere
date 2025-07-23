@@ -49,6 +49,7 @@ export function MemberSummaryCard() {
   const [firstAssociationYear, setFirstAssociationYear] = useState<string | null>(null);
   const [grade, setGrade] = useState<string | null>(null);
   const [isInsured, setIsInsured] = useState(false);
+  const [martialArt, setMartialArt] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -64,6 +65,7 @@ export function MemberSummaryCard() {
       setCap(localStorage.getItem("cap"));
       setComune(localStorage.getItem("comune"));
       setProvincia(localStorage.getItem("provincia"));
+      setMartialArt(localStorage.getItem("martialArt"));
 
       const storedRegulations = localStorage.getItem('regulationsAccepted');
       if (storedRegulations === 'true') {
@@ -228,6 +230,9 @@ export function MemberSummaryCard() {
           <div className="text-center">
             <div className="font-semibold text-2xl">{userName}</div>
             <div className="text-muted-foreground">{codiceFiscale}</div>
+            {martialArt && (
+              <div className="font-bold uppercase text-lg mt-1 tracking-wider">{martialArt}</div>
+            )}
             <div className="text-foreground flex justify-center gap-4 text-black">
               <span>Associato dal: {firstAssociationYear}</span>
               <span>Grado attuale: {grade || 'Nessuno'}</span>
@@ -300,3 +305,5 @@ export function MemberSummaryCard() {
     </Card>
   )
 }
+
+    
