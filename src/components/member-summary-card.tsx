@@ -164,13 +164,14 @@ export function MemberSummaryCard() {
         );
     }
 
+    const expirationFormatted = format(certificateExpiration, "dd/MM/yyyy");
     const daysUntilExpiration = differenceInDays(certificateExpiration, today);
 
     if (daysUntilExpiration < 0) {
         return (
             <div className="flex items-center text-red-600 font-medium">
                 <AlertTriangle className="mr-2 h-5 w-5" />
-                <span>Scaduto</span>
+                <span>Scaduto il {expirationFormatted}</span>
             </div>
         );
     }
@@ -179,7 +180,7 @@ export function MemberSummaryCard() {
         return (
             <div className="flex items-center text-orange-500 font-medium">
                 <AlertTriangle className="mr-2 h-5 w-5" />
-                <span>In Scadenza</span>
+                <span>In scadenza il {expirationFormatted}</span>
             </div>
         );
     }
@@ -187,7 +188,7 @@ export function MemberSummaryCard() {
     return (
         <div className="flex items-center text-green-600 font-medium">
             <CheckCircle className="mr-2 h-5 w-5" />
-            <span>Valido</span>
+            <span>Valido fino al {expirationFormatted}</span>
         </div>
     );
   };
