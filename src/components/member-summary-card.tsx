@@ -233,11 +233,11 @@ export function MemberSummaryCard() {
             {martialArt && (
               <div className="font-bold uppercase text-lg mt-1 tracking-wider">{martialArt}</div>
             )}
-            <div className="text-foreground flex justify-center gap-4 text-black font-bold">
-              <span>Associato dal: {firstAssociationYear}</span>
-              <span>Grado attuale: {grade || 'Nessuno'}</span>
-              <span>Numero tessera: </span>
-              <span>Palestra di: {capitalizeFirstLetter(selectedDojo)}</span>
+            <div className="text-foreground flex justify-center gap-4 text-black">
+              <span>Associato dal: <span className="font-bold">{firstAssociationYear}</span></span>
+              <span>Grado attuale: <span className="font-bold">{grade || 'Nessuno'}</span></span>
+              <span>Numero tessera: <span className="font-bold"></span></span>
+              <span>Palestra di: <span className="font-bold">{capitalizeFirstLetter(selectedDojo)}</span></span>
             </div>
           </div>
         </div>
@@ -305,5 +305,3 @@ export function MemberSummaryCard() {
     </Card>
   )
 }
-
-    
