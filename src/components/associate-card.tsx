@@ -130,7 +130,7 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
             <CardHeader>
                 <CardTitle>Conferma i tuoi dati e Associati</CardTitle>
                 <CardDescription>
-                    Verifica che i tuoi dati siano corretti. Se devi modificarli, puoi farlo dalla tua scheda personale una volta approvata l'associazione.
+                    Verifica che i tuoi dati siano corretti.
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
