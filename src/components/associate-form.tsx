@@ -34,11 +34,6 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(currentYear - i));
 
-const paymentOptions = [
-    { id: "online", label: "Carta di Credito on line" },
-    { id: "bank-transfer", label: "Bonifico Bancario" },
-]
-
 const SUMUP_ASSOCIATION_LINK = 'https://pay.sumup.com/b2c/Q9ZH35JE';
 
 export function AssociateForm() {
@@ -76,6 +71,7 @@ export function AssociateForm() {
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setRegistrationEmail(localStorage.getItem('registrationEmail'));
+            setPaymentMethod(localStorage.getItem('paymentMethod') || undefined);
             
             // Pre-fill form with data from localStorage
             setName(localStorage.getItem('userName') || "");
@@ -247,7 +243,9 @@ export function AssociateForm() {
     const isStudentInfoComplete = isLocationComplete && (isMinor || (phone.trim() !== '' && emailConfirm.trim() !== '' && !emailError));
 
     const isParentInfoComplete = isMinor && parentName.trim() !== '' && parentCf.trim().length === 16 && parentPhone.trim() !== '' && parentEmail.trim() !== '' && !emailError;
-    const isPaymentComplete = (isStudentInfoComplete && !isMinor && !!paymentMethod) || (isStudentInfoComplete && isParentInfoComplete && !!paymentMethod);
+    
+    const isFormComplete = (isStudentInfoComplete && !isMinor) || (isStudentInfoComplete && isParentInfoComplete);
+
 
   return (
     <Card>
@@ -420,38 +418,14 @@ export function AssociateForm() {
                     </div>
                 </div>
             )}
-            
-            <Separator />
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                <div className="space-y-2">
-                    <Label htmlFor="payment-method">Metodo di Pagamento</Label>
-                    <Select onValueChange={setPaymentMethod} value={paymentMethod} disabled={!isStudentInfoComplete && (!isMinor || !isParentInfoComplete)}>
-                        <SelectTrigger id="payment-method">
-                            <SelectValue placeholder="Seleziona un metodo di pagamento" /></SelectTrigger>
-                        <SelectContent>
-                            {paymentOptions.map(option => (
-                                <SelectItem key={option.id} value={option.id}>
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="amount">Importo</Label>
-                    <Input id="amount" value={`€ ${amount}`} disabled />
-                </div>
-            </div>
-
         </CardContent>
         <CardFooter className="flex justify-end">
              {paymentMethod === 'online' ? (
-                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleOnlinePayment} disabled={!isPaymentComplete}>
+                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleOnlinePayment} disabled={!isFormComplete}>
                     Procedi con il Pagamento
                 </Button>
             ) : (
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveAndApply} disabled={!isPaymentComplete}>
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveAndApply} disabled={!isFormComplete}>
                     Procedi
                 </Button>
             )}
