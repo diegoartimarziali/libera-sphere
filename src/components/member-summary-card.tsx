@@ -231,7 +231,7 @@ export function MemberSummaryCard() {
             <div className="font-semibold text-2xl">{userName}</div>
             <div className="text-muted-foreground">{codiceFiscale}</div>
             {martialArt && (
-              <div className="font-bold uppercase text-lg mt-1 tracking-wider">{martialArt}</div>
+              <div className="font-bold uppercase text-2xl mt-1 tracking-wider">{martialArt}</div>
             )}
             <div className="text-foreground flex justify-center gap-4 text-black">
               <span>Associato dal: <span className="font-bold">{firstAssociationYear}</span></span>
