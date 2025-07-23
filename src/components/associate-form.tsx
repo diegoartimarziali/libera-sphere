@@ -72,11 +72,36 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
         if (typeof window !== 'undefined') {
             setRegistrationEmail(localStorage.getItem('registrationEmail'));
             setName(localStorage.getItem('userName') || "");
+            
+            // Pre-fill form with data from localStorage if it exists
+            const storedCodiceFiscale = localStorage.getItem('codiceFiscale');
+            if(storedCodiceFiscale) setCodiceFiscale(storedCodiceFiscale);
+
+            const storedBirthDate = localStorage.getItem('birthDate');
+            if (storedBirthDate) {
+                const parts = storedBirthDate.split('/');
+                if (parts.length === 3) {
+                    setDay(parts[0]);
+                    setMonth(parts[1]);
+                    setYear(parts[2]);
+                }
+            }
+             if(localStorage.getItem('birthplace')) setBirthplace(localStorage.getItem('birthplace') || "");
+             if(localStorage.getItem('address')) setAddress(localStorage.getItem('address') || "");
+             if(localStorage.getItem('civicNumber')) setCivicNumber(localStorage.getItem('civicNumber') || "");
+             if(localStorage.getItem('cap')) setCap(localStorage.getItem('cap') || "");
+             if(localStorage.getItem('comune')) setComune(localStorage.getItem('comune') || "");
+             if(localStorage.getItem('provincia')) setProvincia(localStorage.getItem('provincia') || "");
+             if(localStorage.getItem('phone')) setPhone(localStorage.getItem('phone') || "");
+             if(localStorage.getItem('parentName')) setParentName(localStorage.getItem('parentName') || "");
+             if(localStorage.getItem('parentCf')) setParentCf(localStorage.getItem('parentCf') || "");
+             if(localStorage.getItem('parentPhone')) setParentPhone(localStorage.getItem('parentPhone') || "");
+             if(localStorage.getItem('parentEmail')) setParentEmail(localStorage.getItem('parentEmail') || "");
         }
     }, []);
 
     useEffect(() => {
-        if (paymentMethod === 'online') {
+        if (paymentMethod === 'online' || paymentMethod === 'bank') {
             setAmount("120");
         } else if (paymentMethod === 'cash') {
             setAmount("122");
@@ -130,7 +155,6 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     
     const handlePayment = () => {
         saveData();
-        setHasUserData(true);
 
         if (paymentMethod === 'online') {
             const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
@@ -142,9 +166,11 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
              }
              toast({
                 title: "Dati Salvati e Domanda Inviata!",
-                description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
+                description: `Presentati in segreteria per completare il pagamento di ${amount}€ o effettua il bonifico.`,
              });
-             window.location.reload();
+             setHasUserData(true);
+             // We can't use router.push here because the parent needs to re-render to show the card
+             window.location.reload(); 
         }
     };
 
@@ -405,22 +431,21 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
 
             <Separator />
             <div className="space-y-4">
-                <Label className="font-bold">Contributo associativo: € {amount || '...'}</Label>
-                <RadioGroup 
+                <Label className="font-bold">Contributo associativo: € {amount || '120'}</Label>
+                 <Select 
                     onValueChange={setPaymentMethod} 
                     value={paymentMethod} 
-                    className="flex flex-col space-y-1"
                     disabled={!((isStudentInfoComplete && !isMinor) || (isStudentInfoComplete && isParentInfoComplete))}
                 >
-                    <div className="flex items-center space-x-3">
-                        <RadioGroupItem value="online" id="online" />
-                        <Label htmlFor="online" className="font-normal">Carta di Credito on line</Label>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        <RadioGroupItem value="cash" id="cash" />
-                        <Label htmlFor="cash" className="font-normal">Contanti o Bancomat in Palestra (+ 2 euro costi di gestione)</Label>
-                    </div>
-                </RadioGroup>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Scegli un metodo di pagamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="online">Carta di credito on line</SelectItem>
+                        <SelectItem value="bank">Bonifico Bancario</SelectItem>
+                        <SelectItem value="cash">Contanti o Bancomat in palestra (+ 2 € costi di gestione)</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
         </CardContent>
         <CardFooter className="flex justify-end">
