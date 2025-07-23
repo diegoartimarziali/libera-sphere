@@ -36,6 +36,7 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
     const [dataConfirmed, setDataConfirmed] = useState(false);
     const [hasMedicalCertificate, setHasMedicalCertificate] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+    const [paymentAmount, setPaymentAmount] = useState<string | null>(null);
     const [userData, setUserData] = useState({
         name: '',
         codiceFiscale: '',
@@ -79,6 +80,7 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
             }
             
             setPaymentMethod(localStorage.getItem('paymentMethod'));
+            setPaymentAmount(localStorage.getItem('paymentAmount'));
 
             setUserData({
                 name: localStorage.getItem('userName') || '',
@@ -158,6 +160,7 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                 <div className="space-y-2">
                     <h4 className="font-semibold text-lg text-foreground">Metodo di Pagamento Scelto</h4>
                     <p className="text-muted-foreground"><b>Metodo:</b> <span className="text-foreground font-bold">{translatePaymentMethod(paymentMethod)}</span></p>
+                    <p className="text-muted-foreground"><b>Importo:</b> <span className="text-foreground font-bold">€ {paymentAmount}</span></p>
                 </div>
                 <Separator />
                 <p className="text-sm text-muted-foreground">
