@@ -80,6 +80,7 @@ export default function DashboardLayout({
   const [associated, setAssociated] = React.useState(false);
   const [associationRequested, setAssociationRequested] = React.useState(false);
   const [lessonSelected, setLessonSelected] = React.useState(false);
+  const [inLiberasphere, setInLiberasphere] = React.useState(false);
 
   React.useEffect(() => {
     setIsClient(true);
@@ -87,27 +88,23 @@ export default function DashboardLayout({
 
   React.useEffect(() => {
     if (isClient) {
-      const storedRegulations = localStorage.getItem('regulationsAccepted');
-      const storedAssociation = localStorage.getItem('associated');
-      const storedLessonSelected = localStorage.getItem('lessonSelected');
-      const storedAssociationRequested = localStorage.getItem('associationRequested');
-      const isRegulationsAccepted = storedRegulations === 'true';
+      const storedLiberasphere = !!localStorage.getItem('isFormerMember');
+      const storedRegulations = localStorage.getItem('regulationsAccepted') === 'true';
+      const storedAssociation = localStorage.getItem('associated') === 'true';
+      const storedLessonSelected = localStorage.getItem('lessonSelected') === 'true';
+      const storedAssociationRequested = localStorage.getItem('associationRequested') === 'true';
       
-      setRegulationsAccepted(isRegulationsAccepted);
-      
-      if (storedAssociation === 'true') {
-        setAssociated(true);
-      }
-      if (storedLessonSelected === 'true') {
-        setLessonSelected(true);
-      }
-      if (storedAssociationRequested === 'true') {
-        setAssociationRequested(true);
-      }
+      setInLiberasphere(storedLiberasphere);
+      setRegulationsAccepted(storedRegulations);
+      setAssociated(storedAssociation);
+      setLessonSelected(storedLessonSelected);
+      setAssociationRequested(storedAssociationRequested);
 
       // Redirect logic
-      if (!isRegulationsAccepted && !['/dashboard/liberasphere', '/dashboard/regulations', '/dashboard/aiuto'].includes(pathname)) {
+      if (!storedLiberasphere && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/aiuto') {
         router.push('/dashboard/liberasphere');
+      } else if (storedLiberasphere && !storedRegulations && pathname !== '/dashboard/regulations' && pathname !== '/dashboard/aiuto' && pathname !== '/dashboard/liberasphere') {
+         router.push('/dashboard/regulations');
       }
     }
   }, [isClient, pathname, router]);
@@ -122,15 +119,15 @@ export default function DashboardLayout({
 
   const allNavItems = [
     { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto" },
-    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", hideWhenRegulationsAccepted: true },
-    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", hideWhenRegulationsAccepted: true },
-    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale" },
-    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", hideWhenLessonSelected: true },
-    { href: "/dashboard/associates", icon: Users, label: "Associati", hideWhenAssociationRequested: true },
-    { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico" },
-    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi" },
-    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami" },
-    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti" },
+    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => !inLiberasphere },
+    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => inLiberasphere && !regulationsAccepted },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => regulationsAccepted },
+    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
+    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => regulationsAccepted && !associationRequested },
+    { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => regulationsAccepted },
+    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => regulationsAccepted },
+    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => regulationsAccepted },
+    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => regulationsAccepted },
   ]
   
   const bottomNavItems = [
@@ -138,21 +135,8 @@ export default function DashboardLayout({
   ]
 
   const navItems = allNavItems.filter(item => {
-    if (item.hideWhenAssociated && regulationsAccepted && associated) {
-      return false;
-    }
-    if (item.hideWhenRegulationsAccepted && regulationsAccepted) {
-      return false;
-    }
-    if (item.hideWhenAssociationRequested && associationRequested) {
-        return false;
-    }
-    // @ts-ignore
-    if (item.hideWhenLessonSelected && lessonSelected) {
-        return false;
-    }
-    if (!regulationsAccepted && !['/dashboard/liberasphere', '/dashboard/regulations', '/dashboard/aiuto', '/dashboard'].includes(item.href)) {
-        return false;
+    if (item.condition) {
+        return item.condition();
     }
     return true;
   });
@@ -263,3 +247,5 @@ export default function DashboardLayout({
     </div>
   )
 }
+
+    

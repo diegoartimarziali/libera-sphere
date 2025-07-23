@@ -24,7 +24,8 @@ import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { Separator } from "./ui/separator"
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog"
+import { Copy } from "lucide-react"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -66,7 +67,21 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
     const [emailError, setEmailError] = useState(false);
+    const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
 
+    const bankDetails = {
+        iban: "IT12A345B678C901D234E567F890",
+        beneficiary: "Associazione Libera Energia ASD",
+        cause: `Quota associativa ${name}`
+    }
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text).then(() => {
+            toast({ title: "Copiato!", description: "Dettagli bancari copiati negli appunti." });
+        }, (err) => {
+            toast({ title: "Errore", description: "Impossibile copiare i dettagli.", variant: "destructive" });
+        });
+    }
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -150,8 +165,14 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
 
             if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
             if (amount) localStorage.setItem('paymentAmount', amount);
+            localStorage.setItem('associationRequested', 'true');
         }
     };
+
+    const proceedToConfirmation = () => {
+        setHasUserData(true);
+        window.location.reload();
+    }
     
     const handlePayment = () => {
         saveData();
@@ -160,18 +181,24 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
             const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
             const returnUrl = encodeURIComponent('/dashboard/associates');
             router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-        } else {
-             if (typeof window !== 'undefined') {
-                localStorage.setItem('associationRequested', 'true');
-             }
+        } else if (paymentMethod === 'bank') {
+            setShowBankTransferDialog(true);
+        } else if (paymentMethod === 'cash') {
              toast({
                 title: "Dati Salvati e Domanda Inviata!",
-                description: `Presentati in segreteria per completare il pagamento di ${amount}€ o effettua il bonifico.`,
+                description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
              });
-             setHasUserData(true);
-             // We can't use router.push here because the parent needs to re-render to show the card
-             window.location.reload(); 
+             proceedToConfirmation();
         }
+    };
+
+     const handleConfirmBankTransfer = () => {
+        setShowBankTransferDialog(false);
+        toast({
+            title: "Dati Salvati e Domanda Inviata!",
+            description: "Effettua il bonifico usando i dati forniti. La tua domanda verrà approvata alla ricezione del pagamento.",
+        });
+        proceedToConfirmation();
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -258,6 +285,7 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
 
 
   return (
+    <>
     <Card>
         <CardHeader>
             <CardTitle className="bg-blue-600 text-white p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Domanda di Associazione</CardTitle>
@@ -454,5 +482,60 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
             </Button>
         </CardFooter>
     </Card>
+
+    <AlertDialog open={showBankTransferDialog} onOpenChange={setShowBankTransferDialog}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Dati per Bonifico Bancario</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Effettua il bonifico utilizzando i dati seguenti. La tua associazione verrà confermata alla ricezione del pagamento.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-4 my-4">
+                <div className="space-y-1">
+                    <Label className="text-muted-foreground">Beneficiario</Label>
+                    <div className="flex items-center justify-between rounded-md border bg-muted p-2">
+                        <span className="font-mono">{bankDetails.beneficiary}</span>
+                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(bankDetails.beneficiary)}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+                 <div className="space-y-1">
+                    <Label className="text-muted-foreground">IBAN</Label>
+                    <div className="flex items-center justify-between rounded-md border bg-muted p-2">
+                        <span className="font-mono">{bankDetails.iban}</span>
+                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(bankDetails.iban)}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+                 <div className="space-y-1">
+                    <Label className="text-muted-foreground">Importo</Label>
+                     <div className="flex items-center justify-between rounded-md border bg-muted p-2">
+                        <span className="font-mono">€ {amount}</span>
+                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(amount || '')}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+                 <div className="space-y-1">
+                    <Label className="text-muted-foreground">Causale</Label>
+                    <div className="flex items-center justify-between rounded-md border bg-muted p-2">
+                        <span className="font-mono">{bankDetails.cause}</span>
+                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(bankDetails.cause)}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={handleConfirmBankTransfer}>Ho capito, procedi</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }
+
+    
