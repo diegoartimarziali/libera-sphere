@@ -22,9 +22,6 @@ import {
 import { useToast } from "@/components/ui/use-toast"
 import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
-import { useRouter } from "next/navigation"
-import { Separator } from "./ui/separator"
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -34,11 +31,8 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(currentYear - i));
 
-const SUMUP_ASSOCIATION_LINK = 'https://pay.sumup.com/b2c/Q9ZH35JE';
-
-export function AssociateForm({ setHasUserData }: { setHasUserData: (value: boolean) => void }) {
+export function AssociateEditForm({ onSave }: { onSave: () => void }) {
     const { toast } = useToast()
-    const router = useRouter()
     
     const [name, setName] = useState("");
     const [day, setDay] = useState<string | undefined>(undefined);
@@ -62,28 +56,38 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     const [parentEmail, setParentEmail] = useState("");
     
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
-    
-    const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
-    const [amount, setAmount] = useState<string | undefined>();
     const [emailError, setEmailError] = useState(false);
-
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setRegistrationEmail(localStorage.getItem('registrationEmail'));
+            
+            // Pre-fill form with data from localStorage
             setName(localStorage.getItem('userName') || "");
+            setCodiceFiscale(localStorage.getItem('codiceFiscale') || "");
+            const storedBirthDate = localStorage.getItem('birthDate');
+            if (storedBirthDate) {
+                const parts = storedBirthDate.split('/');
+                if (parts.length === 3) {
+                    setDay(parts[0]);
+                    setMonth(parts[1]);
+                    setYear(parts[2]);
+                }
+            }
+            setBirthplace(localStorage.getItem('birthplace') || "");
+            setAddress(localStorage.getItem('address') || "");
+            setCivicNumber(localStorage.getItem('civicNumber') || "");
+            setCap(localStorage.getItem('cap') || "");
+            setComune(localStorage.getItem('comune') || "");
+            setProvincia(localStorage.getItem('provincia') || "");
+            setPhone(localStorage.getItem('phone') || "");
+            setParentName(localStorage.getItem('parentName') || "");
+            setParentCf(localStorage.getItem('parentCf') || "");
+            setParentPhone(localStorage.getItem('parentPhone') || "");
+            setParentEmail(localStorage.getItem('parentEmail') || "");
+            setEmailConfirm(localStorage.getItem('registrationEmail') || "");
         }
     }, []);
-
-    useEffect(() => {
-        if (paymentMethod === 'online') {
-            setAmount("120");
-        } else if (paymentMethod === 'cash') {
-            setAmount("122");
-        } else {
-            setAmount(undefined);
-        }
-    }, [paymentMethod]);
 
     useEffect(() => {
         if (day && month && year) {
@@ -119,35 +123,21 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                 localStorage.setItem('parentPhone', parentPhone);
                 localStorage.setItem('parentEmail', parentEmail);
             } else {
-                localStorage.setItem('isMinor', 'false');
+                 localStorage.setItem('isMinor', 'false');
                 localStorage.setItem('phone', phone);
             }
-
-            if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
-            if (amount) localStorage.setItem('paymentAmount', amount);
         }
     };
-    
-    const handlePayment = () => {
+
+    const handleSaveAndReturn = () => {
         saveData();
-        setHasUserData(true);
-
-        if (paymentMethod === 'online') {
-            const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
-            const returnUrl = encodeURIComponent('/dashboard/associates');
-            router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-        } else {
-             if (typeof window !== 'undefined') {
-                localStorage.setItem('associationRequested', 'true');
-             }
-             toast({
-                title: "Dati Salvati e Domanda Inviata!",
-                description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
-             });
-             window.location.reload();
-        }
-    };
-
+        toast({
+            title: "Dati Salvati!",
+            description: `I tuoi dati sono stati aggiornati.`,
+        });
+        onSave();
+    }
+    
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         const capitalized = value
@@ -218,24 +208,11 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
         return age < 18;
     }, [birthDate]);
 
-    // Sequential validation states
-    const isNameComplete = name.trim() !== '';
-    const isBirthInfoComplete = isNameComplete && birthplace.trim() !== '' && !!birthDate;
-    const isCfComplete = isBirthInfoComplete && codiceFiscale.trim().length === 16;
-    const isAddressComplete = isCfComplete && address.trim() !== '' && civicNumber.trim() !== '';
-    const isLocationComplete = isAddressComplete && cap.trim() !== '' && comune.trim() !== '' && provincia.trim() !== '';
-    const isStudentInfoComplete = isLocationComplete && (isMinor || (phone.trim() !== '' && emailConfirm.trim() !== '' && !emailError));
-
-    const isParentInfoComplete = isMinor && parentName.trim() !== '' && parentCf.trim().length === 16 && parentPhone.trim() !== '' && parentEmail.trim() !== '' && !emailError;
-    
-    const isFormComplete = ((isStudentInfoComplete && !isMinor) || (isStudentInfoComplete && isParentInfoComplete)) && !!paymentMethod;
-
-
   return (
     <Card>
         <CardHeader>
-            <CardTitle className="bg-blue-600 text-white p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Domanda di Associazione</CardTitle>
-            <CardDescription className="text-foreground font-bold">Compila i dati per inviare la tua domanda di associazione.</CardDescription>
+            <CardTitle className="bg-blue-600 text-white p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Modifica Dati Associazione</CardTitle>
+            <CardDescription className="text-foreground font-bold">Correggi i dati e poi clicca su "Salva e Conferma" per tornare alla scheda di riepilogo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -259,25 +236,24 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                             required 
                             value={birthplace}
                             onChange={handleBirthplaceChange}
-                            disabled={!isNameComplete}
                         />
                     </div>
                     <div className="space-y-2">
                         <Label>Data di nascita:</Label>
                         <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
-                            <Select onValueChange={setDay} value={day} disabled={!isNameComplete}>
+                            <Select onValueChange={setDay} value={day}>
                                 <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
                                 <SelectContent>
                                     {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                                 </SelectContent>
                             </Select>
-                            <Select onValueChange={setMonth} value={month} disabled={!isNameComplete}>
+                            <Select onValueChange={setMonth} value={month}>
                                 <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
                                 <SelectContent>
                                     {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                                 </SelectContent>
                             </Select>
-                            <Select onValueChange={setYear} value={year} disabled={!isNameComplete}>
+                            <Select onValueChange={setYear} value={year}>
                                 <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
                                 <SelectContent>
                                     {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -296,7 +272,6 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                         required
                         value={codiceFiscale}
                         onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())}
-                        disabled={!isBirthInfoComplete}
                      />
                 </div>
             </div>
@@ -309,18 +284,17 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                         required 
                         value={address}
                         onChange={handleAddressChange}
-                        disabled={!isCfComplete}
                     />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="civic-number">N° civico:</Label>
-                    <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} disabled={!isCfComplete}/>
+                    <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
                 </div>
             </div>
              <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="cap">C.A.P.:</Label>
-                    <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} disabled={!isAddressComplete}/>
+                    <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="comune">Comune:</Label>
@@ -330,7 +304,6 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                         required 
                         value={comune}
                         onChange={handleComuneChange}
-                        disabled={!isAddressComplete}
                     />
                 </div>
                 <div className="space-y-2">
@@ -341,30 +314,25 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                         required 
                         value={provincia}
                          onChange={(e) => setProvincia(e.target.value.toUpperCase())}
-                        disabled={!isAddressComplete}
                     />
                 </div>
             </div>
-
-            <p className="pt-4 text-sm text-foreground font-bold text-center">
-                Chiede di essere ammesso in qualità di socio all'associazione Libera Energia.
-            </p>
 
             {!isMinor && (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="phone">Numero di telefono:</Label>
-                        <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!isLocationComplete} />
+                        <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange} disabled={!isLocationComplete}/>
+                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange}/>
                         {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                     </div>
                 </div>
             )}
 
-            {isMinor && isLocationComplete && (
+            {isMinor && (
                  <div className="space-y-4 pt-4 mt-4 border-t">
                     <h3 className="text-lg font-semibold">Dati Genitore o tutore</h3>
                      <div className="space-y-2">
@@ -379,12 +347,12 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                     </div>
                      <div className="space-y-2">
                         <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
-                        <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} disabled={parentName.trim() === ''}/>
+                        <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())}/>
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                            <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} disabled={parentCf.trim().length !== 16} />
+                            <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
@@ -395,37 +363,16 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                                 required={isMinor}
                                 value={parentEmail}
                                 onChange={handleParentEmailChange}
-                                disabled={parentPhone.trim() === ''}
                                  />
                             {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                         </div>
                     </div>
                 </div>
             )}
-
-            <Separator />
-            <div className="space-y-4">
-                <Label className="font-bold">Contributo associativo: € {amount || '...'}</Label>
-                <RadioGroup 
-                    onValueChange={setPaymentMethod} 
-                    value={paymentMethod} 
-                    className="flex flex-col space-y-1"
-                    disabled={!((isStudentInfoComplete && !isMinor) || (isStudentInfoComplete && isParentInfoComplete))}
-                >
-                    <div className="flex items-center space-x-3">
-                        <RadioGroupItem value="online" id="online" />
-                        <Label htmlFor="online" className="font-normal">Carta di Credito on line</Label>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                        <RadioGroupItem value="cash" id="cash" />
-                        <Label htmlFor="cash" className="font-normal">Contanti o Bancomat in Palestra (+ 2 euro costi di gestione)</Label>
-                    </div>
-                </RadioGroup>
-            </div>
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handlePayment} disabled={!isFormComplete}>
-                Procedi con il Pagamento
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveAndReturn} >
+                Salva e Conferma
             </Button>
         </CardFooter>
     </Card>

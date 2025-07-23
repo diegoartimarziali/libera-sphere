@@ -3,13 +3,16 @@
 
 import { AssociateCard } from "@/components/associate-card";
 import { AssociateForm } from "@/components/associate-form";
+import { AssociateEditForm } from "@/components/associate-edit-form";
 import { useEffect, useState } from "react";
 
 export default function AssociatesPage({ setRegulationsAccepted, setAssociated, setAssociationRequested }: { setRegulationsAccepted?: (value: boolean) => void, setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void }) {
     const [hasUserData, setHasUserData] = useState(false);
     const [wantsToEdit, setWantsToEdit] = useState(false);
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        setIsClient(true);
         if (typeof window !== 'undefined') {
             // We check for essential data to determine if the user has already provided their info.
             const name = localStorage.getItem('userName');
@@ -30,12 +33,30 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
         setWantsToEdit(wantsToEdit);
     };
 
+    const handleDataSaved = () => {
+        setHasUserData(true);
+        setWantsToEdit(false);
+        // We can optionally add a toast message here to confirm saving
+    }
+
+    if (!isClient) {
+        return null; // or a loading skeleton
+    }
+
     return (
         <div>
-            {hasUserData && !wantsToEdit ? (
-                <AssociateCard setAssociated={setAssociated} setAssociationRequested={setAssociationRequested} setWantsToEdit={handleWantsToEdit} />
+            {hasUserData ? (
+                wantsToEdit ? (
+                    <AssociateEditForm onSave={handleDataSaved} />
+                ) : (
+                    <AssociateCard 
+                        setAssociated={setAssociated} 
+                        setAssociationRequested={setAssociationRequested} 
+                        setWantsToEdit={handleWantsToEdit} 
+                    />
+                )
             ) : (
-                <AssociateForm />
+                <AssociateForm setHasUserData={setHasUserData}/>
             )}
         </div>
     );
