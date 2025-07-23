@@ -120,22 +120,24 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
                 <div className="space-y-4 text-sm text-muted-foreground">
-                    <div>
-                        <h4 className="font-semibold text-base mb-2 text-foreground">Dati Allievo</h4>
-                        <p><b>Nome e Cognome:</b> {userData.name || 'Non specificato'}</p>
-                        <p><b>Nato il:</b> {userData.birthDate || 'Non specificata'} <b>a:</b> {userData.birthplace || 'Non specificato'}</p>
-                        <p><b>Codice Fiscale:</b> {userData.codiceFiscale || 'Non specificato'}</p>
-                        <p><b>Residenza:</b> {`${userData.address || ''}, ${userData.civicNumber || ''} - ${userData.cap || ''} ${userData.comune || ''} (${userData.provincia || ''})` || 'Non specificata'}</p>
-                        {!isMinor && <p><b>Telefono:</b> {userData.phone || 'Non specificato'}</p>}
+                    <div className="space-y-3 text-base">
+                        <h4 className="font-semibold text-lg mb-2 text-foreground">Dati Allievo</h4>
+                        <p className="text-muted-foreground"><b>Nome e Cognome:</b> <span className="text-foreground">{userData.name || 'Non specificato'}</span></p>
+                        <p className="text-muted-foreground"><b>Nato il:</b> <span className="text-foreground">{userData.birthDate || 'Non specificata'}</span> <b>a:</b> <span className="text-foreground">{userData.birthplace || 'Non specificato'}</span></p>
+                        <p className="text-muted-foreground"><b>Codice Fiscale:</b> <span className="text-foreground">{userData.codiceFiscale || 'Non specificato'}</span></p>
+                        <p className="text-muted-foreground"><b>Residenza:</b> <span className="text-foreground">{`${userData.address || ''}, ${userData.civicNumber || ''} - ${userData.cap || ''} ${userData.comune || ''} (${userData.provincia || ''})` || 'Non specificata'}</span></p>
+                        {!isMinor && <p className="text-muted-foreground"><b>Telefono:</b> <span className="text-foreground">{userData.phone || 'Non specificato'}</span></p>}
                     </div>
 
                     {isMinor && (
                         <div>
                             <Separator className="my-4" />
-                            <h4 className="font-semibold text-base mb-2 text-foreground">Dati Genitore/Tutore</h4>
-                            <p><b>Nome e Cognome:</b> {parentData.name || 'Non specificato'}</p>
-                            <p><b>Codice Fiscale:</b> {parentData.cf || 'Non specificato'}</p>
-                            <p><b>Telefono:</b> {parentData.phone || 'Non specificato'}</p>
+                            <div className="space-y-3 text-base">
+                                <h4 className="font-semibold text-lg mb-2 text-foreground">Dati Genitore/Tutore</h4>
+                                <p className="text-muted-foreground"><b>Nome e Cognome:</b> <span className="text-foreground">{parentData.name || 'Non specificato'}</span></p>
+                                <p className="text-muted-foreground"><b>Codice Fiscale:</b> <span className="text-foreground">{parentData.cf || 'Non specificato'}</span></p>
+                                <p className="text-muted-foreground"><b>Telefono:</b> <span className="text-foreground">{parentData.phone || 'Non specificato'}</span></p>
+                            </div>
                         </div>
                     )}
                 </div>
