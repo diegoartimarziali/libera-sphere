@@ -175,8 +175,13 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     };
 
     const proceedToConfirmation = () => {
+        // Remove the search param so the form is not forced on reload
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+
+        // Set the state in parent to show the card and then reload
         setHasUserData(true);
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 100);
     }
     
     const handlePayment = () => {
@@ -580,5 +585,3 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     </>
   )
 }
-
-    
