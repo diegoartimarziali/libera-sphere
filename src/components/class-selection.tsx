@@ -797,9 +797,19 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         </Button>
                     </div>
                      <Separator />
-                    <div className="flex justify-between items-center w-full">
+                     <div className="flex justify-between items-center w-full">
                         <p className="text-sm text-muted-foreground">Vuoi associarti e proseguire il tuo percorso?</p>
-                        <Button disabled className="bg-green-600 hover:bg-green-700 text-white">Associati</Button>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="associate-yes" />
+                                <Label htmlFor="associate-yes">SI</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox id="associate-no" />
+                                <Label htmlFor="associate-no">NO</Label>
+                            </div>
+                            <Button disabled className="bg-green-600 hover:bg-green-700 text-white">Associati</Button>
+                        </div>
                     </div>
                 </CardFooter>
             </Card>
