@@ -87,7 +87,8 @@ export function MemberSummaryCard() {
 
       if (isApproved) {
         setAssociationStatus('approved');
-        setAssociationDate(storedApprovalDate || storedRequestDate); 
+        setAssociationDate(storedApprovalDate || storedRequestDate);
+        setIsInsured(true);
       } else if (isRequested) {
         setAssociationStatus('requested');
         setAssociationDate(storedRequestDate);
@@ -116,9 +117,12 @@ export function MemberSummaryCard() {
       setFirstAssociationYear(localStorage.getItem('firstAssociationYear'));
       setGrade(localStorage.getItem('grade'));
 
-      const storedIsInsured = localStorage.getItem('isInsured');
+      // Check insurance status only if association is approved
+      if(isApproved) {
+        const storedIsInsured = localStorage.getItem('isInsured');
         if (storedIsInsured === 'true') {
-        setIsInsured(true);
+            setIsInsured(true);
+        }
       }
     }
     const kanji = kanjiList[Math.floor(Math.random() * kanjiList.length)];
@@ -191,9 +195,11 @@ export function MemberSummaryCard() {
         localStorage.setItem('associationApproved', 'true');
         const approvalDate = localStorage.getItem('associationRequestDate') || format(new Date(), "dd/MM/yyyy");
         localStorage.setItem('associationApprovalDate', approvalDate);
+        localStorage.setItem('isInsured', 'true'); // Set insured status on approval
         localStorage.removeItem('associationRequested');
         setAssociationStatus('approved');
         setAssociationDate(approvalDate);
+        setIsInsured(true);
         window.location.reload();
     }
   }
