@@ -233,7 +233,7 @@ export function MemberSummaryCard() {
             {martialArt && (
               <div className="font-bold uppercase text-lg mt-1 tracking-wider">{martialArt}</div>
             )}
-            <div className="text-foreground flex justify-center gap-4 text-black">
+            <div className="text-foreground flex justify-center gap-4 text-black font-bold">
               <span>Associato dal: {firstAssociationYear}</span>
               <span>Grado attuale: {grade || 'Nessuno'}</span>
               <span>Numero tessera: </span>
