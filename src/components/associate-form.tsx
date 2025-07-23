@@ -337,7 +337,7 @@ export function AssociateForm() {
                 </div>
             </div>
 
-            <p className="pt-4 text-sm text-foreground">
+            <p className="pt-4 text-sm text-foreground font-bold text-center">
                 Chiede di essere ammesso in qualità di socio all'associazione Libera Energia.
             </p>
 
@@ -432,3 +432,5 @@ export function AssociateForm() {
     </Card>
   )
 }
+
+    
