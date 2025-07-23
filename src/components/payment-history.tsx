@@ -133,23 +133,6 @@ export function PaymentHistory() {
             </TableBody>
           </Table>
         )}
-
-        <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Seleziona il Pagamento</h3>
-            <h3 className="text-lg font-semibold">Modalità di pagamento</h3>
-            <div className="grid w-full max-w-sm items-center gap-1.5">
-                <Label htmlFor="payment-method">Metodo di Pagamento</Label>
-                <Select>
-                    <SelectTrigger id="payment-method">
-                        <SelectValue placeholder="Scegli un'opzione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="card-pos">Carta di credito o Bancomat in Palestra</SelectItem>
-                        <SelectItem value="cash">Contanti in Palestra</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-        </div>
       </CardContent>
     </Card>
   )
