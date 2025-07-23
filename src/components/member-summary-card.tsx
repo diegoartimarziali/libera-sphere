@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -90,7 +91,6 @@ export function MemberSummaryCard() {
       if (isApproved) {
         setAssociationStatus('approved');
         setAssociationDate(storedApprovalDate || storedRequestDate);
-        setIsInsured(true);
       } else if (isRequested) {
         setAssociationStatus('requested');
         setAssociationDate(storedRequestDate);
@@ -119,12 +119,10 @@ export function MemberSummaryCard() {
       setFirstAssociationYear(localStorage.getItem('firstAssociationYear'));
       setGrade(localStorage.getItem('grade'));
 
-      // Check insurance status only if association is approved
-      if(isApproved) {
-        const storedIsInsured = localStorage.getItem('isInsured');
-        if (storedIsInsured === 'true') {
-            setIsInsured(true);
-        }
+      // Check insurance status
+      const storedIsInsured = localStorage.getItem('isInsured');
+      if (storedIsInsured === 'true') {
+          setIsInsured(true);
       }
     }
     const kanji = kanjiList[Math.floor(Math.random() * kanjiList.length)];
