@@ -23,7 +23,7 @@ import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
 
 const plans = [
-    { id: "stagionale", name: "Stagionale", price: "440", period: "stagione", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Paga in un'unica soluzione.", "Un mese gratis"], expiry: "L'Abbonamento Stagionale può essere acquistato dal 01/09 al 15/10" },
+    { id: "stagionale", name: "Stagionale", price: "440", period: "stagione", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Paga in un'unica soluzione.", "Un mese gratis"], expiry: "L'Abbonamento Stagionale può essere acquistato dal 01/07 al 15/10" },
     { id: "mensile", name: "Mensile", price: "55", period: "mese", features: ["Accesso a tutte le palestre", "Corsi illimitati"] },
 ]
 
@@ -54,7 +54,7 @@ export function SubscriptionManagement() {
     today.setHours(0, 0, 0, 0); // Normalize to the start of the day
     const currentYear = today.getFullYear();
     
-    const startDate = new Date(currentYear, 8, 1); // September 1st
+    const startDate = new Date(currentYear, 6, 1); // July 1st
     const endDate = new Date(currentYear, 9, 15); // October 15th
     
     const isAvailable = today >= startDate && today <= endDate;
