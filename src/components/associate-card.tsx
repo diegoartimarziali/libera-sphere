@@ -122,11 +122,11 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                 <div className="space-y-4 text-sm text-muted-foreground">
                     <div className="space-y-3 text-base">
                         <h4 className="font-semibold text-lg mb-2 text-foreground">Dati Allievo</h4>
-                        <p className="text-muted-foreground"><b>Nome e Cognome:</b> <span className="text-foreground">{userData.name || 'Non specificato'}</span></p>
-                        <p className="text-muted-foreground"><b>Nato il:</b> <span className="text-foreground">{userData.birthDate || 'Non specificata'}</span> <b>a:</b> <span className="text-foreground">{userData.birthplace || 'Non specificato'}</span></p>
-                        <p className="text-muted-foreground"><b>Codice Fiscale:</b> <span className="text-foreground">{userData.codiceFiscale || 'Non specificato'}</span></p>
-                        <p className="text-muted-foreground"><b>Residenza:</b> <span className="text-foreground">{`${userData.address || ''}, ${userData.civicNumber || ''} - ${userData.cap || ''} ${userData.comune || ''} (${userData.provincia || ''})` || 'Non specificata'}</span></p>
-                        {!isMinor && <p className="text-muted-foreground"><b>Telefono:</b> <span className="text-foreground">{userData.phone || 'Non specificato'}</span></p>}
+                        <p className="text-muted-foreground"><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{userData.name || 'Non specificato'}</span></p>
+                        <p className="text-muted-foreground"><b>Nato il:</b> <span className="text-foreground font-bold">{userData.birthDate || 'Non specificata'}</span> <b>a:</b> <span className="text-foreground font-bold">{userData.birthplace || 'Non specificato'}</span></p>
+                        <p className="text-muted-foreground"><b>Codice Fiscale:</b> <span className="text-foreground font-bold">{userData.codiceFiscale || 'Non specificato'}</span></p>
+                        <p className="text-muted-foreground"><b>Residenza:</b> <span className="text-foreground font-bold">{`${userData.address || ''}, ${userData.civicNumber || ''} - ${userData.cap || ''} ${userData.comune || ''} (${userData.provincia || ''})` || 'Non specificata'}</span></p>
+                        {!isMinor && <p className="text-muted-foreground"><b>Telefono:</b> <span className="text-foreground font-bold">{userData.phone || 'Non specificato'}</span></p>}
                     </div>
 
                     {isMinor && (
@@ -134,9 +134,9 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                             <Separator className="my-4" />
                             <div className="space-y-3 text-base">
                                 <h4 className="font-semibold text-lg mb-2 text-foreground">Dati Genitore/Tutore</h4>
-                                <p className="text-muted-foreground"><b>Nome e Cognome:</b> <span className="text-foreground">{parentData.name || 'Non specificato'}</span></p>
-                                <p className="text-muted-foreground"><b>Codice Fiscale:</b> <span className="text-foreground">{parentData.cf || 'Non specificato'}</span></p>
-                                <p className="text-muted-foreground"><b>Telefono:</b> <span className="text-foreground">{parentData.phone || 'Non specificato'}</span></p>
+                                <p className="text-muted-foreground"><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{parentData.name || 'Non specificato'}</span></p>
+                                <p className="text-muted-foreground"><b>Codice Fiscale:</b> <span className="text-foreground font-bold">{parentData.cf || 'Non specificato'}</span></p>
+                                <p className="text-muted-foreground"><b>Telefono:</b> <span className="text-foreground font-bold">{parentData.phone || 'Non specificato'}</span></p>
                             </div>
                         </div>
                     )}
