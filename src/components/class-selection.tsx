@@ -790,11 +790,17 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     )}
 
                 </CardContent>
-                <CardFooter className="flex flex-col items-end gap-4">
-                    <Button onClick={handleExit}>
-                        Esci
-                    </Button>
-                    <p className="text-sm text-muted-foreground mr-auto">Vuoi associarti e proseguire il tuo percorso?</p>
+                <CardFooter className="flex flex-col items-stretch gap-4">
+                    <div className="self-end">
+                        <Button onClick={handleExit}>
+                            Esci
+                        </Button>
+                    </div>
+                     <Separator />
+                    <div className="flex justify-between items-center w-full">
+                        <p className="text-sm text-muted-foreground">Vuoi associarti e proseguire il tuo percorso?</p>
+                        <Button disabled className="bg-green-600 hover:bg-green-700 text-white">Associati</Button>
+                    </div>
                 </CardFooter>
             </Card>
         )}
