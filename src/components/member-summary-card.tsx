@@ -51,6 +51,7 @@ export function MemberSummaryCard() {
   const [grade, setGrade] = useState<string | null>(null);
   const [isInsured, setIsInsured] = useState(false);
   const [martialArt, setMartialArt] = useState<string | null>(null);
+  const [isSelectionPassportComplete, setIsSelectionPassportComplete] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -123,6 +124,10 @@ export function MemberSummaryCard() {
       const storedIsInsured = localStorage.getItem('isInsured');
       if (storedIsInsured === 'true') {
           setIsInsured(true);
+      }
+      const storedIsSelectionPassportComplete = localStorage.getItem('isSelectionPassportComplete');
+      if (storedIsSelectionPassportComplete === 'true') {
+          setIsSelectionPassportComplete(true);
       }
     }
     const kanji = kanjiList[Math.floor(Math.random() * kanjiList.length)];
@@ -210,6 +215,8 @@ export function MemberSummaryCard() {
     return string.charAt(0).toUpperCase() + string.slice(1);
   }
 
+  const showAssociationYear = associationStatus === 'approved' || associationStatus === 'requested' || (firstAssociationYear && !isSelectionPassportComplete);
+
   return (
     <Card>
       <CardHeader>
@@ -234,7 +241,7 @@ export function MemberSummaryCard() {
               <div className="font-bold uppercase text-2xl mt-1 tracking-wider">{martialArt}</div>
             )}
             <div className="text-foreground flex justify-center gap-4 text-black">
-              <span>Associato dal: <span className="font-bold">{firstAssociationYear}</span></span>
+              {showAssociationYear && <span>Associato dal: <span className="font-bold">{firstAssociationYear}</span></span>}
               <span>Grado attuale: <span className="font-bold">{grade || 'Nessuno'}</span></span>
               <span>Palestra di: <span className="font-bold">{capitalizeFirstLetter(selectedDojo)}</span></span>
             </div>
