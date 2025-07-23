@@ -119,8 +119,6 @@ export function MedicalCertificate() {
         title: "Certificato Caricato!",
         description: `Il file "${file.name}" è stato registrato con successo.`,
       });
-      // A small delay to allow the user to see the toast before navigation
-      setTimeout(() => window.location.reload(), 1000);
     }
   }
 
