@@ -260,7 +260,7 @@ export function MedicalCertificate() {
                     <p className="text-sm">
                         {expirationDate ? (
                             <span>
-                                <span className="font-bold text-foreground">Scade il:</span> {format(expirationDate, "PPP", { locale: it })}
+                                <span className="font-bold text-foreground">Scade il:</span> <span className="font-bold text-foreground">{format(expirationDate, "PPP", { locale: it })}</span>
                             </span>
                         ) : "Data di scadenza non impostata"}
                     </p>
