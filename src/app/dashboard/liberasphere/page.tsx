@@ -106,7 +106,7 @@ export default function LiberaSpherePage() {
                 {isFormerMember === 'yes' && (
                     <div className="grid md:grid-cols-2 gap-4 mt-6 animate-in fade-in-50 duration-500">
                         <div className="space-y-2">
-                            <Label htmlFor="start-year">Da che anno?</Label>
+                            <Label htmlFor="start-year" className="font-bold">Da che anno?</Label>
                              <Select onValueChange={setStartYear} value={startYear}>
                                 <SelectTrigger id="start-year">
                                     <SelectValue placeholder="Seleziona l'anno" />
@@ -117,7 +117,7 @@ export default function LiberaSpherePage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="grade">Il tuo grado:</Label>
+                            <Label htmlFor="grade" className="font-bold">Il tuo grado:</Label>
                              <Select onValueChange={setGrade} value={grade}>
                                 <SelectTrigger id="grade">
                                     <SelectValue placeholder="Seleziona il grado" />
