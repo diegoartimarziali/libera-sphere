@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { CheckCircle, AlertTriangle } from "lucide-react"
+import { CheckCircle, AlertTriangle, Copy } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -21,7 +21,8 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 
 const plans = [
     { id: "stagionale", name: "Stagionale", price: "440", period: "stagione", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Paga in un'unica soluzione.", "Un mese gratis"], expiry: "L'Abbonamento Stagionale può essere acquistato dal 01/07 al 15/10" },
@@ -39,6 +40,9 @@ const monthlyPaymentOptions = [
     { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ]
 
+const SUMUP_SEASONAL_LINK = 'https://pay.sumup.com/b2c/QG1CK6T0';
+
+
 export function SubscriptionManagement() {
   const { toast } = useToast();
   const router = useRouter();
@@ -47,30 +51,50 @@ export function SubscriptionManagement() {
   const [selectedPlan, setSelectedPlan] = useState<string | undefined>();
   const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
+  const [userName, setUserName] = useState('');
+
+  const bankDetails = {
+      iban: "IT12A345B678C901D234E567F890",
+      beneficiary: "Associazione Libera Energia ASD",
+      cause: `Abbonamento Stagionale ${userName}`
+  }
+
+  const copyToClipboard = (text: string) => {
+      navigator.clipboard.writeText(text).then(() => {
+          toast({ title: "Copiato!", description: "Dettagli bancari copiati negli appunti." });
+      }, (err) => {
+          toast({ title: "Errore", description: "Impossibile copiare i dettagli.", variant: "destructive" });
+      });
+  }
 
   useEffect(() => {
-    // Check for medical certificate
-    const certDate = localStorage.getItem('medicalCertificateExpirationDate');
-    const certFile = localStorage.getItem('medicalCertificateFileName');
-    if (certDate && certFile) {
-        setHasMedicalCertificate(true);
-    }
+    if(typeof window !== 'undefined'){
+      // Check for medical certificate
+      const certDate = localStorage.getItem('medicalCertificateExpirationDate');
+      const certFile = localStorage.getItem('medicalCertificateFileName');
+      if (certDate && certFile) {
+          setHasMedicalCertificate(true);
+      }
 
-    // Check for seasonal plan availability
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize to the start of the day
-    const currentYear = today.getFullYear();
-    
-    const startDate = new Date(currentYear, 6, 1); // July 1st
-    const endDate = new Date(currentYear, 9, 15); // October 15th
-    
-    const isAvailable = today >= startDate && today <= endDate;
-    setIsStagionaleAvailable(isAvailable);
-    
-    if (isAvailable) {
-        setSelectedPlan("stagionale");
-    } else {
-        setSelectedPlan("mensile");
+      setUserName(localStorage.getItem('userName') || '');
+
+      // Check for seasonal plan availability
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize to the start of the day
+      const currentYear = today.getFullYear();
+      
+      const startDate = new Date(currentYear, 6, 1); // July 1st
+      const endDate = new Date(currentYear, 9, 15); // October 15th
+      
+      const isAvailable = today >= startDate && today <= endDate;
+      setIsStagionaleAvailable(isAvailable);
+      
+      if (isAvailable) {
+          setSelectedPlan("stagionale");
+      } else {
+          setSelectedPlan("mensile");
+      }
     }
   }, []);
 
@@ -79,67 +103,70 @@ export function SubscriptionManagement() {
     setPaymentMethod(undefined); // Reset payment method when plan changes
   }
 
-  const handleSubscription = async (planId: string | undefined, payment: string | undefined) => {
-    if (!planId || !payment) return;
+  const saveDataAndRedirect = async () => {
+      const userEmail = localStorage.getItem('registrationEmail');
+      const selectedPlanDetails = plans.find(p => p.id === selectedPlan);
+
+      if (!userEmail || !selectedPlanDetails || !paymentMethod) return;
+
+      try {
+           await addDoc(collection(db, "subscriptions"), {
+              userEmail: userEmail,
+              planId: selectedPlanDetails.id,
+              planName: selectedPlanDetails.name,
+              price: selectedPlanDetails.price,
+              paymentMethod: paymentMethod,
+              status: 'In attesa',
+              subscriptionDate: serverTimestamp()
+          });
+
+          if (typeof window !== 'undefined') {
+              localStorage.setItem('subscriptionPlan', selectedPlanDetails.id);
+              localStorage.setItem('paymentMethod', paymentMethod);
+          }
+          
+          router.push('/dashboard/payments');
+
+      } catch (error) {
+           console.error("Error adding document: ", error);
+          toast({
+              title: "Errore nel salvataggio",
+              description: "Non è stato possibile registrare il tuo abbonamento. Riprova più tardi.",
+              variant: "destructive",
+          });
+      }
+  }
+
+  const handleSubscription = async () => {
+    if (!selectedPlan || !paymentMethod) return;
 
     setIsSubmitting(true);
-    const userEmail = localStorage.getItem('registrationEmail');
-
-    if (!userEmail) {
-        toast({
-            title: "Errore",
-            description: "Utente non riconosciuto. Effettua nuovamente il login.",
-            variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-    }
-
-    const selectedPlanDetails = plans.find(p => p.id === planId);
-    if (!selectedPlanDetails) {
+    
+    if (paymentMethod === 'online') {
+        const paymentUrl = encodeURIComponent(SUMUP_SEASONAL_LINK);
+        const returnUrl = encodeURIComponent('/dashboard/payments');
+        router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+    } else if (paymentMethod === 'bank') {
+        setShowBankTransferDialog(true);
+    } else if (paymentMethod === 'cash') {
          toast({
-            title: "Errore",
-            description: "Piano selezionato non valido.",
-            variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
+            title: "Iscrizione registrata!",
+            description: `Presentati in segreteria per completare il pagamento.`,
+         });
+         await saveDataAndRedirect();
     }
-
-    try {
-        await addDoc(collection(db, "subscriptions"), {
-            userEmail: userEmail,
-            planId: selectedPlanDetails.id,
-            planName: selectedPlanDetails.name,
-            price: selectedPlanDetails.price,
-            paymentMethod: payment,
-            status: 'In attesa',
-            subscriptionDate: serverTimestamp()
-        });
-
-        toast({
-            title: "Iscrizione Avvenuta!",
-            description: "Il tuo abbonamento è stato registrato. Vedrai lo stato del pagamento nella sezione 'Pagamenti'.",
-        });
-
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('subscriptionPlan', selectedPlanDetails.id);
-            localStorage.setItem('paymentMethod', payment);
-        }
-        
-        router.push('/dashboard/payments');
-
-    } catch (error) {
-        console.error("Error adding document: ", error);
-        toast({
-            title: "Errore nel salvataggio",
-            description: "Non è stato possibile registrare il tuo abbonamento. Riprova più tardi.",
-            variant: "destructive",
-        });
-    } finally {
-        setIsSubmitting(false);
-    }
+    
+    setIsSubmitting(false);
   }
+
+  const handleConfirmBankTransfer = async () => {
+      setShowBankTransferDialog(false);
+      toast({
+          title: "Iscrizione registrata!",
+          description: "Effettua il bonifico usando i dati forniti. Vedrai lo stato aggiornato nella sezione pagamenti.",
+      });
+      await saveDataAndRedirect();
+  };
 
   const renderPaymentOptions = (planId: string) => {
     if (planId === 'stagionale') {
@@ -157,20 +184,27 @@ export function SubscriptionManagement() {
       );
     }
 
-    return (
-        <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod}>
-            {monthlyPaymentOptions.map(option => (
-                <Label htmlFor={`${planId}-${option.id}`} key={option.id} className="flex items-center space-x-2 cursor-pointer">
-                    <RadioGroupItem value={option.id} id={`${planId}-${option.id}`} />
-                    <span className="font-normal">{option.label}</span>
-                </Label>
-            ))}
-        </RadioGroup>
-    );
+    // This part is for the monthly plan, which seems to have a bug in the original code.
+    // For now, let's keep it consistent.
+    if (planId === 'mensile') {
+        return (
+          <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+              <SelectTrigger id="monthly-payment">
+                  <SelectValue placeholder="Scegli un metodo" />
+              </SelectTrigger>
+              <SelectContent>
+                  {monthlyPaymentOptions.map(option => (
+                      <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                  ))}
+              </SelectContent>
+          </Select>
+        );
+    }
+    return null;
   }
 
-
   return (
+    <>
     <Card>
       <CardHeader>
         <CardTitle>Piano di Abbonamento</CardTitle>
@@ -238,7 +272,7 @@ export function SubscriptionManagement() {
                              <Button 
                                 className="w-full" 
                                 disabled={isPlanDisabled || !paymentMethod || isSubmitting}
-                                onClick={() => handleSubscription(selectedPlan, paymentMethod)}
+                                onClick={handleSubscription}
                             >
                                 {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
                             </Button>
@@ -250,5 +284,60 @@ export function SubscriptionManagement() {
         </div>
       </CardContent>
     </Card>
+
+    <AlertDialog open={showBankTransferDialog} onOpenChange={setShowBankTransferDialog}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Dati per Bonifico Bancario</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Effettua il bonifico utilizzando i dati seguenti. La tua iscrizione verrà confermata alla ricezione del pagamento.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-4 my-4">
+                <div className="space-y-1">
+                    <Label className="text-muted-foreground">Beneficiario</Label>
+                    <div className="flex items-center justify-between rounded-md border bg-muted p-2">
+                        <span className="font-mono">{bankDetails.beneficiary}</span>
+                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(bankDetails.beneficiary)}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+                 <div className="space-y-1">
+                    <Label className="text-muted-foreground">IBAN</Label>
+                    <div className="flex items-center justify-between rounded-md border bg-muted p-2">
+                        <span className="font-mono">{bankDetails.iban}</span>
+                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(bankDetails.iban)}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+                 <div className="space-y-1">
+                    <Label className="text-muted-foreground">Importo</Label>
+                     <div className="flex items-center justify-between rounded-md border bg-muted p-2">
+                        <span className="font-mono">€ {plans.find(p => p.id === selectedPlan)?.price}</span>
+                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(plans.find(p => p.id === selectedPlan)?.price || '')}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+                 <div className="space-y-1">
+                    <Label className="text-muted-foreground">Causale</Label>
+                    <div className="flex items-center justify-between rounded-md border bg-muted p-2">
+                        <span className="font-mono">{bankDetails.cause}</span>
+                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(bankDetails.cause)}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogAction onClick={handleConfirmBankTransfer}>Ho capito, procedi</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }
+
+    
