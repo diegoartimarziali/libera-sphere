@@ -21,13 +21,20 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 const plans = [
     { id: "stagionale", name: "Stagionale", price: "440", period: "stagione", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Paga in un'unica soluzione.", "Un mese gratis"], expiry: "L'Abbonamento Stagionale può essere acquistato dal 01/07 al 15/10" },
     { id: "mensile", name: "Mensile", price: "55", period: "mese", features: ["Accesso a tutte le palestre", "Corsi illimitati"] },
 ]
 
-const paymentOptions = [
+const seasonalPaymentOptions = [
+    { id: "online", label: "Carta di Credito on line" },
+    { id: "bank", label: "Bonifico Bancario" },
+    { id: "cash", label: "Contanti o Bancomat in Palestra" },
+]
+
+const monthlyPaymentOptions = [
     { id: "online", label: "Carta di Credito on line" },
     { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ]
@@ -134,6 +141,34 @@ export function SubscriptionManagement() {
     }
   }
 
+  const renderPaymentOptions = (planId: string) => {
+    if (planId === 'stagionale') {
+      return (
+        <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+            <SelectTrigger id="seasonal-payment">
+                <SelectValue placeholder="Scegli un metodo" />
+            </SelectTrigger>
+            <SelectContent>
+                {seasonalPaymentOptions.map(option => (
+                    <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+      );
+    }
+
+    return (
+        <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod}>
+            {monthlyPaymentOptions.map(option => (
+                <Label htmlFor={`${planId}-${option.id}`} key={option.id} className="flex items-center space-x-2 cursor-pointer">
+                    <RadioGroupItem value={option.id} id={`${planId}-${option.id}`} />
+                    <span className="font-normal">{option.label}</span>
+                </Label>
+            ))}
+        </RadioGroup>
+    );
+  }
+
 
   return (
     <Card>
@@ -186,14 +221,7 @@ export function SubscriptionManagement() {
                             <div className="pt-4">
                                 <Separator className="mb-4" />
                                 <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
-                                <RadioGroup onValueChange={setPaymentMethod} value={paymentMethod}>
-                                    {paymentOptions.map(option => (
-                                        <Label htmlFor={`${plan.id}-${option.id}`} key={option.id} className="flex items-center space-x-2 cursor-pointer">
-                                            <RadioGroupItem value={option.id} id={`${plan.id}-${option.id}`} />
-                                            <span className="font-normal">{option.label}</span>
-                                        </Label>
-                                    ))}
-                                </RadioGroup>
+                                {renderPaymentOptions(plan.id)}
                             </div>
                         )}
                     </CardContent>
@@ -224,5 +252,3 @@ export function SubscriptionManagement() {
     </Card>
   )
 }
-
-    
