@@ -257,8 +257,12 @@ export function MedicalCertificate() {
                     <p className="text-muted-foreground text-sm mt-4">
                         {selectedFile?.name}
                     </p>
-                    <p className="text-muted-foreground text-sm">
-                        {expirationDate ? `Scade il: ${format(expirationDate, "PPP", { locale: it })}` : "Data di scadenza non impostata"}
+                    <p className="text-sm">
+                        {expirationDate ? (
+                            <span>
+                                <span className="font-bold text-foreground">Scade il:</span> {format(expirationDate, "PPP", { locale: it })}
+                            </span>
+                        ) : "Data di scadenza non impostata"}
                     </p>
                     <Button variant="secondary" className="mt-4" onClick={handleNewUpload}>
                         <Upload className="mr-2 h-4 w-4" /> Carica Nuovo
