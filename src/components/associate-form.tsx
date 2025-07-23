@@ -39,6 +39,8 @@ const paymentOptions = [
     { id: "bank-transfer", label: "Bonifico Bancario" },
 ]
 
+const SUMUP_ASSOCIATION_LINK = 'https://pay.sumup.com/b2c/Q9ZH35JE';
+
 export function AssociateForm() {
     const { toast } = useToast()
     const router = useRouter()
@@ -90,8 +92,8 @@ export function AssociateForm() {
         }
     }, [day, month, year]);
 
-    const handleSaveAndApply = () => {
-        if (typeof window !== 'undefined') {
+    const saveData = () => {
+         if (typeof window !== 'undefined') {
             localStorage.setItem('userName', name);
             localStorage.setItem('codiceFiscale', codiceFiscale);
             if (birthDate) {
@@ -125,14 +127,23 @@ export function AssociateForm() {
             localStorage.setItem('associationRequestDate', associationDate);
             localStorage.setItem('lessonSelected', 'true'); // Hide menu item
         }
-        
+    };
+
+    const handleSaveAndApply = () => {
+        saveData();
         toast({
             title: "Dati Salvati!",
             description: `I tuoi dati sono stati salvati e la domanda di associazione inviata.`,
         });
-        
         router.push('/dashboard');
     }
+    
+    const handleOnlinePayment = () => {
+        saveData();
+        const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
+        const returnUrl = encodeURIComponent('/dashboard'); // torna alla dashboard dopo il pagamento
+        router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+    };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -409,7 +420,7 @@ export function AssociateForm() {
         </CardContent>
         <CardFooter className="flex justify-end">
              {paymentMethod === 'online' ? (
-                <Button className="w-full bg-blue-600 hover:bg-blue-700" disabled={!isPaymentComplete}>
+                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleOnlinePayment} disabled={!isPaymentComplete}>
                     Procedi con il Pagamento
                 </Button>
             ) : (
@@ -421,3 +432,5 @@ export function AssociateForm() {
     </Card>
   )
 }
+
+    
