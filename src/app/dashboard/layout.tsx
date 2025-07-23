@@ -81,6 +81,7 @@ export default function DashboardLayout({
   const [associationRequested, setAssociationRequested] = React.useState(false);
   const [lessonSelected, setLessonSelected] = React.useState(false);
   const [inLiberasphere, setInLiberasphere] = React.useState(false);
+  const [selectionPassportComplete, setSelectionPassportComplete] = React.useState(false);
 
   React.useEffect(() => {
     setIsClient(true);
@@ -93,12 +94,14 @@ export default function DashboardLayout({
       const storedAssociation = localStorage.getItem('associated') === 'true';
       const storedLessonSelected = localStorage.getItem('lessonSelected') === 'true';
       const storedAssociationRequested = localStorage.getItem('associationRequested') === 'true';
+      const storedSelectionPassportComplete = localStorage.getItem('isSelectionPassportComplete') === 'true';
       
       setInLiberasphere(storedLiberasphere);
       setRegulationsAccepted(storedRegulations);
       setAssociated(storedAssociation);
       setLessonSelected(storedLessonSelected);
       setAssociationRequested(storedAssociationRequested);
+      setSelectionPassportComplete(storedSelectionPassportComplete);
 
       // Redirect logic
       if (!storedLiberasphere && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/aiuto') {
@@ -123,11 +126,11 @@ export default function DashboardLayout({
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => inLiberasphere && !regulationsAccepted },
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => regulationsAccepted },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
-    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => regulationsAccepted && !associationRequested },
+    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => regulationsAccepted && !associationRequested && !selectionPassportComplete },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => regulationsAccepted },
-    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => regulationsAccepted },
-    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => regulationsAccepted },
-    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => regulationsAccepted },
+    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => regulationsAccepted && !selectionPassportComplete },
+    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => regulationsAccepted && !selectionPassportComplete },
+    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => regulationsAccepted && !selectionPassportComplete },
   ]
   
   const bottomNavItems = [
@@ -165,7 +168,7 @@ export default function DashboardLayout({
         <nav className="flex flex-col items-center gap-4 px-2 sm:py-5 flex-1">
           <Link
             href="#"
-            className="group flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-stone-800 text-lg font-semibold text-amber-400 md:h-8 md:text-base"
+            className="group flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-stone-800 text-amber-400 md:h-8 md:text-base"
           >
             <KanjiIcon className="h-4 w-4 transition-all group-hover:scale-110" />
             <span>LiberaSphere</span>
@@ -247,5 +250,3 @@ export default function DashboardLayout({
     </div>
   )
 }
-
-    

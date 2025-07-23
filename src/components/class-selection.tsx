@@ -474,7 +474,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         if (typeof window !== 'undefined') {
             localStorage.setItem('isSelectionPassportComplete', 'true');
             localStorage.setItem('isInsured', 'true');
-            if(setLessonSelected) setLessonSelected(true);
         }
         router.push('/dashboard');
     }
