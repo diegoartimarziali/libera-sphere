@@ -199,7 +199,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const storedName = localStorage.getItem('userName') || '';
-            setName(storedName);
+            // Don't set the name from local storage if it's the class selection form
+            // setName(storedName);
             const storedCodiceFiscale = localStorage.getItem('codiceFiscale') || '';
             const storedBirthDate = localStorage.getItem('birthDate');
             const storedAddress = localStorage.getItem('address') || '';
@@ -284,9 +285,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             if (amount) localStorage.setItem('paymentAmount', amount);
 
             if (paymentMethod === 'cash') {
-                const paymentDate = format(new Date(), "dd/MM/yyyy HH:mm");
-                localStorage.setItem('paymentDate', paymentDate);
-            } else {
                 localStorage.removeItem('paymentDate');
             }
         }
