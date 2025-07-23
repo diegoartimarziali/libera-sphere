@@ -506,7 +506,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     }
 
     const handleAssociateClick = () => {
-        router.push('/dashboard/associates');
+        router.push('/dashboard/associates?fromSelection=true');
     };
 
     // Sequential validation state
@@ -912,5 +912,3 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     </>
   )
 }
-
-    

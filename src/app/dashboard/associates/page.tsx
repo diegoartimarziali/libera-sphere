@@ -5,22 +5,33 @@ import { AssociateCard } from "@/components/associate-card";
 import { AssociateForm } from "@/components/associate-form";
 import { AssociateEditForm } from "@/components/associate-edit-form";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 export default function AssociatesPage({ setRegulationsAccepted, setAssociated, setAssociationRequested }: { setRegulationsAccepted?: (value: boolean) => void, setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void }) {
     const [hasUserData, setHasUserData] = useState(false);
     const [wantsToEdit, setWantsToEdit] = useState(false);
     const [isClient, setIsClient] = useState(false);
+    const [forceShowForm, setForceShowForm] = useState(false);
+
+    // We can't use useSearchParams at the top level in page.tsx
+    // So we create a simple wrapper component.
+    const SearchParamComponent = () => {
+        const searchParams = useSearchParams();
+        useEffect(() => {
+            if (searchParams.get('fromSelection') === 'true') {
+                setForceShowForm(true);
+            }
+        }, [searchParams]);
+        return null;
+    }
 
     useEffect(() => {
         setIsClient(true);
         if (typeof window !== 'undefined') {
-            // We check for essential data to determine if the user has already provided their info.
             const name = localStorage.getItem('userName');
             const codiceFiscale = localStorage.getItem('codiceFiscale');
             const birthDate = localStorage.getItem('birthDate');
             
-            // If these essential pieces of information exist, we show the confirmation card.
-            // Otherwise, we show the form to input the data.
             if (name && codiceFiscale && birthDate) {
                 setHasUserData(true);
             } else {
@@ -36,16 +47,18 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
     const handleDataSaved = () => {
         setHasUserData(true);
         setWantsToEdit(false);
-        // We can optionally add a toast message here to confirm saving
     }
 
     if (!isClient) {
-        return null; // or a loading skeleton
+        return null;
     }
 
     return (
         <div>
-            {hasUserData ? (
+            <React.Suspense fallback={<div>Caricamento...</div>}>
+                <SearchParamComponent />
+            </React.Suspense>
+            {(hasUserData && !forceShowForm) ? (
                 wantsToEdit ? (
                     <AssociateEditForm onSave={handleDataSaved} />
                 ) : (
