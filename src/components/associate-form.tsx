@@ -39,8 +39,6 @@ const paymentOptions = [
     { id: "bank-transfer", label: "Bonifico Bancario" },
 ]
 
-const SUMUP_ASSOCIATION_LINK = 'https://pay.sumup.com/b2c/Q9ZH35JE';
-
 export function AssociateForm() {
     const { toast } = useToast()
     const router = useRouter()
@@ -140,9 +138,7 @@ export function AssociateForm() {
     
     const handleOnlinePayment = () => {
         saveData();
-        const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
-        const returnUrl = encodeURIComponent('/dashboard'); // torna alla dashboard dopo il pagamento
-        router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+        router.push(`/dashboard/association-payment`);
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -341,6 +337,10 @@ export function AssociateForm() {
                 </div>
             </div>
 
+            <p className="pt-4 text-sm text-foreground">
+                Chiede di essere ammesso in qualità di socio all'associazione Libera Energia.
+            </p>
+
             {!isMinor && (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -432,5 +432,3 @@ export function AssociateForm() {
     </Card>
   )
 }
-
-    
