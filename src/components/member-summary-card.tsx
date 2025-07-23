@@ -236,7 +236,7 @@ export function MemberSummaryCard() {
             <div className="text-foreground flex justify-center gap-4 text-black">
               <span>Associato dal: <span className="font-bold">{firstAssociationYear}</span></span>
               <span>Grado attuale: <span className="font-bold">{grade || 'Nessuno'}</span></span>
-              <span>Numero tessera: <span className="font-bold"></span></span>
+              <span>n° Tessera: <span className="font-bold"></span></span>
               <span>Palestra di: <span className="font-bold">{capitalizeFirstLetter(selectedDojo)}</span></span>
             </div>
           </div>
