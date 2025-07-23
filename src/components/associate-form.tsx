@@ -408,7 +408,15 @@ export function AssociateForm() {
 
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveAndApply}>Procedi</Button>
+             {paymentMethod === 'online' ? (
+                <Button className="w-full bg-blue-600 hover:bg-blue-700" disabled={!isPaymentComplete}>
+                    Procedi con il Pagamento
+                </Button>
+            ) : (
+                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveAndApply} disabled={!isPaymentComplete}>
+                    Procedi
+                </Button>
+            )}
         </CardFooter>
     </Card>
   )
