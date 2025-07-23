@@ -31,7 +31,7 @@ interface Subscription {
   planName: string;
   price: string;
   paymentMethod: string;
-  subscriptionDate: Timestamp;
+  subscriptionDate: Timestamp | null;
   status: 'Pagato' | 'In attesa';
 }
 
@@ -72,7 +72,7 @@ export function PaymentHistory() {
                 planName: data.planName,
                 price: data.price,
                 paymentMethod: data.paymentMethod,
-                subscriptionDate: data.subscriptionDate,
+                subscriptionDate: data.subscriptionDate || null,
                 status: data.status || 'In attesa', // Default to 'In attesa' if status is not set
             } as Subscription;
         });
@@ -119,7 +119,7 @@ export function PaymentHistory() {
             <TableBody>
               {subscriptions.map((sub) => (
                 <TableRow key={sub.id}>
-                  <TableCell>{format(sub.subscriptionDate.toDate(), "dd/MM/yyyy")}</TableCell>
+                  <TableCell>{sub.subscriptionDate ? format(sub.subscriptionDate.toDate(), "dd/MM/yyyy") : 'In elaborazione...'}</TableCell>
                   <TableCell className="font-medium">{sub.planName}</TableCell>
                   <TableCell>€{sub.price}</TableCell>
                   <TableCell>{translatePaymentMethod(sub.paymentMethod)}</TableCell>
