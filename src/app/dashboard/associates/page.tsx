@@ -1,10 +1,10 @@
 
 'use client'
 
+import React, { useEffect, useState } from "react";
 import { AssociateCard } from "@/components/associate-card";
 import { AssociateForm } from "@/components/associate-form";
 import { AssociateEditForm } from "@/components/associate-edit-form";
-import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 export default function AssociatesPage({ setRegulationsAccepted, setAssociated, setAssociationRequested }: { setRegulationsAccepted?: (value: boolean) => void, setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void }) {
