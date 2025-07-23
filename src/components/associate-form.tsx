@@ -135,35 +135,18 @@ export function AssociateForm() {
                  localStorage.setItem('isMinor', 'false');
                 localStorage.setItem('phone', phone);
             }
-            
-            if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
-            localStorage.setItem('paymentAmount', amount);
-
-            localStorage.setItem('hasSubmittedData', 'true');
-            
-            const associationDate = format(new Date(), "dd/MM/yyyy");
-            localStorage.setItem('associationRequested', 'true');
-            localStorage.setItem('associationRequestDate', associationDate);
-            localStorage.setItem('lessonSelected', 'true'); // Hide menu item
         }
     };
 
-    const handleSaveAndApply = () => {
+    const handleSaveAndReturn = () => {
         saveData();
         toast({
             title: "Dati Salvati!",
-            description: `I tuoi dati sono stati salvati e la domanda di associazione inviata.`,
+            description: `I tuoi dati sono stati aggiornati.`,
         });
-        router.push('/dashboard');
+        window.location.reload();
     }
     
-    const handleOnlinePayment = () => {
-        saveData();
-        const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
-        const returnUrl = encodeURIComponent('/dashboard/associates');
-        router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-    };
-
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         const capitalized = value
@@ -250,8 +233,8 @@ export function AssociateForm() {
   return (
     <Card>
         <CardHeader>
-            <CardTitle className="bg-blue-600 text-white p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Domanda di Associazione</CardTitle>
-            <CardDescription className="text-foreground font-bold">Prepara la tua domanda di associazione.</CardDescription>
+            <CardTitle className="bg-blue-600 text-white p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Modifica Dati Associazione</CardTitle>
+            <CardDescription className="text-foreground font-bold">Correggi i dati e poi clicca su "Salva e Conferma" per tornare alla scheda di riepilogo.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -420,16 +403,12 @@ export function AssociateForm() {
             )}
         </CardContent>
         <CardFooter className="flex justify-end">
-             {paymentMethod === 'online' ? (
-                <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={handleOnlinePayment} disabled={!isFormComplete}>
-                    Procedi con il Pagamento
-                </Button>
-            ) : (
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveAndApply} disabled={!isFormComplete}>
-                    Procedi
-                </Button>
-            )}
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleSaveAndReturn} >
+                Salva e Conferma
+            </Button>
         </CardFooter>
     </Card>
   )
 }
+
+    
