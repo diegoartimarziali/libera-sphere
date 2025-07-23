@@ -45,14 +45,20 @@ export function MedicalCertificate() {
   useEffect(() => {
     // Load existing certificate data from localStorage
     if (typeof window !== 'undefined') {
-        const storedDate = localStorage.getItem('medicalCertificateExpirationDate');
+        const storedDateStr = localStorage.getItem('medicalCertificateExpirationDate');
         const storedFileName = localStorage.getItem('medicalCertificateFileName');
         const storedFileUrl = localStorage.getItem('medicalCertificateFileUrl');
 
-        if (storedDate && storedFileName) {
+        if (storedDateStr && storedFileName) {
+            const storedDate = new Date(storedDateStr);
             setIsCertificateUploaded(true);
-            setExpirationDate(new Date(storedDate));
+            setExpirationDate(storedDate);
             setSelectedFile(new File([], storedFileName));
+
+            setDay(String(storedDate.getDate()));
+            setMonth(String(storedDate.getMonth() + 1));
+            setYear(String(storedDate.getFullYear()));
+
             if(storedFileUrl) {
                 setFileUrl(storedFileUrl);
             }
@@ -104,13 +110,8 @@ export function MedicalCertificate() {
   const handleRegisterCertificate = (file: File, url: string) => {
     if (file && expirationDate && url) {
       if (typeof window !== 'undefined') {
-        // In a real application, you would upload the file to Firebase Storage
-        // and store the permanent URL. For this prototype, we store it in localStorage.
         localStorage.setItem('medicalCertificateExpirationDate', expirationDate.toISOString());
         localStorage.setItem('medicalCertificateFileName', file.name);
-        
-        // This part is tricky with blob URLs as they expire.
-        // For a prototype, this will work for the session. A real app would use a permanent URL.
         localStorage.setItem('medicalCertificateFileUrl', url);
       }
       
@@ -269,5 +270,3 @@ export function MedicalCertificate() {
     </Card>
   )
 }
-
-    
