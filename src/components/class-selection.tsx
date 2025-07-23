@@ -22,12 +22,13 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
 import { useState, useMemo, useEffect } from "react"
-import { format } from "date-fns"
+import { format, parse, isAfter } from "date-fns"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { Separator } from "./ui/separator"
 import { Gift, Info } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
+import { cn } from "@/lib/utils"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -97,6 +98,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const [savedSecondLessonDate, setSavedSecondLessonDate] = useState<string | null>(null);
     const [savedThirdLessonDate, setSavedThirdLessonDate] = useState<string | null>(null);
     const [datesSaved, setDatesSaved] = useState(false);
+    const [associationEnabled, setAssociationEnabled] = useState(false);
 
     const [summaryData, setSummaryData] = useState({
         firstLesson: '',
@@ -150,8 +152,22 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             
             if (savedDatesFlag) {
                 setDatesSaved(true);
-                setSavedSecondLessonDate(localStorage.getItem('savedSecondLessonDate'));
+                const secondDateStr = localStorage.getItem('savedSecondLessonDate');
+                setSavedSecondLessonDate(secondDateStr);
                 setSavedThirdLessonDate(localStorage.getItem('savedThirdLessonDate'));
+                 if (secondDateStr) {
+                    try {
+                        const secondLessonDate = parse(secondDateStr, 'd MMMM yyyy', new Date(), { locale: it });
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        if (!isNaN(secondLessonDate.getTime()) && isAfter(today, secondLessonDate)) {
+                            setAssociationEnabled(true);
+                        }
+                    } catch (e) {
+                        console.error("Error parsing second lesson date", e);
+                        setAssociationEnabled(false);
+                    }
+                }
             }
 
             if (initialStep === 2) {
@@ -429,6 +445,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             title: "Date salvate!",
             description: "Le date delle lezioni sono state aggiornate.",
         });
+        window.location.reload();
     };
 
     const canSaveDates = useMemo(() => {
@@ -797,18 +814,18 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                         </Button>
                     </div>
                      <Separator />
-                     <div className="flex justify-between items-center w-full">
+                     <div className={cn("flex justify-between items-center w-full", !associationEnabled && "opacity-50 pointer-events-none")}>
                         <p className="text-sm text-muted-foreground">Vuoi associarti e proseguire il tuo percorso?</p>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center space-x-2">
-                                <Checkbox id="associate-yes" />
+                                <Checkbox id="associate-yes" disabled={!associationEnabled}/>
                                 <Label htmlFor="associate-yes">SI</Label>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Checkbox id="associate-no" />
+                                <Checkbox id="associate-no" disabled={!associationEnabled}/>
                                 <Label htmlFor="associate-no">NO</Label>
                             </div>
-                            <Button disabled className="bg-green-600 hover:bg-green-700 text-white">Associati</Button>
+                            <Button disabled={!associationEnabled} className="bg-green-600 hover:bg-green-700 text-white">Associati</Button>
                         </div>
                     </div>
                 </CardFooter>
