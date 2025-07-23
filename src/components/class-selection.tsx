@@ -29,6 +29,8 @@ import { Separator } from "./ui/separator"
 import { Gift, Info } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 import { cn } from "@/lib/utils"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog"
+import { Textarea } from "./ui/textarea"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -99,6 +101,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const [savedThirdLessonDate, setSavedThirdLessonDate] = useState<string | null>(null);
     const [datesSaved, setDatesSaved] = useState(false);
     const [associationEnabled, setAssociationEnabled] = useState(false);
+    const [associationChoice, setAssociationChoice] = useState<string | undefined>();
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+    const [feedback, setFeedback] = useState('');
 
     const [summaryData, setSummaryData] = useState({
         firstLesson: '',
@@ -157,7 +162,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 setSavedThirdLessonDate(localStorage.getItem('savedThirdLessonDate'));
                  if (secondDateStr) {
                     try {
-                        const secondLessonDate = parse(secondDateStr, 'd LLLL yyyy', new Date(), { locale: it });
+                        // Use Italian locale for parsing month name
+                        const secondLessonDate = parse(secondDateStr, 'd MMMM yyyy', new Date(), { locale: it });
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
                         if (!isNaN(secondLessonDate.getTime()) && isAfter(today, secondLessonDate)) {
@@ -471,6 +477,32 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         }
         router.push('/dashboard');
     }
+    
+    const handleAssociationChoiceChange = (choice: 'yes' | 'no') => {
+        if (!associationEnabled) return;
+        setAssociationChoice(choice);
+        if (choice === 'no') {
+            setShowLeaveConfirm(true);
+        }
+    }
+
+    const handleLeaveConfirm = () => {
+        // Here you would implement the logic to delete user data
+        console.log("Feedback:", feedback);
+        toast({
+            title: "Dati cancellati",
+            description: "Il tuo account e i tuoi dati verranno eliminati a breve.",
+        });
+        setShowLeaveConfirm(false);
+        // Potentially clear localStorage and redirect
+        // localStorage.clear();
+        // router.push('/');
+    }
+
+    const handleLeaveCancel = () => {
+        setShowLeaveConfirm(false);
+        setAssociationChoice(undefined); // Reset the choice
+    }
 
     // Sequential validation state
     const isCourseSectionComplete = !!(martialArt && dojo && lessonDate);
@@ -695,144 +727,179 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         )}
         
         {currentStep === 2 && (
-            <Card>
-                <CardHeader>
-                     <CardTitle className="bg-green-600 text-white p-4 -mt-6 -mx-6 rounded-t-lg mb-4">Passaporto Selezioni</CardTitle>
-                     <CardDescription className="text-foreground font-bold">Questa scheda ti verrà richiesta alla prima lezione.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground items-center">
-                       <div>
-                           <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(summaryData.paymentMethod ?? null)}</span></p>
-                           {summaryData.paymentDate && <p><b>Data Pagamento:</b> <span className="text-foreground font-bold">{summaryData.paymentDate}</span></p>}
-                       </div>
-                       <div className="flex items-center gap-4">
-                            <p><b>Importo:</b> <span className="text-foreground font-bold">€ {summaryData.amount}</span></p>
-                       </div>
-                    </div>
-                    
-                    <Separator />
-                    
-                    <div>
-                        <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
-                        <div className="space-y-2 text-muted-foreground">
-                            <div className="flex flex-col items-start">
-                                <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{summaryData.firstLesson}</span></p>
-                                <Separator className="my-2" />
-                                <p className="text-foreground">Date da concordare col Maestro:</p>
-                            </div>
-                            <div className="flex items-start gap-4 mt-2">
-                                <div className="space-y-2 flex-grow">
-                                    <div className="flex items-center gap-4">
-                                        <Label className="min-w-max"><b>2a Lezione:</b></Label>
-                                        {datesSaved ? (
-                                            <span className="text-foreground font-bold">{savedSecondLessonDate}</span>
-                                        ) : (
-                                            <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
-                                                <Select onValueChange={setSecondLessonDay} value={secondLessonDay}>
-                                                    <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                                <Select onValueChange={setSecondLessonMonth} value={secondLessonMonth}>
-                                                    <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                                <Select onValueChange={setSecondLessonYear} value={secondLessonYear}>
-                                                    <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-4 mt-2">
-                                        <Label className="min-w-max"><b>3a Lezione:</b></Label>
-                                         {datesSaved ? (
-                                            <span className="text-foreground font-bold">{savedThirdLessonDate}</span>
-                                        ) : (
-                                            <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
-                                                <Select onValueChange={setThirdLessonDay} value={thirdLessonDay}>
-                                                    <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                                <Select onValueChange={setThirdLessonMonth} value={thirdLessonMonth}>
-                                                    <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                                <Select onValueChange={setThirdLessonYear} value={thirdLessonYear}>
-                                                    <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
-                                                    <SelectContent>
-                                                        {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                {(!datesSaved && !datesSaved) && <Button onClick={handleSaveDates} disabled={!canSaveDates} className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>}
-                            </div>
+             <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Ci spiace che tu voglia lasciarci</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Puoi spiegarci il perchè e cosa dobbiamo migliorare?
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Textarea 
+                        placeholder="Il tuo feedback..." 
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Se procedi i tuoi dati verranno cancellati ed il tuo account eliminato.
+                    </p>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={handleLeaveCancel}>Annulla</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleLeaveConfirm}>Procedi</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="bg-green-600 text-white p-4 -mt-6 -mx-6 rounded-t-lg mb-4">Passaporto Selezioni</CardTitle>
+                        <CardDescription className="text-foreground font-bold">Questa scheda ti verrà richiesta alla prima lezione.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground items-center">
+                        <div>
+                            <p><b>Metodo Pagamento:</b> <span className="text-foreground font-bold">{translatePaymentMethodLocal(summaryData.paymentMethod ?? null)}</span></p>
+                            {summaryData.paymentDate && <p><b>Data Pagamento:</b> <span className="text-foreground font-bold">{summaryData.paymentDate}</span></p>}
                         </div>
-                    </div>
-
-                    <Separator />
-                    
-                    <div>
-                        <h3 className="font-semibold text-lg mb-2 text-primary">Dati Allievo</h3>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                            <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{summaryData.name}</span></p>
-                            <p><b>Età:</b> <span className="text-foreground font-bold">{summaryData.age !== null ? `${summaryData.age} anni` : ''}</span></p>
-                            <p><b>Residenza:</b> <span className="text-foreground font-bold">{summaryData.comune}</span></p>
-                             {!summaryData.isMinor && <p><b>Telefono:</b> <span className="text-foreground font-bold">{summaryData.phone}</span></p>}
-                        </div>
-                    </div>
-
-                    {summaryData.isMinor && (
-                         <>
-                            <Separator />
-                            <div>
-                                <h3 className="font-semibold text-lg mb-2 text-primary">Dati Genitore/Tutore</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
-                                    <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{summaryData.parentName}</span></p>
-                                    <p><b>Telefono:</b> <span className="text-foreground font-bold">{summaryData.parentPhone}</span></p>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                </CardContent>
-                <CardFooter className="flex flex-col items-stretch gap-4">
-                    <div className="self-end">
-                        <Button onClick={handleExit}>
-                            Esci
-                        </Button>
-                    </div>
-                     <Separator />
-                     <div className={cn("flex justify-between items-center w-full", !associationEnabled && "opacity-50 pointer-events-none")}>
-                        <p className={cn("text-sm", associationEnabled ? "font-bold text-foreground" : "text-muted-foreground")}>Vuoi associarti e proseguire il tuo percorso?</p>
                         <div className="flex items-center gap-4">
-                            <div className="flex items-center space-x-2">
-                                <Checkbox id="associate-yes" disabled={!associationEnabled}/>
-                                <Label htmlFor="associate-yes">SI</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <Checkbox id="associate-no" disabled={!associationEnabled}/>
-                                <Label htmlFor="associate-no">NO</Label>
-                            </div>
-                            <Button disabled={!associationEnabled} className="bg-green-600 hover:bg-green-700 text-white">Associati</Button>
+                                <p><b>Importo:</b> <span className="text-foreground font-bold">€ {summaryData.amount}</span></p>
                         </div>
-                    </div>
-                </CardFooter>
-            </Card>
+                        </div>
+                        
+                        <Separator />
+                        
+                        <div>
+                            <h3 className="font-semibold text-lg mb-2 text-primary">Dettagli Lezione</h3>
+                            <div className="space-y-2 text-muted-foreground">
+                                <div className="flex flex-col items-start">
+                                    <p><b>1a Lezione:</b> <span className="text-foreground font-bold">{summaryData.firstLesson}</span></p>
+                                    <Separator className="my-2" />
+                                    <p className="text-foreground">Date da concordare col Maestro:</p>
+                                </div>
+                                <div className="flex items-start gap-4 mt-2">
+                                    <div className="space-y-2 flex-grow">
+                                        <div className="flex items-center gap-4">
+                                            <Label className="min-w-max"><b>2a Lezione:</b></Label>
+                                            {datesSaved ? (
+                                                <span className="text-foreground font-bold">{savedSecondLessonDate}</span>
+                                            ) : (
+                                                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
+                                                    <Select onValueChange={setSecondLessonDay} value={secondLessonDay}>
+                                                        <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Select onValueChange={setSecondLessonMonth} value={secondLessonMonth}>
+                                                        <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Select onValueChange={setSecondLessonYear} value={secondLessonYear}>
+                                                        <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-4 mt-2">
+                                            <Label className="min-w-max"><b>3a Lezione:</b></Label>
+                                            {datesSaved ? (
+                                                <span className="text-foreground font-bold">{savedThirdLessonDate}</span>
+                                            ) : (
+                                                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2 flex-grow">
+                                                    <Select onValueChange={setThirdLessonDay} value={thirdLessonDay}>
+                                                        <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Select onValueChange={setThirdLessonMonth} value={thirdLessonMonth}>
+                                                        <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <Select onValueChange={setThirdLessonYear} value={thirdLessonYear}>
+                                                        <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                                        <SelectContent>
+                                                            {futureYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {(!datesSaved && !datesSaved) && <Button onClick={handleSaveDates} disabled={!canSaveDates} className="bg-green-600 hover:bg-green-700 self-center">Salva</Button>}
+                                </div>
+                            </div>
+                        </div>
+
+                        <Separator />
+                        
+                        <div>
+                            <h3 className="font-semibold text-lg mb-2 text-primary">Dati Allievo</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                                <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{summaryData.name}</span></p>
+                                <p><b>Età:</b> <span className="text-foreground font-bold">{summaryData.age !== null ? `${summaryData.age} anni` : ''}</span></p>
+                                <p><b>Residenza:</b> <span className="text-foreground font-bold">{summaryData.comune}</span></p>
+                                {!summaryData.isMinor && <p><b>Telefono:</b> <span className="text-foreground font-bold">{summaryData.phone}</span></p>}
+                            </div>
+                        </div>
+
+                        {summaryData.isMinor && (
+                            <>
+                                <Separator />
+                                <div>
+                                    <h3 className="font-semibold text-lg mb-2 text-primary">Dati Genitore/Tutore</h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 text-muted-foreground">
+                                        <p><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{summaryData.parentName}</span></p>
+                                        <p><b>Telefono:</b> <span className="text-foreground font-bold">{summaryData.parentPhone}</span></p>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                    </CardContent>
+                    <CardFooter className="flex flex-col items-stretch gap-4">
+                        <div className="self-end">
+                            <Button onClick={handleExit}>
+                                Esci
+                            </Button>
+                        </div>
+                        <Separator />
+                        <div className={cn("flex justify-between items-center w-full", !associationEnabled && "opacity-50 pointer-events-none")}>
+                            <p className={cn("text-sm", associationEnabled ? "font-bold text-foreground" : "text-muted-foreground")}>Vuoi associarti e proseguire il tuo percorso?</p>
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox 
+                                        id="associate-yes" 
+                                        disabled={!associationEnabled} 
+                                        checked={associationChoice === 'yes'} 
+                                        onCheckedChange={(checked) => handleAssociationChoiceChange(checked ? 'yes' : undefined)}
+                                    />
+                                    <Label htmlFor="associate-yes">SI</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                     <Checkbox 
+                                        id="associate-no" 
+                                        disabled={!associationEnabled}
+                                        checked={associationChoice === 'no'}
+                                        onCheckedChange={(checked) => { if(checked) handleAssociationChoiceChange('no')}}
+                                    />
+                                    <Label htmlFor="associate-no">NO</Label>
+                                </div>
+                                <Button disabled={!associationEnabled || associationChoice !== 'yes'} className="bg-green-600 hover:bg-green-700 text-white">Associati</Button>
+                            </div>
+                        </div>
+                    </CardFooter>
+                </Card>
+            </AlertDialog>
         )}
     </>
   )
 }
+
+    
