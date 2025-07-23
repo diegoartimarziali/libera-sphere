@@ -139,7 +139,7 @@ export function MemberSummaryCard() {
       case 'approved':
         return <span className="font-medium text-green-700">Valida</span>;
       case 'requested':
-        return <span className="font-medium text-orange-500">Domanda Inviata</span>;
+        return <span className="font-medium text-orange-500">Domanda inviata in data {associationDate}</span>;
       default:
         return <span className="font-medium text-red-600">Non Associato</span>;
     }
