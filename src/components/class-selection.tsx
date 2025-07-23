@@ -172,6 +172,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 if (localStorage.getItem('paymentMethod') === 'online' && !paymentDate) {
                     paymentDate = format(new Date(), "dd/MM/yyyy HH:mm");
                     localStorage.setItem('paymentDate', paymentDate);
+                } else if (localStorage.getItem('paymentMethod') === 'cash') {
+                    paymentDate = null; // Ensure no date for cash payment
                 }
 
                 setSummaryData({
@@ -306,10 +308,16 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     age--;
                 }
             }
+            
+            let paymentDate = localStorage.getItem('paymentDate');
+             if (localStorage.getItem('paymentMethod') === 'cash') {
+                paymentDate = null;
+            }
+
             setSummaryData({
                 firstLesson: localStorage.getItem('lessonDate') || '',
                 paymentMethod: localStorage.getItem('paymentMethod') || '',
-                paymentDate: localStorage.getItem('paymentDate'),
+                paymentDate: paymentDate,
                 amount: localStorage.getItem('paymentAmount') || '',
                 name: localStorage.getItem('userName') || '',
                 age: age,
