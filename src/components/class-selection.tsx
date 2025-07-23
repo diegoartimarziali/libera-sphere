@@ -157,7 +157,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                 setSavedThirdLessonDate(localStorage.getItem('savedThirdLessonDate'));
                  if (secondDateStr) {
                     try {
-                        const secondLessonDate = parse(secondDateStr, 'd MMMM yyyy', new Date(), { locale: it });
+                        const secondLessonDate = parse(secondDateStr, 'd LLLL yyyy', new Date(), { locale: it });
                         const today = new Date();
                         today.setHours(0, 0, 0, 0);
                         if (!isNaN(secondLessonDate.getTime()) && isAfter(today, secondLessonDate)) {
@@ -426,7 +426,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const handleSaveDates = () => {
         const formatDate = (day: string | undefined, month: string | undefined, year: string | undefined): string => {
             if (!day || !month || !year) return '';
-            return `${day} ${months.find(m => m.value === month)?.label} ${year}`;
+            const monthLabel = months.find(m => m.value === month)?.label;
+            if (!monthLabel) return '';
+            return `${day} ${monthLabel} ${year}`;
         }
         
         const secondDate = formatDate(secondLessonDay, secondLessonMonth, secondLessonYear);
@@ -815,7 +817,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     </div>
                      <Separator />
                      <div className={cn("flex justify-between items-center w-full", !associationEnabled && "opacity-50 pointer-events-none")}>
-                        <p className="text-sm text-muted-foreground">Vuoi associarti e proseguire il tuo percorso?</p>
+                        <p className={cn("text-sm", associationEnabled ? "font-bold text-foreground" : "text-muted-foreground")}>Vuoi associarti e proseguire il tuo percorso?</p>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center space-x-2">
                                 <Checkbox id="associate-yes" disabled={!associationEnabled}/>
