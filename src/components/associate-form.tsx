@@ -141,7 +141,7 @@ export function AssociateForm() {
     const handleOnlinePayment = () => {
         saveData();
         const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
-        const returnUrl = encodeURIComponent('/dashboard');
+        const returnUrl = encodeURIComponent('/dashboard/associates');
         router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
     };
 
@@ -436,5 +436,7 @@ export function AssociateForm() {
     </Card>
   )
 }
+
+    
 
     
