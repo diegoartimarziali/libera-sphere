@@ -8,12 +8,12 @@ import { getFirestore } from "firebase/firestore";
 // Your web app's Firebase configuration
 // ATTENZIONE: Sostituisci queste credenziali con quelle del tuo progetto Firebase!
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAeNVPO7H0mlsM3FXjjZJqpeB5Fi6ITISw",
+  authDomain: "libera-energia-soci.firebaseapp.com",
+  projectId: "libera-energia-soci",
+  storageBucket: "libera-energia-soci.firebasestorage.app",
+  messagingSenderId: "371255545862",
+  appId: "1:371255545862:web:295479b2e6d2dadebaf387"
 };
 
 // Initialize Firebase

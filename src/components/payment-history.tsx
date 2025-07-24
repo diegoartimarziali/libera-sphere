@@ -60,8 +60,8 @@ export function PaymentHistory() {
       try {
         const q = query(
           collection(db, "subscriptions"), 
-          where("userEmail", "==", userEmail),
-          orderBy("subscriptionDate", "desc")
+          where("userEmail", "==", userEmail)
+          // orderBy("subscriptionDate", "desc") // Temporarily removed to prevent index error
         );
         
         const querySnapshot = await getDocs(q);
@@ -75,6 +75,14 @@ export function PaymentHistory() {
                 subscriptionDate: data.subscriptionDate || null,
                 status: data.status || 'In attesa', // Default to 'In attesa' if status is not set
             } as Subscription;
+        });
+
+        // Manual sort after fetching
+        subsData.sort((a, b) => {
+            if (a.subscriptionDate && b.subscriptionDate) {
+                return b.subscriptionDate.toMillis() - a.subscriptionDate.toMillis();
+            }
+            return 0;
         });
 
         setSubscriptions(subsData);
