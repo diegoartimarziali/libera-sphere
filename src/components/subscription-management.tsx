@@ -23,6 +23,8 @@ import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
+import { format } from "date-fns"
+import { it } from "date-fns/locale"
 
 const plans = [
     { id: "stagionale", name: "Stagionale", price: "440", period: "stagione", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Paga in un'unica soluzione.", "Un mese gratis"], expiry: "L'Abbonamento Stagionale può essere acquistato dal 01/07 al 15/10" },
@@ -40,6 +42,14 @@ const monthlyPaymentOptions = [
     { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ]
 
+const months = Array.from({ length: 12 }, (_, i) => ({
+  value: String(i + 1),
+  label: it.localize?.month(i, { width: 'wide' }),
+}));
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 5 }, (_, i) => String(currentYear + i));
+
 const SUMUP_SEASONAL_LINK = 'https://pay.sumup.com/b2c/QG1CK6T0';
 
 
@@ -53,6 +63,11 @@ export function SubscriptionManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
   const [userName, setUserName] = useState('');
+  
+  const [bookedAppointmentDate, setBookedAppointmentDate] = useState<Date | null>(null);
+  const [appointmentDay, setAppointmentDay] = useState<string | undefined>();
+  const [appointmentMonth, setAppointmentMonth] = useState<string | undefined>();
+  const [appointmentYear, setAppointmentYear] = useState<string | undefined>();
 
   const bankDetails = {
       iban: "IT12A345B678C901D234E567F890",
@@ -75,6 +90,12 @@ export function SubscriptionManagement() {
       const certFile = localStorage.getItem('medicalCertificateFileName');
       if (certDate && certFile) {
           setHasMedicalCertificate(true);
+      }
+
+      // Check for booked appointment date
+      const appointmentDateStr = localStorage.getItem('medicalAppointmentDate');
+      if (appointmentDateStr) {
+          setBookedAppointmentDate(new Date(appointmentDateStr));
       }
 
       setUserName(localStorage.getItem('userName') || '');
@@ -102,6 +123,26 @@ export function SubscriptionManagement() {
     setSelectedPlan(planId);
     setPaymentMethod(undefined); // Reset payment method when plan changes
   }
+
+  const handleSaveAppointmentDate = () => {
+      if (appointmentDay && appointmentMonth && appointmentYear) {
+          const date = new Date(parseInt(appointmentYear), parseInt(appointmentMonth) - 1, parseInt(appointmentDay));
+          if (date.getFullYear() === parseInt(appointmentYear) && date.getMonth() === parseInt(appointmentMonth) - 1 && date.getDate() === parseInt(appointmentDay)) {
+              localStorage.setItem('medicalAppointmentDate', date.toISOString());
+              setBookedAppointmentDate(date);
+              toast({
+                  title: "Data salvata!",
+                  description: "Hai sbloccato temporaneamente i piani di abbonamento. Ricorda di caricare il certificato appena possibile."
+              });
+          } else {
+               toast({
+                  title: "Data non valida",
+                  description: "Per favore inserisci una data corretta.",
+                  variant: "destructive"
+              });
+          }
+      }
+  };
 
   const saveDataAndRedirect = async () => {
       const userEmail = localStorage.getItem('registrationEmail');
@@ -184,8 +225,6 @@ export function SubscriptionManagement() {
       );
     }
 
-    // This part is for the monthly plan, which seems to have a bug in the original code.
-    // For now, let's keep it consistent.
     if (planId === 'mensile') {
         return (
           <Select onValueChange={setPaymentMethod} value={paymentMethod}>
@@ -202,6 +241,8 @@ export function SubscriptionManagement() {
     }
     return null;
   }
+  
+  const canSubscribe = hasMedicalCertificate || !!bookedAppointmentDate;
 
   return (
     <>
@@ -214,20 +255,71 @@ export function SubscriptionManagement() {
       </CardHeader>
       <CardContent>
         {!hasMedicalCertificate && (
+            <>
             <Alert variant="destructive" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Attenzione</AlertTitle>
                 <AlertDescription>
                     Per poter partecipare ai corsi è necessario essere in possesso di certificato medico non agonistico in corso di validità. Prenota subito la tua visita o carica il certificato.
-                    <br/>
-                    <b>Non sarà possibile procedere senza certificato.</b>
                 </AlertDescription>
             </Alert>
+            
+            {!bookedAppointmentDate && (
+                <Card className="bg-muted/40 border-dashed mb-4">
+                    <CardHeader>
+                        <CardTitle className="text-base">Non hai ancora il certificato?</CardTitle>
+                        <CardDescription>
+                            Se hai già prenotato la visita medica, inserisci qui la data per sbloccare temporaneamente la scelta del piano.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Label>Data della visita prenotata</Label>
+                        <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
+                            <Select onValueChange={setAppointmentDay} value={appointmentDay}>
+                                <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                <SelectContent>
+                                    {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <Select onValueChange={setAppointmentMonth} value={appointmentMonth}>
+                                <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                <SelectContent>
+                                    {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <Select onValueChange={setAppointmentYear} value={appointmentYear}>
+                                <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                <SelectContent>
+                                    {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                         <Button onClick={handleSaveAppointmentDate} disabled={!appointmentDay || !appointmentMonth || !appointmentYear}>
+                            Sblocca Piani
+                        </Button>
+                    </CardFooter>
+                </Card>
+            )}
+
+             {bookedAppointmentDate && (
+                 <Alert className="mb-4 border-blue-500 text-blue-800 [&>svg]:text-blue-800">
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertTitle>Visita Prenotata</AlertTitle>
+                    <AlertDescription>
+                        Hai inserito la data della visita per il <b>{format(bookedAppointmentDate, 'dd/MM/yyyy')}</b>. Ricorda di caricare il certificato dopo la visita.
+                    </AlertDescription>
+                </Alert>
+            )}
+
+            </>
         )}
+
         <div className="grid gap-4">
             {plans.map(plan => {
               const isStagionalePlan = plan.id === 'stagionale';
-              const isPlanDisabled = (isStagionalePlan && !isStagionaleAvailable) || !hasMedicalCertificate;
+              const isPlanDisabled = (isStagionalePlan && !isStagionaleAvailable) || !canSubscribe;
               const isSelected = selectedPlan === plan.id;
 
               return (
@@ -235,7 +327,7 @@ export function SubscriptionManagement() {
                     key={plan.id}
                     className={cn(
                         "h-full flex flex-col",
-                        isSelected && "border-primary ring-2 ring-primary",
+                        isSelected && !isPlanDisabled && "border-primary ring-2 ring-primary",
                         isPlanDisabled && "bg-muted/50 text-muted-foreground border-none ring-0"
                     )}
                 >
@@ -339,5 +431,3 @@ export function SubscriptionManagement() {
     </>
   )
 }
-
-    
