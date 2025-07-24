@@ -34,7 +34,6 @@ const plans = [
 const seasonalPaymentOptions = [
     { id: "online", label: "Carta di Credito on line" },
     { id: "bank", label: "Bonifico Bancario" },
-    { id: "cash", label: "Contanti o Bancomat in Palestra" },
 ]
 
 const monthlyPaymentOptions = [
