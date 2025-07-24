@@ -21,7 +21,7 @@ export function EventBooking() {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
-        <CardTitle>Prenota Stage ed Esami</CardTitle>
+        <CardTitle>Prenota Stage</CardTitle>
         <CardDescription>
           Riserva il tuo posto nei prossimi eventi speciali.
         </CardDescription>
@@ -43,11 +43,6 @@ export function EventBooking() {
                 </Select>
             </div>
             <Button className="w-full font-bold">Iscriviti</Button>
-        </div>
-         <div className="rounded-lg border p-4 space-y-4">
-            <h3 className="font-semibold text-lg">Esami</h3>
-            <p className="text-sm text-muted-foreground">Data Esami:............</p>
-            <Button className="w-full font-bold">Domanda di Partecipazione</Button>
         </div>
       </CardContent>
     </Card>
