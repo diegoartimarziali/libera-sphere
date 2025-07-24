@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import * as React from "react"
@@ -150,29 +151,30 @@ export default function DashboardLayout({
   }
 
   const allNavItems = [
-    { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto" },
-    { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => isBlocked},
+    { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto", condition: () => true }, // Always show Aiuto
+    { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => true }, // Always show Certificato Medico
     { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => !isBlocked && !inLiberasphere },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !isBlocked && inLiberasphere && !regulationsAccepted },
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => !isBlocked && regulationsAccepted },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => !isBlocked && regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
     { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => !isBlocked && regulationsAccepted && !associationRequested && !selectionPassportComplete },
-    { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => !isBlocked && regulationsAccepted },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && !hasSeasonalSubscription },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
     { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
   ]
   
   const bottomNavItems = [
-    { href: "/", icon: LogOut, label: "Esci", onClick: handleLogout },
+    { href: "/", icon: LogOut, label: "Esci", onClick: handleLogout, condition: () => true },
   ]
 
-  const navItems = allNavItems.filter(item => {
-    if (item.condition) {
-        return item.condition();
-    }
-    return !isBlocked;
-  });
+  const navItems = isBlocked
+    ? allNavItems.filter(item => item.href === '/dashboard/aiuto' || item.href === '/dashboard/medical-certificate')
+    : allNavItems.filter(item => {
+        if (item.condition) {
+            return item.condition();
+        }
+        return true;
+      });
 
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
@@ -237,7 +239,7 @@ export default function DashboardLayout({
             ))}
           </div>
           <div className="w-full mt-auto">
-             {bottomNavItems.map(item => (
+             {bottomNavItems.map(item => item.condition() && (
               <Link
                 key={item.label}
                 href={item.href}
@@ -279,7 +281,7 @@ export default function DashboardLayout({
                         {item.label}
                     </Link>
                 ))}
-                 {bottomNavItems.map(item => (
+                 {bottomNavItems.map(item => item.condition() && (
                     <Link
                         key={item.label}
                         href={item.href}
