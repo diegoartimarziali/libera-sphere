@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { usePathname, useRouter } from "next/navigation"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/components/ui/alert-dialog"
-import { isAfter, startOfToday, parse } from "date-fns"
+import { isAfter, startOfToday, parse, lastDayOfMonth, addDays } from "date-fns"
 
 // Custom Dumbbell Icon
 const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -114,7 +114,8 @@ export default function DashboardLayout({
   const [lessonSelected, setLessonSelected] = React.useState(false);
   const [inLiberasphere, setInLiberasphere] = React.useState(false);
   const [selectionPassportComplete, setSelectionPassportComplete] = React.useState(false);
-  const [isBlocked, setIsBlocked] = React.useState(false);
+  const [isMedicalBlocked, setIsMedicalBlocked] = React.useState(false);
+  const [isSubscriptionBlocked, setIsSubscriptionBlocked] = React.useState(false);
   const [hasSeasonalSubscription, setHasSeasonalSubscription] = React.useState(false);
 
   React.useEffect(() => {
@@ -135,15 +136,46 @@ export default function DashboardLayout({
       const isAssociatedThisSeason = isApproved && isAssociatedForCurrentSeason(approvalDate);
       const isFormerMember = localStorage.getItem('isFormerMember') === 'yes';
 
+      // Medical Certificate Block Logic
       const appointmentDateStr = localStorage.getItem('medicalAppointmentDate');
       const certificateDateStr = localStorage.getItem('medicalCertificateExpirationDate');
-      
-      let blockUser = false;
+      let blockUserMedical = false;
       if (appointmentDateStr && !certificateDateStr) {
           const appointmentDate = new Date(appointmentDateStr);
           const today = startOfToday();
           if (isAfter(today, appointmentDate)) {
-              blockUser = true;
+              blockUserMedical = true;
+          }
+      }
+
+      // Subscription Block Logic
+      let blockUserSubscription = false;
+      if (storedSubscriptionPlan === 'mensile') {
+          const paymentDateStr = localStorage.getItem('subscriptionPaymentDate');
+          if (paymentDateStr) {
+              const paymentDate = new Date(paymentDateStr);
+              const today = new Date();
+              const endOfMonth = lastDayOfMonth(paymentDate);
+              const gracePeriodEnd = addDays(endOfMonth, 5);
+
+              if (today.getFullYear() === paymentDate.getFullYear() && today.getMonth() === paymentDate.getMonth()) {
+                  // Paid for the current month, no block
+                  blockUserSubscription = false;
+              } else if (today > gracePeriodEnd) {
+                  blockUserSubscription = true;
+              }
+          } else {
+              // No payment date found for monthly plan could mean it's just been set up
+              // Or it's an old record. Let's assume if there's a plan but no date, it's not yet paid/active
+              // For a newly registered user, this should be fine. For a returning user, this might need refinement.
+              // Let's check if the association exists, if so, we can assume a block is needed if no payment date
+              if (isAssociatedThisSeason) {
+                // A check to see if the subscription has just been requested could be added here
+                 const subscriptionStatus = localStorage.getItem('subscriptionStatus');
+                 if (subscriptionStatus !== 'in_attesa') {
+                    blockUserSubscription = true;
+                 }
+              }
           }
       }
       
@@ -154,24 +186,29 @@ export default function DashboardLayout({
       setAssociationRequested(storedAssociationRequested && !isAssociatedThisSeason); // Only show request if not currently associated
       setSelectionPassportComplete(storedSelectionPassportComplete);
       setHasSeasonalSubscription(storedSubscriptionPlan === 'stagionale');
-      setIsBlocked(blockUser);
+      setIsMedicalBlocked(blockUserMedical);
+      setIsSubscriptionBlocked(blockUserSubscription);
 
       // --- REDIRECT LOGIC ---
       const essentialPages = [
         '/dashboard/aiuto',
         '/dashboard/medical-certificate',
+        '/dashboard/subscription'
       ];
       
-      if (blockUser) {
-        if (!essentialPages.includes(pathname)) {
+      if (blockUserMedical) {
+        if (pathname !== '/dashboard/aiuto' && pathname !== '/dashboard/medical-certificate') {
             router.push('/dashboard/medical-certificate');
+        }
+      } else if (blockUserSubscription) {
+          if (pathname !== '/dashboard/aiuto' && pathname !== '/dashboard/subscription') {
+            router.push('/dashboard/subscription');
         }
       } else if (!storedLiberasphere && !essentialPages.includes(pathname) && pathname !== '/dashboard/liberasphere') {
         router.push('/dashboard/liberasphere');
       } else if (storedLiberasphere && !storedRegulations && !essentialPages.includes(pathname) && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/regulations') {
          router.push('/dashboard/regulations');
       } else if (isFormerMember && !isAssociatedThisSeason && !storedAssociationRequested && !essentialPages.includes(pathname) && pathname !== '/dashboard/associates' && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/regulations') {
-        // This is a former member whose association has expired and hasn't started renewal.
         router.push('/dashboard/associates?renewal=true');
       }
     }
@@ -186,30 +223,41 @@ export default function DashboardLayout({
   };
   
   const handleGoToUpload = () => {
-    setIsBlocked(false);
+    setIsMedicalBlocked(false);
     router.push('/dashboard/medical-certificate');
+  }
+
+  const handleGoToSubscription = () => {
+    setIsSubscriptionBlocked(false);
+    router.push('/dashboard/subscription');
   }
 
   const allNavItems = [
     { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto", condition: () => true }, // Always show Aiuto
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => true }, // Always show Certificato Medico
-    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => !isBlocked && !inLiberasphere },
-    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !isBlocked && inLiberasphere && !regulationsAccepted },
-    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => !isBlocked && regulationsAccepted },
-    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => !isBlocked && regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
-    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => !isBlocked && regulationsAccepted && !associated && !associationRequested },
-    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && !hasSeasonalSubscription && associated },
-    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && associated},
-    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && associated},
+    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => true }, // Always show subscription
+    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => !inLiberasphere },
+    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => inLiberasphere && !regulationsAccepted },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => regulationsAccepted },
+    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
+    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => regulationsAccepted && !associated && !associationRequested },
+    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => regulationsAccepted && !selectionPassportComplete && associated},
+    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => regulationsAccepted && !selectionPassportComplete && associated},
   ]
   
   const bottomNavItems = [
     { href: "/", icon: LogOut, label: "Esci", onClick: handleLogout, condition: () => true },
   ]
 
-  const navItems = isBlocked
+  const navItems = isMedicalBlocked 
     ? allNavItems.filter(item => item.href === '/dashboard/aiuto' || item.href === '/dashboard/medical-certificate')
+    : isSubscriptionBlocked 
+    ? allNavItems.filter(item => item.href === '/dashboard/aiuto' || item.href === '/dashboard/subscription')
     : allNavItems.filter(item => {
+        // Hide subscription link if already seasonal or passport is not complete for non-seasonal
+        if (item.href === '/dashboard/subscription') {
+            return associated && !hasSeasonalSubscription && !selectionPassportComplete;
+        }
         if (item.condition) {
             return item.condition();
         }
@@ -236,7 +284,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
-       <AlertDialog open={isBlocked} onOpenChange={(open) => !open && setIsBlocked(false)}>
+       <AlertDialog open={isMedicalBlocked} onOpenChange={(open) => !open && setIsMedicalBlocked(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -252,6 +300,27 @@ export default function DashboardLayout({
           <AlertDialogFooter>
             <AlertDialogAction onClick={handleGoToUpload}>
               Vai al Caricamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+       <AlertDialog open={isSubscriptionBlocked} onOpenChange={(open) => !open && setIsSubscriptionBlocked(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
+              Abbonamento Scaduto
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Il tuo abbonamento mensile è scaduto. Per continuare a partecipare ai corsi, è necessario rinnovare.
+              <br /><br />
+              Procedi al rinnovo per sbloccare l'accesso.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleGoToSubscription}>
+              Rinnova Abbonamento
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
