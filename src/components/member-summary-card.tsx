@@ -17,6 +17,7 @@ import { format, differenceInDays, parse, formatDistanceToNowStrict } from "date
 import { it } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Separator } from "./ui/separator"
+import { Button } from "./ui/button"
 
 const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'];
 
@@ -53,6 +54,9 @@ export function MemberSummaryCard() {
   const [isInsured, setIsInsured] = useState(false);
   const [martialArt, setMartialArt] = useState<string | null>(null);
   const [isSelectionPassportComplete, setIsSelectionPassportComplete] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [subscriptionExpiry, setSubscriptionExpiry] = useState<Date | null>(null);
+
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -135,6 +139,13 @@ export function MemberSummaryCard() {
       if (storedIsSelectionPassportComplete === 'true') {
           setIsSelectionPassportComplete(true);
       }
+      
+      setSubscriptionStatus(localStorage.getItem('subscriptionStatus'));
+      const storedExpiry = localStorage.getItem('subscriptionExpiry');
+      if (storedExpiry) {
+        setSubscriptionExpiry(new Date(storedExpiry));
+      }
+
     }
     const kanji = kanjiList[Math.floor(Math.random() * kanjiList.length)];
     if(kanji) {
@@ -211,6 +222,22 @@ export function MemberSummaryCard() {
         </div>
     );
   };
+  
+   const renderSubscriptionStatus = () => {
+    switch (subscriptionStatus) {
+        case 'valido':
+            return (
+                <span className="font-medium text-green-700">
+                    Valido fino al {subscriptionExpiry ? format(subscriptionExpiry, "dd/MM/yyyy") : ''}
+                </span>
+            );
+        case 'in_attesa':
+            return <span className="font-medium text-orange-500">In attesa di approvazione</span>;
+        default:
+            return <span className="font-medium text-red-600">Non attivo</span>;
+    }
+  };
+
 
   const simulateApproval = () => {
     if (typeof window !== 'undefined') {
@@ -222,6 +249,14 @@ export function MemberSummaryCard() {
         setAssociationStatus('approved');
         setAssociationDate(approvalDate);
         setIsInsured(true);
+        window.location.reload();
+    }
+  }
+
+  const simulateSubscriptionApproval = () => {
+     if (typeof window !== 'undefined') {
+        localStorage.setItem('subscriptionStatus', 'valido');
+        setSubscriptionStatus('valido');
         window.location.reload();
     }
   }
@@ -239,7 +274,8 @@ export function MemberSummaryCard() {
         <CardTitle>Benvenuto, {userName.split(' ')[0]}!</CardTitle>
         <CardDescription>
             Ecco la tua situazione. 
-            {associationStatus === 'requested' && <button onClick={simulateApproval} className="ml-4 text-xs p-1 bg-gray-200 rounded">Simula Approvazione</button>}
+            {associationStatus === 'requested' && <Button onClick={simulateApproval} variant="outline" size="sm" className="ml-4 text-xs p-1 h-auto">Simula Approvazione Associazione</Button>}
+            {subscriptionStatus === 'in_attesa' && <Button onClick={simulateSubscriptionApproval} variant="outline" size="sm" className="ml-4 text-xs p-1 h-auto">Simula Approvazione Abbonamento</Button>}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -297,7 +333,7 @@ export function MemberSummaryCard() {
               </div>
                <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Abbonamento ai corsi:</span>
-                <span className="font-medium text-red-600">Non attivo</span>
+                {renderSubscriptionStatus()}
               </div>
             </div>
 
@@ -327,3 +363,5 @@ export function MemberSummaryCard() {
     </Card>
   )
 }
+
+    

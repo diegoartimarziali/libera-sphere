@@ -17,13 +17,13 @@ import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Separator } from "./ui/separator"
-import { db } from "@/lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase"
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { format } from "date-fns"
+import { format, addYears, setMonth, setDate } from "date-fns"
 import { it } from "date-fns/locale"
 
 const plans = [
@@ -150,6 +150,8 @@ export function SubscriptionManagement() {
       if (!userEmail || !selectedPlanDetails || !paymentMethod) return;
 
       try {
+          // This part would write to Firestore in a real app
+          /*
            await addDoc(collection(db, "subscriptions"), {
               userEmail: userEmail,
               planId: selectedPlanDetails.id,
@@ -159,13 +161,26 @@ export function SubscriptionManagement() {
               status: 'In attesa',
               subscriptionDate: serverTimestamp()
           });
+          */
 
           if (typeof window !== 'undefined') {
               localStorage.setItem('subscriptionPlan', selectedPlanDetails.id);
-              localStorage.setItem('paymentMethod', paymentMethod);
+              localStorage.setItem('subscriptionStatus', 'in_attesa');
+              
+              if (selectedPlanDetails.id === 'stagionale') {
+                  const today = new Date();
+                  let expiryDate = setDate(setMonth(today, 5), 15); // June 15
+                  if (today.getMonth() >= 5) { // If it's June or later, set for next year
+                     expiryDate = addYears(expiryDate, 1);
+                  }
+                  localStorage.setItem('subscriptionExpiry', expiryDate.toISOString());
+              } else {
+                  // For monthly, you might calculate it differently, e.g., 30 days from now
+                  localStorage.removeItem('subscriptionExpiry'); // Or set it for one month later
+              }
           }
           
-          router.push('/dashboard/payments');
+          router.push('/dashboard');
 
       } catch (error) {
            console.error("Error adding document: ", error);
@@ -183,8 +198,10 @@ export function SubscriptionManagement() {
     setIsSubmitting(true);
     
     if (paymentMethod === 'online') {
+        // In a real scenario, after payment success, you would call saveDataAndRedirect()
         const paymentUrl = encodeURIComponent(SUMUP_SEASONAL_LINK);
-        const returnUrl = encodeURIComponent('/dashboard/payments');
+        const returnUrl = encodeURIComponent('/dashboard'); // Go to dashboard after "payment"
+        await saveDataAndRedirect(); // Save status before redirecting
         router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
     } else if (paymentMethod === 'bank') {
         setShowBankTransferDialog(true);
@@ -315,34 +332,49 @@ export function SubscriptionManagement() {
             </>
         )}
 
-        <div className="grid gap-4">
+        <RadioGroup
+            value={selectedPlan}
+            onValueChange={handlePlanChange}
+            className="grid gap-4"
+        >
             {plans.map(plan => {
               const isStagionalePlan = plan.id === 'stagionale';
               const isPlanDisabled = (isStagionalePlan && !isStagionaleAvailable) || !canSubscribe;
               const isSelected = selectedPlan === plan.id;
 
               return (
+                <Label key={plan.id} htmlFor={plan.id} className={cn(
+                    "block rounded-lg border p-4 cursor-pointer",
+                    isSelected && !isPlanDisabled && "border-primary ring-2 ring-primary",
+                    isPlanDisabled && "bg-muted/50 text-muted-foreground border-none ring-0 cursor-not-allowed"
+                )}>
                 <Card 
-                    key={plan.id}
                     className={cn(
-                        "h-full flex flex-col",
-                        isSelected && !isPlanDisabled && "border-primary ring-2 ring-primary",
-                        isPlanDisabled && "bg-muted/50 text-muted-foreground border-none ring-0"
+                        "h-full flex flex-col shadow-none border-none bg-transparent",
                     )}
                 >
-                    <CardHeader>
-                        <CardTitle className={cn(isPlanDisabled && "text-muted-foreground")}>{plan.name}</CardTitle>
-                        {plan.expiry && <p className="text-sm text-muted-foreground">{plan.expiry}</p>}
-                        <p className="text-2xl font-bold">€{plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.period}</span></p>
+                    <RadioGroupItem value={plan.id} id={plan.id} className="sr-only" disabled={isPlanDisabled} />
+
+                    <CardHeader className="p-0">
+                        <CardTitle className={cn("flex justify-between items-center", isPlanDisabled && "text-muted-foreground")}>
+                            {plan.name}
+                             {!isSelected && (
+                                <span className="text-sm font-normal text-muted-foreground">
+                                    {isPlanDisabled ? 'Non disponibile' : 'Scegli'}
+                                </span>
+                            )}
+                        </CardTitle>
+                        {plan.expiry && <p className="text-sm text-muted-foreground pt-1">{plan.expiry}</p>}
+                        <p className="text-2xl font-bold pt-2">€{plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.period}</span></p>
                     </CardHeader>
-                    <CardContent className="space-y-2 flex-grow">
+                    <CardContent className="space-y-2 flex-grow p-0 pt-4">
                         {plan.features.map(feature => (
                             <div key={feature} className="flex items-center text-sm">
                                 <CheckCircle className={cn("w-4 h-4 mr-2", isPlanDisabled ? "text-muted-foreground" : "text-green-500")} />
                                 <span>{feature}</span>
                             </div>
                         ))}
-                        {isSelected && !isPlanDisabled && (
+                         {isSelected && !isPlanDisabled && (
                             <div className="pt-4">
                                 <Separator className="mb-4" />
                                 <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
@@ -350,30 +382,21 @@ export function SubscriptionManagement() {
                             </div>
                         )}
                     </CardContent>
-                    <CardFooter>
-                        {!isSelected ? (
-                             <Button 
-                                className="w-full" 
-                                disabled={isPlanDisabled}
-                                onClick={() => handlePlanChange(plan.id)}
-                            >
-                                Scegli Piano
-                            </Button>
-                        ) : (
-                             <Button 
-                                className="w-full" 
-                                disabled={isPlanDisabled || !paymentMethod || isSubmitting}
-                                onClick={handleSubscription}
-                            >
-                                {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
-                            </Button>
-                        )}
-                    </CardFooter>
                 </Card>
+                </Label>
               )
             })}
-        </div>
+        </RadioGroup>
       </CardContent>
+      <CardFooter>
+        <Button 
+            className="w-full" 
+            disabled={!canSubscribe || !paymentMethod || isSubmitting}
+            onClick={handleSubscription}
+        >
+            {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
+        </Button>
+      </CardFooter>
     </Card>
 
     <AlertDialog open={showBankTransferDialog} onOpenChange={setShowBankTransferDialog}>
@@ -430,3 +453,5 @@ export function SubscriptionManagement() {
     </>
   )
 }
+
+    
