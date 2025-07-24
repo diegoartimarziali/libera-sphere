@@ -111,7 +111,6 @@ export default function DashboardLayout({
           const today = startOfToday();
           if (isAfter(today, appointmentDate)) {
               blockUser = true;
-              setIsBlocked(true);
           }
       }
       
@@ -122,6 +121,7 @@ export default function DashboardLayout({
       setAssociationRequested(storedAssociationRequested);
       setSelectionPassportComplete(storedSelectionPassportComplete);
       setHasSeasonalSubscription(storedSubscriptionPlan === 'stagionale');
+      setIsBlocked(blockUser);
 
       // Redirect logic
       if (blockUser) {
@@ -143,6 +143,11 @@ export default function DashboardLayout({
       }
       router.push('/');
   };
+  
+  const handleGoToUpload = () => {
+    setIsBlocked(false);
+    router.push('/dashboard/medical-certificate');
+  }
 
   const allNavItems = [
     { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto" },
@@ -189,7 +194,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
-       <AlertDialog open={isBlocked}>
+       <AlertDialog open={isBlocked} onOpenChange={setIsBlocked}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -203,7 +208,7 @@ export default function DashboardLayout({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => router.push('/dashboard/medical-certificate')}>
+            <AlertDialogAction onClick={handleGoToUpload}>
               Vai al Caricamento
             </AlertDialogAction>
           </AlertDialogFooter>
