@@ -47,6 +47,7 @@ export function MemberSummaryCard() {
   const [civicNumber, setCivicNumber] = useState<string | null>(null);
   const [cap, setCap] = useState<string | null>(null);
   const [certificateExpiration, setCertificateExpiration] = useState<Date | null>(null);
+  const [appointmentDate, setAppointmentDate] = useState<Date | null>(null);
   const [firstAssociationYear, setFirstAssociationYear] = useState<string | null>(null);
   const [grade, setGrade] = useState<string | null>(null);
   const [isInsured, setIsInsured] = useState(false);
@@ -117,6 +118,11 @@ export function MemberSummaryCard() {
         setCertificateExpiration(new Date(storedCertExp));
       }
 
+      const storedAppointmentDate = localStorage.getItem('medicalAppointmentDate');
+       if (storedAppointmentDate) {
+        setAppointmentDate(new Date(storedAppointmentDate));
+      }
+
       setFirstAssociationYear(localStorage.getItem('firstAssociationYear'));
       setGrade(localStorage.getItem('grade'));
 
@@ -158,40 +164,50 @@ export function MemberSummaryCard() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    if (!certificateExpiration) {
+    if (certificateExpiration) {
+        const expirationFormatted = format(certificateExpiration, "dd/MM/yyyy");
+        const daysUntilExpiration = differenceInDays(certificateExpiration, today);
+
+        if (daysUntilExpiration < 0) {
+            return (
+                <div className="flex items-center text-red-600 font-medium">
+                    <AlertTriangle className="mr-2 h-5 w-5" />
+                    <span>Scaduto il {expirationFormatted}</span>
+                </div>
+            );
+        }
+
+        if (daysUntilExpiration <= 30) {
+            return (
+                <div className="flex items-center text-orange-500 font-medium">
+                    <AlertTriangle className="mr-2 h-5 w-5" />
+                    <span>In scadenza il {expirationFormatted}</span>
+                </div>
+            );
+        }
+
         return (
-            <div className="flex items-center text-red-600 font-medium">
-                <AlertTriangle className="mr-2 h-5 w-5" />
-                <span>Mancante o Scaduto</span>
+            <div className="flex items-center text-green-600 font-medium">
+                <CheckCircle className="mr-2 h-5 w-5" />
+                <span>Valido fino al {expirationFormatted}</span>
             </div>
         );
     }
-
-    const expirationFormatted = format(certificateExpiration, "dd/MM/yyyy");
-    const daysUntilExpiration = differenceInDays(certificateExpiration, today);
-
-    if (daysUntilExpiration < 0) {
+    
+    if (appointmentDate) {
+        const appointmentFormatted = format(appointmentDate, "dd/MM/yyyy");
         return (
             <div className="flex items-center text-red-600 font-medium">
                 <AlertTriangle className="mr-2 h-5 w-5" />
-                <span>Scaduto il {expirationFormatted}</span>
-            </div>
-        );
-    }
-
-    if (daysUntilExpiration <= 30) {
-        return (
-            <div className="flex items-center text-orange-500 font-medium">
-                <AlertTriangle className="mr-2 h-5 w-5" />
-                <span>In scadenza il {expirationFormatted}</span>
+                <span>Prenotata il {appointmentFormatted}</span>
             </div>
         );
     }
 
     return (
-        <div className="flex items-center text-green-600 font-medium">
-            <CheckCircle className="mr-2 h-5 w-5" />
-            <span>Valido fino al {expirationFormatted}</span>
+        <div className="flex items-center text-red-600 font-medium">
+            <AlertTriangle className="mr-2 h-5 w-5" />
+            <span>Mancante</span>
         </div>
     );
   };
