@@ -38,6 +38,7 @@ const seasonalPaymentOptions = [
 
 const monthlyPaymentOptions = [
     { id: "online", label: "Carta di Credito on line" },
+    { id: "bank", label: "Bonifico Bancario" },
     { id: "cash", label: "Contanti o Bancomat in Palestra ( 2 euro costi di gestione)" },
 ]
 
@@ -74,7 +75,7 @@ export function SubscriptionManagement() {
   const bankDetails = {
       iban: "IT12A345B678C901D234E567F890",
       beneficiary: "Associazione Libera Energia ASD",
-      cause: `Abbonamento Stagionale ${userName}`
+      cause: `Abbonamento ${selectedPlan === 'stagionale' ? 'Stagionale' : 'Mensile'} ${userName}`
   }
 
   const copyToClipboard = (text: string) => {
@@ -206,7 +207,9 @@ export function SubscriptionManagement() {
           title: "Iscrizione registrata!",
           description: "Effettua il bonifico usando i dati forniti. Vedrai lo stato aggiornato nella sezione pagamenti.",
       });
-      await saveDataAndRedirect('stagionale');
+      if(selectedPlan) {
+        await saveDataAndRedirect(selectedPlan);
+      }
   };
 
   const renderPaymentSection = (plan: typeof allPlans[0]) => {
@@ -426,5 +429,3 @@ export function SubscriptionManagement() {
     </>
   )
 }
-
-    
