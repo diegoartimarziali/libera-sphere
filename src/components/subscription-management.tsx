@@ -421,7 +421,7 @@ export function SubscriptionManagement() {
                             </CardTitle>
                             {plan.id === 'mensile' && (
                                 <p className="text-sm text-muted-foreground pt-1">
-                                    Per essere iscritto ai corsi usa questo form ogni mese, anche se paghi in contanti. In questo modo avrai sotto controllo i tuoi pagamenti e potrai richiedere la ricevuta a fine stagione.
+                                    Per essere iscritto ai corsi usa questo form ogni mese, anche se paghi in contanti. In questo modo avrai sotto controllo i tuoi pagamenti e potrai richiedere la ricevuta a fine stagione. Ti ricordiamo che l'iscrizione mensile deve essere effettuata entro il primo giorno del mese.
                                 </p>
                             )}
                             {plan.expiry && <p className="text-sm text-muted-foreground pt-1">{plan.expiry}</p>}
@@ -529,3 +529,5 @@ export function SubscriptionManagement() {
     </>
   )
 }
+
+    
