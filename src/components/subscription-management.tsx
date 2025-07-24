@@ -50,6 +50,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => String(currentYear + i));
 
 const SUMUP_SEASONAL_LINK = 'https://pay.sumup.com/b2c/QG1CK6T0';
+const SUMUP_MONTHLY_LINK = 'https://pay.sumup.com/b2c/Q25VI0NJ'; // Placeholder link for monthly
 
 
 export function SubscriptionManagement() {
@@ -58,7 +59,8 @@ export function SubscriptionManagement() {
   const [isStagionaleAvailable, setIsStagionaleAvailable] = useState(false);
   const [hasMedicalCertificate, setHasMedicalCertificate] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | undefined>();
-  const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
+  const [seasonalPaymentMethod, setSeasonalPaymentMethod] = useState<string | undefined>();
+  const [monthlyPaymentMethod, setMonthlyPaymentMethod] = useState<string | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
   const [userName, setUserName] = useState('');
@@ -122,7 +124,8 @@ export function SubscriptionManagement() {
 
   const handlePlanChange = (planId: string) => {
     setSelectedPlan(planId);
-    setPaymentMethod(undefined); // Reset payment method when plan changes
+    setSeasonalPaymentMethod(undefined);
+    setMonthlyPaymentMethod(undefined);
   }
 
   const handleSaveAppointmentDate = () => {
@@ -149,22 +152,9 @@ export function SubscriptionManagement() {
       const userEmail = localStorage.getItem('registrationEmail');
       const selectedPlanDetails = allPlans.find(p => p.id === selectedPlan);
 
-      if (!userEmail || !selectedPlanDetails || !paymentMethod) return;
+      if (!userEmail || !selectedPlanDetails) return;
 
       try {
-          // This part would write to Firestore in a real app
-          /*
-           await addDoc(collection(db, "subscriptions"), {
-              userEmail: userEmail,
-              planId: selectedPlanDetails.id,
-              planName: selectedPlanDetails.name,
-              price: selectedPlanDetails.price,
-              paymentMethod: paymentMethod,
-              status: 'In attesa',
-              subscriptionDate: serverTimestamp()
-          });
-          */
-
           if (typeof window !== 'undefined') {
               localStorage.setItem('subscriptionPlan', selectedPlanDetails.id);
               localStorage.setItem('subscriptionStatus', 'in_attesa');
@@ -177,15 +167,14 @@ export function SubscriptionManagement() {
                   }
                   localStorage.setItem('subscriptionExpiry', expiryDate.toISOString());
               } else {
-                  // For monthly, you might calculate it differently, e.g., 30 days from now
-                  localStorage.removeItem('subscriptionExpiry'); // Or set it for one month later
+                  localStorage.removeItem('subscriptionExpiry'); 
               }
           }
           
           router.push('/dashboard');
 
       } catch (error) {
-           console.error("Error adding document: ", error);
+           console.error("Error saving data: ", error);
           toast({
               title: "Errore nel salvataggio",
               description: "Non è stato possibile registrare il tuo abbonamento. Riprova più tardi.",
@@ -194,16 +183,15 @@ export function SubscriptionManagement() {
       }
   }
 
-  const handleSubscription = async () => {
-    if (!selectedPlan || !paymentMethod) return;
+  const handleSubscription = async (planId: string, paymentMethod: string) => {
+    if (!planId || !paymentMethod) return;
 
     setIsSubmitting(true);
     
     if (paymentMethod === 'online') {
-        // In a real scenario, after payment success, you would call saveDataAndRedirect()
-        const paymentUrl = encodeURIComponent(SUMUP_SEASONAL_LINK);
-        const returnUrl = encodeURIComponent('/dashboard'); // Go to dashboard after "payment"
-        await saveDataAndRedirect(); // Save status before redirecting
+        const paymentUrl = encodeURIComponent(planId === 'stagionale' ? SUMUP_SEASONAL_LINK : SUMUP_MONTHLY_LINK);
+        const returnUrl = encodeURIComponent('/dashboard');
+        await saveDataAndRedirect(); 
         router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
     } else if (paymentMethod === 'bank') {
         setShowBankTransferDialog(true);
@@ -227,37 +215,40 @@ export function SubscriptionManagement() {
       await saveDataAndRedirect();
   };
 
-  const renderPaymentOptions = (planId: string) => {
-    if (planId === 'stagionale') {
-      return (
-        <Select onValueChange={setPaymentMethod} value={paymentMethod}>
-            <SelectTrigger id="seasonal-payment">
-                <SelectValue placeholder="Scegli un metodo" />
+  const renderPaymentSection = (plan: typeof allPlans[0]) => {
+    const isSelected = selectedPlan === plan.id;
+    const isDisabled = (plan.id === 'stagionale' && !isStagionaleAvailable) || !canSubscribe;
+    
+    if (!isSelected || isDisabled) return null;
+
+    const paymentMethod = plan.id === 'stagionale' ? seasonalPaymentMethod : monthlyPaymentMethod;
+    const setPaymentMethod = plan.id === 'stagionale' ? setSeasonalPaymentMethod : setMonthlyPaymentMethod;
+    const paymentOptions = plan.id === 'stagionale' ? seasonalPaymentOptions : monthlyPaymentOptions;
+
+    return (
+      <div className="pt-4 mt-4 border-t">
+        <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
+        <div className="space-y-4">
+          <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+            <SelectTrigger id={`${plan.id}-payment`}>
+              <SelectValue placeholder="Scegli un metodo" />
             </SelectTrigger>
             <SelectContent>
-                {seasonalPaymentOptions.map(option => (
-                    <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
-                ))}
+              {paymentOptions.map(option => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
             </SelectContent>
-        </Select>
-      );
-    }
-
-    if (planId === 'mensile') {
-        return (
-          <Select onValueChange={setPaymentMethod} value={paymentMethod}>
-              <SelectTrigger id="monthly-payment">
-                  <SelectValue placeholder="Scegli un metodo" />
-              </SelectTrigger>
-              <SelectContent>
-                  {monthlyPaymentOptions.map(option => (
-                      <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
-                  ))}
-              </SelectContent>
           </Select>
-        );
-    }
-    return null;
+          <Button 
+            className="w-full" 
+            disabled={!paymentMethod || isSubmitting}
+            onClick={() => handleSubscription(plan.id, paymentMethod!)}
+          >
+            {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
+          </Button>
+        </div>
+      </div>
+    );
   }
   
   const canSubscribe = hasMedicalCertificate || !!bookedAppointmentDate;
@@ -377,32 +368,16 @@ export function SubscriptionManagement() {
                                 <span>{feature}</span>
                             </div>
                         ))}
-                         {isSelected && !isPlanDisabled && (
-                            <div className="pt-4 space-y-4">
-                                <Separator />
-                                <h4 className="font-semibold">Metodo di Pagamento</h4>
-                                {renderPaymentOptions(plan.id)}
-                                {paymentMethod === 'bank' && (
-                                    <Button onClick={() => setShowBankTransferDialog(true)} className="w-full">PROCEDI</Button>
-                                )}
-                            </div>
-                        )}
                     </CardContent>
+                    <CardFooter className="p-0 pt-4">
+                      {renderPaymentSection(plan)}
+                    </CardFooter>
                 </Card>
                 </Label>
               )
             })}
         </RadioGroup>
       </CardContent>
-      <CardFooter>
-        <Button 
-            className="w-full" 
-            disabled={!canSubscribe || !paymentMethod || isSubmitting || paymentMethod === 'bank'}
-            onClick={handleSubscription}
-        >
-            {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
-        </Button>
-      </CardFooter>
     </Card>
 
     <AlertDialog open={showBankTransferDialog} onOpenChange={setShowBankTransferDialog}>
@@ -459,5 +434,3 @@ export function SubscriptionManagement() {
     </>
   )
 }
-
-    
