@@ -172,9 +172,9 @@ export function MemberSummaryCard() {
                  setMonthlyStatus('scaduto');
             }
         } else {
-            setMonthlyStatus('scaduto'); // Scaduto se non c'è una data di pagamento valida per il mese
+            setMonthlyStatus('scaduto'); 
         }
-      } else if (plan !== 'mensile') {
+      } else if (!plan) {
           setMonthlyStatus('non_attivo');
       }
 
@@ -263,6 +263,9 @@ export function MemberSummaryCard() {
                 return <span className="font-medium text-orange-500">In attesa di approvazione</span>;
             }
         } else if (subscriptionPlan === 'mensile') {
+             if (subscriptionStatus === 'in_attesa') {
+                return <span className="font-medium text-orange-500">In attesa di approvazione</span>;
+            }
             switch (monthlyStatus) {
                 case 'valido':
                     const currentMonth = format(new Date(), 'MMMM', { locale: it });
@@ -271,8 +274,8 @@ export function MemberSummaryCard() {
                     return <span className="font-medium text-orange-500">In scadenza</span>;
                 case 'scaduto':
                     return <span className="font-medium text-red-600">Scaduto</span>;
-                default:
-                     return <span className="font-medium text-red-600">Non attivo</span>;
+                case 'non_attivo':
+                    return <span className="font-medium text-red-600">Non attivo</span>;
             }
         }
         return <span className="font-medium text-red-600">Non attivo</span>;

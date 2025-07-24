@@ -72,6 +72,7 @@ export function SubscriptionManagement() {
   const [appointmentMonth, setAppointmentMonth] = useState<string | undefined>();
   const [appointmentYear, setAppointmentYear] = useState<string | undefined>();
   const [currentSubscriptionPlan, setCurrentSubscriptionPlan] = useState<string | null>(null);
+  const [currentSubscriptionStatus, setCurrentSubscriptionStatus] = useState<string | null>(null);
   const [monthlyStatus, setMonthlyStatus] = useState<'valido' | 'in_scadenza' | 'scaduto' | 'non_attivo'>('non_attivo');
 
   const bankDetails = {
@@ -102,7 +103,9 @@ export function SubscriptionManagement() {
       }
       
       const plan = localStorage.getItem('subscriptionPlan');
+      const status = localStorage.getItem('subscriptionStatus');
       setCurrentSubscriptionPlan(plan);
+      setCurrentSubscriptionStatus(status);
       setUserName(localStorage.getItem('userName') || '');
 
       const today = new Date();
@@ -126,7 +129,6 @@ export function SubscriptionManagement() {
       }
       
       // Monthly status logic
-      const status = localStorage.getItem('subscriptionStatus');
       if (plan === 'mensile' && status === 'valido') {
         const paymentDateStr = localStorage.getItem('subscriptionPaymentDate');
         if (paymentDateStr) {
@@ -149,7 +151,7 @@ export function SubscriptionManagement() {
         } else {
             setMonthlyStatus('non_attivo');
         }
-      } else if (plan !== 'mensile') {
+      } else if (!plan) {
           setMonthlyStatus('non_attivo');
       }
 
@@ -193,7 +195,7 @@ export function SubscriptionManagement() {
               if (planId === 'stagionale') {
                   const today = new Date();
                   let expiryDate = setDate(setMonth(today, 5), 15); // June 15
-                  if (today.getMonth() >= 5 && today.getDate() > 15) { // If it's after June 15th, set for next year
+                  if (today.getMonth() >= 6 && today.getDate() > 15) { 
                      expiryDate = addYears(expiryDate, 1);
                   }
                   localStorage.setItem('subscriptionExpiry', expiryDate.toISOString());
@@ -252,15 +254,24 @@ export function SubscriptionManagement() {
   const plans = currentSubscriptionPlan === 'mensile' ? allPlans.filter(p => p.id === 'mensile') : allPlans;
   
   const renderMonthlyStatusAlert = () => {
-      if (monthlyStatus === 'non_attivo') return null;
+      if (currentSubscriptionPlan !== 'mensile') return null;
 
       let variant: 'default' | 'destructive' = 'default';
       let title = '';
       let description = '';
 
+      if (currentSubscriptionStatus === 'in_attesa') {
+           return (
+                 <Alert className="mb-4 border-orange-400 text-orange-700 [&>svg]:text-orange-700">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Abbonamento In Attesa</AlertTitle>
+                    <AlertDescription>La tua richiesta di abbonamento è in attesa di approvazione.</AlertDescription>
+                </Alert>
+            );
+      }
+
       switch (monthlyStatus) {
           case 'valido':
-              variant = 'default';
               title = 'Abbonamento Attivo';
               description = `Il tuo abbonamento mensile è attivo per ${format(new Date(), 'MMMM', {locale: it})}.`;
               return (
@@ -271,7 +282,6 @@ export function SubscriptionManagement() {
                 </Alert>
               );
           case 'in_scadenza':
-              variant = 'default';
               title = 'Abbonamento in Scadenza';
               description = 'Il tuo abbonamento mensile scade tra meno di 3 giorni. Rinnovalo per non perdere l\'accesso ai corsi.';
                return (
@@ -292,6 +302,17 @@ export function SubscriptionManagement() {
                     <AlertDescription>{description}</AlertDescription>
                 </Alert>
               );
+        case 'non_attivo':
+             if (!currentSubscriptionStatus) {
+                return (
+                    <Alert variant="destructive" className="mb-4">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Abbonamento Non Attivo</AlertTitle>
+                        <AlertDescription>Non hai un abbonamento attivo. Scegli un piano per iniziare ad allenarti.</AlertDescription>
+                    </Alert>
+                );
+            }
+            return null;
       }
       return null;
   }
@@ -417,7 +438,7 @@ export function SubscriptionManagement() {
                         ))}
                     </div>
                     
-                     {((isSelected && !isPlanDisabled) || (plan.id === 'mensile' && canSubscribe)) && (
+                     {isSelected && !isPlanDisabled && (
                         <div className="pt-4 mt-4 border-t">
                             <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
                             <div className="space-y-4">
