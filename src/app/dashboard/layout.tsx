@@ -97,7 +97,7 @@ export default function DashboardLayout({
     if (isClient) {
       const storedLiberasphere = !!localStorage.getItem('isFormerMember');
       const storedRegulations = localStorage.getItem('regulationsAccepted') === 'true';
-      const storedAssociation = localStorage.getItem('associated') === 'true';
+      const storedAssociation = localStorage.getItem('associated') === 'true' || localStorage.getItem('associationApproved') === 'true';
       const storedLessonSelected = localStorage.getItem('lessonSelected') === 'true';
       const storedAssociationRequested = localStorage.getItem('associationRequested') === 'true';
       const storedSelectionPassportComplete = localStorage.getItem('isSelectionPassportComplete') === 'true';
@@ -157,7 +157,7 @@ export default function DashboardLayout({
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !isBlocked && inLiberasphere && !regulationsAccepted },
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => !isBlocked && regulationsAccepted },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => !isBlocked && regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
-    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => !isBlocked && regulationsAccepted && !associationRequested && !selectionPassportComplete },
+    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => !isBlocked && regulationsAccepted && !associated && !associationRequested && !selectionPassportComplete },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && !hasSeasonalSubscription },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
     { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
