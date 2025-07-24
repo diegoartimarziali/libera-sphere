@@ -26,7 +26,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescript
 import { format, addYears, setMonth, setDate } from "date-fns"
 import { it } from "date-fns/locale"
 
-const plans = [
+const allPlans = [
     { id: "stagionale", name: "Stagionale", price: "440", period: "stagione", features: ["Accesso a tutte le palestre", "Corsi illimitati", "Paga in un'unica soluzione.", "Un mese gratis"], expiry: "L'Abbonamento Stagionale può essere acquistato dal 01/07 al 15/10" },
     { id: "mensile", name: "Mensile", price: "55", period: "mese", features: ["Accesso a tutte le palestre", "Corsi illimitati"] },
 ]
@@ -67,6 +67,7 @@ export function SubscriptionManagement() {
   const [appointmentDay, setAppointmentDay] = useState<string | undefined>();
   const [appointmentMonth, setAppointmentMonth] = useState<string | undefined>();
   const [appointmentYear, setAppointmentYear] = useState<string | undefined>();
+  const [currentSubscriptionPlan, setCurrentSubscriptionPlan] = useState<string | null>(null);
 
   const bankDetails = {
       iban: "IT12A345B678C901D234E567F890",
@@ -96,7 +97,8 @@ export function SubscriptionManagement() {
       if (appointmentDateStr) {
           setBookedAppointmentDate(new Date(appointmentDateStr));
       }
-
+      
+      setCurrentSubscriptionPlan(localStorage.getItem('subscriptionPlan'));
       setUserName(localStorage.getItem('userName') || '');
 
       // Check for seasonal plan availability
@@ -145,7 +147,7 @@ export function SubscriptionManagement() {
 
   const saveDataAndRedirect = async () => {
       const userEmail = localStorage.getItem('registrationEmail');
-      const selectedPlanDetails = plans.find(p => p.id === selectedPlan);
+      const selectedPlanDetails = allPlans.find(p => p.id === selectedPlan);
 
       if (!userEmail || !selectedPlanDetails || !paymentMethod) return;
 
@@ -259,6 +261,7 @@ export function SubscriptionManagement() {
   }
   
   const canSubscribe = hasMedicalCertificate || !!bookedAppointmentDate;
+  const plans = currentSubscriptionPlan === 'mensile' ? allPlans.filter(p => p.id === 'mensile') : allPlans;
 
   return (
     <>
@@ -429,8 +432,8 @@ export function SubscriptionManagement() {
                  <div className="space-y-1">
                     <Label className="text-muted-foreground">Importo</Label>
                      <div className="flex items-center justify-between rounded-md border bg-muted p-2">
-                        <span className="font-mono">€ {plans.find(p => p.id === selectedPlan)?.price}</span>
-                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(plans.find(p => p.id === selectedPlan)?.price || '')}>
+                        <span className="font-mono">€ {allPlans.find(p => p.id === selectedPlan)?.price}</span>
+                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(allPlans.find(p => p.id === selectedPlan)?.price || '')}>
                             <Copy className="h-4 w-4" />
                         </Button>
                     </div>
@@ -453,5 +456,3 @@ export function SubscriptionManagement() {
     </>
   )
 }
-
-    
