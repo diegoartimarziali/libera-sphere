@@ -86,7 +86,7 @@ export default function DashboardLayout({
   const [inLiberasphere, setInLiberasphere] = React.useState(false);
   const [selectionPassportComplete, setSelectionPassportComplete] = React.useState(false);
   const [isBlocked, setIsBlocked] = React.useState(false);
-  const [hasSubscription, setHasSubscription] = React.useState(false);
+  const [hasSeasonalSubscription, setHasSeasonalSubscription] = React.useState(false);
 
   React.useEffect(() => {
     setIsClient(true);
@@ -100,7 +100,7 @@ export default function DashboardLayout({
       const storedLessonSelected = localStorage.getItem('lessonSelected') === 'true';
       const storedAssociationRequested = localStorage.getItem('associationRequested') === 'true';
       const storedSelectionPassportComplete = localStorage.getItem('isSelectionPassportComplete') === 'true';
-      const storedSubscription = !!localStorage.getItem('subscriptionPlan');
+      const storedSubscriptionPlan = localStorage.getItem('subscriptionPlan');
 
       const appointmentDateStr = localStorage.getItem('medicalAppointmentDate');
       const certificateDateStr = localStorage.getItem('medicalCertificateExpirationDate');
@@ -121,7 +121,7 @@ export default function DashboardLayout({
       setLessonSelected(storedLessonSelected);
       setAssociationRequested(storedAssociationRequested);
       setSelectionPassportComplete(storedSelectionPassportComplete);
-      setHasSubscription(storedSubscription);
+      setHasSeasonalSubscription(storedSubscriptionPlan === 'stagionale');
 
       // Redirect logic
       if (blockUser) {
@@ -153,7 +153,7 @@ export default function DashboardLayout({
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => !isBlocked && regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
     { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => !isBlocked && regulationsAccepted && !associationRequested && !selectionPassportComplete },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => !isBlocked && regulationsAccepted },
-    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && !hasSubscription },
+    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && !hasSeasonalSubscription },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
     { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
   ]
@@ -296,5 +296,3 @@ export default function DashboardLayout({
     </div>
   )
 }
-
-    
