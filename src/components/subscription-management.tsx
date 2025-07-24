@@ -50,7 +50,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => String(currentYear + i));
 
 const SUMUP_SEASONAL_LINK = 'https://pay.sumup.com/b2c/QG1CK6T0';
-const SUMUP_MONTHLY_LINK = 'https://pay.sumup.com/b2c/Q25VI0NJ'; // Placeholder link for monthly
+const SUMUP_MONTHLY_LINK = 'https://pay.sumup.com/b2c/Q25VI0NJ'; 
 
 
 export function SubscriptionManagement() {
@@ -87,14 +87,12 @@ export function SubscriptionManagement() {
 
   useEffect(() => {
     if(typeof window !== 'undefined'){
-      // Check for medical certificate
       const certDate = localStorage.getItem('medicalCertificateExpirationDate');
       const certFile = localStorage.getItem('medicalCertificateFileName');
       if (certDate && certFile) {
           setHasMedicalCertificate(true);
       }
 
-      // Check for booked appointment date
       const appointmentDateStr = localStorage.getItem('medicalAppointmentDate');
       if (appointmentDateStr) {
           setBookedAppointmentDate(new Date(appointmentDateStr));
@@ -103,9 +101,8 @@ export function SubscriptionManagement() {
       setCurrentSubscriptionPlan(localStorage.getItem('subscriptionPlan'));
       setUserName(localStorage.getItem('userName') || '');
 
-      // Check for seasonal plan availability
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Normalize to the start of the day
+      today.setHours(0, 0, 0, 0); 
       const currentYear = today.getFullYear();
       
       const startDate = new Date(currentYear, 6, 1); // July 1st
@@ -149,10 +146,9 @@ export function SubscriptionManagement() {
   };
 
   const saveDataAndRedirect = async () => {
-      const userEmail = localStorage.getItem('registrationEmail');
       const selectedPlanDetails = allPlans.find(p => p.id === selectedPlan);
 
-      if (!userEmail || !selectedPlanDetails) return;
+      if (!selectedPlanDetails) return;
 
       try {
           if (typeof window !== 'undefined') {
@@ -338,41 +334,39 @@ export function SubscriptionManagement() {
 
               return (
                 <Label key={plan.id} htmlFor={plan.id} className={cn(
-                    "block rounded-lg border p-4 cursor-pointer",
+                    "block rounded-lg border p-4 cursor-pointer transition-all",
                     isSelected && !isPlanDisabled && "border-primary ring-2 ring-primary",
-                    isPlanDisabled && "bg-muted/50 text-muted-foreground border-none ring-0 cursor-not-allowed"
+                    isPlanDisabled && "bg-muted/50 text-muted-foreground border-dashed ring-0 cursor-not-allowed"
                 )}>
-                <Card 
-                    className={cn(
-                        "h-full flex flex-col shadow-none border-none bg-transparent",
-                    )}
-                >
+                <div className="flex flex-col h-full">
                     <RadioGroupItem value={plan.id} id={plan.id} className="sr-only" disabled={isPlanDisabled} />
 
-                    <CardHeader className="p-0">
-                        <CardTitle className={cn("flex justify-between items-center", isPlanDisabled && "text-muted-foreground")}>
-                            {plan.name}
-                             {!isSelected && (
-                                <span className="text-sm font-normal text-muted-foreground">
-                                    {isPlanDisabled ? 'Non disponibile' : 'Scegli'}
-                                </span>
-                            )}
-                        </CardTitle>
-                        {plan.expiry && <p className="text-sm text-muted-foreground pt-1">{plan.expiry}</p>}
-                        <p className="text-2xl font-bold pt-2">€{plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.period}</span></p>
-                    </CardHeader>
-                    <CardContent className="space-y-2 flex-grow p-0 pt-4">
+                    <div className="flex justify-between items-start">
+                        <div className="flex-grow">
+                             <CardTitle className={cn("flex justify-between items-center mb-1", isPlanDisabled && "text-muted-foreground")}>
+                                {plan.name}
+                            </CardTitle>
+                            {plan.expiry && <p className="text-sm text-muted-foreground pt-1">{plan.expiry}</p>}
+                            <p className="text-2xl font-bold pt-2">€{plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.period}</span></p>
+                        </div>
+                         {!isSelected && (
+                            <span className="text-sm font-normal text-muted-foreground">
+                                {isPlanDisabled ? 'Non disponibile' : 'Scegli'}
+                            </span>
+                        )}
+                    </div>
+                    
+                    <div className="space-y-2 flex-grow pt-4">
                         {plan.features.map(feature => (
                             <div key={feature} className="flex items-center text-sm">
                                 <CheckCircle className={cn("w-4 h-4 mr-2", isPlanDisabled ? "text-muted-foreground" : "text-green-500")} />
                                 <span>{feature}</span>
                             </div>
                         ))}
-                    </CardContent>
-                    <CardFooter className="p-0 pt-4">
-                      {renderPaymentSection(plan)}
-                    </CardFooter>
-                </Card>
+                    </div>
+                    
+                    {renderPaymentSection(plan)}
+                </div>
                 </Label>
               )
             })}
