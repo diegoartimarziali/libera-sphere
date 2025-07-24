@@ -419,6 +419,11 @@ export function SubscriptionManagement() {
                              <CardTitle className={cn("flex justify-between items-center mb-1", isPlanDisabled && "text-muted-foreground")}>
                                 {plan.name}
                             </CardTitle>
+                            {plan.id === 'mensile' && (
+                                <p className="text-sm text-muted-foreground pt-1">
+                                    Per essere iscritto ai corsi usa questo form ogni mese, anche se paghi in contanti. In questo modo avrai sotto controllo i tuoi pagamenti e potrai richiedere la ricevuta a fine stagione.
+                                </p>
+                            )}
                             {plan.expiry && <p className="text-sm text-muted-foreground pt-1">{plan.expiry}</p>}
                             <p className="text-2xl font-bold pt-2">€{plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.period}</span></p>
                         </div>
