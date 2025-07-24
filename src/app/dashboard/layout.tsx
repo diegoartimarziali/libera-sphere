@@ -133,6 +133,7 @@ export default function DashboardLayout({
       const isApproved = localStorage.getItem('associationApproved') === 'true';
       const approvalDate = localStorage.getItem('associationApprovalDate');
       const isAssociatedThisSeason = isApproved && isAssociatedForCurrentSeason(approvalDate);
+      const isFormerMember = localStorage.getItem('isFormerMember') === 'yes';
 
       const appointmentDateStr = localStorage.getItem('medicalAppointmentDate');
       const certificateDateStr = localStorage.getItem('medicalCertificateExpirationDate');
@@ -155,15 +156,23 @@ export default function DashboardLayout({
       setHasSeasonalSubscription(storedSubscriptionPlan === 'stagionale');
       setIsBlocked(blockUser);
 
-      // Redirect logic
+      // --- REDIRECT LOGIC ---
+      const essentialPages = [
+        '/dashboard/aiuto',
+        '/dashboard/medical-certificate',
+      ];
+      
       if (blockUser) {
-        if (pathname !== '/dashboard/medical-certificate' && pathname !== '/dashboard/aiuto') {
+        if (!essentialPages.includes(pathname)) {
             router.push('/dashboard/medical-certificate');
         }
-      } else if (!storedLiberasphere && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/aiuto') {
+      } else if (!storedLiberasphere && !essentialPages.includes(pathname) && pathname !== '/dashboard/liberasphere') {
         router.push('/dashboard/liberasphere');
-      } else if (storedLiberasphere && !storedRegulations && pathname !== '/dashboard/regulations' && pathname !== '/dashboard/aiuto' && pathname !== '/dashboard/liberasphere') {
+      } else if (storedLiberasphere && !storedRegulations && !essentialPages.includes(pathname) && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/regulations') {
          router.push('/dashboard/regulations');
+      } else if (isFormerMember && !isAssociatedThisSeason && !storedAssociationRequested && !essentialPages.includes(pathname) && pathname !== '/dashboard/associates' && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/regulations') {
+        // This is a former member whose association has expired and hasn't started renewal.
+        router.push('/dashboard/associates?renewal=true');
       }
     }
   }, [isClient, pathname, router]);

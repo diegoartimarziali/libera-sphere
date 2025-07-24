@@ -18,7 +18,7 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
     const SearchParamComponent = () => {
         const searchParams = useSearchParams();
         useEffect(() => {
-            if (searchParams.get('fromSelection') === 'true') {
+            if (searchParams.get('fromSelection') === 'true' || searchParams.get('renewal') === 'true') {
                 setForceShowForm(true);
             }
         }, [searchParams]);
