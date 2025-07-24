@@ -378,10 +378,13 @@ export function SubscriptionManagement() {
                             </div>
                         ))}
                          {isSelected && !isPlanDisabled && (
-                            <div className="pt-4">
-                                <Separator className="mb-4" />
-                                <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
+                            <div className="pt-4 space-y-4">
+                                <Separator />
+                                <h4 className="font-semibold">Metodo di Pagamento</h4>
                                 {renderPaymentOptions(plan.id)}
+                                {paymentMethod === 'bank' && (
+                                    <Button onClick={() => setShowBankTransferDialog(true)} className="w-full">PROCEDI</Button>
+                                )}
                             </div>
                         )}
                     </CardContent>
@@ -394,7 +397,7 @@ export function SubscriptionManagement() {
       <CardFooter>
         <Button 
             className="w-full" 
-            disabled={!canSubscribe || !paymentMethod || isSubmitting}
+            disabled={!canSubscribe || !paymentMethod || isSubmitting || paymentMethod === 'bank'}
             onClick={handleSubscription}
         >
             {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
@@ -456,3 +459,5 @@ export function SubscriptionManagement() {
     </>
   )
 }
+
+    
