@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card"
 import { useEffect, useState } from "react"
 import { Star, AlertTriangle, CheckCircle } from "lucide-react"
-import { format, differenceInDays, parse, formatDistanceToNowStrict } from "date-fns"
+import { format, differenceInDays, parse, formatDistanceToNowStrict, lastDayOfMonth, isWithinInterval } from "date-fns"
 import { it } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Separator } from "./ui/separator"
@@ -54,8 +54,10 @@ export function MemberSummaryCard() {
   const [isInsured, setIsInsured] = useState(false);
   const [martialArt, setMartialArt] = useState<string | null>(null);
   const [isSelectionPassportComplete, setIsSelectionPassportComplete] = useState(false);
+  const [subscriptionPlan, setSubscriptionPlan] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [subscriptionExpiry, setSubscriptionExpiry] = useState<Date | null>(null);
+  const [monthlyStatus, setMonthlyStatus] = useState<'valido' | 'in_scadenza' | 'scaduto' | 'non_attivo'>('non_attivo');
 
 
   useEffect(() => {
@@ -130,7 +132,6 @@ export function MemberSummaryCard() {
       setFirstAssociationYear(localStorage.getItem('firstAssociationYear'));
       setGrade(localStorage.getItem('grade'));
 
-      // Check insurance status
       const storedIsInsured = localStorage.getItem('isInsured');
       if (storedIsInsured === 'true') {
           setIsInsured(true);
@@ -140,10 +141,41 @@ export function MemberSummaryCard() {
           setIsSelectionPassportComplete(true);
       }
       
-      setSubscriptionStatus(localStorage.getItem('subscriptionStatus'));
+      const plan = localStorage.getItem('subscriptionPlan');
+      const status = localStorage.getItem('subscriptionStatus');
+      setSubscriptionPlan(plan);
+      setSubscriptionStatus(status);
+      
       const storedExpiry = localStorage.getItem('subscriptionExpiry');
       if (storedExpiry) {
         setSubscriptionExpiry(new Date(storedExpiry));
+      }
+      
+      if (plan === 'mensile' && status === 'valido') {
+        const paymentDateStr = localStorage.getItem('subscriptionPaymentDate');
+        if (paymentDateStr) {
+            const paymentDate = new Date(paymentDateStr);
+            const today = new Date();
+            if (paymentDate.getFullYear() === today.getFullYear() && paymentDate.getMonth() === today.getMonth()) {
+                const endOfMonth = lastDayOfMonth(today);
+                const warningDate = new Date(endOfMonth);
+                warningDate.setDate(warningDate.getDate() - 3);
+
+                if (today > endOfMonth) {
+                    setMonthlyStatus('scaduto');
+                } else if (today >= warningDate) {
+                    setMonthlyStatus('in_scadenza');
+                } else {
+                    setMonthlyStatus('valido');
+                }
+            } else {
+                 setMonthlyStatus('scaduto');
+            }
+        } else {
+            setMonthlyStatus('scaduto'); // Scaduto se non c'è una data di pagamento valida per il mese
+        }
+      } else if (plan !== 'mensile') {
+          setMonthlyStatus('non_attivo');
       }
 
     }
@@ -224,18 +256,26 @@ export function MemberSummaryCard() {
   };
   
    const renderSubscriptionStatus = () => {
-    switch (subscriptionStatus) {
-        case 'valido':
-            return (
-                <span className="font-medium text-green-700">
-                    Valido fino al {subscriptionExpiry ? format(subscriptionExpiry, "dd/MM/yyyy") : ''}
-                </span>
-            );
-        case 'in_attesa':
-            return <span className="font-medium text-orange-500">In attesa di approvazione</span>;
-        default:
-            return <span className="font-medium text-red-600">Non attivo</span>;
-    }
+        if (subscriptionPlan === 'stagionale') {
+            if (subscriptionStatus === 'valido' && subscriptionExpiry) {
+                return <span className="font-medium text-green-700">Valido fino al {format(subscriptionExpiry, "dd/MM/yyyy")}</span>;
+            } else if (subscriptionStatus === 'in_attesa') {
+                return <span className="font-medium text-orange-500">In attesa di approvazione</span>;
+            }
+        } else if (subscriptionPlan === 'mensile') {
+            switch (monthlyStatus) {
+                case 'valido':
+                    const currentMonth = format(new Date(), 'MMMM', { locale: it });
+                    return <span className="font-medium text-green-700">Attivo per {currentMonth}</span>;
+                case 'in_scadenza':
+                    return <span className="font-medium text-orange-500">In scadenza</span>;
+                case 'scaduto':
+                    return <span className="font-medium text-red-600">Scaduto</span>;
+                default:
+                     return <span className="font-medium text-red-600">Non attivo</span>;
+            }
+        }
+        return <span className="font-medium text-red-600">Non attivo</span>;
   };
 
 
@@ -256,6 +296,9 @@ export function MemberSummaryCard() {
   const simulateSubscriptionApproval = () => {
      if (typeof window !== 'undefined') {
         localStorage.setItem('subscriptionStatus', 'valido');
+        if (localStorage.getItem('subscriptionPlan') === 'mensile') {
+            localStorage.setItem('subscriptionPaymentDate', new Date().toISOString());
+        }
         setSubscriptionStatus('valido');
         window.location.reload();
     }
@@ -267,6 +310,7 @@ export function MemberSummaryCard() {
   }
 
   const showAssociationYear = associationStatus === 'approved' || associationStatus === 'requested' || (firstAssociationYear && !isSelectionPassportComplete);
+  const showAdminButtons = process.env.NODE_ENV === 'development' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
 
   return (
     <Card>
@@ -274,8 +318,8 @@ export function MemberSummaryCard() {
         <CardTitle>Benvenuto, {userName.split(' ')[0]}!</CardTitle>
         <CardDescription>
             Ecco la tua situazione. 
-            {associationStatus === 'requested' && <Button onClick={simulateApproval} variant="outline" size="sm" className="ml-4 text-xs p-1 h-auto">Simula Approvazione Associazione</Button>}
-            {subscriptionStatus === 'in_attesa' && <Button onClick={simulateSubscriptionApproval} variant="outline" size="sm" className="ml-4 text-xs p-1 h-auto">Simula Approvazione Abbonamento</Button>}
+            {showAdminButtons && associationStatus === 'requested' && <Button onClick={simulateApproval} variant="outline" size="sm" className="ml-4 text-xs p-1 h-auto">Simula Approvazione Associazione</Button>}
+            {showAdminButtons && subscriptionStatus === 'in_attesa' && <Button onClick={simulateSubscriptionApproval} variant="outline" size="sm" className="ml-4 text-xs p-1 h-auto">Simula Approvazione Abbonamento</Button>}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -363,5 +407,3 @@ export function MemberSummaryCard() {
     </Card>
   )
 }
-
-    

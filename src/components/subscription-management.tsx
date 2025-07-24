@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -23,7 +24,7 @@ import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { format, addYears, setMonth, setDate } from "date-fns"
+import { format, addYears, setMonth, setDate, lastDayOfMonth } from "date-fns"
 import { it } from "date-fns/locale"
 
 const allPlans = [
@@ -71,6 +72,7 @@ export function SubscriptionManagement() {
   const [appointmentMonth, setAppointmentMonth] = useState<string | undefined>();
   const [appointmentYear, setAppointmentYear] = useState<string | undefined>();
   const [currentSubscriptionPlan, setCurrentSubscriptionPlan] = useState<string | null>(null);
+  const [monthlyStatus, setMonthlyStatus] = useState<'valido' | 'in_scadenza' | 'scaduto' | 'non_attivo'>('non_attivo');
 
   const bankDetails = {
       iban: "IT12A345B678C901D234E567F890",
@@ -99,7 +101,8 @@ export function SubscriptionManagement() {
           setBookedAppointmentDate(new Date(appointmentDateStr));
       }
       
-      setCurrentSubscriptionPlan(localStorage.getItem('subscriptionPlan'));
+      const plan = localStorage.getItem('subscriptionPlan');
+      setCurrentSubscriptionPlan(plan);
       setUserName(localStorage.getItem('userName') || '');
 
       const today = new Date();
@@ -112,11 +115,44 @@ export function SubscriptionManagement() {
       const isAvailable = today >= startDate && today <= endDate;
       setIsStagionaleAvailable(isAvailable);
       
-      if (isAvailable) {
-          setSelectedPlan("stagionale");
+      if (!plan) { // Only set default if no plan is selected yet
+        if (isAvailable) {
+            setSelectedPlan("stagionale");
+        } else {
+            setSelectedPlan("mensile");
+        }
       } else {
-          setSelectedPlan("mensile");
+        setSelectedPlan(plan);
       }
+      
+      // Monthly status logic
+      const status = localStorage.getItem('subscriptionStatus');
+      if (plan === 'mensile' && status === 'valido') {
+        const paymentDateStr = localStorage.getItem('subscriptionPaymentDate');
+        if (paymentDateStr) {
+            const paymentDate = new Date(paymentDateStr);
+            if (paymentDate.getFullYear() === today.getFullYear() && paymentDate.getMonth() === today.getMonth()) {
+                const endOfMonth = lastDayOfMonth(today);
+                const warningDate = new Date(endOfMonth);
+                warningDate.setDate(warningDate.getDate() - 3);
+
+                if (today > endOfMonth) {
+                    setMonthlyStatus('scaduto');
+                } else if (today >= warningDate) {
+                    setMonthlyStatus('in_scadenza');
+                } else {
+                    setMonthlyStatus('valido');
+                }
+            } else {
+                 setMonthlyStatus('scaduto');
+            }
+        } else {
+            setMonthlyStatus('non_attivo');
+        }
+      } else if (plan !== 'mensile') {
+          setMonthlyStatus('non_attivo');
+      }
+
     }
   }, []);
 
@@ -157,7 +193,7 @@ export function SubscriptionManagement() {
               if (planId === 'stagionale') {
                   const today = new Date();
                   let expiryDate = setDate(setMonth(today, 5), 15); // June 15
-                  if (today.getMonth() >= 5) { // If it's June or later, set for next year
+                  if (today.getMonth() >= 5 && today.getDate() > 15) { // If it's after June 15th, set for next year
                      expiryDate = addYears(expiryDate, 1);
                   }
                   localStorage.setItem('subscriptionExpiry', expiryDate.toISOString());
@@ -211,45 +247,54 @@ export function SubscriptionManagement() {
         await saveDataAndRedirect(selectedPlan);
       }
   };
-
-  const renderPaymentSection = (plan: typeof allPlans[0]) => {
-    const isSelected = selectedPlan === plan.id;
-    const isDisabled = (plan.id === 'stagionale' && !isStagionaleAvailable) || !canSubscribe;
-    
-    if (!isSelected || isDisabled) return null;
-
-    const paymentMethod = plan.id === 'stagionale' ? seasonalPaymentMethod : monthlyPaymentMethod;
-    const setPaymentMethod = plan.id === 'stagionale' ? setSeasonalPaymentMethod : setMonthlyPaymentMethod;
-    const paymentOptions = plan.id === 'stagionale' ? seasonalPaymentOptions : monthlyPaymentOptions;
-
-    return (
-      <div className="pt-4 mt-4 border-t">
-        <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
-        <div className="space-y-4">
-          <Select onValueChange={setPaymentMethod} value={paymentMethod}>
-            <SelectTrigger id={`${plan.id}-payment`}>
-              <SelectValue placeholder="Scegli un metodo" />
-            </SelectTrigger>
-            <SelectContent>
-              {paymentOptions.map(option => (
-                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button 
-            className="w-full" 
-            disabled={!paymentMethod || isSubmitting}
-            onClick={() => handleSubscription(plan.id, paymentMethod)}
-          >
-            {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
-          </Button>
-        </div>
-      </div>
-    );
-  }
   
   const canSubscribe = hasMedicalCertificate || !!bookedAppointmentDate;
   const plans = currentSubscriptionPlan === 'mensile' ? allPlans.filter(p => p.id === 'mensile') : allPlans;
+  
+  const renderMonthlyStatusAlert = () => {
+      if (monthlyStatus === 'non_attivo') return null;
+
+      let variant: 'default' | 'destructive' = 'default';
+      let title = '';
+      let description = '';
+
+      switch (monthlyStatus) {
+          case 'valido':
+              variant = 'default';
+              title = 'Abbonamento Attivo';
+              description = `Il tuo abbonamento mensile è attivo per ${format(new Date(), 'MMMM', {locale: it})}.`;
+              return (
+                 <Alert className="mb-4 border-green-500 text-green-800 [&>svg]:text-green-800">
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertTitle>{title}</AlertTitle>
+                    <AlertDescription>{description}</AlertDescription>
+                </Alert>
+              );
+          case 'in_scadenza':
+              variant = 'default';
+              title = 'Abbonamento in Scadenza';
+              description = 'Il tuo abbonamento mensile scade tra meno di 3 giorni. Rinnovalo per non perdere l\'accesso ai corsi.';
+               return (
+                 <Alert className="mb-4 border-orange-400 text-orange-700 [&>svg]:text-orange-700">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{title}</AlertTitle>
+                    <AlertDescription>{description}</AlertDescription>
+                </Alert>
+              );
+          case 'scaduto':
+              variant = 'destructive';
+              title = 'Abbonamento Scaduto';
+              description = 'Il tuo abbonamento mensile è scaduto. Rinnovalo per continuare ad allenarti.';
+              return (
+                <Alert variant="destructive" className="mb-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{title}</AlertTitle>
+                    <AlertDescription>{description}</AlertDescription>
+                </Alert>
+              );
+      }
+      return null;
+  }
 
   return (
     <>
@@ -323,6 +368,8 @@ export function SubscriptionManagement() {
             </>
         )}
 
+        {renderMonthlyStatusAlert()}
+
         <RadioGroup
             value={selectedPlan}
             onValueChange={handlePlanChange}
@@ -332,6 +379,10 @@ export function SubscriptionManagement() {
               const isStagionalePlan = plan.id === 'stagionale';
               const isPlanDisabled = (isStagionalePlan && !isStagionaleAvailable) || !canSubscribe;
               const isSelected = selectedPlan === plan.id;
+              
+              const paymentMethod = plan.id === 'stagionale' ? seasonalPaymentMethod : monthlyPaymentMethod;
+              const setPaymentMethod = plan.id === 'stagionale' ? setSeasonalPaymentMethod : setMonthlyPaymentMethod;
+              const paymentOptions = plan.id === 'stagionale' ? seasonalPaymentOptions : monthlyPaymentOptions;
 
               return (
                 <Label key={plan.id} htmlFor={plan.id} className={cn(
@@ -366,7 +417,30 @@ export function SubscriptionManagement() {
                         ))}
                     </div>
                     
-                    {renderPaymentSection(plan)}
+                     {((isSelected && !isPlanDisabled) || (plan.id === 'mensile' && canSubscribe)) && (
+                        <div className="pt-4 mt-4 border-t">
+                            <h4 className="font-semibold mb-2">Metodo di Pagamento</h4>
+                            <div className="space-y-4">
+                                <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+                                    <SelectTrigger id={`${plan.id}-payment`}>
+                                    <SelectValue placeholder="Scegli un metodo" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                    {paymentOptions.map(option => (
+                                        <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+                                    ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button 
+                                    className="w-full" 
+                                    disabled={!paymentMethod || isSubmitting}
+                                    onClick={() => handleSubscription(plan.id, paymentMethod)}
+                                >
+                                    {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 </Label>
               )
@@ -429,6 +503,3 @@ export function SubscriptionManagement() {
     </>
   )
 }
-
-
-    
