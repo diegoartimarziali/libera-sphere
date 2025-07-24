@@ -51,7 +51,7 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 5 }, (_, i) => String(currentYear + i));
 
 const SUMUP_SEASONAL_LINK = 'https://pay.sumup.com/b2c/QG1CK6T0';
-const SUMUP_MONTHLY_LINK = 'https://pay.sumup.com/b2c/Q25VI0NJ'; 
+const SUMUP_MONTHLY_LINK = 'https://pay.sumup.com/b2c/QHT1C8KC'; 
 
 
 export function SubscriptionManagement() {
@@ -429,3 +429,6 @@ export function SubscriptionManagement() {
     </>
   )
 }
+
+
+    
