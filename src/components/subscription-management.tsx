@@ -145,17 +145,15 @@ export function SubscriptionManagement() {
       }
   };
 
-  const saveDataAndRedirect = async () => {
-      const selectedPlanDetails = allPlans.find(p => p.id === selectedPlan);
-
-      if (!selectedPlanDetails) return;
+  const saveDataAndRedirect = async (planId: string) => {
+      if (!planId) return;
 
       try {
           if (typeof window !== 'undefined') {
-              localStorage.setItem('subscriptionPlan', selectedPlanDetails.id);
+              localStorage.setItem('subscriptionPlan', planId);
               localStorage.setItem('subscriptionStatus', 'in_attesa');
               
-              if (selectedPlanDetails.id === 'stagionale') {
+              if (planId === 'stagionale') {
                   const today = new Date();
                   let expiryDate = setDate(setMonth(today, 5), 15); // June 15
                   if (today.getMonth() >= 5) { // If it's June or later, set for next year
@@ -179,7 +177,7 @@ export function SubscriptionManagement() {
       }
   }
 
-  const handleSubscription = async (planId: string, paymentMethod: string) => {
+  const handleSubscription = async (planId: string, paymentMethod: string | undefined) => {
     if (!planId || !paymentMethod) return;
 
     setIsSubmitting(true);
@@ -187,7 +185,7 @@ export function SubscriptionManagement() {
     if (paymentMethod === 'online') {
         const paymentUrl = encodeURIComponent(planId === 'stagionale' ? SUMUP_SEASONAL_LINK : SUMUP_MONTHLY_LINK);
         const returnUrl = encodeURIComponent('/dashboard');
-        await saveDataAndRedirect(); 
+        await saveDataAndRedirect(planId); 
         router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
     } else if (paymentMethod === 'bank') {
         setShowBankTransferDialog(true);
@@ -196,7 +194,7 @@ export function SubscriptionManagement() {
             title: "Iscrizione registrata!",
             description: `Presentati in segreteria per completare il pagamento.`,
          });
-         await saveDataAndRedirect();
+         await saveDataAndRedirect(planId);
     }
     
     setIsSubmitting(false);
@@ -208,7 +206,7 @@ export function SubscriptionManagement() {
           title: "Iscrizione registrata!",
           description: "Effettua il bonifico usando i dati forniti. Vedrai lo stato aggiornato nella sezione pagamenti.",
       });
-      await saveDataAndRedirect();
+      await saveDataAndRedirect('stagionale');
   };
 
   const renderPaymentSection = (plan: typeof allPlans[0]) => {
@@ -238,7 +236,7 @@ export function SubscriptionManagement() {
           <Button 
             className="w-full" 
             disabled={!paymentMethod || isSubmitting}
-            onClick={() => handleSubscription(plan.id, paymentMethod!)}
+            onClick={() => handleSubscription(plan.id, paymentMethod)}
           >
             {isSubmitting ? 'Salvataggio...' : 'ISCRIVITI'}
           </Button>
@@ -428,3 +426,5 @@ export function SubscriptionManagement() {
     </>
   )
 }
+
+    
