@@ -16,6 +16,7 @@ import {
   LogOut,
   Landmark,
   HelpCircle,
+  AlertTriangle,
 } from "lucide-react"
 
 import {
@@ -30,6 +31,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { usePathname, useRouter } from "next/navigation"
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog"
+import { isAfter, startOfToday } from "date-fns"
 
 // Custom Dumbbell Icon
 const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -82,6 +85,7 @@ export default function DashboardLayout({
   const [lessonSelected, setLessonSelected] = React.useState(false);
   const [inLiberasphere, setInLiberasphere] = React.useState(false);
   const [selectionPassportComplete, setSelectionPassportComplete] = React.useState(false);
+  const [isBlocked, setIsBlocked] = React.useState(false);
 
   React.useEffect(() => {
     setIsClient(true);
@@ -95,6 +99,19 @@ export default function DashboardLayout({
       const storedLessonSelected = localStorage.getItem('lessonSelected') === 'true';
       const storedAssociationRequested = localStorage.getItem('associationRequested') === 'true';
       const storedSelectionPassportComplete = localStorage.getItem('isSelectionPassportComplete') === 'true';
+
+      const appointmentDateStr = localStorage.getItem('medicalAppointmentDate');
+      const certificateDateStr = localStorage.getItem('medicalCertificateExpirationDate');
+      
+      let blockUser = false;
+      if (appointmentDateStr && !certificateDateStr) {
+          const appointmentDate = new Date(appointmentDateStr);
+          const today = startOfToday();
+          if (isAfter(today, appointmentDate)) {
+              blockUser = true;
+              setIsBlocked(true);
+          }
+      }
       
       setInLiberasphere(storedLiberasphere);
       setRegulationsAccepted(storedRegulations);
@@ -104,7 +121,11 @@ export default function DashboardLayout({
       setSelectionPassportComplete(storedSelectionPassportComplete);
 
       // Redirect logic
-      if (!storedLiberasphere && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/aiuto') {
+      if (blockUser) {
+        if (pathname !== '/dashboard/medical-certificate' && pathname !== '/dashboard/aiuto') {
+            router.push('/dashboard/medical-certificate');
+        }
+      } else if (!storedLiberasphere && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/aiuto') {
         router.push('/dashboard/liberasphere');
       } else if (storedLiberasphere && !storedRegulations && pathname !== '/dashboard/regulations' && pathname !== '/dashboard/aiuto' && pathname !== '/dashboard/liberasphere') {
          router.push('/dashboard/regulations');
@@ -122,15 +143,16 @@ export default function DashboardLayout({
 
   const allNavItems = [
     { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto" },
-    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => !inLiberasphere },
-    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => inLiberasphere && !regulationsAccepted },
-    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => regulationsAccepted },
-    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
-    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => regulationsAccepted && !associationRequested && !selectionPassportComplete },
-    { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => regulationsAccepted },
-    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => regulationsAccepted && !selectionPassportComplete },
-    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => regulationsAccepted && !selectionPassportComplete },
-    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => regulationsAccepted && !selectionPassportComplete },
+    { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => isBlocked},
+    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => !isBlocked && !inLiberasphere },
+    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !isBlocked && inLiberasphere && !regulationsAccepted },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => !isBlocked && regulationsAccepted },
+    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => !isBlocked && regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
+    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => !isBlocked && regulationsAccepted && !associationRequested && !selectionPassportComplete },
+    { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => !isBlocked && regulationsAccepted },
+    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
+    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
+    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
   ]
   
   const bottomNavItems = [
@@ -141,7 +163,7 @@ export default function DashboardLayout({
     if (item.condition) {
         return item.condition();
     }
-    return true;
+    return !isBlocked;
   });
 
   const childrenWithProps = React.Children.map(children, child => {
@@ -164,6 +186,27 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
+       <AlertDialog open={isBlocked}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
+              Accesso Bloccato
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Il termine per la presentazione del certificato medico è scaduto. Per legge, non è più possibile accedere ai corsi o alle altre attività.
+              <br /><br />
+              Carica il tuo certificato medico per sbloccare l'accesso.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => router.push('/dashboard/medical-certificate')}>
+              Vai al Caricamento
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-60 flex-col border-r bg-background sm:flex">
         <nav className="flex flex-col items-center gap-4 px-2 sm:py-5 flex-1">
           <Link
