@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { usePathname, useRouter } from "next/navigation"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/components/ui/alert-dialog"
-import { isAfter, startOfToday } from "date-fns"
+import { isAfter, startOfToday, parse } from "date-fns"
 
 // Custom Dumbbell Icon
 const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -72,6 +72,34 @@ const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 )
 
+const isAssociatedForCurrentSeason = (approvalDateStr: string | null): boolean => {
+    if (!approvalDateStr) return false;
+
+    try {
+        const approvalDate = parse(approvalDateStr, 'dd/MM/yyyy', new Date());
+        if (isNaN(approvalDate.getTime())) return false;
+
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth(); // 0-11
+
+        let seasonStartYear = currentYear;
+        // If we are before September, the season started last year.
+        if (currentMonth < 8) { // 8 is September (0-indexed)
+            seasonStartYear = currentYear - 1;
+        }
+
+        const seasonStart = new Date(seasonStartYear, 8, 1); // September 1st
+        const seasonEnd = new Date(seasonStartYear + 1, 7, 31); // August 31st
+
+        return approvalDate >= seasonStart && approvalDate <= seasonEnd;
+
+    } catch (error) {
+        console.error("Error parsing association date:", error);
+        return false;
+    }
+};
+
 export default function DashboardLayout({
   children,
 }: {
@@ -97,11 +125,14 @@ export default function DashboardLayout({
     if (isClient) {
       const storedLiberasphere = !!localStorage.getItem('isFormerMember');
       const storedRegulations = localStorage.getItem('regulationsAccepted') === 'true';
-      const storedAssociation = localStorage.getItem('associated') === 'true' || localStorage.getItem('associationApproved') === 'true';
       const storedLessonSelected = localStorage.getItem('lessonSelected') === 'true';
       const storedAssociationRequested = localStorage.getItem('associationRequested') === 'true';
       const storedSelectionPassportComplete = localStorage.getItem('isSelectionPassportComplete') === 'true';
       const storedSubscriptionPlan = localStorage.getItem('subscriptionPlan');
+      
+      const isApproved = localStorage.getItem('associationApproved') === 'true';
+      const approvalDate = localStorage.getItem('associationApprovalDate');
+      const isAssociatedThisSeason = isApproved && isAssociatedForCurrentSeason(approvalDate);
 
       const appointmentDateStr = localStorage.getItem('medicalAppointmentDate');
       const certificateDateStr = localStorage.getItem('medicalCertificateExpirationDate');
@@ -117,9 +148,9 @@ export default function DashboardLayout({
       
       setInLiberasphere(storedLiberasphere);
       setRegulationsAccepted(storedRegulations);
-      setAssociated(storedAssociation);
+      setAssociated(isAssociatedThisSeason);
       setLessonSelected(storedLessonSelected);
-      setAssociationRequested(storedAssociationRequested);
+      setAssociationRequested(storedAssociationRequested && !isAssociatedThisSeason); // Only show request if not currently associated
       setSelectionPassportComplete(storedSelectionPassportComplete);
       setHasSeasonalSubscription(storedSubscriptionPlan === 'stagionale');
       setIsBlocked(blockUser);
@@ -157,10 +188,10 @@ export default function DashboardLayout({
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !isBlocked && inLiberasphere && !regulationsAccepted },
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => !isBlocked && regulationsAccepted },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => !isBlocked && regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
-    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => !isBlocked && regulationsAccepted && !associated && !associationRequested && !selectionPassportComplete },
-    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && !hasSeasonalSubscription },
-    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
-    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete },
+    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => !isBlocked && regulationsAccepted && !associated && !associationRequested },
+    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && !hasSeasonalSubscription && associated },
+    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && associated},
+    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => !isBlocked && regulationsAccepted && !selectionPassportComplete && associated},
   ]
   
   const bottomNavItems = [
@@ -196,7 +227,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
-       <AlertDialog open={isBlocked} onOpenChange={setIsBlocked}>
+       <AlertDialog open={isBlocked} onOpenChange={(open) => !open && setIsBlocked(false)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
