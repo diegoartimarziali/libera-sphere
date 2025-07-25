@@ -78,59 +78,62 @@ export function EventBooking() {
 
   const showAdminFeatures = process.env.NODE_ENV === 'development' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
 
-  const fetchStageData = async () => {
-    try {
-      const stagesQuery = query(collection(db, "events"), where("isDeleted", "!=", true));
-      onSnapshot(stagesQuery, (snapshot) => {
-          const stagesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Stage));
-          setStages(stagesData);
-          setLoadingStages(false);
-      });
-
-      const registrationsSnapshot = await getDocs(collection(db, "eventRegistrations"));
-      const counts: StageCounts = {};
-      
-      registrationsSnapshot.forEach(doc => {
-          const data = doc.data();
-          if (data.stageId) {
-              counts[data.stageId] = (counts[data.stageId] || 0) + 1;
-          }
-      });
-      setStageCounts(counts);
-
-      const userEmail = localStorage.getItem('registrationEmail');
-      if (userEmail) {
-          const q = query(collection(db, "eventRegistrations"), where("userEmail", "==", userEmail));
-          onSnapshot(q, (userRegistrationsSnapshot) => {
-            const userRegistered: RegisteredStages = {};
-            userRegistrationsSnapshot.forEach(doc => {
-                userRegistered[doc.data().stageId] = true;
-            });
-            setRegisteredStages(userRegistered);
-          });
-      }
-
-    } catch (error) {
-        console.error("Error fetching stage data: ", error);
-        toast({
-            title: "Errore",
-            description: "Impossibile caricare i dati degli stage.",
-            variant: "destructive",
-        });
-        setLoadingStages(false);
-    }
-  };
-
   useEffect(() => {
-    fetchStageData();
-  }, []);
+    // Listener for stages to display them
+    const stagesQuery = query(collection(db, "events"), where("isDeleted", "!=", true));
+    const unsubscribeStages = onSnapshot(stagesQuery, (snapshot) => {
+        const stagesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Stage));
+        setStages(stagesData);
+        setLoadingStages(false);
+    }, (error) => {
+        console.error("Error fetching stages: ", error);
+        toast({ title: "Errore", description: "Impossibile caricare i dati degli stage.", variant: "destructive" });
+        setLoadingStages(false);
+    });
+
+    // Listener for all registrations to update participant counts in real-time
+    const registrationsQuery = query(collection(db, "eventRegistrations"));
+    const unsubscribeRegistrations = onSnapshot(registrationsQuery, (snapshot) => {
+        const counts: StageCounts = {};
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.stageId) {
+                counts[data.stageId] = (counts[data.stageId] || 0) + 1;
+            }
+        });
+        setStageCounts(counts);
+    });
+
+    // Listener for user-specific registrations to manage button state
+    const userEmail = localStorage.getItem('registrationEmail');
+    let unsubscribeUserRegistrations = () => {};
+    if (userEmail) {
+        const userRegistrationsQuery = query(collection(db, "eventRegistrations"), where("userEmail", "==", userEmail));
+        unsubscribeUserRegistrations = onSnapshot(userRegistrationsQuery, (userRegistrationsSnapshot) => {
+          const userRegistered: RegisteredStages = {};
+          userRegistrationsSnapshot.forEach(doc => {
+              userRegistered[doc.data().stageId] = true;
+          });
+          setRegisteredStages(userRegistered);
+        });
+    }
+
+    // Cleanup function to detach listeners on component unmount
+    return () => {
+        unsubscribeStages();
+        unsubscribeRegistrations();
+        unsubscribeUserRegistrations();
+    };
+  }, [toast]);
+
 
   const handleSubscription = async (stageId: string, stageName: string, stageDate: string) => {
       setSubmittingStage(stageId);
       const userEmail = localStorage.getItem('registrationEmail');
       const userName = localStorage.getItem('userName');
+      const userId = localStorage.getItem('userId');
 
-      if (!userEmail || !userName) {
+      if (!userEmail || !userName || !userId) {
           toast({
               title: "Utente non riconosciuto",
               description: "Effettua nuovamente il login per iscriverti.",
@@ -144,6 +147,7 @@ export function EventBooking() {
           await addDoc(collection(db, "eventRegistrations"), {
               userEmail,
               userName,
+              userId,
               stageId,
               stageName,
               stageDate,
@@ -325,7 +329,8 @@ const handleSaveStage = async () => {
             ) : stages.map((stage) => {
               const isRegistered = registeredStages[stage.id];
               const isSubmitting = submittingStage === stage.id;
-              const count = stageCounts[stage.id] || 0;
+              const registeredCount = stageCounts[stage.id] || 0;
+              const totalCount = registeredCount + 4; // Add base of 4 technicians
 
               return (
               <TableRow key={stage.id}>
@@ -334,7 +339,7 @@ const handleSaveStage = async () => {
                 <TableCell>{stage.time}</TableCell>
                 <TableCell>{stage.participants}</TableCell>
                 <TableCell>€ {stage.contribution}</TableCell>
-                <TableCell className="font-bold text-center">{count}</TableCell>
+                <TableCell className="font-bold text-center">{totalCount}</TableCell>
                 <TableCell>
                    <a href={stage.flyerUrl || '#'} target="_blank" rel="noopener noreferrer" className={`transition-colors ${stage.flyerUrl ? 'text-muted-foreground hover:text-primary' : 'text-muted-foreground/50 cursor-not-allowed'}`}>
                       <FileText className="h-5 w-5" />
