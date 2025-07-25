@@ -43,7 +43,7 @@ import {
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Progress } from "./ui/progress"
-import { format, isPast, parseISO } from "date-fns"
+import { format, isPast, parseISO, isValid } from "date-fns"
 import { it } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
@@ -192,7 +192,16 @@ export function EventBooking() {
   const handleEditStage = (stage: Stage) => {
     setIsEditing(true);
     setCurrentStage(stage);
-    setStageDate(stage.date ? parseISO(stage.date) : undefined);
+    try {
+        const parsedDate = parseISO(stage.date);
+        if(isValid(parsedDate)) {
+            setStageDate(parsedDate);
+        } else {
+            setStageDate(undefined);
+        }
+    } catch {
+        setStageDate(undefined);
+    }
     setFlyerFile(null);
     setUploadProgress(0);
     setOpenDialog(true);
@@ -252,10 +261,17 @@ const handleSaveStage = async () => {
     }
     
     setSubmittingStage('save');
-    let stageData: Partial<Stage> & { date: string } = { 
-        ...currentStage,
-        date: stageDate.toISOString() // Save date in standard ISO format
+    
+    // Always use the date from the state picker (stageDate)
+    const stageData: Omit<Stage, 'id' | 'isDeleted'> & { id?: string; createdAt?: Timestamp; isDeleted?: boolean } = { 
+        name: currentStage.name || '',
+        date: stageDate.toISOString(), // Save date in standard ISO format
+        time: currentStage.time || '',
+        participants: currentStage.participants || '',
+        contribution: currentStage.contribution || '',
+        flyerUrl: currentStage.flyerUrl || ''
     };
+
 
     try {
         if (flyerFile) {
@@ -263,14 +279,12 @@ const handleSaveStage = async () => {
             stageData.flyerUrl = downloadURL;
         }
 
-        if (isEditing && stageData.id) {
-            const { id, ...dataToUpdate } = stageData;
-            const stageRef = doc(db, "events", id);
-            await updateDoc(stageRef, dataToUpdate);
+        if (isEditing && currentStage.id) {
+            const stageRef = doc(db, "events", currentStage.id);
+            await updateDoc(stageRef, stageData);
             toast({ title: "Stage Aggiornato", description: "I dati dello stage sono stati aggiornati."});
         } else {
-            const { id, ...dataToAdd } = stageData;
-            await addDoc(collection(db, "events"), { ...dataToAdd, createdAt: Timestamp.now(), isDeleted: false });
+            await addDoc(collection(db, "events"), { ...stageData, createdAt: Timestamp.now(), isDeleted: false });
             toast({ title: "Stage Creato", description: "Il nuovo stage è stato aggiunto."});
         }
         setOpenDialog(false);
@@ -310,9 +324,14 @@ const handleSaveStage = async () => {
   const formatDate = (isoDate: string) => {
       try {
         const date = parseISO(isoDate);
+        if (!isValid(date)) {
+            // Attempt to handle non-ISO formats if they still exist from previous bug
+            console.warn("Attempting to parse non-ISO date:", isoDate);
+            return "Data non valida";
+        }
         return format(date, "EEEE dd MMMM yyyy", { locale: it });
       } catch (error) {
-        console.error("Invalid date format:", isoDate);
+        console.error("Error in formatDate for:", isoDate, error);
         return "Data non valida";
       }
   };
@@ -353,7 +372,16 @@ const handleSaveStage = async () => {
               const isSubmitting = submittingStage === stage.id;
               const registeredCount = stageCounts[stage.id] || 0;
               const totalCount = registeredCount + 4; // Add base of 4 technicians
-              const pastEvent = isPast(parseISO(stage.date));
+              
+              let pastEvent = false;
+              try {
+                const parsedDate = parseISO(stage.date);
+                if (isValid(parsedDate)) {
+                  pastEvent = isPast(parsedDate);
+                }
+              } catch (e) {
+                console.error("Could not parse date for past event check", stage.date);
+              }
 
               return (
               <TableRow key={stage.id} className={cn(pastEvent && "text-muted-foreground opacity-60")}>
