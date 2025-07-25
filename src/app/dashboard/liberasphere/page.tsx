@@ -72,7 +72,9 @@ export default function LiberaSpherePage() {
         try {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
-            router.push('/dashboard/regulations');
+            // Force a hard reload to ensure the layout component refetches the latest user data
+            // and avoids a race condition with the redirect logic.
+            window.location.href = '/dashboard/regulations';
         } catch (error) {
             console.error("Error updating user document:", error);
             // Handle error, maybe show a toast
