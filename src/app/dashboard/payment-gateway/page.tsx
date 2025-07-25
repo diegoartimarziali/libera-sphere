@@ -34,6 +34,10 @@ export default function PaymentGatewayPage() {
             router.push('/dashboard');
         }
     };
+
+    const handleCancel = () => {
+        router.back();
+    };
     
     if (!isClient) {
         return <div className="flex items-center justify-center min-h-screen">Caricamento...</div>;
@@ -60,7 +64,7 @@ export default function PaymentGatewayPage() {
             <header className="flex items-center justify-between p-4 border-b flex-wrap gap-4">
                  <h1 className="text-lg font-semibold">Completa il Pagamento</h1>
                  <div className="flex items-center gap-4">
-                    <Button onClick={handleReturn} variant="outline">
+                    <Button onClick={handleCancel} variant="outline">
                         <XCircle className="mr-2 h-4 w-4" />
                         Non puoi pagare ora? Torna indietro
                     </Button>
