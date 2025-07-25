@@ -434,7 +434,7 @@ const handleSaveStage = async () => {
                 </div>
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setOpenDialog(false)}>Annulla</Button>
+                <Button variant="outline" onClick={() => handleDialogChange(false)}>Annulla</Button>
                 <Button onClick={handleSaveStage} disabled={isUploading || submittingStage === 'save'}>
                     {isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Caricamento...</> : (submittingStage === 'save' ? 'Salvataggio...' : 'Salva')}
                 </Button>
@@ -444,5 +444,3 @@ const handleSaveStage = async () => {
     </>
   )
 }
-
-    

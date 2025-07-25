@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
-import { storage } from "@/lib/firebase"
+import { auth, storage } from "@/lib/firebase"
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"
 import { Progress } from "./ui/progress"
 
@@ -99,31 +99,41 @@ export function MedicalCertificate() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && expirationDate) {
-      setIsUploading(true);
-      setUploadProgress(0);
+    const user = auth.currentUser;
 
-      const storageRef = ref(storage, `medical-certificates/${Date.now()}_${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+    if (!file) return;
+    if (!expirationDate) {
+        toast({ title: "Data mancante", description: "Seleziona una data di scadenza prima di caricare.", variant: "destructive" });
+        return;
+    }
+    if (!user) {
+        toast({ title: "Utente non autenticato", description: "Effettua di nuovo il login per caricare.", variant: "destructive" });
+        return;
+    }
 
-      uploadTask.on('state_changed',
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    const storageRef = ref(storage, `medical-certificates/${user.uid}/${Date.now()}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on('state_changed',
         (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setUploadProgress(progress);
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setUploadProgress(progress);
         },
         (error) => {
-          console.error("Upload failed:", error);
-          toast({ title: "Caricamento Fallito", description: `Errore: ${error.message}`, variant: "destructive" });
-          setIsUploading(false);
+            console.error("Upload failed:", error);
+            toast({ title: "Caricamento Fallito", description: `Errore: ${error.message}`, variant: "destructive" });
+            setIsUploading(false);
         },
         () => {
-          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            handleRegisterCertificate(file, downloadURL);
-            setIsUploading(false);
-          });
+            getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                handleRegisterCertificate(file, downloadURL);
+                setIsUploading(false);
+            });
         }
-      );
-    }
+    );
   };
   
   const handleRegisterCertificate = (file: File, url: string) => {
@@ -304,5 +314,3 @@ export function MedicalCertificate() {
     </Card>
   )
 }
-
-    
