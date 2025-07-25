@@ -24,7 +24,7 @@ import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { format, addYears, setMonth, setDate, lastDayOfMonth } from "date-fns"
+import { format, addYears, setMonth, setDate, lastDayOfMonth, addMonths } from "date-fns"
 import { it } from "date-fns/locale"
 
 const allPlans = [
@@ -129,28 +129,34 @@ export function SubscriptionManagement() {
       }
       
       // Monthly status logic
-      if (plan === 'mensile' && status === 'valido') {
-        const paymentDateStr = localStorage.getItem('subscriptionPaymentDate');
-        if (paymentDateStr) {
-            const paymentDate = new Date(paymentDateStr);
-            if (paymentDate.getFullYear() === today.getFullYear() && paymentDate.getMonth() === today.getMonth()) {
-                const endOfMonth = lastDayOfMonth(today);
-                const warningDate = new Date(endOfMonth);
-                warningDate.setDate(warningDate.getDate() - 3);
+      if (plan === 'mensile') {
+         if (status === 'valido') {
+            const paymentDateStr = localStorage.getItem('subscriptionPaymentDate');
+            if (paymentDateStr) {
+                const paymentDate = new Date(paymentDateStr);
+                if (paymentDate.getFullYear() === today.getFullYear() && paymentDate.getMonth() === today.getMonth()) {
+                    const endOfMonth = lastDayOfMonth(today);
+                    const warningDate = new Date(endOfMonth);
+                    warningDate.setDate(warningDate.getDate() - 3);
 
-                if (today > endOfMonth) {
-                    setMonthlyStatus('scaduto');
-                } else if (today >= warningDate) {
-                    setMonthlyStatus('in_scadenza');
+                    if (today > endOfMonth) {
+                        setMonthlyStatus('scaduto');
+                    } else if (today >= warningDate) {
+                        setMonthlyStatus('in_scadenza');
+                    } else {
+                        setMonthlyStatus('valido');
+                    }
                 } else {
-                    setMonthlyStatus('valido');
+                    setMonthlyStatus('scaduto');
                 }
             } else {
-                 setMonthlyStatus('scaduto');
+                setMonthlyStatus('non_attivo'); 
             }
-        } else {
-            setMonthlyStatus('non_attivo');
-        }
+         } else if (status === 'in_attesa') {
+             setMonthlyStatus('non_attivo'); // Treat as unpaid until confirmed
+         } else {
+             setMonthlyStatus('scaduto'); // Covers null status or other invalid states
+         }
       } else if (!plan) {
           setMonthlyStatus('non_attivo');
       }
@@ -267,7 +273,7 @@ export function SubscriptionManagement() {
   };
   
   const canSubscribe = hasMedicalCertificate || !!bookedAppointmentDate;
-  const plans = currentSubscriptionPlan === 'mensile' ? allPlans.filter(p => p.id === 'mensile') : allPlans;
+  const plans = currentSubscriptionPlan === 'mensile' && monthlyStatus !== 'scaduto' ? allPlans.filter(p => p.id === 'mensile') : allPlans;
   
   const renderMonthlyStatusAlert = () => {
       if (currentSubscriptionPlan !== 'mensile') return null;
@@ -289,7 +295,7 @@ export function SubscriptionManagement() {
       switch (monthlyStatus) {
           case 'valido':
               title = 'Abbonamento Attivo';
-              description = `Il tuo abbonamento mensile è attivo per ${format(new Date(), 'MMMM', {locale: it})}.`;
+              description = `Il tuo abbonamento mensile è attivo per ${format(new Date(), 'MMMM', { locale: it })}.`;
               return (
                  <Alert className="mb-4 border-green-500 text-green-800 [&>svg]:text-green-800">
                     <CheckCircle className="h-4 w-4" />
@@ -319,7 +325,7 @@ export function SubscriptionManagement() {
                 </Alert>
               );
         case 'non_attivo':
-             if (!currentSubscriptionStatus) {
+             if (!currentSubscriptionStatus || currentSubscriptionStatus !== 'in_attesa') {
                 return (
                     <Alert variant="destructive" className="mb-4">
                         <AlertTriangle className="h-4 w-4" />
@@ -331,6 +337,14 @@ export function SubscriptionManagement() {
             return null;
       }
       return null;
+  }
+  
+  const getTargetPaymentMonth = () => {
+    const today = new Date();
+    if (monthlyStatus === 'valido' || monthlyStatus === 'in_scadenza') {
+        return format(addMonths(today, 1), 'MMMM', { locale: it });
+    }
+    return format(today, 'MMMM', { locale: it });
   }
 
   return (
@@ -442,6 +456,9 @@ export function SubscriptionManagement() {
                             )}
                             {plan.expiry && <p className="text-sm text-muted-foreground pt-1">{plan.expiry}</p>}
                             <p className="text-2xl font-bold pt-2">€{plan.price}<span className="text-sm font-normal text-muted-foreground">/{plan.period}</span></p>
+                             {plan.id === 'mensile' && (
+                                <p className="font-semibold text-primary pt-1 capitalize">Paga il mese di: {getTargetPaymentMonth()}</p>
+                             )}
                         </div>
                          {!isSelected && (
                             <span className="text-sm font-normal text-muted-foreground">
