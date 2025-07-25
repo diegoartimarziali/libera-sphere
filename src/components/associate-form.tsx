@@ -172,9 +172,9 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     
     const handleNext = () => {
         if (canGoToNextStep()) {
-            // Skip parent data step if user is not a minor
+            // Skip parent data step if user is not a minor and we are at step 3
             if (currentStep === 3 && !isMinor) {
-                setCurrentStep(currentStep + 2);
+                 setCurrentStep(5); // Skip to step 5 (payment)
             } else {
                 setCurrentStep(currentStep + 1);
             }
@@ -182,9 +182,9 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     };
 
     const handleBack = () => {
-        // Skip parent data step if user is not a minor
+         // Skip parent data step if user is not a minor and we are at step 5
         if (currentStep === 5 && !isMinor) {
-             setCurrentStep(currentStep - 2);
+             setCurrentStep(3); // Go back to step 3
         } else {
             setCurrentStep(currentStep - 1);
         }
@@ -242,21 +242,21 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
                 const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
                 const returnUrl = encodeURIComponent('/dashboard');
                 router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+                // No need to set isSubmitting to false here, as we are navigating away.
             } else if (paymentMethod === 'bank') {
                 setShowBankTransferDialog(true);
+                // isSubmitting will be set to false when the dialog is closed.
             } else if (paymentMethod === 'cash') {
                 toast({
                     title: "Dati Salvati e Domanda Inviata!",
                     description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
                 });
                 router.push('/dashboard');
+                setIsSubmitting(false);
             }
         } catch (error) {
-            // Error is already toasted
-        } finally {
-            if (paymentMethod !== 'online' && paymentMethod !== 'bank') {
-                 setIsSubmitting(false);
-            }
+            // Error is already toasted, but we need to reset the submitting state
+             setIsSubmitting(false);
         }
     };
 

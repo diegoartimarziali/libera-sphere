@@ -27,7 +27,7 @@ import { format, parse, isAfter } from "date-fns"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { Separator } from "./ui/separator"
-import { Gift, Info, CheckCircle, AlertTriangle } from "lucide-react"
+import { Gift, Info, CheckCircle, AlertTriangle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog"
@@ -89,6 +89,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
     const [bonusAccepted, setBonusAccepted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Multi-step logic
     const [currentStep, setCurrentStep] = useState(initialStep);
@@ -147,8 +148,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
 
     const handleNext = () => {
         if (canGoToNextStep()) {
-            if (currentStep === 4 && !isMinor) {
-                setCurrentStep(currentStep + 2); // Skip parent step
+            if (currentStep === 3 && !isMinor) {
+                 setCurrentStep(5); // Skip to payment
             } else {
                 setCurrentStep(currentStep + 1);
             }
@@ -156,8 +157,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
     };
     
     const handleBack = () => {
-        if (currentStep === 6 && !isMinor) {
-             setCurrentStep(currentStep - 2);
+        if (currentStep === 5 && !isMinor) {
+             setCurrentStep(3); // Skip back to residency
         } else {
             setCurrentStep(currentStep - 1);
         }
@@ -295,12 +296,12 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
         const user = auth.currentUser;
         if (!user) {
             toast({ title: "Errore", description: "Utente non autenticato", variant: "destructive" });
-            return;
+            throw new Error("Utente non autenticato");
         }
 
         const dataToUpdate = {
             martialArt,
-            selectedDojo,
+            selectedDojo: dojo,
             lessonDate,
             name,
             codiceFiscale,
@@ -325,13 +326,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
         try {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
-             if (finalSave) {
-                toast({
-                    title: "Iscrizione completata!",
-                    description: "I tuoi dati sono stati salvati.",
-                });
-                window.location.reload();
-            }
         } catch (error) {
             console.error("Error updating user data:", error);
             toast({ title: "Errore", description: "Impossibile salvare i dati.", variant: "destructive" });
@@ -340,17 +334,26 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
     };
     
     const handleFinalSubmit = async () => {
+        if(isSubmitting) return;
+        setIsSubmitting(true);
         try {
-             if (paymentMethod === 'online') {
-                await saveDataToFirestore(true);
+            await saveDataToFirestore(true);
+            if (paymentMethod === 'online') {
                 const paymentUrl = encodeURIComponent(SUMUP_PAYMENT_LINK);
                 const returnUrl = encodeURIComponent('/dashboard/class-selection');
                 router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-            } else {
-                await saveDataToFirestore(true);
+                // No need to reset isSubmitting, we are navigating away.
+            } else if(paymentMethod === 'cash') {
+                 toast({
+                    title: "Iscrizione completata!",
+                    description: "I tuoi dati sono stati salvati. Ci vediamo a lezione!",
+                });
+                window.location.reload();
+                setIsSubmitting(false);
             }
         } catch (error) {
-            // Error is already toasted
+            setIsSubmitting(false);
+            // Error is already toasted in saveDataToFirestore
         }
     };
 
@@ -543,8 +546,11 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
                                 <div className="flex flex-col space-y-1.5">
                                     <Label htmlFor="lesson-date">1a Lezione</Label>
                                     <Select onValueChange={setLessonDate} value={lessonDate} disabled={!dojo}>
-                                        <SelectTrigger id="lesson-date"><SelectValue placeholder="Seleziona una data" /></SelectTrigger>
-                                        <SelectContent position="popper">{availableDates.map(date => (<SelectItem key={date} value={date}>{date}</SelectItem>))}</SelectContent>
+                                        <SelectTrigger id="lesson-date"><SelectValue placeholder="Scegli quando verrai contattato telefonicamente" /></SelectTrigger>
+                                        <SelectContent position="popper">
+                                            <SelectItem value="morning">Mattina (9:00 - 12:00)</SelectItem>
+                                            <SelectItem value="afternoon">Pomeriggio (15:00 - 19:00)</SelectItem>
+                                        </SelectContent>
                                     </Select>
                                 </div>
                             )}
@@ -685,7 +691,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
                 <CardFooter className="flex justify-between">
                     <Button variant="outline" onClick={handleBack} disabled={currentStep === 1}>Indietro</Button>
                     {currentStep < 5 && <Button onClick={handleNext} disabled={!canGoToNextStep()}>Avanti</Button>}
-                    {currentStep === 5 && <Button onClick={handleFinalSubmit} disabled={!isStep5Complete}>Completa Iscrizione</Button>}
+                    {currentStep === 5 && <Button onClick={handleFinalSubmit} disabled={!isStep5Complete || isSubmitting}>
+                        {isSubmitting ? <Loader2 className="animate-spin" /> : 'Completa Iscrizione' }
+                        </Button>}
                 </CardFooter>
             </Card>
         )}
