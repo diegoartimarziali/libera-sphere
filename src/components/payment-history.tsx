@@ -19,13 +19,9 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
 import { db } from "@/lib/firebase"
-import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, serverTimestamp } from "firebase/firestore"
+import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { Label } from "./ui/label"
-import { Button } from "./ui/button"
-import { useToast } from "./ui/use-toast"
 
 interface Subscription {
   id: string;
@@ -49,7 +45,6 @@ export function PaymentHistory() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const fetchSubscriptions = async () => {
     setIsLoading(true);
@@ -84,9 +79,7 @@ export function PaymentHistory() {
       setSubscriptions(subsData);
     } catch (err: any) {
       console.error("Error fetching subscriptions:", err);
-      // Extra log to make sure the user sees the full error object in the console.
-      console.log("FULL FIRESTORE ERROR: ", err);
-      setError("Errore nel recupero dello storico. Controlla la console del browser (F12) per trovare il link per creare l'indice Firestore.");
+      setError("Errore nel recupero dello storico dei pagamenti. Riprova più tardi.");
     } finally {
       setIsLoading(false);
     }
@@ -95,40 +88,14 @@ export function PaymentHistory() {
   useEffect(() => {
     fetchSubscriptions();
   }, []);
-  
-  const handleCreateTestPayment = async () => {
-    const userEmail = localStorage.getItem('registrationEmail');
-     if (!userEmail) {
-        toast({ title: "Errore", description: "Nessun utente loggato.", variant: "destructive" });
-        return;
-    }
-    try {
-        await addDoc(collection(db, "subscriptions"), {
-            userEmail,
-            planName: "Pagamento di Prova",
-            price: "1",
-            paymentMethod: "online",
-            status: 'In attesa',
-            subscriptionDate: serverTimestamp()
-        });
-        toast({ title: "Successo", description: "Pagamento di prova creato. Ora ricarica la pagina e controlla la console per il link dell'indice."});
-        fetchSubscriptions();
-    } catch (e) {
-        toast({ title: "Errore", description: "Impossibile creare il pagamento di prova.", variant: "destructive" });
-        console.error("Error adding test document: ", e);
-    }
-  }
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-            <CardTitle>Storico Pagamenti</CardTitle>
-            <CardDescription>
-            Qui trovi l'elenco di tutti i tuoi abbonamenti sottoscritti e il loro stato.
-            </CardDescription>
-        </div>
-        <Button variant="destructive" onClick={handleCreateTestPayment}>Crea Pagamento di Prova</Button>
+      <CardHeader>
+        <CardTitle>Storico Pagamenti</CardTitle>
+        <CardDescription>
+          Qui trovi l'elenco di tutti i tuoi abbonamenti sottoscritti e il loro stato.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {isLoading ? (
