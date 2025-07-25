@@ -7,7 +7,7 @@ import { AssociateForm } from "@/components/associate-form";
 import { AssociateEditForm } from "@/components/associate-edit-form";
 import { useSearchParams } from "next/navigation";
 
-export default function AssociatesPage({ setRegulationsAccepted, setAssociated, setAssociationRequested }: { setRegulationsAccepted?: (value: boolean) => void, setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void }) {
+export default function AssociatesPage({ setRegulationsAccepted, setAssociated, setAssociationRequested, userData }: { setRegulationsAccepted?: (value: boolean) => void, setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void, userData?: any }) {
     const [hasUserData, setHasUserData] = useState(false);
     const [wantsToEdit, setWantsToEdit] = useState(false);
     const [isClient, setIsClient] = useState(false);
@@ -27,18 +27,15 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
 
     useEffect(() => {
         setIsClient(true);
-        if (typeof window !== 'undefined') {
-            const name = localStorage.getItem('userName');
-            const codiceFiscale = localStorage.getItem('codiceFiscale');
-            const birthDate = localStorage.getItem('birthDate');
-            
+        if (userData) {
+            const { name, codiceFiscale, birthDate } = userData;
             if (name && codiceFiscale && birthDate) {
                 setHasUserData(true);
             } else {
                 setHasUserData(false);
             }
         }
-    }, []);
+    }, [userData]);
 
     const handleWantsToEdit = (wantsToEdit: boolean) => {
         setWantsToEdit(wantsToEdit);
@@ -66,10 +63,11 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
                         setAssociated={setAssociated} 
                         setAssociationRequested={setAssociationRequested} 
                         setWantsToEdit={handleWantsToEdit} 
+                        userData={userData}
                     />
                 )
             ) : (
-                <AssociateForm setHasUserData={setHasUserData}/>
+                <AssociateForm setHasUserData={setHasUserData} userData={userData} />
             )}
         </div>
     );

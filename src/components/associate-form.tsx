@@ -93,11 +93,11 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             setName(userData.name || "");
             setCodiceFiscale(userData.codiceFiscale || "");
             if (userData.birthDate) {
-                const parts = userData.birthDate.split('/');
-                if (parts.length === 3) {
-                    setDay(parts[0]);
-                    setMonth(parts[1]);
-                    setYear(parts[2]);
+                const [dayStr, monthStr, yearStr] = userData.birthDate.split('/');
+                if (dayStr && monthStr && yearStr) {
+                    setDay(dayStr);
+                    setMonth(monthStr);
+                    setYear(yearStr);
                 }
             }
             setBirthplace(userData.birthplace || "");
@@ -205,15 +205,11 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
                     description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
                 });
                 router.push('/dashboard');
-            }
-        } catch (error) {
-             // Error is already toasted, do nothing
-             setIsSubmitting(false); // Reset on error
-        } finally {
-            // Let the online navigation handle its own state, otherwise reset it.
-            if (paymentMethod !== 'online') {
                 setIsSubmitting(false);
             }
+        } catch (error) {
+             // Error is already toasted, just stop submitting
+             setIsSubmitting(false);
         }
     };
 
@@ -278,7 +274,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newEmail = e.target.value.toLowerCase();
         setEmailConfirm(newEmail);
-        if (userData?.email && newEmail && newEmail !== userData.email.toLowerCase()) {
+        if (userData?.email && newEmail && newEmail.toLowerCase() !== userData.email.toLowerCase()) {
             setEmailError(true);
         } else {
             setEmailError(false);
@@ -288,7 +284,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newEmail = e.target.value.toLowerCase();
         setParentEmail(newEmail);
-        if (userData?.email && newEmail && newEmail !== userData.email.toLowerCase()) {
+        if (userData?.email && newEmail && newEmail.toLowerCase() !== userData.email.toLowerCase()) {
             setEmailError(true);
         } else {
             setEmailError(false);
@@ -313,15 +309,23 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     const isCfComplete = isBirthInfoComplete && codiceFiscale.trim().length === 16;
     const isAddressComplete = isCfComplete && address.trim() !== '' && civicNumber.trim() !== '';
     const isLocationComplete = isAddressComplete && cap.trim() !== '' && comune.trim() !== '' && provincia.trim() !== '';
-    const isStudentInfoComplete = isLocationComplete && (isMinor || (phone.trim() !== '' && emailConfirm.trim() !== '' && !emailError));
-
-    const isParentInfoComplete = isMinor && parentName.trim() !== '' && parentCf.trim().length === 16 && parentPhone.trim() !== '' && parentEmail.trim() !== '' && !emailError;
     
-    const isFormComplete = !!(
+    const isStudentInfoComplete = useMemo(() => {
+        if (!isLocationComplete) return false;
+        if (isMinor) return true; // Parent info is checked separately
+        return phone.trim() !== '' && emailConfirm.trim() !== '' && !emailError;
+    }, [isLocationComplete, isMinor, phone, emailConfirm, emailError]);
+
+    const isParentInfoComplete = useMemo(() => {
+        if (!isMinor) return true; // Not applicable
+        return parentName.trim() !== '' && parentCf.trim().length === 16 && parentPhone.trim() !== '' && parentEmail.trim() !== '' && !emailError;
+    }, [isMinor, parentName, parentCf, parentPhone, parentEmail, emailError]);
+    
+    const isFormComplete = useMemo(() => !!(
         isStudentInfoComplete &&
-        (!isMinor || isParentInfoComplete) &&
+        isParentInfoComplete &&
         paymentMethod
-    );
+    ), [isStudentInfoComplete, isParentInfoComplete, paymentMethod]);
 
 
   return (
@@ -531,7 +535,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
                  <Select 
                     onValueChange={setPaymentMethod} 
                     value={paymentMethod} 
-                    disabled={!((isStudentInfoComplete && !isMinor) || (isStudentInfoComplete && isParentInfoComplete))}
+                    disabled={!isStudentInfoComplete || !isParentInfoComplete}
                 >
                     <SelectTrigger>
                         <SelectValue placeholder="Scegli un metodo di pagamento" />
@@ -552,10 +556,10 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     </Card>
 
     <AlertDialog open={showBankTransferDialog} onOpenChange={(open) => {
-        setShowBankTransferDialog(open);
         if (!open) {
-            setIsSubmitting(false);
+            setIsSubmitting(false); // Reset on close
         }
+        setShowBankTransferDialog(open);
     }}>
         <AlertDialogContent>
             <AlertDialogHeader>
