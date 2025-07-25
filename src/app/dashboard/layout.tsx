@@ -18,6 +18,7 @@ import {
   Landmark,
   HelpCircle,
   AlertTriangle,
+  Loader2,
 } from "lucide-react"
 
 import {
@@ -34,6 +35,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { usePathname, useRouter } from "next/navigation"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/components/ui/alert-dialog"
 import { isAfter, startOfToday, parse, lastDayOfMonth, addDays } from "date-fns"
+import { onAuthStateChanged, signOut } from "firebase/auth"
+import { auth } from "@/lib/firebase"
 
 // Custom Dumbbell Icon
 const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -108,6 +111,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [isClient, setIsClient] = React.useState(false);
+  const [loadingAuth, setLoadingAuth] = React.useState(true);
   const [regulationsAccepted, setRegulationsAccepted] = React.useState(false);
   const [associated, setAssociated] = React.useState(false);
   const [associationRequested, setAssociationRequested] = React.useState(false);
@@ -119,8 +123,20 @@ export default function DashboardLayout({
   const [hasSeasonalSubscription, setHasSeasonalSubscription] = React.useState(false);
 
   React.useEffect(() => {
-    setIsClient(true);
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // User is signed in.
+        setIsClient(true);
+        setLoadingAuth(false);
+      } else {
+        // User is signed out.
+        router.push('/');
+      }
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [router]);
 
   React.useEffect(() => {
     if (isClient) {
@@ -214,12 +230,17 @@ export default function DashboardLayout({
     }
   }, [isClient, pathname, router]);
   
-  const handleLogout = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
-      if (typeof window !== 'undefined') {
-          localStorage.clear();
+      try {
+        await signOut(auth);
+        if (typeof window !== 'undefined') {
+            localStorage.clear();
+        }
+        router.push('/');
+      } catch (error) {
+        console.error("Logout failed:", error);
       }
-      router.push('/');
   };
   
   const handleGoToUpload = () => {
@@ -279,9 +300,13 @@ export default function DashboardLayout({
     return child;
   });
 
-  if (!isClient) {
-    // Render a loading state or nothing on the server to avoid hydration mismatch
-    return null;
+  if (loadingAuth || !isClient) {
+    return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Caricamento...</p>
+        </div>
+    );
   }
 
   return (
@@ -351,15 +376,15 @@ export default function DashboardLayout({
           </div>
           <div className="w-full mt-auto">
              {bottomNavItems.map(item => item.condition() && (
-              <Link
+              <a
                 key={item.label}
                 href={item.href}
                 onClick={item.onClick}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary cursor-pointer"
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
-              </Link>
+              </a>
             ))}
           </div>
         </nav>
@@ -393,15 +418,15 @@ export default function DashboardLayout({
                     </Link>
                 ))}
                  {bottomNavItems.map(item => item.condition() && (
-                    <Link
+                    <a
                         key={item.label}
                         href={item.href}
                         onClick={item.onClick}
-                        className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                        className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground cursor-pointer"
                     >
                         <item.icon className="h-5 w-5" />
                         {item.label}
-                    </Link>
+                    </a>
                 ))}
               </nav>
             </SheetContent>

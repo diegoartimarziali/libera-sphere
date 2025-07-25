@@ -10,6 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast"
+import { auth } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { Loader2 } from 'lucide-react';
 
 const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg 
@@ -29,48 +32,86 @@ export default function AuthPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [name, setName] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    if (loginPassword.length < 6) {
+  const handleLogin = async () => {
+    setIsLoading(true);
+    if (!loginEmail || loginPassword.length < 6) {
         toast({
-            title: "Password non valida",
-            description: "La password deve contenere almeno 6 caratteri.",
+            title: "Dati non validi",
+            description: "Inserisci un'email valida e una password di almeno 6 caratteri.",
             variant: "destructive",
         });
+        setIsLoading(false);
         return;
     }
-    // In a real app, you would fetch user data. For this prototype, we'll use a default name.
-    if (typeof window !== 'undefined') {
-        localStorage.clear(); // Clear previous session
-        localStorage.setItem('userName', 'Alex Doe');
-        localStorage.setItem('registrationEmail', 'm@example.com'); // Default for existing user
+    
+    try {
+        await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+        // In a real app, you would fetch user data. For this prototype, we'll use a default name.
+        if (typeof window !== 'undefined') {
+            localStorage.clear(); // Clear previous session
+            // We set the user's name on signup, so we retrieve it upon login later.
+            // For now, let's keep a default or fetch it from a 'users' collection.
+            localStorage.setItem('registrationEmail', loginEmail); 
+        }
+        router.push('/dashboard');
+    } catch (error: any) {
+        console.error("Login failed:", error);
+        toast({
+            title: "Errore di accesso",
+            description: "Credenziali non valide. Riprova.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsLoading(false);
     }
-    router.push('/dashboard');
   };
 
-  const handleSignup = () => {
-     if (signupPassword.length < 6) {
+  const handleSignup = async () => {
+     setIsLoading(true);
+     if (!name || !signupEmail || signupPassword.length < 6) {
         toast({
-            title: "Password non valida",
-            description: "La password deve contenere almeno 6 caratteri.",
+            title: "Dati non validi",
+            description: "Compila tutti i campi. La password deve essere di almeno 6 caratteri.",
             variant: "destructive",
         });
+        setIsLoading(false);
         return;
     }
-    if (typeof window !== 'undefined' && name && signupEmail) {
-      localStorage.clear(); // Clear previous session
-      localStorage.setItem('userName', name);
-      localStorage.setItem('registrationEmail', signupEmail);
-      localStorage.setItem('codiceFiscale', '');
-      localStorage.setItem('birthDate', '');
-      localStorage.setItem('address', '');
-      localStorage.setItem('comune', '');
-      localStorage.setItem('provincia', '');
+
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
+        
+        if (typeof window !== 'undefined' && name && signupEmail) {
+          localStorage.clear(); // Clear previous session
+          localStorage.setItem('userName', name);
+          localStorage.setItem('registrationEmail', signupEmail);
+          localStorage.setItem('codiceFiscale', '');
+          localStorage.setItem('birthDate', '');
+          localStorage.setItem('address', '');
+          localStorage.setItem('comune', '');
+          localStorage.setItem('provincia', '');
+        }
+        router.push('/dashboard/liberasphere');
+    } catch (error: any) {
+        console.error("Signup failed:", error);
+        let description = "Si è verificato un errore durante la registrazione. Riprova.";
+        if (error.code === 'auth/email-already-in-use') {
+            description = "Questa email è già in uso. Prova ad accedere.";
+        }
+         toast({
+            title: "Errore di registrazione",
+            description: description,
+            variant: "destructive",
+        });
+    } finally {
+        setIsLoading(false);
     }
-    router.push('/dashboard/liberasphere');
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,7 +146,14 @@ export default function AuthPage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email-login">Email</Label>
-                  <Input id="email-login" type="email" placeholder="m@example.com" required />
+                  <Input 
+                    id="email-login" 
+                    type="email" 
+                    placeholder="m@example.com" 
+                    required 
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center">
@@ -123,8 +171,8 @@ export default function AuthPage() {
                   />
                    <p className="text-xs text-muted-foreground">La password deve essere minimo di 6 caratteri/numeri</p>
                 </div>
-                <Button type="submit" className="w-full" onClick={handleLogin}>
-                  Accedi
+                <Button type="submit" className="w-full" onClick={handleLogin} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="animate-spin" /> : "Accedi"}
                 </Button>
               </CardContent>
             </Card>
@@ -168,8 +216,8 @@ export default function AuthPage() {
                   />
                   <p className="text-xs text-muted-foreground">La password deve essere minimo di 6 caratteri/numeri</p>
                 </div>
-                <Button type="submit" className="w-full" onClick={handleSignup}>
-                  Registrati
+                <Button type="submit" className="w-full" onClick={handleSignup} disabled={isLoading}>
+                   {isLoading ? <Loader2 className="animate-spin" /> : "Registrati"}
                 </Button>
               </CardContent>
             </Card>
