@@ -217,10 +217,19 @@ export function EventBooking() {
             },
             (error) => {
                 console.error("Upload failed:", error);
+                setIsUploading(false);
                 reject(error);
             },
             () => {
-                getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
+                getDownloadURL(uploadTask.snapshot.ref)
+                  .then(downloadURL => {
+                    setIsUploading(false);
+                    resolve(downloadURL);
+                  })
+                  .catch(error => {
+                    setIsUploading(false);
+                    reject(error);
+                  });
             }
         );
     });
@@ -232,8 +241,8 @@ const handleSaveStage = async () => {
         return;
     }
     
+    setSubmittingStage('save'); // Use a generic key or the stage id if editing
     let stageData = { ...currentStage };
-    setIsUploading(true); // Set uploading true at the start of the save process
 
     try {
         if (flyerFile) {
@@ -259,8 +268,9 @@ const handleSaveStage = async () => {
             variant: "destructive" 
         });
     } finally {
-        setIsUploading(false);
+        setSubmittingStage(null);
         setUploadProgress(0);
+        setFlyerFile(null);
     }
   };
 
@@ -271,6 +281,7 @@ const handleSaveStage = async () => {
         setFlyerFile(null);
         setUploadProgress(0);
         setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     }
     setOpenDialog(open);
   }
@@ -424,8 +435,8 @@ const handleSaveStage = async () => {
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setOpenDialog(false)}>Annulla</Button>
-                <Button onClick={handleSaveStage} disabled={isUploading}>
-                    {isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Caricamento...</> : 'Salva'}
+                <Button onClick={handleSaveStage} disabled={isUploading || submittingStage === 'save'}>
+                    {isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Caricamento...</> : (submittingStage === 'save' ? 'Salvataggio...' : 'Salva')}
                 </Button>
             </DialogFooter>
         </DialogContent>

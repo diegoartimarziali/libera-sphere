@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Upload, AlertTriangle, CheckCircle } from "lucide-react"
+import { Upload, AlertTriangle, CheckCircle, FileText, Loader2 } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { format, differenceInDays } from "date-fns"
 import { it } from "date-fns/locale"
@@ -18,6 +18,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
+import { storage } from "@/lib/firebase"
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"
+import { Progress } from "./ui/progress"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
     value: String(i + 1),
@@ -29,13 +32,14 @@ const years = Array.from({ length: 10 }, (_, i) => String(currentYear + i));
 
 export function MedicalCertificate() {
   const { toast } = useToast();
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isCertificateUploaded, setIsCertificateUploaded] = useState(false)
   const [expirationDate, setExpirationDate] = useState<Date | undefined>(undefined);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   
   const [day, setDay] = useState<string | undefined>(undefined);
   const [month, setMonth] = useState<string | undefined>(undefined);
@@ -49,19 +53,16 @@ export function MedicalCertificate() {
         const storedFileName = localStorage.getItem('medicalCertificateFileName');
         const storedFileUrl = localStorage.getItem('medicalCertificateFileUrl');
 
-        if (storedDateStr && storedFileName) {
+        if (storedDateStr && storedFileName && storedFileUrl) {
             const storedDate = new Date(storedDateStr);
             setIsCertificateUploaded(true);
             setExpirationDate(storedDate);
-            setSelectedFile(new File([], storedFileName));
+            setFileName(storedFileName);
+            setFileUrl(storedFileUrl);
 
             setDay(String(storedDate.getDate()));
             setMonth(String(storedDate.getMonth() + 1));
             setYear(String(storedDate.getFullYear()));
-
-            if(storedFileUrl) {
-                setFileUrl(storedFileUrl);
-            }
         }
     }
   }, []);
@@ -98,12 +99,30 @@ export function MedicalCertificate() {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      // Create a temporary URL for viewing/downloading
-      const url = URL.createObjectURL(file);
-      setFileUrl(url);
-      handleRegisterCertificate(file, url);
+    if (file && expirationDate) {
+      setIsUploading(true);
+      setUploadProgress(0);
+
+      const storageRef = ref(storage, `medical-certificates/${Date.now()}_${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress);
+        },
+        (error) => {
+          console.error("Upload failed:", error);
+          toast({ title: "Caricamento Fallito", description: `Errore: ${error.message}`, variant: "destructive" });
+          setIsUploading(false);
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            handleRegisterCertificate(file, downloadURL);
+            setIsUploading(false);
+          });
+        }
+      );
     }
   };
   
@@ -116,6 +135,9 @@ export function MedicalCertificate() {
       }
       
       setIsCertificateUploaded(true);
+      setFileName(file.name);
+      setFileUrl(url);
+      
       toast({
         title: "Certificato Caricato!",
         description: `Il file "${file.name}" è stato registrato con successo.`,
@@ -129,16 +151,15 @@ export function MedicalCertificate() {
         localStorage.removeItem('medicalCertificateFileName');
         localStorage.removeItem('medicalCertificateFileUrl');
     }
-    if (fileUrl) {
-      URL.revokeObjectURL(fileUrl);
-    }
     setIsCertificateUploaded(false);
     setExpirationDate(undefined);
-    setSelectedFile(null);
+    setFileName(null);
     setFileUrl(null);
     setDay(undefined);
     setMonth(undefined);
     setYear(undefined);
+    setUploadProgress(0);
+    if(fileInputRef.current) fileInputRef.current.value = "";
   }
 
   const renderCertificateStatus = () => {
@@ -152,7 +173,7 @@ export function MedicalCertificate() {
         return (
             <div className="flex flex-col items-center text-center text-red-600 font-medium">
                 <AlertTriangle className="mr-2 h-8 w-8 mb-2" />
-                <span>Attenzione, certificato medico mancante o scaduto.</span>
+                <span>Attenzione, certificato medico mancante.</span>
             </div>
         );
     }
@@ -163,7 +184,7 @@ export function MedicalCertificate() {
         return (
              <div className="flex flex-col items-center text-center text-red-600 font-medium">
                 <AlertTriangle className="mr-2 h-8 w-8 mb-2" />
-                <span>Attenzione, certificato medico mancante o scaduto.</span>
+                <span>Attenzione, certificato medico scaduto.</span>
             </div>
         );
     }
@@ -248,15 +269,24 @@ export function MedicalCertificate() {
                     </Alert>
                 )}
 
-                <Button className="mt-4 w-full" onClick={handleButtonClick} disabled={!expirationDate || dateMessage?.type === 'error'}>
-                    <Upload className="mr-2 h-4 w-4" /> Seleziona un file
+                <Button className="mt-4 w-full" onClick={handleButtonClick} disabled={!expirationDate || dateMessage?.type === 'error' || isUploading}>
+                  {isUploading ? (
+                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Caricamento... </>
+                  ) : (
+                     <><Upload className="mr-2 h-4 w-4" /> Seleziona un file</>
+                  )}
                 </Button>
+                {isUploading && <Progress value={uploadProgress} className="w-full mt-2" />}
             </>
             ) : (
                 <>
-                    <p className="text-muted-foreground text-sm mt-4">
-                        {selectedFile?.name}
-                    </p>
+                    <a href={fileUrl!} target="_blank" rel="noopener noreferrer" className="mt-4 text-blue-600 hover:underline flex items-center gap-2">
+                        <FileText className="h-5 w-5"/>
+                        <p className="text-muted-foreground text-sm">
+                            {fileName}
+                        </p>
+                    </a>
+
                     <p className="text-sm">
                         {expirationDate ? (
                             <span>
@@ -274,3 +304,5 @@ export function MedicalCertificate() {
     </Card>
   )
 }
+
+    
