@@ -8,20 +8,14 @@ import { getAuth } from "firebase/auth";
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
-// ATTENZIONE: Sostituisci queste credenziali con quelle del tuo progetto Firebase!
 const firebaseConfig = {
-  apiKey: "AIzaSyAeNVPO7H0mlsM3FXjjZJqpeB5Fi6ITISw",
-  authDomain: "libera-energia-soci.firebaseapp.com",
-  projectId: "libera-energia-soci",
-  storageBucket: "libera-energia-soci.appspot.com",
-  messagingSenderId: "371255545862",
-  appId: "1:371255545862:web:295479b2e6d2dadebaf387"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
-const auth = getAuth(app);
-
-export { db, storage, auth };
+const app = initializeApp(firebaseConfig)
