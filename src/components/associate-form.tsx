@@ -26,6 +26,8 @@ import { useRouter } from "next/navigation"
 import { Separator } from "./ui/separator"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog"
 import { Copy } from "lucide-react"
+import { db } from "@/lib/firebase"
+import { collection, addDoc, serverTimestamp } from "firebase/firestore"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -71,6 +73,7 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     const [amount, setAmount] = useState<string | undefined>();
     const [emailError, setEmailError] = useState(false);
     const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const bankDetails = {
         iban: "IT12A345B678C901D234E567F890",
@@ -141,7 +144,7 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
         }
     }, [day, month, year]);
 
-    const saveData = () => {
+    const saveDataToLocalStorage = () => {
          if (typeof window !== 'undefined') {
             if (martialArt) localStorage.setItem('martialArt', martialArt);
             if (dojo) localStorage.setItem('selectedDojo', dojo);
@@ -173,6 +176,29 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
             localStorage.setItem('associationRequested', 'true');
         }
     };
+    
+    const saveDataToFirestore = async () => {
+        if (!registrationEmail || !paymentMethod || !amount) {
+            toast({ title: "Errore", description: "Dati mancanti per la registrazione del pagamento.", variant: "destructive" });
+            return;
+        }
+        
+        try {
+            await addDoc(collection(db, "subscriptions"), {
+                userEmail: registrationEmail,
+                planId: "associazione_annuale",
+                planName: "Quota Associativa",
+                price: amount,
+                paymentMethod: paymentMethod,
+                status: 'In attesa',
+                subscriptionDate: serverTimestamp()
+            });
+        } catch (error) {
+            console.error("Error writing to Firestore: ", error);
+            toast({ title: "Errore Database", description: "Impossibile salvare il pagamento su Firestore.", variant: "destructive" });
+            throw error; // Propagate error to stop the process
+        }
+    };
 
     const proceedToConfirmation = () => {
         // Remove the search param so the form is not forced on reload
@@ -184,21 +210,31 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
         setTimeout(() => window.location.reload(), 100);
     }
     
-    const handlePayment = () => {
-        saveData();
+    const handlePayment = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
 
-        if (paymentMethod === 'online') {
-            const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
-            const returnUrl = encodeURIComponent('/dashboard/associates');
-            router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-        } else if (paymentMethod === 'bank') {
-            setShowBankTransferDialog(true);
-        } else if (paymentMethod === 'cash') {
-             toast({
-                title: "Dati Salvati e Domanda Inviata!",
-                description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
-             });
-             proceedToConfirmation();
+        try {
+            saveDataToLocalStorage();
+            await saveDataToFirestore();
+
+            if (paymentMethod === 'online') {
+                const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
+                const returnUrl = encodeURIComponent('/dashboard/associates');
+                router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+            } else if (paymentMethod === 'bank') {
+                setShowBankTransferDialog(true);
+            } else if (paymentMethod === 'cash') {
+                toast({
+                    title: "Dati Salvati e Domanda Inviata!",
+                    description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
+                });
+                proceedToConfirmation();
+            }
+        } catch (error) {
+            // Error is already toasted in saveDataToFirestore
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -525,8 +561,8 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
             </div>
         </CardContent>
         <CardFooter className="flex justify-end">
-            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handlePayment} disabled={!isFormComplete}>
-                Procedi con il Pagamento
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handlePayment} disabled={!isFormComplete || isSubmitting}>
+                {isSubmitting ? 'Salvataggio...' : 'Procedi con il Pagamento'}
             </Button>
         </CardFooter>
     </Card>
@@ -585,3 +621,5 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     </>
   )
 }
+
+    
