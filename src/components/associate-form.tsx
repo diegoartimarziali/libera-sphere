@@ -27,7 +27,7 @@ import { Separator } from "./ui/separator"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog"
 import { Copy, Loader2 } from "lucide-react"
 import { db, auth } from "@/lib/firebase"
-import { doc, updateDoc } from "firebase/firestore"
+import { doc, updateDoc, getDoc } from "firebase/firestore"
 import { format } from "date-fns"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
@@ -185,11 +185,6 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             throw error;
         }
     };
-
-    const proceedToConfirmation = () => {
-        setHasUserData(true);
-        window.location.reload()
-    }
     
     const handlePayment = async () => {
         if (isSubmitting) return;
@@ -200,7 +195,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
 
             if (paymentMethod === 'online') {
                 const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
-                const returnUrl = encodeURIComponent('/dashboard/associates');
+                const returnUrl = encodeURIComponent('/dashboard');
                 router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
             } else if (paymentMethod === 'bank') {
                 setShowBankTransferDialog(true);
@@ -209,25 +204,27 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
                     title: "Dati Salvati e Domanda Inviata!",
                     description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
                 });
-                proceedToConfirmation();
+                router.push('/dashboard');
             }
         } catch (error) {
              // Error is already toasted, do nothing
+             setIsSubmitting(false); // Reset on error
         } finally {
-            if (paymentMethod !== 'bank') {
+            // Let the online navigation handle its own state, otherwise reset it.
+            if (paymentMethod !== 'online') {
                 setIsSubmitting(false);
             }
         }
     };
 
-     const handleConfirmBankTransfer = () => {
+     const handleConfirmBankTransfer = async () => {
         setShowBankTransferDialog(false);
         setIsSubmitting(false);
         toast({
             title: "Dati Salvati e Domanda Inviata!",
             description: "Effettua il bonifico usando i dati forniti. La tua domanda verrà approvata alla ricezione del pagamento.",
         });
-        proceedToConfirmation();
+        router.push('/dashboard');
     };
 
     const handleMartialArtChange = (value: string) => {
@@ -557,7 +554,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     <AlertDialog open={showBankTransferDialog} onOpenChange={(open) => {
         setShowBankTransferDialog(open);
         if (!open) {
-            setIsSubmitting(false); // Reset submitting state when dialog is closed
+            setIsSubmitting(false);
         }
     }}>
         <AlertDialogContent>
@@ -612,4 +609,3 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     </AlertDialog>
     </>
   )
-}
