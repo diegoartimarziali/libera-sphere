@@ -27,13 +27,14 @@ import { format, parse, isAfter } from "date-fns"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { Separator } from "./ui/separator"
-import { Gift, Info } from "lucide-react"
+import { Gift, Info, CheckCircle, AlertTriangle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog"
 import { Textarea } from "./ui/textarea"
 import { db, auth } from "@/lib/firebase"
 import { doc, updateDoc } from "firebase/firestore"
+import { Progress } from "./ui/progress"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -57,11 +58,11 @@ const paymentOptions = [
 
 const SUMUP_PAYMENT_LINK = 'https://pay.sumup.com/b2c/Q25VI0NJ';
 
-
 export function ClassSelection({ setLessonSelected, initialStep = 1, userData }: { setLessonSelected?: (value: boolean) => void, initialStep?: number, userData?: any }) {
     const { toast } = useToast()
     const router = useRouter()
-    const [currentStep, setCurrentStep] = useState(initialStep);
+    
+    // Form state
     const [martialArt, setMartialArt] = useState("");
     const [dojo, setDojo] = useState("");
     const [lessonDate, setLessonDate] = useState("");
@@ -89,13 +90,11 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
     const [amount, setAmount] = useState<string | undefined>();
     const [bonusAccepted, setBonusAccepted] = useState(false);
 
-    const [secondLessonDay, setSecondLessonDay] = useState<string | undefined>(undefined);
-    const [secondLessonMonth, setSecondLessonMonth] = useState<string | undefined>(undefined);
-    const [secondLessonYear, setSecondLessonYear] = useState<string | undefined>(undefined);
-    const [thirdLessonDay, setThirdLessonDay] = useState<string | undefined>(undefined);
-    const [thirdLessonMonth, setThirdLessonMonth] = useState<string | undefined>(undefined);
-    const [thirdLessonYear, setThirdLessonYear] = useState<string | undefined>(undefined);
+    // Multi-step logic
+    const [currentStep, setCurrentStep] = useState(initialStep);
+    const TOTAL_STEPS = 5;
 
+    // Summary/Post-selection state
     const [savedSecondLessonDate, setSavedSecondLessonDate] = useState<string | null>(null);
     const [savedThirdLessonDate, setSavedThirdLessonDate] = useState<string | null>(null);
     const [datesSaved, setDatesSaved] = useState(false);
@@ -103,7 +102,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
     const [associationChoice, setAssociationChoice] = useState<string | undefined>();
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
     const [feedback, setFeedback] = useState('');
-
     const [summaryData, setSummaryData] = useState({
         firstLesson: '',
         paymentMethod: '',
@@ -118,16 +116,52 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
         parentPhone: ''
     });
 
-    const availableDates = dojo ? lessonDatesByDojo[dojo] : [];
-    
-    const translatePaymentMethodLocal = (method: string | null) => {
-        if (!method) return 'Non specificato';
-        switch (method) {
-            case 'cash': return 'Contanti o Bancomat in Palestra';
-            case 'online': return 'Carta di Credito on line';
-            default: return method;
+    const isMinor = useMemo(() => {
+        if (!birthDate) return false;
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
         }
-    }
+        return age < 18;
+    }, [birthDate]);
+
+    // Validation logic for each step
+    const isStep1Complete = !!(martialArt && dojo && lessonDate);
+    const isStep2Complete = !!(name && birthDate && birthplace && codiceFiscale);
+    const isStep3Complete = !!(address && civicNumber && cap && comune && provincia);
+    const isStep4Complete = isMinor ? !!(parentName && parentCf && parentPhone) : !!phone;
+    const isStep5Complete = !!(paymentMethod && (paymentMethod === 'online' || (paymentMethod === 'cash' && bonusAccepted)));
+
+    const canGoToNextStep = () => {
+        switch (currentStep) {
+            case 1: return isStep1Complete;
+            case 2: return isStep2Complete;
+            case 3: return isStep3Complete;
+            case 4: return isStep4Complete;
+            case 5: return isStep5Complete;
+            default: return false;
+        }
+    };
+
+    const handleNext = () => {
+        if (canGoToNextStep()) {
+            if (currentStep === 4 && !isMinor) {
+                setCurrentStep(currentStep + 2); // Skip parent step
+            } else {
+                setCurrentStep(currentStep + 1);
+            }
+        }
+    };
+    
+    const handleBack = () => {
+        if (currentStep === 6 && !isMinor) {
+             setCurrentStep(currentStep - 2);
+        } else {
+            setCurrentStep(currentStep - 1);
+        }
+    };
 
     const handleMartialArtChange = (value: string) => {
         setMartialArt(value);
@@ -150,7 +184,12 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
     }, [paymentMethod]);
 
     useEffect(() => {
-        setCurrentStep(initialStep);
+        if (initialStep > 1) { // This means user has already completed the form
+            setCurrentStep(7); // Go directly to summary view
+        } else {
+            setCurrentStep(1);
+        }
+
         if (userData?.lessonSelected && userData?.selectionDetails) {
             const { selectionDetails } = userData;
             setDatesSaved(true);
@@ -173,7 +212,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
         }
 
 
-        if (initialStep === 2) {
+        if (initialStep > 1 || (userData?.isSelectionPassportComplete && !userData?.lessonSelected)) {
             let age = null;
             if (userData.birthDate) {
                 const [day, month, year] = userData.birthDate.split('/');
@@ -187,7 +226,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
             }
             
             let paymentDate = userData.paymentDate;
-            if (userData.paymentMethod === 'online' && !paymentDate) {
+             if (userData.paymentMethod === 'online' && userData.isSelectionPassportComplete && !paymentDate) {
                 paymentDate = format(new Date(), "dd/MM/yyyy HH:mm");
             } else if (userData.paymentMethod === 'cash') {
                 paymentDate = null;
@@ -204,7 +243,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
                 phone: userData.phone || '',
                 isMinor: userData.isMinor,
                 parentName: userData.parentName || '',
-                parentPhone: userData.parentPhone || ''
+                parentPhone: ''
             });
         }
     }, [initialStep, userData]);
@@ -252,7 +291,7 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
         }
     }, [day, month, year]);
     
-    const saveDataToFirestore = async () => {
+    const saveDataToFirestore = async (finalSave = false) => {
         const user = auth.currentUser;
         if (!user) {
             toast({ title: "Errore", description: "Utente non autenticato", variant: "destructive" });
@@ -279,13 +318,20 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
             phone: isMinor ? '' : phone,
             paymentMethod,
             paymentAmount: amount,
-            isSelectionPassportComplete: true,
-            paymentDate: paymentMethod === 'cash' ? null : format(new Date(), "dd/MM/yyyy HH:mm")
+            isSelectionPassportComplete: finalSave,
+            paymentDate: (finalSave && paymentMethod === 'cash') ? null : (finalSave ? format(new Date(), "dd/MM/yyyy HH:mm") : null)
         };
 
         try {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
+             if (finalSave) {
+                toast({
+                    title: "Iscrizione completata!",
+                    description: "I tuoi dati sono stati salvati.",
+                });
+                window.location.reload();
+            }
         } catch (error) {
             console.error("Error updating user data:", error);
             toast({ title: "Errore", description: "Impossibile salvare i dati.", variant: "destructive" });
@@ -293,25 +339,21 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
         }
     };
     
-    const handleNextStep = async () => {
+    const handleFinalSubmit = async () => {
         try {
-            await saveDataToFirestore();
-            window.location.reload(); 
+             if (paymentMethod === 'online') {
+                await saveDataToFirestore(true);
+                const paymentUrl = encodeURIComponent(SUMUP_PAYMENT_LINK);
+                const returnUrl = encodeURIComponent('/dashboard/class-selection');
+                router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+            } else {
+                await saveDataToFirestore(true);
+            }
         } catch (error) {
             // Error is already toasted
         }
     };
 
-    const handleOnlinePayment = async () => {
-        try {
-            await saveDataToFirestore();
-            const paymentUrl = encodeURIComponent(SUMUP_PAYMENT_LINK);
-            const returnUrl = encodeURIComponent('/dashboard/class-selection');
-            router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-        } catch (error) {
-            // Error is already toasted
-        }
-    };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -351,17 +393,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
             .join(' ');
         setParentName(capitalized);
     };
-    
-    const isMinor = useMemo(() => {
-        if (!birthDate) return false;
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        return age < 18;
-    }, [birthDate]);
 
     const handleSaveDates = async () => {
         const user = auth.currentUser;
@@ -400,6 +431,21 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
             toast({ title: "Errore", description: "Impossibile salvare le date.", variant: "destructive" });
         }
     };
+    
+    const [secondLessonDay, setSecondLessonDay] = useState<string | undefined>(undefined);
+    const [secondLessonMonth, setSecondLessonMonth] = useState<string | undefined>(undefined);
+    const [secondLessonYear, setSecondLessonYear] = useState<string | undefined>(undefined);
+    const [thirdLessonDay, setThirdLessonDay] = useState<string | undefined>(undefined);
+    const [thirdLessonMonth, setThirdLessonMonth] = useState<string | undefined>(undefined);
+    const [thirdLessonYear, setThirdLessonYear] = useState<string | undefined>(undefined);
+    const translatePaymentMethodLocal = (method: string | null) => {
+        if (!method) return 'Non specificato';
+        switch (method) {
+            case 'cash': return 'Contanti o Bancomat in Palestra';
+            case 'online': return 'Carta di Credito on line';
+            default: return method;
+        }
+    }
 
     const canSaveDates = useMemo(() => {
         const secondDateValid = !!(secondLessonDay && secondLessonMonth && secondLessonYear);
@@ -438,236 +484,213 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
     }
 
     const handleLeaveConfirm = () => {
-        // Here you would implement the logic to delete user data
         console.log("Feedback:", feedback);
         toast({
             title: "Dati cancellati",
             description: "Il tuo account e i tuoi dati verranno eliminati a breve.",
         });
         setShowLeaveConfirm(false);
-        // Potentially clear data and redirect
-        // auth.signOut();
-        // router.push('/');
     }
 
     const handleLeaveCancel = () => {
         setShowLeaveConfirm(false);
-        setAssociationChoice(undefined); // Reset the choice
+        setAssociationChoice(undefined);
     }
 
     const handleAssociateClick = () => {
         router.push('/dashboard/associates?fromSelection=true');
     };
 
-    // Sequential validation state
-    const isCourseSectionComplete = !!(martialArt && dojo && lessonDate);
-    const isPersonalInfoComplete = !!(name && birthDate && birthplace && codiceFiscale && address && civicNumber && cap && comune && provincia);
-    const isContactInfoComplete = useMemo(() => {
-        if (!isPersonalInfoComplete) return false;
-        if (isMinor) {
-            return !!(parentName && parentCf && parentPhone);
-        }
-        return !!phone;
-    }, [isMinor, isPersonalInfoComplete, parentName, parentCf, parentPhone, phone]);
-    
-    const isPaymentSectionComplete = !!(paymentMethod);
-
-    const isFormCompleteForCash = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && bonusAccepted && paymentMethod === 'cash';
-    const isFormCompleteForOnline = isCourseSectionComplete && isPersonalInfoComplete && isContactInfoComplete && isPaymentSectionComplete && paymentMethod === 'online';
-    
     return (
     <>
-        {currentStep === 1 && (
+        {currentStep <= 6 && (
             <Card>
                 <CardHeader>
-                    <CardTitle className="bg-primary text-primary-foreground p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Lezioni Selezione</CardTitle>
-                    <CardDescription className="text-foreground font-bold">
-                       Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
-                    </CardDescription>
+                    <CardTitle className="bg-primary text-primary-foreground p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Passaporto Selezioni</CardTitle>
+                    {currentStep === 1 && (
+                         <CardDescription className="text-foreground font-bold">
+                           Tre incontri per capire e farti capire più un Bonus di inizio percorso di 5 lezioni gratuite. Per garantirti la migliore esperienza possibile e un percorso di crescita personalizzato, abbiamo strutturato una modalità d’ingresso che ti permetterà di farti conoscere e di scoprire il mondo delle arti marziali. Le lezioni di selezione sono un passaggio fondamentale e obbligatorio per chiunque desideri unirsi alla nostra comunità, indipendentemente dall'età e dal livello di esperienza. Ti comunicheremo telefonicamente la data della prima lezione.
+                        </CardDescription>
+                    )}
+                    <Progress value={(currentStep / (isMinor ? TOTAL_STEPS + 1 : TOTAL_STEPS)) * 100} className="w-full mt-4" />
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {/* Course Selection */}
-                    <div className="space-y-4">
-                        <div className="flex flex-col space-y-1.5">
-                            <Label htmlFor="gym">Corso di:</Label>
-                            <Select onValueChange={handleMartialArtChange} value={martialArt}>
-                                <SelectTrigger id="gym">
-                                <SelectValue placeholder="Seleziona un corso" />
-                                </SelectTrigger>
-                                <SelectContent position="popper">
-                                <SelectItem value="karate">Karate</SelectItem>
-                                <SelectItem value="aikido">Aikido</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex flex-col space-y-1.5">
-                            <Label htmlFor="dojo">Palestra di:</Label>
-                            <Select onValueChange={setDojo} value={dojo} disabled={!martialArt || martialArt === 'aikido'}>
-                                <SelectTrigger id="dojo">
-                                <SelectValue placeholder="Seleziona una palestra" />
-                                </SelectTrigger>
-                                <SelectContent position="popper">
-                                    <SelectItem value="aosta">Aosta</SelectItem>
-                                    <SelectItem value="villeneuve">Villeneuve</SelectItem>
-                                    <SelectItem value="verres">Verres</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        {dojo && (
+                    {currentStep === 1 && (
+                        <div className="space-y-4">
+                            <h3 className="font-semibold text-lg">Step 1: Scelta del Corso</h3>
                             <div className="flex flex-col space-y-1.5">
-                                <Label htmlFor="lesson-date">1a Lezione</Label>
-                                <Select onValueChange={setLessonDate} value={lessonDate} disabled={!dojo}>
-                                    <SelectTrigger id="lesson-date">
-                                    <SelectValue placeholder="Seleziona una data" />
-                                    </SelectTrigger>
+                                <Label htmlFor="gym">Corso di:</Label>
+                                <Select onValueChange={handleMartialArtChange} value={martialArt}>
+                                    <SelectTrigger id="gym"><SelectValue placeholder="Seleziona un corso" /></SelectTrigger>
                                     <SelectContent position="popper">
-                                    {availableDates.map(date => (
-                                        <SelectItem key={date} value={date}>{date}</SelectItem>
-                                    ))}
+                                        <SelectItem value="karate">Karate</SelectItem>
+                                        <SelectItem value="aikido">Aikido</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-                        )}
-                    </div>
-                    
-                    {/* Personal Info */}
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col space-y-1.5">
+                                <Label htmlFor="dojo">Palestra di:</Label>
+                                <Select onValueChange={setDojo} value={dojo} disabled={!martialArt || martialArt === 'aikido'}>
+                                    <SelectTrigger id="dojo"><SelectValue placeholder="Seleziona una palestra" /></SelectTrigger>
+                                    <SelectContent position="popper">
+                                        <SelectItem value="aosta">Aosta</SelectItem>
+                                        <SelectItem value="villeneuve">Villeneuve</SelectItem>
+                                        <SelectItem value="verres">Verres</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {dojo && (
+                                <div className="flex flex-col space-y-1.5">
+                                    <Label htmlFor="lesson-date">1a Lezione</Label>
+                                    <Select onValueChange={setLessonDate} value={lessonDate} disabled={!dojo}>
+                                        <SelectTrigger id="lesson-date"><SelectValue placeholder="Seleziona una data" /></SelectTrigger>
+                                        <SelectContent position="popper">{availableDates.map(date => (<SelectItem key={date} value={date}>{date}</SelectItem>))}</SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                     {currentStep === 2 && (
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-lg">Step 2: Dati Anagrafici</h3>
                             <div className="space-y-2">
                                 <Label htmlFor="name">Nome e Cognome</Label>
-                                <Input id="name" placeholder="Mario Rossi" required value={name} onChange={handleNameChange} disabled={!isCourseSectionComplete} />
+                                <Input id="name" placeholder="Mario Rossi" required value={name} onChange={handleNameChange} />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="birthplace">Nato a:</Label>
-                                    <Input id="birthplace" type="text" placeholder="Roma" required value={birthplace} onChange={handleBirthplaceChange} disabled={!isCourseSectionComplete}/>
+                                    <Input id="birthplace" type="text" placeholder="Roma" required value={birthplace} onChange={handleBirthplaceChange}/>
                                 </div>
                                 <div className="space-y-2">
                                     <Label>Data di nascita:</Label>
                                     <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
-                                        <Select onValueChange={setDay} value={day} disabled={!isCourseSectionComplete}>
+                                        <Select onValueChange={setDay} value={day}>
                                             <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
                                             <SelectContent>{Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                                         </Select>
-                                        <Select onValueChange={setMonth} value={month} disabled={!isCourseSectionComplete}>
+                                        <Select onValueChange={setMonth} value={month}>
                                             <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
                                             <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                                         </Select>
-                                        <Select onValueChange={setYear} value={year} disabled={!isCourseSectionComplete}>
+                                        <Select onValueChange={setYear} value={year}>
                                             <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
                                             <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
-                            <div className="w-full md:w-1/2">
-                                <Input id="codice-fiscale" placeholder="RSSMRA80A01H501U" required value={codiceFiscale} onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())} disabled={!isCourseSectionComplete} />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="address">Residente in:</Label>
-                                <Input id="address" placeholder="Via, Piazza, etc." required value={address} onChange={handleAddressChange} disabled={!isCourseSectionComplete} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="civic-number">N° civico:</Label>
-                                <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} disabled={!isCourseSectionComplete} />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="cap">C.A.P.:</Label>
-                                <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} disabled={!isCourseSectionComplete} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="comune">Comune:</Label>
-                                <Input id="comune" placeholder="Roma" required value={comune} onChange={handleComuneChange} disabled={!isCourseSectionComplete} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="provincia">Provincia:</Label>
-                                <Input id="provincia" placeholder="RM" required value={provincia} onChange={(e) => setProvincia(e.target.value.toUpperCase())} disabled={!isCourseSectionComplete}/>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Contact Info (Adult or Minor) */}
-                    <div className="space-y-4">
-                        {!isMinor ? (
                              <div className="space-y-2">
-                                <Label htmlFor="phone">Numero di telefono:</Label>
-                                <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!isPersonalInfoComplete} />
-                            </div>
-                        ) : (
-                            <div className="space-y-4 pt-4 mt-4 border-t">
-                                <h3 className="text-lg font-semibold">Dati Genitore o tutore</h3>
-                                <div className="space-y-2">
-                                    <Label htmlFor="parent-name">Nome e Cognome Genitore/Tutore</Label>
-                                    <Input id="parent-name" placeholder="Paolo Bianchi" required={isMinor} value={parentName} onChange={handleParentNameChange} disabled={!isPersonalInfoComplete} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
-                                    <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} disabled={!isPersonalInfoComplete} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                                    <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} disabled={!isPersonalInfoComplete} />
+                                <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
+                                <div className="w-full md:w-1/2">
+                                    <Input id="codice-fiscale" placeholder="RSSMRA80A01H501U" required value={codiceFiscale} onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())} />
                                 </div>
                             </div>
-                        )}
-                    </div>
-
-                     {/* Payment */}
-                    <div className="space-y-4 pt-4">
-                        <Label className="text-sm font-bold text-black" htmlFor="payment-method">Completa la tua iscrizione scegliendo un metodo di pagamento.</Label>
-                        <Select onValueChange={setPaymentMethod} value={paymentMethod} disabled={!isContactInfoComplete}>
-                            <SelectTrigger id="payment-method">
-                                <SelectValue placeholder="Seleziona un metodo di pagamento" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {paymentOptions.map(option => (
-                                    <SelectItem key={option.id} value={option.id}>
-                                        {option.label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {paymentMethod && (
-                            <div className="space-y-2">
-                                <Label htmlFor="amount">Importo</Label>
-                                <Input id="amount" value={amount ? `€ ${amount}`: ''} disabled />
-                            </div>
-                        )}
-                        {paymentMethod === 'online' && (
-                            <div className="mt-2">
-                                <Button onClick={handleOnlinePayment} className="w-full" disabled={!isFormCompleteForOnline}>Procedi con il Pagamento</Button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Bonus */}
-                    <div className="space-y-4">
-                        <Separator />
-                        <div className="flex items-center space-x-2 pt-4">
-                            <Checkbox id="bonus-benvenuto" onCheckedChange={(checked) => setBonusAccepted(!!checked)} checked={bonusAccepted} disabled={!isPaymentSectionComplete || paymentMethod === 'online'} />
-                            <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
-                                <Gift className="h-5 w-5 text-primary" />
-                                Assicurati il tuo Bonus di Benvenuto!
-                            </Label>
                         </div>
-                    </div>
+                    )}
+                    {currentStep === 3 && (
+                        <div className="space-y-4">
+                             <h3 className="font-semibold text-lg">Step 3: Residenza</h3>
+                             <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="address">Indirizzo:</Label>
+                                    <Input id="address" placeholder="Via, Piazza, etc." required value={address} onChange={handleAddressChange} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="civic-number">N° civico:</Label>
+                                    <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="cap">C.A.P.:</Label>
+                                    <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="comune">Comune:</Label>
+                                    <Input id="comune" placeholder="Roma" required value={comune} onChange={handleComuneChange} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="provincia">Provincia:</Label>
+                                    <Input id="provincia" placeholder="RM" required value={provincia} onChange={(e) => setProvincia(e.target.value.toUpperCase())}/>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {currentStep === 4 && (
+                        <div className="space-y-4">
+                            {isMinor ? (
+                                <>
+                                    <h3 className="font-semibold text-lg">Step 4: Dati Genitore/Tutore</h3>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="parent-name">Nome e Cognome Genitore/Tutore</Label>
+                                        <Input id="parent-name" placeholder="Paolo Bianchi" required={isMinor} value={parentName} onChange={handleParentNameChange} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
+                                        <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="parent-phone">Numero di telefono:</Label>
+                                        <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <h3 className="font-semibold text-lg">Step 4: Contatti</h3>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="phone">Numero di telefono:</Label>
+                                        <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    )}
+
+                    {currentStep === 5 && (
+                         <div className="space-y-4">
+                            <h3 className="font-semibold text-lg">Step 5: Pagamento</h3>
+                             <Label className="text-sm font-bold text-black" htmlFor="payment-method">Completa la tua iscrizione scegliendo un metodo di pagamento.</Label>
+                            <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+                                <SelectTrigger id="payment-method">
+                                    <SelectValue placeholder="Seleziona un metodo di pagamento" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {paymentOptions.map(option => (
+                                        <SelectItem key={option.id} value={option.id}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {paymentMethod && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="amount">Importo</Label>
+                                    <Input id="amount" value={amount ? `€ ${amount}`: ''} disabled />
+                                </div>
+                            )}
+                            <div className="space-y-4">
+                                <Separator />
+                                <div className="flex items-center space-x-2 pt-4">
+                                    <Checkbox id="bonus-benvenuto" onCheckedChange={(checked) => setBonusAccepted(!!checked)} checked={bonusAccepted} disabled={paymentMethod === 'online'} />
+                                    <Label htmlFor="bonus-benvenuto" className="flex items-center gap-2 text-base font-normal">
+                                        <Gift className="h-5 w-5 text-primary" />
+                                        Assicurati il tuo Bonus di Benvenuto!
+                                    </Label>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
-                <CardFooter className="flex justify-end">
-                    <Button onClick={handleNextStep} disabled={!isFormCompleteForCash}>
-                        Avanti
-                    </Button>
+                <CardFooter className="flex justify-between">
+                    <Button variant="outline" onClick={handleBack} disabled={currentStep === 1}>Indietro</Button>
+                    {currentStep < 5 && <Button onClick={handleNext} disabled={!canGoToNextStep()}>Avanti</Button>}
+                    {currentStep === 5 && <Button onClick={handleFinalSubmit} disabled={!isStep5Complete}>Completa Iscrizione</Button>}
                 </CardFooter>
             </Card>
         )}
         
-        {currentStep === 2 && (
+        {currentStep === 7 && (
              <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -848,5 +871,3 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
     </>
   )
 }
-
-    
