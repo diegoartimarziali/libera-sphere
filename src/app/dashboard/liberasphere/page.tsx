@@ -117,7 +117,7 @@ export default function LiberaSpherePage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="grade" className="font-bold">Il tuo grado:</Label>
+                            <Label htmlFor="grade" className="font-bold">il tuo grado attuale</Label>
                              <Select onValueChange={setGrade} value={grade}>
                                 <SelectTrigger id="grade">
                                     <SelectValue placeholder="Seleziona il grado" />
