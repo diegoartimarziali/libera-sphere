@@ -146,6 +146,7 @@ export default function DashboardLayout({
       const storedAssociationRequested = localStorage.getItem('associationRequested') === 'true';
       const storedSelectionPassportComplete = localStorage.getItem('isSelectionPassportComplete') === 'true';
       const storedSubscriptionPlan = localStorage.getItem('subscriptionPlan');
+      const subscriptionStatus = localStorage.getItem('subscriptionStatus');
       
       const isApproved = localStorage.getItem('associationApproved') === 'true';
       const approvalDate = localStorage.getItem('associationApprovalDate');
@@ -166,7 +167,7 @@ export default function DashboardLayout({
 
       // Subscription Block Logic
       let blockUserSubscription = false;
-      if (storedSubscriptionPlan === 'mensile') {
+      if (storedSubscriptionPlan === 'mensile' && subscriptionStatus !== 'in_attesa') {
           const paymentDateStr = localStorage.getItem('subscriptionPaymentDate');
           if (paymentDateStr) {
               const paymentDate = new Date(paymentDateStr);
@@ -181,16 +182,9 @@ export default function DashboardLayout({
                   blockUserSubscription = true;
               }
           } else {
-              // No payment date found for monthly plan could mean it's just been set up
-              // Or it's an old record. Let's assume if there's a plan but no date, it's not yet paid/active
-              // For a newly registered user, this should be fine. For a returning user, this might need refinement.
-              // Let's check if the association exists, if so, we can assume a block is needed if no payment date
+              // No payment date, and we are not pending, so block if the user is associated.
               if (isAssociatedThisSeason) {
-                // A check to see if the subscription has just been requested could be added here
-                 const subscriptionStatus = localStorage.getItem('subscriptionStatus');
-                 if (subscriptionStatus !== 'in_attesa') {
-                    blockUserSubscription = true;
-                 }
+                blockUserSubscription = true;
               }
           }
       }
@@ -439,3 +433,5 @@ export default function DashboardLayout({
     </div>
   )
 }
+
+    
