@@ -11,12 +11,14 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useToast } from "./ui/use-toast"
-import { Eye, Download } from "lucide-react"
+import { Eye, Download, Loader2 } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Label } from "./ui/label"
 import { useState } from "react"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
+import { auth, db } from "@/lib/firebase"
+import { doc, updateDoc } from "firebase/firestore"
 
 const documents = [
   { name: "STATUTO", href: "#" },
@@ -24,43 +26,62 @@ const documents = [
   { name: "REGOLAMENTO", href: "#" },
 ]
 
-export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulationsAccepted?: (value: boolean) => void }) {
+export function RegulationsAcceptance({ setRegulationsAccepted, userData }: { setRegulationsAccepted?: (value: boolean) => void, userData?: any }) {
     const { toast } = useToast()
     const router = useRouter();
     const [accepted, setAccepted] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleAccept = () => {
-        if (accepted) {
+    const handleAccept = async () => {
+        if (!accepted) {
+            toast({
+                title: "Attenzione",
+                description: "Devi dichiarare di aver letto i documenti.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setIsLoading(true);
+        const user = auth.currentUser;
+        if (!user) {
+            console.error("User not authenticated");
+            setIsLoading(false);
+            return;
+        }
+
+        try {
             const acceptanceDate = format(new Date(), "dd/MM/yyyy");
-            
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('regulationsAccepted', 'true');
-                localStorage.setItem('regulationsAcceptanceDate', acceptanceDate);
-                
-                if (setRegulationsAccepted) {
-                    setRegulationsAccepted(true);
-                }
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, {
+                regulationsAccepted: true,
+                regulationsAcceptanceDate: acceptanceDate
+            });
 
-                toast({
-                    title: "Regolamenti Accettati",
-                    description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
-                });
-
-                const isFormerMember = localStorage.getItem('isFormerMember');
-
-                if (isFormerMember === 'yes') {
-                    router.push('/dashboard/associates');
-                } else {
-                    router.push('/dashboard/class-selection');
-                }
-
-            } else {
-                 toast({
-                    title: "Attenzione",
-                    description: "Devi dichiarare di aver letto i documenti.",
-                    variant: "destructive"
-                });
+            if (setRegulationsAccepted) {
+                setRegulationsAccepted(true);
             }
+
+            toast({
+                title: "Regolamenti Accettati",
+                description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
+            });
+            
+            if (userData?.isFormerMember === 'yes') {
+                router.push('/dashboard/associates');
+            } else {
+                router.push('/dashboard/class-selection');
+            }
+
+        } catch (error) {
+            console.error("Error updating regulations acceptance:", error);
+            toast({
+                title: "Errore",
+                description: "Impossibile salvare l'accettazione dei regolamenti.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsLoading(false);
         }
     }
 
@@ -97,7 +118,9 @@ export function RegulationsAcceptance({ setRegulationsAccepted }: { setRegulatio
             </Label>
         </div>
         <div className="w-full flex justify-end">
-            <Button onClick={handleAccept} disabled={!accepted} className="bg-green-600 hover:bg-green-700">Accetto i Termini</Button>
+            <Button onClick={handleAccept} disabled={!accepted || isLoading} className="bg-green-600 hover:bg-green-700">
+                 {isLoading ? <Loader2 className="animate-spin" /> : "Accetto i Termini"}
+            </Button>
         </div>
       </CardFooter>
     </Card>

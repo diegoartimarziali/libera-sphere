@@ -34,9 +34,10 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { usePathname, useRouter } from "next/navigation"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/components/ui/alert-dialog"
-import { isAfter, startOfToday, parse, lastDayOfMonth, addDays } from "date-fns"
+import { isAfter, startOfToday, parse, lastDayOfMonth, addDays, parseISO, isValid } from "date-fns"
 import { onAuthStateChanged, signOut } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { auth, db } from "@/lib/firebase"
+import { doc, getDoc } from "firebase/firestore"
 
 // Custom Dumbbell Icon
 const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -110,119 +111,140 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isClient, setIsClient] = React.useState(false);
+  const [userData, setUserData] = React.useState<any>(null);
   const [loadingAuth, setLoadingAuth] = React.useState(true);
+  
   const [regulationsAccepted, setRegulationsAccepted] = React.useState(false);
   const [associated, setAssociated] = React.useState(false);
   const [associationRequested, setAssociationRequested] = React.useState(false);
   const [lessonSelected, setLessonSelected] = React.useState(false);
   const [inLiberasphere, setInLiberasphere] = React.useState(false);
-  const [selectionPassportComplete, setSelectionPassportComplete] = React.useState(false);
   const [isMedicalBlocked, setIsMedicalBlocked] = React.useState(false);
   const [isSubscriptionBlocked, setIsSubscriptionBlocked] = React.useState(false);
   const [hasSeasonalSubscription, setHasSeasonalSubscription] = React.useState(false);
 
   React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // User is signed in.
-        setIsClient(true);
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserData(data);
+
+            // Populate localStorage for components that still use it
+            if (typeof window !== 'undefined') {
+                Object.keys(data).forEach(key => {
+                    const value = data[key];
+                    if (value !== null && value !== undefined) {
+                        if (typeof value === 'object' && value.toDate) { // Firestore Timestamp
+                            localStorage.setItem(key, value.toDate().toISOString());
+                        } else if (typeof value === 'object') {
+                            // For nested objects like 'medicalCertificate', store as JSON string
+                            localStorage.setItem(key, JSON.stringify(value));
+                            // Also expand nested objects for easier access in some components
+                             if (key === 'medicalCertificate') {
+                                localStorage.setItem('medicalCertificateExpirationDate', value.expirationDate);
+                                localStorage.setItem('medicalCertificateFileName', value.fileName);
+                                localStorage.setItem('medicalCertificateFileUrl', value.fileUrl);
+                                localStorage.setItem('medicalAppointmentDate', value.appointmentDate);
+                             }
+                             if (key === 'subscription') {
+                                localStorage.setItem('subscriptionPlan', value.plan);
+                                localStorage.setItem('subscriptionStatus', value.status);
+                                localStorage.setItem('subscriptionPaymentDate', value.paymentDate);
+                                localStorage.setItem('subscriptionExpiry', value.expiryDate);
+                             }
+                        } else {
+                            localStorage.setItem(key, value.toString());
+                        }
+                    }
+                });
+                 localStorage.setItem('registrationEmail', data.email);
+            }
+        }
         setLoadingAuth(false);
       } else {
-        // User is signed out.
         router.push('/');
       }
     });
-
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, [router]);
 
   React.useEffect(() => {
-    if (isClient) {
-      const storedLiberasphere = !!localStorage.getItem('isFormerMember');
-      const storedRegulations = localStorage.getItem('regulationsAccepted') === 'true';
-      const storedLessonSelected = localStorage.getItem('lessonSelected') === 'true';
-      const storedAssociationRequested = localStorage.getItem('associationRequested') === 'true';
-      const storedSelectionPassportComplete = localStorage.getItem('isSelectionPassportComplete') === 'true';
-      const storedSubscriptionPlan = localStorage.getItem('subscriptionPlan');
-      const subscriptionStatus = localStorage.getItem('subscriptionStatus');
-      
-      const isApproved = localStorage.getItem('associationApproved') === 'true';
-      const approvalDate = localStorage.getItem('associationApprovalDate');
+    if (userData) {
+      const isApproved = userData.associationStatus === 'approved';
+      const approvalDate = userData.associationApprovalDate;
       const isAssociatedThisSeason = isApproved && isAssociatedForCurrentSeason(approvalDate);
-      const isFormerMember = localStorage.getItem('isFormerMember') === 'yes';
-
+      
       // Medical Certificate Block Logic
-      const appointmentDateStr = localStorage.getItem('medicalAppointmentDate');
-      const certificateDateStr = localStorage.getItem('medicalCertificateExpirationDate');
+      const appointmentDateStr = userData.medicalCertificate?.appointmentDate;
+      const certificateDateStr = userData.medicalCertificate?.expirationDate;
       let blockUserMedical = false;
       if (appointmentDateStr && !certificateDateStr) {
-          const appointmentDate = new Date(appointmentDateStr);
-          const today = startOfToday();
-          if (isAfter(today, appointmentDate)) {
-              blockUserMedical = true;
+          const appointmentDate = parseISO(appointmentDateStr);
+          if (isValid(appointmentDate)) {
+            const today = startOfToday();
+            if (isAfter(today, appointmentDate)) {
+                blockUserMedical = true;
+            }
           }
       }
 
       // Subscription Block Logic
       let blockUserSubscription = false;
-      if (storedSubscriptionPlan === 'mensile' && subscriptionStatus !== 'in_attesa') {
-          const paymentDateStr = localStorage.getItem('subscriptionPaymentDate');
+      if (userData.subscription?.plan === 'mensile' && userData.subscription?.status !== 'in_attesa') {
+          const paymentDateStr = userData.subscription?.paymentDate;
           if (paymentDateStr) {
-              const paymentDate = new Date(paymentDateStr);
-              const today = new Date();
-              const endOfMonth = lastDayOfMonth(paymentDate);
-              const gracePeriodEnd = addDays(endOfMonth, 5);
+              const paymentDate = parseISO(paymentDateStr);
+              if (isValid(paymentDate)) {
+                  const today = new Date();
+                  const endOfMonth = lastDayOfMonth(paymentDate);
+                  const gracePeriodEnd = addDays(endOfMonth, 5);
 
-              if (today.getFullYear() === paymentDate.getFullYear() && today.getMonth() === paymentDate.getMonth()) {
-                  // Paid for the current month, no block
-                  blockUserSubscription = false;
-              } else if (today > gracePeriodEnd) {
-                  blockUserSubscription = true;
+                  if (today.getFullYear() === paymentDate.getFullYear() && today.getMonth() === paymentDate.getMonth()) {
+                      blockUserSubscription = false;
+                  } else if (today > gracePeriodEnd) {
+                      blockUserSubscription = true;
+                  }
               }
           } else {
-              // No payment date, and we are not pending, so block if the user is associated.
               if (isAssociatedThisSeason) {
                 blockUserSubscription = true;
               }
           }
       }
       
-      setInLiberasphere(storedLiberasphere);
-      setRegulationsAccepted(storedRegulations);
+      setInLiberasphere(!!userData.isFormerMember);
+      setRegulationsAccepted(userData.regulationsAccepted);
       setAssociated(isAssociatedThisSeason);
-      setLessonSelected(storedLessonSelected);
-      setAssociationRequested(storedAssociationRequested && !isAssociatedThisSeason); // Only show request if not currently associated
-      setSelectionPassportComplete(storedSelectionPassportComplete);
-      setHasSeasonalSubscription(storedSubscriptionPlan === 'stagionale');
+      setLessonSelected(userData.lessonSelected);
+      setAssociationRequested(userData.associationStatus === 'requested' && !isAssociatedThisSeason);
+      setHasSeasonalSubscription(userData.subscription?.plan === 'stagionale');
       setIsMedicalBlocked(blockUserMedical);
       setIsSubscriptionBlocked(blockUserSubscription);
 
       // --- REDIRECT LOGIC ---
-      const essentialPages = [
-        '/dashboard/aiuto',
-        '/dashboard/medical-certificate',
-        '/dashboard/subscription'
-      ];
+      const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
+      const currentPath = pathname;
       
       if (blockUserMedical) {
-        if (pathname !== '/dashboard/aiuto' && pathname !== '/dashboard/medical-certificate') {
+        if (currentPath !== '/dashboard/aiuto' && currentPath !== '/dashboard/medical-certificate') {
             router.push('/dashboard/medical-certificate');
         }
       } else if (blockUserSubscription) {
-          if (pathname !== '/dashboard/aiuto' && pathname !== '/dashboard/subscription') {
+          if (currentPath !== '/dashboard/aiuto' && currentPath !== '/dashboard/subscription') {
             router.push('/dashboard/subscription');
         }
-      } else if (!storedLiberasphere && !essentialPages.includes(pathname) && pathname !== '/dashboard/liberasphere') {
+      } else if (!userData.isFormerMember && !essentialPages.includes(currentPath) && currentPath !== '/dashboard/liberasphere') {
         router.push('/dashboard/liberasphere');
-      } else if (storedLiberasphere && !storedRegulations && !essentialPages.includes(pathname) && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/regulations') {
+      } else if (userData.isFormerMember && !userData.regulationsAccepted && !essentialPages.includes(currentPath) && currentPath !== '/dashboard/liberasphere' && currentPath !== '/dashboard/regulations') {
          router.push('/dashboard/regulations');
-      } else if (isFormerMember && !isAssociatedThisSeason && !storedAssociationRequested && !essentialPages.includes(pathname) && pathname !== '/dashboard/associates' && pathname !== '/dashboard/liberasphere' && pathname !== '/dashboard/regulations') {
+      } else if (userData.isFormerMember === 'yes' && !isAssociatedThisSeason && userData.associationStatus !== 'requested' && !essentialPages.includes(currentPath) && currentPath !== '/dashboard/associates' && currentPath !== '/dashboard/liberasphere' && currentPath !== '/dashboard/regulations') {
         router.push('/dashboard/associates?renewal=true');
       }
     }
-  }, [isClient, pathname, router]);
+  }, [userData, pathname, router]);
   
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
@@ -248,13 +270,13 @@ export default function DashboardLayout({
   }
 
   const allNavItems = [
-    { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto", condition: () => true }, // Always show Aiuto
+    { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto", condition: () => true },
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => regulationsAccepted },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => true },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => regulationsAccepted && (associated || associationRequested) },
     { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => !inLiberasphere },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => inLiberasphere && !regulationsAccepted },
-    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
+    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => regulationsAccepted && !lessonSelected && userData?.isFormerMember === 'no'},
     { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => regulationsAccepted && !associated && !associationRequested },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => regulationsAccepted && associated },
     { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => regulationsAccepted && (associated || associationRequested) },
@@ -269,7 +291,6 @@ export default function DashboardLayout({
     : isSubscriptionBlocked 
     ? allNavItems.filter(item => item.href === '/dashboard/aiuto' || item.href === '/dashboard/subscription')
     : allNavItems.filter(item => {
-        // Hide subscription link if already seasonal or passport is not complete for non-seasonal
         if (item.href === '/dashboard/subscription') {
             const showSubscription = (associated || associationRequested);
             if (!showSubscription) return false;
@@ -289,12 +310,13 @@ export default function DashboardLayout({
             setAssociated,
             setLessonSelected,
             setAssociationRequested,
+            userData, // Pass userData to children
         });
     }
     return child;
   });
 
-  if (loadingAuth || !isClient) {
+  if (loadingAuth || !userData) {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -357,7 +379,7 @@ export default function DashboardLayout({
             <span>LiberaSphere</span>
           </Link>
           <div className="flex-1 w-full">
-            {navItems.map(item => (
+            {navItems.map(item => item.condition() && (
               <Link
                 key={item.label}
                 href={item.href}
@@ -401,7 +423,7 @@ export default function DashboardLayout({
                     <KanjiIcon className="h-5 w-5 transition-all group-hover:scale-110" />
                     <span className="sr-only">LiberaSphere</span>
                 </Link>
-                {navItems.map(item => (
+                {navItems.map(item => item.condition() && (
                     <Link
                         key={item.label}
                         href={item.href}

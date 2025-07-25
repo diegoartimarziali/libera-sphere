@@ -10,7 +10,9 @@ import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { Info, Loader2 } from "lucide-react";
+import { auth, db } from "@/lib/firebase";
+import { doc, updateDoc } from "firebase/firestore";
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 2016 + 1 }, (_, i) => String(currentYear - i));
@@ -25,6 +27,7 @@ export default function LiberaSpherePage() {
     const [isFormerMember, setIsFormerMember] = useState<string | undefined>();
     const [startYear, setStartYear] = useState<string | undefined>();
     const [grade, setGrade] = useState<string | undefined>();
+    const [isLoading, setIsLoading] = useState(false);
 
     const isButtonDisabled = () => {
         if (isFormerMember === 'no') {
@@ -33,30 +36,49 @@ export default function LiberaSpherePage() {
         if (isFormerMember === 'yes') {
             return !startYear || !grade;
         }
-        return true; // Disabled by default if no selection is made
+        return true;
     };
 
     const handleIsFormerMemberChange = (value: string) => {
         setIsFormerMember(value);
-        // Reset dependent fields when the main choice changes
         setStartYear(undefined);
         setGrade(undefined);
     };
 
-    const handleEnterLiberaSphere = () => {
-        if (typeof window === 'undefined') return;
+    const handleEnterLiberaSphere = async () => {
+        setIsLoading(true);
+        const user = auth.currentUser;
+        if (!user) {
+            console.error("User not authenticated");
+            setIsLoading(false);
+            return;
+        }
+
+        let dataToUpdate: any = {
+            isFormerMember: isFormerMember
+        };
 
         if (isFormerMember === 'no') {
-            localStorage.setItem('firstAssociationYear', String(currentYear));
-            localStorage.setItem('grade', 'Nessuno');
-            localStorage.setItem('isFormerMember', 'no');
+            dataToUpdate.firstAssociationYear = String(currentYear);
+            dataToUpdate.grade = 'Nessuno';
         } else if (isFormerMember === 'yes' && startYear && grade) {
-            localStorage.setItem('firstAssociationYear', startYear);
-            localStorage.setItem('grade', grade);
-            localStorage.setItem('isFormerMember', 'yes');
+            dataToUpdate.firstAssociationYear = startYear;
+            dataToUpdate.grade = grade;
+        } else {
+             setIsLoading(false);
+             return; // Nothing to do
         }
-        
-        router.push('/dashboard/regulations');
+
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, dataToUpdate);
+            router.push('/dashboard/regulations');
+        } catch (error) {
+            console.error("Error updating user document:", error);
+            // Handle error, maybe show a toast
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -133,10 +155,10 @@ export default function LiberaSpherePage() {
             <CardFooter className="flex justify-end">
                 <Button 
                     onClick={handleEnterLiberaSphere} 
-                    disabled={isButtonDisabled()} 
+                    disabled={isButtonDisabled() || isLoading} 
                     className="bg-stone-800 text-amber-400 hover:bg-stone-700 disabled:bg-stone-800/50 disabled:text-amber-400/50"
                 >
-                    Entra in Libera Sphere
+                    {isLoading ? <Loader2 className="animate-spin" /> : "Entra in Libera Sphere"}
                 </Button>
             </CardFooter>
         </Card>

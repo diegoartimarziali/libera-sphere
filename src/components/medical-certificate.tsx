@@ -18,9 +18,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "./ui/use-toast"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
-import { auth, storage } from "@/lib/firebase"
+import { auth, storage, db } from "@/lib/firebase"
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"
 import { Progress } from "./ui/progress"
+import { doc, updateDoc, getDoc } from "firebase/firestore"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
     value: String(i + 1),
@@ -30,7 +31,7 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => String(currentYear + i));
 
-export function MedicalCertificate() {
+export function MedicalCertificate({ userData }: { userData?: any }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -47,31 +48,26 @@ export function MedicalCertificate() {
   const [dateMessage, setDateMessage] = useState<{type: 'error' | 'warning', text: string} | null>(null);
   
   useEffect(() => {
-    // Load existing certificate data from localStorage
-    if (typeof window !== 'undefined') {
-        const storedDateStr = localStorage.getItem('medicalCertificateExpirationDate');
-        const storedFileName = localStorage.getItem('medicalCertificateFileName');
-        const storedFileUrl = localStorage.getItem('medicalCertificateFileUrl');
-
-        if (storedDateStr && storedFileName && storedFileUrl) {
+    if (userData && userData.medicalCertificate) {
+        const { expirationDate, fileName, fileUrl } = userData.medicalCertificate;
+        if (expirationDate && fileName && fileUrl) {
             try {
-                const storedDate = parseISO(storedDateStr);
+                const storedDate = parseISO(expirationDate);
                 if (isValid(storedDate)) {
                     setIsCertificateUploaded(true);
                     setExpirationDate(storedDate);
-                    setFileName(storedFileName);
-                    setFileUrl(storedFileUrl);
-
+                    setFileName(fileName);
+                    setFileUrl(fileUrl);
                     setDay(String(storedDate.getDate()));
                     setMonth(String(storedDate.getMonth() + 1));
                     setYear(String(storedDate.getFullYear()));
                 }
             } catch (error) {
-                console.error("Failed to parse expiration date from localStorage:", error);
+                console.error("Failed to parse expiration date from user data:", error);
             }
         }
     }
-  }, []);
+  }, [userData]);
 
   useEffect(() => {
     setDateMessage(null); // Reset message on date change
@@ -80,7 +76,7 @@ export function MedicalCertificate() {
         if (date.getFullYear() === parseInt(year) && date.getMonth() === parseInt(month) - 1 && date.getDate() === parseInt(day)) {
             setExpirationDate(date);
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // Compare date part only
+            today.setHours(0, 0, 0, 0);
             const diffInDays = differenceInDays(date, today);
 
             if (diffInDays <= 5) {
@@ -142,33 +138,47 @@ export function MedicalCertificate() {
     );
   };
   
-  const handleRegisterCertificate = (file: File, url: string) => {
-    if (file && expirationDate && url) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('medicalCertificateExpirationDate', expirationDate.toISOString());
-        localStorage.setItem('medicalCertificateFileName', file.name);
-        localStorage.setItem('medicalCertificateFileUrl', url);
-        // Remove appointment date if certificate is uploaded
-        localStorage.removeItem('medicalAppointmentDate');
+  const handleRegisterCertificate = async (file: File, url: string) => {
+    const user = auth.currentUser;
+    if (file && expirationDate && url && user) {
+      try {
+        const userDocRef = doc(db, "users", user.uid);
+        await updateDoc(userDocRef, {
+            'medicalCertificate.expirationDate': expirationDate.toISOString(),
+            'medicalCertificate.fileName': file.name,
+            'medicalCertificate.fileUrl': url,
+            'medicalCertificate.appointmentDate': null, // Clear appointment date
+        });
+      
+        setIsCertificateUploaded(true);
+        setFileName(file.name);
+        setFileUrl(url);
+        
+        toast({
+          title: "Certificato Caricato!",
+          description: `Il file "${file.name}" è stato registrato con successo.`,
+        });
+        window.location.reload();
+      } catch (error) {
+        console.error("Error updating certificate in Firestore:", error);
+        toast({ title: "Errore Database", description: "Impossibile salvare il certificato.", variant: "destructive" });
       }
-      
-      setIsCertificateUploaded(true);
-      setFileName(file.name);
-      setFileUrl(url);
-      
-      toast({
-        title: "Certificato Caricato!",
-        description: `Il file "${file.name}" è stato registrato con successo.`,
-      });
-      window.location.reload();
     }
   }
 
-  const handleNewUpload = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem('medicalCertificateExpirationDate');
-        localStorage.removeItem('medicalCertificateFileName');
-        localStorage.removeItem('medicalCertificateFileUrl');
+  const handleNewUpload = async () => {
+    const user = auth.currentUser;
+    if (user) {
+      try {
+        const userDocRef = doc(db, "users", user.uid);
+        await updateDoc(userDocRef, {
+            'medicalCertificate.expirationDate': null,
+            'medicalCertificate.fileName': null,
+            'medicalCertificate.fileUrl': null,
+        });
+      } catch (error) {
+        console.error("Error clearing certificate in Firestore:", error);
+      }
     }
     setIsCertificateUploaded(false);
     setExpirationDate(undefined);
@@ -185,15 +195,12 @@ export function MedicalCertificate() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const certDateStr = typeof window !== 'undefined' ? localStorage.getItem('medicalCertificateExpirationDate') : null;
     let certDate: Date | null = null;
-    if (certDateStr) {
+    if (userData?.medicalCertificate?.expirationDate) {
         try {
-            certDate = parseISO(certDateStr);
+            certDate = parseISO(userData.medicalCertificate.expirationDate);
             if (!isValid(certDate)) certDate = null;
-        } catch {
-            certDate = null;
-        }
+        } catch { certDate = null; }
     }
 
     if (!certDate) {

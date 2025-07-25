@@ -10,8 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast"
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2 } from 'lucide-react';
 
 const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -19,7 +20,7 @@ const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
         xmlns="http://www.w3.org/2000/svg" 
         width="24" 
         height="24" 
-        viewBox="0 0 24" 
+        viewBox="0 0 24 24" 
         fill="currentColor"
         {...props}>
         <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" fontSize="24" fontFamily="serif">
@@ -52,12 +53,8 @@ export default function AuthPage() {
     
     try {
         await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-        // In a real app, you would fetch user data. For this prototype, we'll use a default name.
         if (typeof window !== 'undefined') {
-            localStorage.clear(); // Clear previous session
-            // We set the user's name on signup, so we retrieve it upon login later.
-            // For now, let's keep a default or fetch it from a 'users' collection.
-            localStorage.setItem('registrationEmail', loginEmail); 
+            localStorage.clear(); 
         }
         router.push('/dashboard');
     } catch (error: any) {
@@ -86,16 +83,60 @@ export default function AuthPage() {
 
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
+        const user = userCredential.user;
+
+        // Create a new document for the user in Firestore
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          name: name,
+          email: signupEmail,
+          createdAt: serverTimestamp(),
+          codiceFiscale: '',
+          birthDate: '',
+          birthplace: '',
+          address: '',
+          civicNumber: '',
+          cap: '',
+          comune: '',
+          provincia: '',
+          phone: '',
+          isMinor: false,
+          parentName: '',
+          parentCf: '',
+          parentPhone: '',
+          parentEmail: '',
+          firstAssociationYear: null,
+          grade: null,
+          isFormerMember: null,
+          regulationsAccepted: false,
+          regulationsAcceptanceDate: null,
+          isSelectionPassportComplete: false,
+          lessonSelected: false,
+          isInsured: false,
+          associationStatus: 'none', // none, requested, approved
+          associationRequestDate: null,
+          associationApprovalDate: null,
+          martialArt: '',
+          selectedDojo: '',
+          lessonDate: '',
+          paymentMethod: '',
+          paymentAmount: '',
+          medicalCertificate: {
+              expirationDate: null,
+              fileName: null,
+              fileUrl: null,
+              appointmentDate: null,
+          },
+          subscription: {
+              plan: null,
+              status: null,
+              paymentDate: null,
+              expiryDate: null,
+          }
+        });
         
-        if (typeof window !== 'undefined' && name && signupEmail) {
-          localStorage.clear(); // Clear previous session
-          localStorage.setItem('userName', name);
-          localStorage.setItem('registrationEmail', signupEmail);
-          localStorage.setItem('codiceFiscale', '');
-          localStorage.setItem('birthDate', '');
-          localStorage.setItem('address', '');
-          localStorage.setItem('comune', '');
-          localStorage.setItem('provincia', '');
+        if (typeof window !== 'undefined') {
+          localStorage.clear();
         }
         router.push('/dashboard/liberasphere');
     } catch (error: any) {

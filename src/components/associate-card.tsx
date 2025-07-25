@@ -18,7 +18,10 @@ import { Separator } from "./ui/separator"
 import { Checkbox } from "./ui/checkbox"
 import { Label } from "./ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertTriangle } from "lucide-react"
+import { AlertTriangle, Loader2 } from "lucide-react"
+import { doc, updateDoc } from "firebase/firestore"
+import { db, auth } from "@/lib/firebase"
+
 
 const translatePaymentMethod = (method: string | null) => {
     if (!method) return 'Non specificato';
@@ -30,100 +33,68 @@ const translatePaymentMethod = (method: string | null) => {
     }
 }
   
-export function AssociateCard({ setAssociated, setAssociationRequested, setWantsToEdit }: { setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void, setWantsToEdit?: (value: boolean) => void }) {
+export function AssociateCard({ setAssociated, setAssociationRequested, setWantsToEdit, userData: initialUserData }: { setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void, setWantsToEdit?: (value: boolean) => void, userData?: any }) {
     const { toast } = useToast();
     const router = useRouter();
     const [dataConfirmed, setDataConfirmed] = useState(false);
-    const [hasMedicalCertificate, setHasMedicalCertificate] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
-    const [paymentAmount, setPaymentAmount] = useState<string | null>(null);
-    const [userData, setUserData] = useState({
-        name: '',
-        codiceFiscale: '',
-        birthDate: '',
-        birthplace: '',
-        address: '',
-        civicNumber: '',
-        cap: '',
-        comune: '',
-        provincia: '',
-        phone: '',
-    });
-
-    const [parentData, setParentData] = useState({
-        name: '',
-        cf: '',
-        phone: '',
-    });
-
-    const [isMinor, setIsMinor] = useState(false);
+    const [userData, setUserData] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const birthDateStr = localStorage.getItem('birthDate');
-            if (birthDateStr) {
-                const [day, month, year] = birthDateStr.split('/');
-                const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
-                const today = new Date();
-                let age = today.getFullYear() - birthDateObj.getFullYear();
-                const m = today.getMonth() - birthDateObj.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
-                    age--;
-                }
-                setIsMinor(age < 18);
-            }
+        setUserData(initialUserData);
+    }, [initialUserData]);
 
-            const certDate = localStorage.getItem('medicalCertificateExpirationDate');
-            const certFile = localStorage.getItem('medicalCertificateFileName');
-            if (certDate && certFile) {
-                setHasMedicalCertificate(true);
-            }
-            
-            setPaymentMethod(localStorage.getItem('paymentMethod'));
-            setPaymentAmount(localStorage.getItem('paymentAmount'));
 
-            setUserData({
-                name: localStorage.getItem('userName') || '',
-                codiceFiscale: localStorage.getItem('codiceFiscale') || '',
-                birthDate: localStorage.getItem('birthDate') || '',
-                birthplace: localStorage.getItem('birthplace') || '',
-                address: localStorage.getItem('address') || '',
-                civicNumber: localStorage.getItem('civicNumber') || '',
-                cap: localStorage.getItem('cap') || '',
-                comune: localStorage.getItem('comune') || '',
-                provincia: localStorage.getItem('provincia') || '',
-                phone: localStorage.getItem('phone') || '',
+    const handleAssociation = async () => {
+        setIsLoading(true);
+        const user = auth.currentUser;
+        if (!user) {
+            toast({ title: "Errore", description: "Utente non trovato.", variant: "destructive" });
+            setIsLoading(false);
+            return;
+        }
+
+        const associationDate = format(new Date(), "dd/MM/yyyy");
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, {
+                associationStatus: 'approved', // Or 'requested' if there's an approval flow
+                associationApprovalDate: associationDate, // Assuming direct approval for now
+                isInsured: true,
             });
 
-            if (isMinor) {
-                 setParentData({
-                    name: localStorage.getItem('parentName') || '',
-                    cf: localStorage.getItem('parentCf') || '',
-                    phone: localStorage.getItem('parentPhone') || '',
-                });
-            }
-        }
-    }, [isMinor]);
-
-    const handleAssociation = () => {
-        const associationDate = format(new Date(), "dd/MM/yyyy");
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('associationRequested', 'true');
-            localStorage.setItem('associationRequestDate', associationDate);
-            localStorage.setItem('lessonSelected', 'true'); // Hide menu item
-            
             if (setAssociationRequested) {
-                setAssociationRequested(true);
+                setAssociationRequested(false);
+            }
+             if (setAssociated) {
+                setAssociated(true);
             }
             
             toast({
                 title: "Domanda Inviata!",
-                description: `La tua domanda di associazione è stata inviata il ${associationDate}. Verrai reindirizzato alla tua scheda personale.`,
+                description: `La tua domanda di associazione è stata inviata il ${associationDate}.`,
             });
             
-            // We need a full refresh for the layout to correctly update
             window.location.href = '/dashboard';
+
+        } catch (error) {
+             toast({
+                title: "Errore",
+                description: "Impossibile salvare la domanda di associazione.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsLoading(false);
         }
+    }
+
+    if (!userData) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Caricamento...</CardTitle></CardHeader>
+                <CardContent><Loader2 className="animate-spin" /></CardContent>
+            </Card>
+        );
     }
 
     return (
@@ -142,17 +113,17 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                         <p className="text-muted-foreground"><b>Nato il:</b> <span className="text-foreground font-bold">{userData.birthDate || 'Non specificata'}</span> <b>a:</b> <span className="text-foreground font-bold">{userData.birthplace || 'Non specificato'}</span></p>
                         <p className="text-muted-foreground"><b>Codice Fiscale:</b> <span className="text-foreground font-bold">{userData.codiceFiscale || 'Non specificato'}</span></p>
                         <p className="text-muted-foreground"><b>Residenza:</b> <span className="text-foreground font-bold">{`${userData.address || ''}, ${userData.civicNumber || ''} - ${userData.cap || ''} ${userData.comune || ''} (${userData.provincia || ''})` || 'Non specificata'}</span></p>
-                        {!isMinor && <p className="text-muted-foreground"><b>Telefono:</b> <span className="text-foreground font-bold">{userData.phone || 'Non specificato'}</span></p>}
+                        {!userData.isMinor && <p className="text-muted-foreground"><b>Telefono:</b> <span className="text-foreground font-bold">{userData.phone || 'Non specificato'}</span></p>}
                     </div>
 
-                    {isMinor && (
+                    {userData.isMinor && (
                         <div>
                             <Separator className="my-4" />
                             <div className="space-y-3 text-base">
                                 <h4 className="font-semibold text-lg mb-2 text-foreground">Dati Genitore/Tutore</h4>
-                                <p className="text-muted-foreground"><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{parentData.name || 'Non specificato'}</span></p>
-                                <p className="text-muted-foreground"><b>Codice Fiscale:</b> <span className="text-foreground font-bold">{parentData.cf || 'Non specificato'}</span></p>
-                                <p className="text-muted-foreground"><b>Telefono:</b> <span className="text-foreground font-bold">{parentData.phone || 'Non specificato'}</span></p>
+                                <p className="text-muted-foreground"><b>Nome e Cognome:</b> <span className="text-foreground font-bold">{userData.parentName || 'Non specificato'}</span></p>
+                                <p className="text-muted-foreground"><b>Codice Fiscale:</b> <span className="text-foreground font-bold">{userData.parentCf || 'Non specificato'}</span></p>
+                                <p className="text-muted-foreground"><b>Telefono:</b> <span className="text-foreground font-bold">{userData.parentPhone || 'Non specificato'}</span></p>
                             </div>
                         </div>
                     )}
@@ -160,8 +131,8 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                 <Separator />
                 <div className="space-y-2">
                     <h4 className="font-semibold text-lg text-foreground">Metodo di Pagamento Scelto</h4>
-                    <p className="text-muted-foreground"><b>Metodo:</b> <span className="text-foreground font-bold">{translatePaymentMethod(paymentMethod)}</span></p>
-                    <p className="text-muted-foreground"><b>Importo:</b> <span className="text-foreground font-bold">€ {paymentAmount}</span></p>
+                    <p className="text-muted-foreground"><b>Metodo:</b> <span className="text-foreground font-bold">{translatePaymentMethod(userData.paymentMethod)}</span></p>
+                    <p className="text-muted-foreground"><b>Importo:</b> <span className="text-foreground font-bold">€ {userData.paymentAmount}</span></p>
                 </div>
                 <Separator />
                 <p className="text-sm text-muted-foreground">
@@ -184,7 +155,9 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                     </Label>
                 </div>
                 <div className="self-end">
-                    <Button onClick={handleAssociation} disabled={!dataConfirmed}>Procedi</Button>
+                    <Button onClick={handleAssociation} disabled={!dataConfirmed || isLoading}>
+                        {isLoading ? <Loader2 className="animate-spin" /> : "Procedi"}
+                    </Button>
                 </div>
             </CardFooter>
         </Card>

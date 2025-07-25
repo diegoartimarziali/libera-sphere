@@ -25,9 +25,10 @@ import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { Separator } from "./ui/separator"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog"
-import { Copy } from "lucide-react"
-import { db } from "@/lib/firebase"
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { Copy, Loader2 } from "lucide-react"
+import { db, auth } from "@/lib/firebase"
+import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc } from "firebase/firestore"
+import { format } from "date-fns"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -39,7 +40,7 @@ const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(cu
 
 const SUMUP_ASSOCIATION_LINK = 'https://pay.sumup.com/b2c/Q9ZH35JE';
 
-export function AssociateForm({ setHasUserData }: { setHasUserData: (value: boolean) => void }) {
+export function AssociateForm({ setHasUserData, userData: initialUserData }: { setHasUserData: (value: boolean) => void, userData?: any }) {
     const { toast } = useToast()
     const router = useRouter()
     
@@ -67,8 +68,6 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     const [parentPhone, setParentPhone] = useState("");
     const [parentEmail, setParentEmail] = useState("");
     
-    const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
-    
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
     const [emailError, setEmailError] = useState(false);
@@ -90,36 +89,31 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     }
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setRegistrationEmail(localStorage.getItem('registrationEmail'));
-            setName(localStorage.getItem('userName') || "");
-            
-            // Pre-fill form with data from localStorage if it exists
-            const storedCodiceFiscale = localStorage.getItem('codiceFiscale');
-            if(storedCodiceFiscale) setCodiceFiscale(storedCodiceFiscale);
-
-            const storedBirthDate = localStorage.getItem('birthDate');
-            if (storedBirthDate) {
-                const parts = storedBirthDate.split('/');
+        if (initialUserData) {
+            setName(initialUserData.name || "");
+            setCodiceFiscale(initialUserData.codiceFiscale || "");
+            if (initialUserData.birthDate) {
+                const parts = initialUserData.birthDate.split('/');
                 if (parts.length === 3) {
                     setDay(parts[0]);
                     setMonth(parts[1]);
                     setYear(parts[2]);
                 }
             }
-             if(localStorage.getItem('birthplace')) setBirthplace(localStorage.getItem('birthplace') || "");
-             if(localStorage.getItem('address')) setAddress(localStorage.getItem('address') || "");
-             if(localStorage.getItem('civicNumber')) setCivicNumber(localStorage.getItem('civicNumber') || "");
-             if(localStorage.getItem('cap')) setCap(localStorage.getItem('cap') || "");
-             if(localStorage.getItem('comune')) setComune(localStorage.getItem('comune') || "");
-             if(localStorage.getItem('provincia')) setProvincia(localStorage.getItem('provincia') || "");
-             if(localStorage.getItem('phone')) setPhone(localStorage.getItem('phone') || "");
-             if(localStorage.getItem('parentName')) setParentName(localStorage.getItem('parentName') || "");
-             if(localStorage.getItem('parentCf')) setParentCf(localStorage.getItem('parentCf') || "");
-             if(localStorage.getItem('parentPhone')) setParentPhone(localStorage.getItem('parentPhone') || "");
-             if(localStorage.getItem('parentEmail')) setParentEmail(localStorage.getItem('parentEmail') || "");
+            setBirthplace(initialUserData.birthplace || "");
+            setAddress(initialUserData.address || "");
+            setCivicNumber(initialUserData.civicNumber || "");
+            setCap(initialUserData.cap || "");
+            setComune(initialUserData.comune || "");
+            setProvincia(initialUserData.provincia || "");
+            setPhone(initialUserData.phone || "");
+            setParentName(initialUserData.parentName || "");
+            setParentCf(initialUserData.parentCf || "");
+            setParentPhone(initialUserData.parentPhone || "");
+            setParentEmail(initialUserData.parentEmail || "");
+            setEmailConfirm(initialUserData.email || "");
         }
-    }, []);
+    }, [initialUserData]);
 
     useEffect(() => {
         if (paymentMethod === 'online' || paymentMethod === 'bank') {
@@ -144,48 +138,48 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
         }
     }, [day, month, year]);
 
-    const saveDataToLocalStorage = () => {
-         if (typeof window !== 'undefined') {
-            if (martialArt) localStorage.setItem('martialArt', martialArt);
-            if (dojo) localStorage.setItem('selectedDojo', dojo);
-            localStorage.setItem('userName', name);
-            localStorage.setItem('codiceFiscale', codiceFiscale);
-            if (birthDate) {
-                localStorage.setItem('birthDate', `${day}/${month}/${year}`);
-            }
-            localStorage.setItem('birthplace', birthplace);
-            localStorage.setItem('address', address);
-            localStorage.setItem('civicNumber', civicNumber);
-            localStorage.setItem('cap', cap);
-            localStorage.setItem('comune', comune);
-            localStorage.setItem('provincia', provincia);
-            
-            if (isMinor) {
-                localStorage.setItem('isMinor', 'true');
-                localStorage.setItem('parentName', parentName);
-                localStorage.setItem('parentCf', parentCf);
-                localStorage.setItem('parentPhone', parentPhone);
-                localStorage.setItem('parentEmail', parentEmail);
-            } else {
-                localStorage.setItem('isMinor', 'false');
-                localStorage.setItem('phone', phone);
-            }
-
-            if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
-            if (amount) localStorage.setItem('paymentAmount', amount);
-            localStorage.setItem('associationRequested', 'true');
-        }
-    };
-    
     const saveDataToFirestore = async () => {
-        if (!registrationEmail || !paymentMethod || !amount) {
-            toast({ title: "Errore", description: "Dati mancanti per la registrazione del pagamento.", variant: "destructive" });
-            return;
+        const user = auth.currentUser;
+        if (!user || !paymentMethod || !amount) {
+            toast({ title: "Errore", description: "Dati utente o di pagamento mancanti.", variant: "destructive" });
+            throw new Error("Dati mancanti");
+        }
+
+        const dataToUpdate: any = {
+            martialArt,
+            selectedDojo,
+            name,
+            codiceFiscale,
+            birthDate: `${day}/${month}/${year}`,
+            birthplace,
+            address,
+            civicNumber,
+            cap,
+            comune,
+            provincia,
+            isMinor,
+            paymentMethod,
+            paymentAmount: amount,
+            associationStatus: 'requested',
+            associationRequestDate: format(new Date(), "dd/MM/yyyy"),
+            lessonSelected: true,
+        };
+
+        if (isMinor) {
+            dataToUpdate.parentName = parentName;
+            dataToUpdate.parentCf = parentCf;
+            dataToUpdate.parentPhone = parentPhone;
+            dataToUpdate.parentEmail = parentEmail;
+        } else {
+            dataToUpdate.phone = phone;
         }
         
         try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, dataToUpdate);
+
             await addDoc(collection(db, "subscriptions"), {
-                userEmail: registrationEmail,
+                userEmail: user.email,
                 planId: "associazione_annuale",
                 planName: "Quota Associativa",
                 price: amount,
@@ -193,19 +187,17 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                 status: 'In attesa',
                 subscriptionDate: serverTimestamp()
             });
+
         } catch (error) {
-            console.error("Error writing to Firestore: ", error);
-            toast({ title: "Errore Database", description: "Impossibile salvare il pagamento su Firestore.", variant: "destructive" });
-            throw error; // Propagate error to stop the process
+            console.error("Error writing data to Firestore: ", error);
+            toast({ title: "Errore Database", description: "Impossibile salvare i dati.", variant: "destructive" });
+            throw error;
         }
     };
 
     const proceedToConfirmation = () => {
-        // Remove the search param so the form is not forced on reload
         const newUrl = window.location.pathname;
         window.history.replaceState({}, '', newUrl);
-
-        // Set the state in parent to show the card and then reload
         setHasUserData(true);
         setTimeout(() => window.location.reload(), 100);
     }
@@ -215,7 +207,6 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
         setIsSubmitting(true);
 
         try {
-            saveDataToLocalStorage();
             await saveDataToFirestore();
 
             if (paymentMethod === 'online') {
@@ -232,7 +223,7 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
                 proceedToConfirmation();
             }
         } catch (error) {
-            // Error is already toasted in saveDataToFirestore
+            // Error is already toasted
         } finally {
             setIsSubmitting(false);
         }
@@ -298,7 +289,7 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newEmail = e.target.value.toLowerCase();
         setEmailConfirm(newEmail);
-        if (registrationEmail && newEmail && newEmail !== registrationEmail.toLowerCase()) {
+        if (initialUserData?.email && newEmail && newEmail !== initialUserData.email.toLowerCase()) {
             setEmailError(true);
         } else {
             setEmailError(false);
@@ -308,7 +299,7 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newEmail = e.target.value.toLowerCase();
         setParentEmail(newEmail);
-        if (registrationEmail && newEmail && newEmail !== registrationEmail.toLowerCase()) {
+        if (initialUserData?.email && newEmail && newEmail !== initialUserData.email.toLowerCase()) {
             setEmailError(true);
         } else {
             setEmailError(false);
@@ -562,7 +553,7 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
         </CardContent>
         <CardFooter className="flex justify-end">
             <Button className="bg-blue-600 hover:bg-blue-700" onClick={handlePayment} disabled={!isFormComplete || isSubmitting}>
-                {isSubmitting ? 'Salvataggio...' : 'Procedi con il Pagamento'}
+                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Procedi con il Pagamento'}
             </Button>
         </CardFooter>
     </Card>
@@ -621,5 +612,3 @@ export function AssociateForm({ setHasUserData }: { setHasUserData: (value: bool
     </>
   )
 }
-
-    
