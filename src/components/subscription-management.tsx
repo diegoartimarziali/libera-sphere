@@ -349,7 +349,7 @@ export function SubscriptionManagement() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Attenzione</AlertTitle>
                 <AlertDescription>
-                    Per poter partecipare ai corsi è necessario essere in possesso di certificato medico non agonistico in corso di validità. Prenota subito la tua visita o carica il certificato.
+                    Per poter partecipare ai corsi è necessario essere in possesso di certificato medico non agonistico in corso di validità. Carica il Certificato cliccando nel menu Certificato Medico.
                 </AlertDescription>
             </Alert>
             
@@ -545,7 +545,3 @@ export function SubscriptionManagement() {
     </>
   )
 }
-
-    
-
-    
