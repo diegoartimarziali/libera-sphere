@@ -101,12 +101,13 @@ export function EventBooking() {
       const userEmail = localStorage.getItem('registrationEmail');
       if (userEmail) {
           const q = query(collection(db, "eventRegistrations"), where("userEmail", "==", userEmail));
-          const userRegistrationsSnapshot = await getDocs(q);
-          const userRegistered: RegisteredStages = {};
-          userRegistrationsSnapshot.forEach(doc => {
-              userRegistered[doc.data().stageId] = true;
+          onSnapshot(q, (userRegistrationsSnapshot) => {
+            const userRegistered: RegisteredStages = {};
+            userRegistrationsSnapshot.forEach(doc => {
+                userRegistered[doc.data().stageId] = true;
+            });
+            setRegisteredStages(userRegistered);
           });
-          setRegisteredStages(userRegistered);
       }
 
     } catch (error) {
@@ -156,9 +157,6 @@ export function EventBooking() {
               title: "Iscrizione Riuscita!",
               description: `Ti sei iscritto con successo allo stage "${stageName}".`,
           });
-
-          // Refresh data after subscription
-          await fetchStageData();
 
       } catch (error) {
           console.error("Error subscribing to stage: ", error);
@@ -241,7 +239,7 @@ const handleSaveStage = async () => {
         return;
     }
     
-    setSubmittingStage('save'); // Use a generic key or the stage id if editing
+    setSubmittingStage('save');
     let stageData = { ...currentStage };
 
     try {
@@ -256,7 +254,8 @@ const handleSaveStage = async () => {
             await updateDoc(stageRef, dataToUpdate);
             toast({ title: "Stage Aggiornato", description: "I dati dello stage sono stati aggiornati."});
         } else {
-            await addDoc(collection(db, "events"), { ...stageData, createdAt: Timestamp.now() });
+            const { id, ...dataToAdd } = stageData;
+            await addDoc(collection(db, "events"), { ...dataToAdd, createdAt: Timestamp.now(), isDeleted: false });
             toast({ title: "Stage Creato", description: "Il nuovo stage è stato aggiunto."});
         }
         setOpenDialog(false);
