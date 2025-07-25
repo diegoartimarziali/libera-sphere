@@ -122,6 +122,7 @@ export default function DashboardLayout({
   const [isMedicalBlocked, setIsMedicalBlocked] = React.useState(false);
   const [isSubscriptionBlocked, setIsSubscriptionBlocked] = React.useState(false);
   const [hasSeasonalSubscription, setHasSeasonalSubscription] = React.useState(false);
+  const [isDataReady, setIsDataReady] = React.useState(false);
 
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -131,37 +132,6 @@ export default function DashboardLayout({
         if (userDoc.exists()) {
             const data = userDoc.data();
             setUserData(data);
-
-            // Populate localStorage for components that still use it
-            if (typeof window !== 'undefined') {
-                Object.keys(data).forEach(key => {
-                    const value = data[key];
-                    if (value !== null && value !== undefined) {
-                        if (typeof value === 'object' && value.toDate) { // Firestore Timestamp
-                            localStorage.setItem(key, value.toDate().toISOString());
-                        } else if (typeof value === 'object') {
-                            // For nested objects like 'medicalCertificate', store as JSON string
-                            localStorage.setItem(key, JSON.stringify(value));
-                            // Also expand nested objects for easier access in some components
-                             if (key === 'medicalCertificate') {
-                                localStorage.setItem('medicalCertificateExpirationDate', value.expirationDate);
-                                localStorage.setItem('medicalCertificateFileName', value.fileName);
-                                localStorage.setItem('medicalCertificateFileUrl', value.fileUrl);
-                                localStorage.setItem('medicalAppointmentDate', value.appointmentDate);
-                             }
-                             if (key === 'subscription') {
-                                localStorage.setItem('subscriptionPlan', value.plan);
-                                localStorage.setItem('subscriptionStatus', value.status);
-                                localStorage.setItem('subscriptionPaymentDate', value.paymentDate);
-                                localStorage.setItem('subscriptionExpiry', value.expiryDate);
-                             }
-                        } else {
-                            localStorage.setItem(key, value.toString());
-                        }
-                    }
-                });
-                 localStorage.setItem('registrationEmail', data.email);
-            }
         }
         setLoadingAuth(false);
       } else {
@@ -177,7 +147,6 @@ export default function DashboardLayout({
       const approvalDate = userData.associationApprovalDate;
       const isAssociatedThisSeason = isApproved && isAssociatedForCurrentSeason(approvalDate);
       
-      // Medical Certificate Block Logic
       const appointmentDateStr = userData.medicalCertificate?.appointmentDate;
       const certificateDateStr = userData.medicalCertificate?.expirationDate;
       let blockUserMedical = false;
@@ -191,7 +160,6 @@ export default function DashboardLayout({
           }
       }
 
-      // Subscription Block Logic
       let blockUserSubscription = false;
       if (userData.subscription?.plan === 'mensile' && userData.subscription?.status !== 'in_attesa') {
           const paymentDateStr = userData.subscription?.paymentDate;
@@ -224,28 +192,37 @@ export default function DashboardLayout({
       setIsMedicalBlocked(blockUserMedical);
       setIsSubscriptionBlocked(blockUserSubscription);
 
-      // --- REDIRECT LOGIC ---
-      const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
-      const currentPath = pathname;
-      
-      if (blockUserMedical) {
-        if (currentPath !== '/dashboard/aiuto' && currentPath !== '/dashboard/medical-certificate') {
-            router.push('/dashboard/medical-certificate');
-        }
-      } else if (blockUserSubscription) {
-          if (currentPath !== '/dashboard/aiuto' && currentPath !== '/dashboard/subscription') {
-            router.push('/dashboard/subscription');
-        }
-      } else if (!userData.isFormerMember && !essentialPages.includes(currentPath) && currentPath !== '/dashboard/liberasphere') {
-        router.push('/dashboard/liberasphere');
-      } else if (userData.isFormerMember && !userData.regulationsAccepted && !essentialPages.includes(currentPath) && currentPath !== '/dashboard/liberasphere' && currentPath !== '/dashboard/regulations') {
-         router.push('/dashboard/regulations');
-      } else if (userData.isFormerMember === 'yes' && !isAssociatedThisSeason && userData.associationStatus !== 'requested' && !essentialPages.includes(currentPath) && currentPath !== '/dashboard/associates' && currentPath !== '/dashboard/liberasphere' && currentPath !== '/dashboard/regulations') {
-        router.push('/dashboard/associates?renewal=true');
-      }
+      // Indicate that all states derived from userData are now set.
+      setIsDataReady(true);
     }
-  }, [userData, pathname, router]);
+  }, [userData]);
   
+   React.useEffect(() => {
+    // This effect handles redirects and should only run when data is ready.
+    if (!isDataReady) return;
+
+    const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
+    const currentPath = pathname;
+    
+    if (isMedicalBlocked) {
+      if (currentPath !== '/dashboard/aiuto' && currentPath !== '/dashboard/medical-certificate') {
+          router.push('/dashboard/medical-certificate');
+      }
+    } else if (isSubscriptionBlocked) {
+        if (currentPath !== '/dashboard/aiuto' && currentPath !== '/dashboard/subscription') {
+          router.push('/dashboard/subscription');
+      }
+    } else if (userData && userData.isFormerMember === null) {
+        if (currentPath !== '/dashboard/liberasphere') {
+            router.push('/dashboard/liberasphere');
+        }
+    } else if (userData && !userData.regulationsAccepted && currentPath !== '/dashboard/regulations' && currentPath !== '/dashboard/liberasphere' && !essentialPages.includes(currentPath)) {
+       router.push('/dashboard/regulations');
+    } else if (userData && userData.isFormerMember === 'yes' && !associated && associationStatus !== 'requested' && !essentialPages.includes(currentPath) && currentPath !== '/dashboard/associates' && currentPath !== '/dashboard/liberasphere' && currentPath !== '/dashboard/regulations') {
+      router.push('/dashboard/associates?renewal=true');
+    }
+  }, [isDataReady, pathname, router, userData, isMedicalBlocked, isSubscriptionBlocked, associated]);
+
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
       try {
@@ -316,7 +293,7 @@ export default function DashboardLayout({
     return child;
   });
 
-  if (loadingAuth || !userData) {
+  if (loadingAuth || !userData || !isDataReady) {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
