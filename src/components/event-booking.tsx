@@ -112,7 +112,13 @@ export function EventBooking() {
             }
         });
         setStageCounts(counts);
+    }, (error) => {
+      // This listener might fail due to security rules. Handle it gracefully.
+      console.warn("Could not fetch all event registrations (this is expected for non-admins):", error.message);
+      // We can still function, just the public count might not be available.
+      // The user will still see their own registration status correctly.
     });
+
 
     // Listener for user-specific registrations to manage button state
     const userEmail = localStorage.getItem('registrationEmail');
@@ -163,9 +169,6 @@ export function EventBooking() {
               registrationDate: Timestamp.now(),
           });
           
-          // This part is now handled in the member summary card directly from Firestore data
-          // to ensure accuracy and real-time updates.
-
           toast({
               title: "Iscrizione Riuscita!",
               description: `Ti sei iscritto con successo allo stage "${stageName}".`,
@@ -328,6 +331,11 @@ const handleSaveStage = async () => {
       try {
         const date = parseISO(isoDate);
         if (!isValid(date)) {
+            // Try parsing a different format if needed, but ISO should be standard
+            const parsedAgain = new Date(isoDate);
+            if(isValid(parsedAgain)){
+                 return format(parsedAgain, "EEEE dd MMMM yyyy", { locale: it });
+            }
              console.error("Invalid date format:", isoDate);
             return "Data non valida";
         }
@@ -389,7 +397,7 @@ const handleSaveStage = async () => {
               try {
                 const parsedDate = parseISO(stage.date);
                 if (isValid(parsedDate)) {
-                  pastEvent = isPast(parsedDate);
+                  pastEvent = isPast(new Date(parsedDate.getFullYear(), parsedDate.getMonth(), parsedDate.getDate() + 1));
                 }
               } catch (e) {
                 console.error("Could not parse date for past event check", stage.date);
@@ -545,4 +553,5 @@ const handleSaveStage = async () => {
     </>
   )
 }
+
 

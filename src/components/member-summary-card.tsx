@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card"
 import { useEffect, useState } from "react"
 import { Star, AlertTriangle, CheckCircle, Loader2 } from "lucide-react"
-import { format, differenceInDays, parse, formatDistanceToNowStrict, lastDayOfMonth, isWithinInterval } from "date-fns"
+import { format, differenceInDays, parse, formatDistanceToNowStrict, lastDayOfMonth, isWithinInterval, parseISO } from "date-fns"
 import { it } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Separator } from "./ui/separator"
@@ -141,12 +141,26 @@ export function MemberSummaryCard() {
 
       const storedCertExp = localStorage.getItem('medicalCertificateExpirationDate');
       if (storedCertExp) {
-        setCertificateExpiration(new Date(storedCertExp));
+        try {
+            const parsedDate = parseISO(storedCertExp);
+            if (!isNaN(parsedDate.getTime())) {
+                setCertificateExpiration(parsedDate);
+            }
+        } catch (error) {
+            console.error("Error parsing certificate date from ISO string:", error);
+        }
       }
 
       const storedAppointmentDate = localStorage.getItem('medicalAppointmentDate');
        if (storedAppointmentDate) {
-        setAppointmentDate(new Date(storedAppointmentDate));
+        try {
+            const parsedDate = parseISO(storedAppointmentDate);
+            if (!isNaN(parsedDate.getTime())) {
+                setAppointmentDate(parsedDate);
+            }
+        } catch (error) {
+             console.error("Error parsing appointment date from ISO string:", error);
+        }
       }
 
       setFirstAssociationYear(localStorage.getItem('firstAssociationYear'));
@@ -230,6 +244,8 @@ export function MemberSummaryCard() {
                 }
             });
             setTotalStages(totals);
+        }, (error) => {
+            console.error("Error fetching total stages count: ", error);
         });
 
         // Listener for user's registrations to get their participation counts
@@ -251,6 +267,9 @@ export function MemberSummaryCard() {
                 }
             });
             setParticipation(userParticipation);
+            setLoadingParticipation(false);
+        }, (error) => {
+            console.error("Error fetching user participation: ", error);
             setLoadingParticipation(false);
         });
         
@@ -350,7 +369,7 @@ export function MemberSummaryCard() {
             switch (monthlyStatus) {
                 case 'valido':
                     const currentMonth = format(new Date(), 'MMMM', { locale: it });
-                    return <span className="font-medium text-green-700">Attivo per {currentMonth}</span>;
+                    return <span className="font-medium text-green-700 capitalize">Attivo per {currentMonth}</span>;
                 case 'in_scadenza':
                     return <span className="font-medium text-orange-500">In scadenza</span>;
                 case 'scaduto':

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card"
 import { Upload, AlertTriangle, CheckCircle, FileText, Loader2 } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
-import { format, differenceInDays } from "date-fns"
+import { format, differenceInDays, parseISO, isValid } from "date-fns"
 import { it } from "date-fns/locale"
 import { Label } from "./ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -54,15 +54,21 @@ export function MedicalCertificate() {
         const storedFileUrl = localStorage.getItem('medicalCertificateFileUrl');
 
         if (storedDateStr && storedFileName && storedFileUrl) {
-            const storedDate = new Date(storedDateStr);
-            setIsCertificateUploaded(true);
-            setExpirationDate(storedDate);
-            setFileName(storedFileName);
-            setFileUrl(storedFileUrl);
+            try {
+                const storedDate = parseISO(storedDateStr);
+                if (isValid(storedDate)) {
+                    setIsCertificateUploaded(true);
+                    setExpirationDate(storedDate);
+                    setFileName(storedFileName);
+                    setFileUrl(storedFileUrl);
 
-            setDay(String(storedDate.getDate()));
-            setMonth(String(storedDate.getMonth() + 1));
-            setYear(String(storedDate.getFullYear()));
+                    setDay(String(storedDate.getDate()));
+                    setMonth(String(storedDate.getMonth() + 1));
+                    setYear(String(storedDate.getFullYear()));
+                }
+            } catch (error) {
+                console.error("Failed to parse expiration date from localStorage:", error);
+            }
         }
     }
   }, []);
@@ -142,6 +148,8 @@ export function MedicalCertificate() {
         localStorage.setItem('medicalCertificateExpirationDate', expirationDate.toISOString());
         localStorage.setItem('medicalCertificateFileName', file.name);
         localStorage.setItem('medicalCertificateFileUrl', url);
+        // Remove appointment date if certificate is uploaded
+        localStorage.removeItem('medicalAppointmentDate');
       }
       
       setIsCertificateUploaded(true);
@@ -152,6 +160,7 @@ export function MedicalCertificate() {
         title: "Certificato Caricato!",
         description: `Il file "${file.name}" è stato registrato con successo.`,
       });
+      window.location.reload();
     }
   }
 
@@ -177,7 +186,15 @@ export function MedicalCertificate() {
     today.setHours(0, 0, 0, 0);
 
     const certDateStr = typeof window !== 'undefined' ? localStorage.getItem('medicalCertificateExpirationDate') : null;
-    const certDate = certDateStr ? new Date(certDateStr) : null;
+    let certDate: Date | null = null;
+    if (certDateStr) {
+        try {
+            certDate = parseISO(certDateStr);
+            if (!isValid(certDate)) certDate = null;
+        } catch {
+            certDate = null;
+        }
+    }
 
     if (!certDate) {
         return (
