@@ -235,14 +235,14 @@ export default function DashboardLayout({
   const allNavItems = [
     { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto", condition: () => true }, // Always show Aiuto
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => regulationsAccepted },
-    { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => true }, // Always show Certificato Medico
-    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => true }, // Always show subscription
+    { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => true },
+    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => regulationsAccepted && (associated || associationRequested) },
     { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => !inLiberasphere },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => inLiberasphere && !regulationsAccepted },
     { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => regulationsAccepted && !lessonSelected && localStorage.getItem('isFormerMember') === 'no'},
     { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => regulationsAccepted && !associated && !associationRequested },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => regulationsAccepted && !selectionPassportComplete && associated},
-    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => regulationsAccepted && !selectionPassportComplete && associated},
+    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => regulationsAccepted && (associated || associationRequested) },
   ]
   
   const bottomNavItems = [
@@ -256,7 +256,9 @@ export default function DashboardLayout({
     : allNavItems.filter(item => {
         // Hide subscription link if already seasonal or passport is not complete for non-seasonal
         if (item.href === '/dashboard/subscription') {
-            return associated && !hasSeasonalSubscription && !selectionPassportComplete;
+            const showSubscription = (associated || associationRequested);
+            if (!showSubscription) return false;
+            return !hasSeasonalSubscription;
         }
         if (item.condition) {
             return item.condition();

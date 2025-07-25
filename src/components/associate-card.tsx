@@ -111,18 +111,19 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
             localStorage.setItem('associationRequested', 'true');
             localStorage.setItem('associationRequestDate', associationDate);
             localStorage.setItem('lessonSelected', 'true'); // Hide menu item
+            
+            if (setAssociationRequested) {
+                setAssociationRequested(true);
+            }
+            
+            toast({
+                title: "Domanda Inviata!",
+                description: `La tua domanda di associazione è stata inviata il ${associationDate}. Procedi con la scelta dell'abbonamento.`,
+            });
+            
+            // We need a full refresh for the layout to correctly update
+            window.location.href = '/dashboard/subscription';
         }
-        
-        if (setAssociationRequested) {
-            setAssociationRequested(true);
-        }
-        
-        toast({
-            title: "Domanda Inviata!",
-            description: `La tua domanda di associazione è stata inviata il ${associationDate}. Riceverai una notifica quando verrà approvata.`,
-        });
-
-        router.push('/dashboard');
     }
 
     return (
