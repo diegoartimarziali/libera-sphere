@@ -111,8 +111,14 @@ export function PaymentHistory() {
       // If we mark as "Pagato", update localStorage to sync the MemberSummaryCard
       if (newStatus === 'Pagato') {
         localStorage.setItem('subscriptionStatus', 'valido');
-        // Only set payment date for monthly plans that are now paid
-        if(planId.includes('mensile')) {
+        // If it's the association fee, also approve the association
+        if (planId === 'associazione_annuale') {
+            localStorage.setItem('associationApproved', 'true');
+            const approvalDate = localStorage.getItem('associationRequestDate') || format(new Date(), "dd/MM/yyyy");
+            localStorage.setItem('associationApprovalDate', approvalDate);
+            localStorage.setItem('isInsured', 'true');
+            localStorage.removeItem('associationRequested');
+        } else if (planId.includes('mensile')) {
             localStorage.setItem('subscriptionPaymentDate', new Date().toISOString());
         }
       }
