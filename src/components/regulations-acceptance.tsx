@@ -67,11 +67,9 @@ export function RegulationsAcceptance({ setRegulationsAccepted, userData }: { se
                 description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
             });
             
-            if (userData?.isFormerMember === 'yes') {
-                router.push('/dashboard/associates');
-            } else {
-                router.push('/dashboard/class-selection');
-            }
+            // Reload the page to force the layout to re-evaluate the redirection logic
+            // with the fresh data from Firestore.
+            window.location.href = '/dashboard';
 
         } catch (error) {
             console.error("Error updating regulations acceptance:", error);
