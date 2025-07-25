@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import {
@@ -49,6 +50,7 @@ import { cn } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { CalendarIcon } from "lucide-react"
 import { Calendar } from "./ui/calendar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 
 
 interface Stage {
@@ -56,7 +58,7 @@ interface Stage {
   name: string;
   date: string; // ISO date string (e.g., "2024-05-11T00:00:00.000Z")
   time: string;
-  participants: string;
+  participants: string; // Now represents the type: 'Tutti', 'Cinture nere', 'Insegnanti'
   contribution: string;
   flyerUrl: string;
   isDeleted?: boolean;
@@ -135,7 +137,7 @@ export function EventBooking() {
   }, [toast]);
 
 
-  const handleSubscription = async (stageId: string, stageName: string, stageDate: string) => {
+  const handleSubscription = async (stageId: string, stageName: string, stageDate: string, stageType: string) => {
       setSubmittingStage(stageId);
       const userEmail = localStorage.getItem('registrationEmail');
       const userName = localStorage.getItem('userName');
@@ -157,11 +159,12 @@ export function EventBooking() {
               stageId,
               stageName,
               stageDate,
+              stageType: stageType, // Save the stage type
               registrationDate: Timestamp.now(),
           });
           
-          const currentParticipation = parseInt(localStorage.getItem('stageParticipationCount') || '0');
-          localStorage.setItem('stageParticipationCount', String(currentParticipation + 1));
+          // This part is now handled in the member summary card directly from Firestore data
+          // to ensure accuracy and real-time updates.
 
           toast({
               title: "Iscrizione Riuscita!",
@@ -255,8 +258,8 @@ export function EventBooking() {
 }
 
 const handleSaveStage = async () => {
-    if (!currentStage.name || !stageDate) {
-        toast({ title: "Dati mancanti", description: "Il nome e la data dello stage sono obbligatori.", variant: "destructive"});
+    if (!currentStage.name || !stageDate || !currentStage.participants) {
+        toast({ title: "Dati mancanti", description: "Nome, data e tipo di partecipanti sono obbligatori.", variant: "destructive"});
         return;
     }
     
@@ -325,8 +328,7 @@ const handleSaveStage = async () => {
       try {
         const date = parseISO(isoDate);
         if (!isValid(date)) {
-            // Attempt to handle non-ISO formats if they still exist from previous bug
-            console.warn("Attempting to parse non-ISO date:", isoDate);
+             console.error("Invalid date format:", isoDate);
             return "Data non valida";
         }
         return format(date, "EEEE dd MMMM yyyy", { locale: it });
@@ -335,6 +337,15 @@ const handleSaveStage = async () => {
         return "Data non valida";
       }
   };
+
+  const getBaseCount = (type: string) => {
+    switch(type) {
+      case 'Tutti': return 4;
+      case 'Cinture nere': return 3;
+      case 'Insegnanti': return 2;
+      default: return 0;
+    }
+  }
 
   return (
     <>
@@ -371,7 +382,8 @@ const handleSaveStage = async () => {
               const isRegistered = registeredStages[stage.id];
               const isSubmitting = submittingStage === stage.id;
               const registeredCount = stageCounts[stage.id] || 0;
-              const totalCount = registeredCount + 4; // Add base of 4 technicians
+              const baseCount = getBaseCount(stage.participants);
+              const totalCount = registeredCount + baseCount;
               
               let pastEvent = false;
               try {
@@ -401,7 +413,7 @@ const handleSaveStage = async () => {
                   <Button 
                     variant={isRegistered ? "secondary" : "outline"} 
                     size="sm"
-                    onClick={() => handleSubscription(stage.id, stage.name, stage.date)}
+                    onClick={() => handleSubscription(stage.id, stage.name, stage.date, stage.participants)}
                     disabled={isRegistered || isSubmitting || pastEvent}
                   >
                     {isSubmitting ? (
@@ -487,7 +499,19 @@ const handleSaveStage = async () => {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="participants" className="text-right">Partecipanti</Label>
-                    <Input id="participants" value={currentStage.participants || ''} onChange={(e) => setCurrentStage({...currentStage, participants: e.target.value})} className="col-span-3" placeholder="Es. Cinture Nere" />
+                    <Select
+                        value={currentStage.participants}
+                        onValueChange={(value) => setCurrentStage({ ...currentStage, participants: value })}
+                    >
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Seleziona tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Tutti">Tutti</SelectItem>
+                            <SelectItem value="Cinture nere">Cinture nere</SelectItem>
+                            <SelectItem value="Insegnanti">Insegnanti</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="contribution" className="text-right">Contributo</Label>
@@ -521,3 +545,4 @@ const handleSaveStage = async () => {
     </>
   )
 }
+

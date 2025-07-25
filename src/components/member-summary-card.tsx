@@ -12,12 +12,14 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { useEffect, useState } from "react"
-import { Star, AlertTriangle, CheckCircle } from "lucide-react"
+import { Star, AlertTriangle, CheckCircle, Loader2 } from "lucide-react"
 import { format, differenceInDays, parse, formatDistanceToNowStrict, lastDayOfMonth, isWithinInterval } from "date-fns"
 import { it } from "date-fns/locale"
 import { cn } from "@/lib/utils"
 import { Separator } from "./ui/separator"
 import { Button } from "./ui/button"
+import { db } from "@/lib/firebase"
+import { collection, query, where, onSnapshot, Unsubscribe } from "firebase/firestore"
 
 const kanjiList = ['道', '力', '心', '技', '武', '空', '合', '気', '侍'];
 
@@ -28,6 +30,19 @@ const capitalizeName = (name: string) => {
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
 };
+
+interface StageParticipation {
+    tutti: number;
+    cintureNere: number;
+    insegnanti: number;
+}
+
+interface TotalStages {
+    tutti: number;
+    cintureNere: number;
+    insegnanti: number;
+}
+
 
 export function MemberSummaryCard() {
   const [userName, setUserName] = useState("Utente");
@@ -58,10 +73,14 @@ export function MemberSummaryCard() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [subscriptionExpiry, setSubscriptionExpiry] = useState<Date | null>(null);
   const [monthlyStatus, setMonthlyStatus] = useState<'valido' | 'in_scadenza' | 'scaduto' | 'non_attivo'>('non_attivo');
-  const [stageParticipationCount, setStageParticipationCount] = useState<number>(0);
+  
+  const [participation, setParticipation] = useState<StageParticipation>({ tutti: 0, cintureNere: 0, insegnanti: 0 });
+  const [totalStages, setTotalStages] = useState<TotalStages>({ tutti: 0, cintureNere: 0, insegnanti: 0 });
+  const [loadingParticipation, setLoadingParticipation] = useState(true);
 
 
   useEffect(() => {
+    // This effect runs once to get all static data from localStorage
     if (typeof window !== 'undefined') {
       const storedName = localStorage.getItem("userName");
       if (storedName) {
@@ -173,19 +192,78 @@ export function MemberSummaryCard() {
                  setMonthlyStatus('scaduto');
             }
         } else {
-            setMonthlyStatus('scaduto'); 
+            setMonthlyStatus('non_attivo'); 
         }
       } else if (!plan) {
           setMonthlyStatus('non_attivo');
       }
 
-      const participationCount = parseInt(localStorage.getItem('stageParticipationCount') || '0');
-      setStageParticipationCount(participationCount);
     }
     const kanji = kanjiList[Math.floor(Math.random() * kanjiList.length)];
     if(kanji) {
       setRandomKanji(kanji);
     }
+
+    // Set up Firestore listeners for dynamic data
+    let unsubscribes: Unsubscribe[] = [];
+    const userEmail = localStorage.getItem('registrationEmail');
+
+    if (userEmail) {
+        setLoadingParticipation(true);
+
+        // Listener for all available stages to get total counts
+        const allStagesQuery = query(collection(db, "events"), where("isDeleted", "!=", true));
+        const unsubscribeAllStages = onSnapshot(allStagesQuery, (snapshot) => {
+            const totals: TotalStages = { tutti: 0, cintureNere: 0, insegnanti: 0 };
+            snapshot.forEach(doc => {
+                const stageData = doc.data();
+                switch (stageData.participants) {
+                    case 'Tutti':
+                        totals.tutti++;
+                        break;
+                    case 'Cinture nere':
+                        totals.cintureNere++;
+                        break;
+                    case 'Insegnanti':
+                        totals.insegnanti++;
+                        break;
+                }
+            });
+            setTotalStages(totals);
+        });
+
+        // Listener for user's registrations to get their participation counts
+        const userRegistrationsQuery = query(collection(db, "eventRegistrations"), where("userEmail", "==", userEmail));
+        const unsubscribeUserRegistrations = onSnapshot(userRegistrationsQuery, (snapshot) => {
+            const userParticipation: StageParticipation = { tutti: 0, cintureNere: 0, insegnanti: 0 };
+            snapshot.forEach(doc => {
+                const regData = doc.data();
+                switch (regData.stageType) {
+                    case 'Tutti':
+                        userParticipation.tutti++;
+                        break;
+                    case 'Cinture nere':
+                        userParticipation.cintureNere++;
+                        break;
+                    case 'Insegnanti':
+                        userParticipation.insegnanti++;
+                        break;
+                }
+            });
+            setParticipation(userParticipation);
+            setLoadingParticipation(false);
+        });
+        
+        unsubscribes.push(unsubscribeAllStages, unsubscribeUserRegistrations);
+    } else {
+      setLoadingParticipation(false);
+    }
+    
+    // Cleanup function
+    return () => {
+        unsubscribes.forEach(unsub => unsub());
+    };
+
   }, []);
 
   const getInitials = (name: string) => {
@@ -284,11 +362,12 @@ export function MemberSummaryCard() {
         return <span className="font-medium text-red-600">Non attivo</span>;
   };
 
-  const renderParticipationStatus = (count: number) => {
-      if (count === 0) {
-          return <span className="font-medium text-red-600">Nessuna</span>;
+  const renderParticipationStatus = (count: number, total: number) => {
+      const statusText = `${count} su ${total}`;
+      if (total === 0 || count === 0) {
+          return <span className="font-medium text-red-600">{statusText}</span>;
       }
-      return <span className="font-medium text-green-700">{count}</span>;
+      return <span className="font-medium text-green-700">{statusText}</span>;
   }
 
 
@@ -399,20 +478,24 @@ export function MemberSummaryCard() {
               <div className="text-muted-foreground">
                   Prossimo esame: <span className="font-medium text-red-600">Nessuno</span>
               </div>
-              <div className="text-muted-foreground">
-                  Partecipazione stage: {renderParticipationStatus(stageParticipationCount)}
-              </div>
+               {loadingParticipation ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                <>
+                  <div className="text-muted-foreground">
+                      Stage (Tutti): {renderParticipationStatus(participation.tutti, totalStages.tutti)}
+                  </div>
+                  <div className="text-muted-foreground">
+                      Stage (Cinture Nere): {renderParticipationStatus(participation.cintureNere, totalStages.cintureNere)}
+                  </div>
+                  <div className="text-muted-foreground">
+                      Stage (Insegnanti): {renderParticipationStatus(participation.insegnanti, totalStages.insegnanti)}
+                  </div>
+                </>
+              )}
               <div className="text-muted-foreground">
                   Regolarità allenamenti: <span className="font-medium text-red-600">N/D</span>
               </div>
               <div className="text-muted-foreground">
                   Taiso: <span className="font-medium text-red-600">N/D</span>
-              </div>
-              <div className="text-muted-foreground">
-                  Kihon: <span className="font-medium text-red-600">N/D</span>
-              </div>
-              <div className="text-muted-foreground">
-                  Bunkai/Kumite: <span className="font-medium text-red-600">N/D</span>
               </div>
             </div>
         </div>
