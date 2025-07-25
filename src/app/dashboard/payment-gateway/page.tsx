@@ -4,7 +4,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function PaymentGatewayPage() {
@@ -57,12 +57,18 @@ export default function PaymentGatewayPage() {
 
     return (
         <div className="flex flex-col h-screen bg-background">
-            <header className="flex items-center justify-between p-4 border-b">
+            <header className="flex items-center justify-between p-4 border-b flex-wrap gap-4">
                  <h1 className="text-lg font-semibold">Completa il Pagamento</h1>
-                <Button onClick={handleReturn} variant="default">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Torna indietro quando hai finito
-                </Button>
+                 <div className="flex items-center gap-4">
+                    <Button onClick={handleReturn} variant="outline">
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Non puoi pagare ora? Torna indietro
+                    </Button>
+                    <Button onClick={handleReturn} variant="default">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Torna indietro quando hai finito
+                    </Button>
+                 </div>
             </header>
             <main className="flex-1">
                 <iframe
