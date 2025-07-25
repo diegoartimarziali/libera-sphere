@@ -184,59 +184,77 @@ export function SubscriptionManagement() {
       }
   };
 
-  const saveDataAndRedirect = async (planId: string) => {
-      if (!planId) return;
-
-      try {
-          if (typeof window !== 'undefined') {
-              localStorage.setItem('subscriptionPlan', planId);
-              localStorage.setItem('subscriptionStatus', 'in_attesa');
-              
-              if (planId === 'stagionale') {
-                  const today = new Date();
-                  let expiryDate = setDate(setMonth(today, 5), 15); // June 15
-                  if (today.getMonth() >= 6 && today.getDate() > 15) { 
-                     expiryDate = addYears(expiryDate, 1);
-                  }
-                  localStorage.setItem('subscriptionExpiry', expiryDate.toISOString());
-              } else {
-                  localStorage.removeItem('subscriptionExpiry'); 
-              }
-          }
-          
-          router.push('/dashboard');
-
-      } catch (error) {
-           console.error("Error saving data: ", error);
-          toast({
-              title: "Errore nel salvataggio",
-              description: "Non è stato possibile registrare il tuo abbonamento. Riprova più tardi.",
-              variant: "destructive",
-          });
-      }
+  const saveDataToLocalStorage = (planId: string) => {
+    if (typeof window !== 'undefined') {
+        localStorage.setItem('subscriptionPlan', planId);
+        localStorage.setItem('subscriptionStatus', 'in_attesa');
+        
+        if (planId === 'stagionale') {
+            const today = new Date();
+            let expiryDate = setDate(setMonth(today, 5), 15); // June 15
+            if (today.getMonth() >= 6 && today.getDate() > 15) { 
+               expiryDate = addYears(expiryDate, 1);
+            }
+            localStorage.setItem('subscriptionExpiry', expiryDate.toISOString());
+        } else {
+            localStorage.removeItem('subscriptionExpiry'); 
+        }
+    }
   }
+
+  const saveDataToFirestore = async (planId: string, paymentMethod: string) => {
+    const userEmail = localStorage.getItem('registrationEmail');
+    const planDetails = allPlans.find(p => p.id === planId);
+
+    if (!userEmail || !planDetails) {
+        toast({ title: "Errore", description: "Dati mancanti per la registrazione.", variant: "destructive" });
+        return;
+    }
+    
+    try {
+        await addDoc(collection(db, "subscriptions"), {
+            userEmail: userEmail,
+            planId: planDetails.id,
+            planName: `Abbonamento ${planDetails.name}`,
+            price: planDetails.price,
+            paymentMethod: paymentMethod,
+            status: 'In attesa',
+            subscriptionDate: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Error writing to Firestore: ", error);
+        toast({ title: "Errore Database", description: "Impossibile salvare i dati.", variant: "destructive" });
+        throw error;
+    }
+  };
 
   const handleSubscription = async (planId: string, paymentMethod: string | undefined) => {
     if (!planId || !paymentMethod) return;
 
     setIsSubmitting(true);
     
-    if (paymentMethod === 'online') {
-        const paymentUrl = encodeURIComponent(planId === 'stagionale' ? SUMUP_SEASONAL_LINK : SUMUP_MONTHLY_LINK);
-        const returnUrl = encodeURIComponent('/dashboard');
-        await saveDataAndRedirect(planId); 
-        router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-    } else if (paymentMethod === 'bank') {
-        setShowBankTransferDialog(true);
-    } else if (paymentMethod === 'cash') {
-         toast({
-            title: "Iscrizione registrata!",
-            description: `Presentati in segreteria per completare il pagamento.`,
-         });
-         await saveDataAndRedirect(planId);
+    try {
+        saveDataToLocalStorage(planId);
+        await saveDataToFirestore(planId, paymentMethod);
+
+        if (paymentMethod === 'online') {
+            const paymentUrl = encodeURIComponent(planId === 'stagionale' ? SUMUP_SEASONAL_LINK : SUMUP_MONTHLY_LINK);
+            const returnUrl = encodeURIComponent('/dashboard');
+            router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+        } else if (paymentMethod === 'bank') {
+            setShowBankTransferDialog(true);
+        } else if (paymentMethod === 'cash') {
+             toast({
+                title: "Iscrizione registrata!",
+                description: `Presentati in segreteria per completare il pagamento.`,
+             });
+             router.push('/dashboard');
+        }
+    } catch(error) {
+        // Error is already toasted in saveDataToFirestore
+    } finally {
+        setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   }
 
   const handleConfirmBankTransfer = async () => {
@@ -245,9 +263,7 @@ export function SubscriptionManagement() {
           title: "Iscrizione registrata!",
           description: "Effettua il bonifico usando i dati forniti. Vedrai lo stato aggiornato nella sezione pagamenti.",
       });
-      if(selectedPlan) {
-        await saveDataAndRedirect(selectedPlan);
-      }
+      router.push('/dashboard');
   };
   
   const canSubscribe = hasMedicalCertificate || !!bookedAppointmentDate;
