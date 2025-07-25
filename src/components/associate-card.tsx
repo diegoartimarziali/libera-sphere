@@ -118,11 +118,11 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
             
             toast({
                 title: "Domanda Inviata!",
-                description: `La tua domanda di associazione è stata inviata il ${associationDate}. Procedi con la scelta dell'abbonamento.`,
+                description: `La tua domanda di associazione è stata inviata il ${associationDate}. Verrai reindirizzato alla tua scheda personale.`,
             });
             
             // We need a full refresh for the layout to correctly update
-            window.location.href = '/dashboard/subscription';
+            window.location.href = '/dashboard';
         }
     }
 
