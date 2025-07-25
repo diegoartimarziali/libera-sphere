@@ -19,12 +19,13 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
 import { db } from "@/lib/firebase"
-import { collection, query, where, getDocs, orderBy, Timestamp } from "firebase/firestore"
+import { collection, query, where, getDocs, orderBy, Timestamp, addDoc, serverTimestamp } from "firebase/firestore"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { Label } from "./ui/label"
 import { Button } from "./ui/button"
+import { useToast } from "./ui/use-toast"
 
 interface Subscription {
   id: string;
@@ -38,6 +39,8 @@ interface Subscription {
 const translatePaymentMethod = (method: string) => {
     switch (method) {
         case 'cash': return 'Contanti o Bancomat in Palestra ( 2 euro costi di gestione)';
+        case 'online': return 'Carta di Credito on line';
+        case 'bank': return 'Bonifico Bancario';
         default: return method;
     }
 }
@@ -46,63 +49,92 @@ export function PaymentHistory() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const fetchSubscriptions = async () => {
+    setIsLoading(true);
+    setError(null);
+    const userEmail = localStorage.getItem('registrationEmail');
+    if (!userEmail) {
+      setError("Utente non autenticato. Impossibile caricare lo storico dei pagamenti.");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const q = query(
+        collection(db, "subscriptions"), 
+        where("userEmail", "==", userEmail),
+        orderBy("subscriptionDate", "desc")
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const subsData = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+              id: doc.id,
+              planName: data.planName,
+              price: data.price,
+              paymentMethod: data.paymentMethod,
+              subscriptionDate: data.subscriptionDate || null,
+              status: data.status || 'In attesa', // Default to 'In attesa' if status is not set
+          } as Subscription;
+      });
+
+      setSubscriptions(subsData);
+    } catch (err: any) {
+      console.error("Error fetching subscriptions:", err);
+      // Extra log to make sure the user sees the full error object in the console.
+      console.log("FULL FIRESTORE ERROR: ", err);
+      setError("Errore nel recupero dello storico. Controlla la console del browser (F12) per trovare il link per creare l'indice Firestore.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchSubscriptions = async () => {
-      setIsLoading(true);
-      const userEmail = localStorage.getItem('registrationEmail');
-      if (!userEmail) {
-        setError("Utente non autenticato. Impossibile caricare lo storico dei pagamenti.");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const q = query(
-          collection(db, "subscriptions"), 
-          where("userEmail", "==", userEmail),
-          orderBy("subscriptionDate", "desc")
-        );
-        
-        const querySnapshot = await getDocs(q);
-        const subsData = querySnapshot.docs.map(doc => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                planName: data.planName,
-                price: data.price,
-                paymentMethod: data.paymentMethod,
-                subscriptionDate: data.subscriptionDate || null,
-                status: data.status || 'In attesa', // Default to 'In attesa' if status is not set
-            } as Subscription;
-        });
-
-        setSubscriptions(subsData);
-        setError(null);
-      } catch (err) {
-        console.error("Error fetching subscriptions:", err);
-        setError("Errore nel recupero dello storico dei pagamenti. Controlla la console del browser per creare l'indice Firestore necessario.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchSubscriptions();
   }, []);
+  
+  const handleCreateTestPayment = async () => {
+    const userEmail = localStorage.getItem('registrationEmail');
+     if (!userEmail) {
+        toast({ title: "Errore", description: "Nessun utente loggato.", variant: "destructive" });
+        return;
+    }
+    try {
+        await addDoc(collection(db, "subscriptions"), {
+            userEmail,
+            planName: "Pagamento di Prova",
+            price: "1",
+            paymentMethod: "online",
+            status: 'In attesa',
+            subscriptionDate: serverTimestamp()
+        });
+        toast({ title: "Successo", description: "Pagamento di prova creato. Ora ricarica la pagina e controlla la console per il link dell'indice."});
+        fetchSubscriptions();
+    } catch (e) {
+        toast({ title: "Errore", description: "Impossibile creare il pagamento di prova.", variant: "destructive" });
+        console.error("Error adding test document: ", e);
+    }
+  }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Storico Pagamenti</CardTitle>
-        <CardDescription>
-          Qui trovi l'elenco di tutti i tuoi abbonamenti sottoscritti e il loro stato.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+            <CardTitle>Storico Pagamenti</CardTitle>
+            <CardDescription>
+            Qui trovi l'elenco di tutti i tuoi abbonamenti sottoscritti e il loro stato.
+            </CardDescription>
+        </div>
+        <Button variant="destructive" onClick={handleCreateTestPayment}>Crea Pagamento di Prova</Button>
       </CardHeader>
       <CardContent className="space-y-6">
         {isLoading ? (
             <p>Caricamento...</p>
         ) : error ? (
-          <p className="text-destructive">{error}</p>
+          <p className="text-destructive font-bold">{error}</p>
         ) : subscriptions.length === 0 ? (
           <p className="text-muted-foreground">Nessun pagamento trovato.</p>
         ) : (
