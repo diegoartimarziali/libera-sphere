@@ -22,6 +22,9 @@ import {
 import { useToast } from "@/components/ui/use-toast"
 import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
+import { auth, db } from "@/lib/firebase"
+import { doc, updateDoc } from "firebase/firestore"
+import { onAuthStateChanged } from "firebase/auth"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -31,7 +34,7 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(currentYear - i));
 
-export function AssociateEditForm({ onSave }: { onSave: () => void }) {
+export function AssociateEditForm({ onSave, userData }: { onSave: () => void, userData: any }) {
     const { toast } = useToast()
     
     const [name, setName] = useState("");
@@ -48,46 +51,35 @@ export function AssociateEditForm({ onSave }: { onSave: () => void }) {
     const [cap, setCap] = useState("");
     const [comune, setComune] = useState("");
     const [phone, setPhone] = useState("");
-    const [emailConfirm, setEmailConfirm] = useState("");
 
     const [parentName, setParentName] = useState("");
     const [parentCf, setParentCf] = useState("");
     const [parentPhone, setParentPhone] = useState("");
-    const [parentEmail, setParentEmail] = useState("");
     
-    const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
-    const [emailError, setEmailError] = useState(false);
-
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setRegistrationEmail(localStorage.getItem('registrationEmail'));
-            
-            // Pre-fill form with data from localStorage
-            setName(localStorage.getItem('userName') || "");
-            setCodiceFiscale(localStorage.getItem('codiceFiscale') || "");
-            const storedBirthDate = localStorage.getItem('birthDate');
-            if (storedBirthDate) {
-                const parts = storedBirthDate.split('/');
+        if (userData) {
+            setName(userData.name || "");
+            setCodiceFiscale(userData.codiceFiscale || "");
+            if (userData.birthDate) {
+                const parts = userData.birthDate.split('/');
                 if (parts.length === 3) {
                     setDay(parts[0]);
                     setMonth(parts[1]);
                     setYear(parts[2]);
                 }
             }
-            setBirthplace(localStorage.getItem('birthplace') || "");
-            setAddress(localStorage.getItem('address') || "");
-            setCivicNumber(localStorage.getItem('civicNumber') || "");
-            setCap(localStorage.getItem('cap') || "");
-            setComune(localStorage.getItem('comune') || "");
-            setProvincia(localStorage.getItem('provincia') || "");
-            setPhone(localStorage.getItem('phone') || "");
-            setParentName(localStorage.getItem('parentName') || "");
-            setParentCf(localStorage.getItem('parentCf') || "");
-            setParentPhone(localStorage.getItem('parentPhone') || "");
-            setParentEmail(localStorage.getItem('parentEmail') || "");
-            setEmailConfirm(localStorage.getItem('registrationEmail') || "");
+            setBirthplace(userData.birthplace || "");
+            setAddress(userData.address || "");
+            setCivicNumber(userData.civicNumber || "");
+            setCap(userData.cap || "");
+            setComune(userData.comune || "");
+            setProvincia(userData.provincia || "");
+            setPhone(userData.phone || "");
+            setParentName(userData.parentName || "");
+            setParentCf(userData.parentCf || "");
+            setParentPhone(userData.parentPhone || "");
         }
-    }, []);
+    }, [userData]);
 
     useEffect(() => {
         if (day && month && year) {
@@ -102,40 +94,42 @@ export function AssociateEditForm({ onSave }: { onSave: () => void }) {
         }
     }, [day, month, year]);
 
-    const saveData = () => {
-         if (typeof window !== 'undefined') {
-            localStorage.setItem('userName', name);
-            localStorage.setItem('codiceFiscale', codiceFiscale);
-            if (birthDate) {
-                localStorage.setItem('birthDate', `${day}/${month}/${year}`);
-            }
-            localStorage.setItem('birthplace', birthplace);
-            localStorage.setItem('address', address);
-            localStorage.setItem('civicNumber', civicNumber);
-            localStorage.setItem('cap', cap);
-            localStorage.setItem('comune', comune);
-            localStorage.setItem('provincia', provincia);
-            
-            if (isMinor) {
-                localStorage.setItem('isMinor', 'true');
-                localStorage.setItem('parentName', parentName);
-                localStorage.setItem('parentCf', parentCf);
-                localStorage.setItem('parentPhone', parentPhone);
-                localStorage.setItem('parentEmail', parentEmail);
-            } else {
-                 localStorage.setItem('isMinor', 'false');
-                localStorage.setItem('phone', phone);
-            }
+    const handleSaveAndReturn = async () => {
+        const user = auth.currentUser;
+        if (!user) {
+            toast({ title: "Errore", description: "Utente non autenticato", variant: "destructive" });
+            return;
         }
-    };
 
-    const handleSaveAndReturn = () => {
-        saveData();
-        toast({
-            title: "Dati Salvati!",
-            description: `I tuoi dati sono stati aggiornati.`,
-        });
-        onSave();
+        const dataToUpdate: any = {
+            name,
+            codiceFiscale,
+            birthDate: birthDate ? `${day}/${month}/${year}` : '',
+            birthplace,
+            address,
+            civicNumber,
+            cap,
+            comune,
+            provincia,
+            isMinor,
+            phone: isMinor ? '' : phone,
+            parentName: isMinor ? parentName : '',
+            parentCf: isMinor ? parentCf : '',
+            parentPhone: isMinor ? parentPhone : '',
+        };
+
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, dataToUpdate);
+            toast({
+                title: "Dati Salvati!",
+                description: `I tuoi dati sono stati aggiornati.`,
+            });
+            onSave();
+        } catch (error) {
+            console.error("Error updating user data:", error);
+            toast({ title: "Errore", description: "Impossibile aggiornare i dati.", variant: "destructive" });
+        }
     }
     
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,26 +171,6 @@ export function AssociateEditForm({ onSave }: { onSave: () => void }) {
         setParentName(capitalized);
     };
 
-    const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newEmail = e.target.value.toLowerCase();
-        setEmailConfirm(newEmail);
-        if (registrationEmail && newEmail && newEmail !== registrationEmail.toLowerCase()) {
-            setEmailError(true);
-        } else {
-            setEmailError(false);
-        }
-    }
-
-    const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newEmail = e.target.value.toLowerCase();
-        setParentEmail(newEmail);
-        if (registrationEmail && newEmail && newEmail !== registrationEmail.toLowerCase()) {
-            setEmailError(true);
-        } else {
-            setEmailError(false);
-        }
-    }
-    
     const isMinor = useMemo(() => {
         if (!birthDate) return false;
         const today = new Date();
@@ -319,16 +293,9 @@ export function AssociateEditForm({ onSave }: { onSave: () => void }) {
             </div>
 
             {!isMinor && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="phone">Numero di telefono:</Label>
-                        <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange}/>
-                        {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
-                    </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="phone">Numero di telefono:</Label>
+                    <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
                 </div>
             )}
 
@@ -349,23 +316,9 @@ export function AssociateEditForm({ onSave }: { onSave: () => void }) {
                         <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
                         <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())}/>
                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                            <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
-                            <Input 
-                                id="parent-email-confirm" 
-                                type="email" 
-                                placeholder="m@example.com" 
-                                required={isMinor}
-                                value={parentEmail}
-                                onChange={handleParentEmailChange}
-                                 />
-                            {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
-                        </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="parent-phone">Numero di telefono:</Label>
+                        <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
                     </div>
                 </div>
             )}
@@ -378,3 +331,5 @@ export function AssociateEditForm({ onSave }: { onSave: () => void }) {
     </Card>
   )
 }
+
+    

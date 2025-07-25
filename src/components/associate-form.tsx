@@ -29,6 +29,7 @@ import { Copy, Loader2 } from "lucide-react"
 import { db, auth } from "@/lib/firebase"
 import { doc, updateDoc, getDoc } from "firebase/firestore"
 import { format } from "date-fns"
+import { onAuthStateChanged } from "firebase/auth"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -61,16 +62,13 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     const [cap, setCap] = useState("");
     const [comune, setComune] = useState("");
     const [phone, setPhone] = useState("");
-    const [emailConfirm, setEmailConfirm] = useState("");
 
     const [parentName, setParentName] = useState("");
     const [parentCf, setParentCf] = useState("");
     const [parentPhone, setParentPhone] = useState("");
-    const [parentEmail, setParentEmail] = useState("");
     
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
-    const [emailError, setEmailError] = useState(false);
     const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -110,8 +108,6 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             setParentName(userData.parentName || "");
             setParentCf(userData.parentCf || "");
             setParentPhone(userData.parentPhone || "");
-            setParentEmail(userData.parentEmail || "");
-            setEmailConfirm(userData.email || "");
             setMartialArt(userData.martialArt);
             setDojo(userData.selectedDojo);
         }
@@ -163,18 +159,13 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             associationStatus: 'requested',
             associationRequestDate: format(new Date(), "dd/MM/yyyy"),
             martialArt,
-            selectedDojo
+            selectedDojo,
+            phone: isMinor ? '' : phone,
+            parentName: isMinor ? parentName : '',
+            parentCf: isMinor ? parentCf : '',
+            parentPhone: isMinor ? parentPhone : '',
         };
 
-        if (isMinor) {
-            dataToUpdate.parentName = parentName;
-            dataToUpdate.parentCf = parentCf;
-            dataToUpdate.parentPhone = parentPhone;
-            dataToUpdate.parentEmail = parentEmail;
-        } else {
-            dataToUpdate.phone = phone;
-        }
-        
         try {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
@@ -208,7 +199,6 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
                 setIsSubmitting(false);
             }
         } catch (error) {
-             // Error is already toasted, just stop submitting
              setIsSubmitting(false);
         }
     };
@@ -271,26 +261,6 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
         setParentName(capitalized);
     };
 
-    const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newEmail = e.target.value.toLowerCase();
-        setEmailConfirm(newEmail);
-        if (userData?.email && newEmail && newEmail.toLowerCase() !== userData.email.toLowerCase()) {
-            setEmailError(true);
-        } else {
-            setEmailError(false);
-        }
-    }
-
-    const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newEmail = e.target.value.toLowerCase();
-        setParentEmail(newEmail);
-        if (userData?.email && newEmail && newEmail.toLowerCase() !== userData.email.toLowerCase()) {
-            setEmailError(true);
-        } else {
-            setEmailError(false);
-        }
-    }
-    
     const isMinor = useMemo(() => {
         if (!birthDate) return false;
         const today = new Date();
@@ -312,14 +282,14 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     
     const isStudentInfoComplete = useMemo(() => {
         if (!isLocationComplete) return false;
-        if (isMinor) return true; // Parent info is checked separately
-        return phone.trim() !== '' && emailConfirm.trim() !== '' && !emailError;
-    }, [isLocationComplete, isMinor, phone, emailConfirm, emailError]);
+        if (isMinor) return true;
+        return phone.trim() !== '';
+    }, [isLocationComplete, isMinor, phone]);
 
     const isParentInfoComplete = useMemo(() => {
-        if (!isMinor) return true; // Not applicable
-        return parentName.trim() !== '' && parentCf.trim().length === 16 && parentPhone.trim() !== '' && parentEmail.trim() !== '' && !emailError;
-    }, [isMinor, parentName, parentCf, parentPhone, parentEmail, emailError]);
+        if (!isMinor) return true;
+        return parentName.trim() !== '' && parentCf.trim().length === 16 && parentPhone.trim() !== '';
+    }, [isMinor, parentName, parentCf, parentPhone]);
     
     const isFormComplete = useMemo(() => !!(
         isStudentInfoComplete &&
@@ -477,16 +447,9 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             </p>
 
             {!isMinor && isLocationComplete && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="phone">Numero di telefono:</Label>
-                        <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange}/>
-                        {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
-                    </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="phone">Numero di telefono:</Label>
+                    <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
                 </div>
             )}
 
@@ -507,24 +470,9 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
                         <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
                         <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} disabled={parentName.trim() === ''}/>
                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                            <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} disabled={parentCf.trim().length !== 16} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
-                            <Input 
-                                id="parent-email-confirm" 
-                                type="email" 
-                                placeholder="m@example.com" 
-                                required={isMinor}
-                                value={parentEmail}
-                                onChange={handleParentEmailChange}
-                                disabled={parentPhone.trim() === ''}
-                                 />
-                            {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
-                        </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="parent-phone">Numero di telefono:</Label>
+                        <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} disabled={parentCf.trim().length !== 16} />
                     </div>
                 </div>
             )}
@@ -557,7 +505,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
 
     <AlertDialog open={showBankTransferDialog} onOpenChange={(open) => {
         if (!open) {
-            setIsSubmitting(false); // Reset on close
+            setIsSubmitting(false);
         }
         setShowBankTransferDialog(open);
     }}>
@@ -613,3 +561,5 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     </AlertDialog>
     </>
   )
+
+    

@@ -4,17 +4,15 @@
 import { ClassSelection } from "@/components/class-selection";
 import { useEffect, useState } from "react";
 
-export default function ClassSelectionPage({ setLessonSelected }: { setLessonSelected?: (value: boolean) => void }) {
+export default function ClassSelectionPage({ setLessonSelected, userData }: { setLessonSelected?: (value: boolean) => void, userData?: any }) {
     const [initialStep, setInitialStep] = useState(1);
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
         setIsClient(true);
-        if (typeof window !== 'undefined') {
-            // Check if the user has completed the data entry and payment selection part.
-            // This is determined by the presence of key items in localStorage.
-            const isDataComplete = localStorage.getItem('isSelectionPassportComplete') === 'true';
-            const hasPaymentMethod = localStorage.getItem('paymentMethod');
+        if (userData) {
+            const isDataComplete = userData.isSelectionPassportComplete;
+            const hasPaymentMethod = userData.paymentMethod;
 
             if (isDataComplete || hasPaymentMethod) {
                 setInitialStep(2);
@@ -22,10 +20,10 @@ export default function ClassSelectionPage({ setLessonSelected }: { setLessonSel
                 setInitialStep(1);
             }
         }
-    }, []);
+    }, [userData]);
 
     if (!isClient) {
-        return null; // Or a loading component
+        return null;
     }
 
     return (
@@ -33,7 +31,10 @@ export default function ClassSelectionPage({ setLessonSelected }: { setLessonSel
             <ClassSelection 
                 setLessonSelected={setLessonSelected} 
                 initialStep={initialStep}
+                userData={userData}
             />
         </div>
     );
 }
+
+    

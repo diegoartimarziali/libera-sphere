@@ -13,8 +13,6 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
     const [isClient, setIsClient] = useState(false);
     const [forceShowForm, setForceShowForm] = useState(false);
 
-    // We can't use useSearchParams at the top level in page.tsx
-    // So we create a simple wrapper component.
     const SearchParamComponent = () => {
         const searchParams = useSearchParams();
         useEffect(() => {
@@ -44,6 +42,7 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
     const handleDataSaved = () => {
         setHasUserData(true);
         setWantsToEdit(false);
+        window.location.reload();
     }
 
     if (!isClient) {
@@ -57,7 +56,7 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
             </React.Suspense>
             {(hasUserData && !forceShowForm) ? (
                 wantsToEdit ? (
-                    <AssociateEditForm onSave={handleDataSaved} />
+                    <AssociateEditForm onSave={handleDataSaved} userData={userData} />
                 ) : (
                     <AssociateCard 
                         setAssociated={setAssociated} 
@@ -72,3 +71,5 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
         </div>
     );
 }
+
+    

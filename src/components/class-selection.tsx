@@ -32,6 +32,8 @@ import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "./ui/alert-dialog"
 import { Textarea } from "./ui/textarea"
+import { db, auth } from "@/lib/firebase"
+import { doc, updateDoc } from "firebase/firestore"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -56,7 +58,7 @@ const paymentOptions = [
 const SUMUP_PAYMENT_LINK = 'https://pay.sumup.com/b2c/Q25VI0NJ';
 
 
-export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLessonSelected?: (value: boolean) => void, initialStep?: number }) {
+export function ClassSelection({ setLessonSelected, initialStep = 1, userData }: { setLessonSelected?: (value: boolean) => void, initialStep?: number, userData?: any }) {
     const { toast } = useToast()
     const router = useRouter()
     const [currentStep, setCurrentStep] = useState(initialStep);
@@ -78,15 +80,11 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const [cap, setCap] = useState("");
     const [comune, setComune] = useState("");
     const [phone, setPhone] = useState("");
-    const [emailConfirm, setEmailConfirm] = useState("");
-    const [emailError, setEmailError] = useState(false);
 
     const [parentName, setParentName] = useState("");
     const [parentCf, setParentCf] = useState("");
     const [parentPhone, setParentPhone] = useState("");
-    const [parentEmail, setParentEmail] = useState("");
     
-    const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
     const [bonusAccepted, setBonusAccepted] = useState(false);
@@ -153,116 +151,93 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
 
     useEffect(() => {
         setCurrentStep(initialStep);
-        if (typeof window !== 'undefined') {
-            const savedDatesFlag = localStorage.getItem('selectionLessonDatesSaved') === 'true';
-            
-            if (savedDatesFlag) {
-                setDatesSaved(true);
-                const secondDateStr = localStorage.getItem('savedSecondLessonDate');
-                setSavedSecondLessonDate(secondDateStr);
-                setSavedThirdLessonDate(localStorage.getItem('savedThirdLessonDate'));
-                 if (secondDateStr) {
-                    try {
-                        // Use Italian locale for parsing month name
-                        const secondLessonDate = parse(secondDateStr, 'd MMMM yyyy', new Date(), { locale: it });
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        if (!isNaN(secondLessonDate.getTime()) && isAfter(today, secondLessonDate)) {
-                            setAssociationEnabled(true);
-                        }
-                    } catch (e) {
-                        console.error("Error parsing second lesson date", e);
-                        setAssociationEnabled(false);
-                    }
-                }
-            }
+        if (userData?.lessonSelected && userData?.selectionDetails) {
+            const { selectionDetails } = userData;
+            setDatesSaved(true);
+            setSavedSecondLessonDate(selectionDetails.secondLessonDate);
+            setSavedThirdLessonDate(selectionDetails.thirdLessonDate);
 
-            if (initialStep === 2) {
-                const storedBirthDate = localStorage.getItem('birthDate');
-                let age = null;
-                if (storedBirthDate) {
-                    const [day, month, year] = storedBirthDate.split('/');
-                    const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
+            if (selectionDetails.secondLessonDate) {
+                 try {
+                    const secondLessonDate = parse(selectionDetails.secondLessonDate, 'd MMMM yyyy', new Date(), { locale: it });
                     const today = new Date();
-                    age = today.getFullYear() - birthDateObj.getFullYear();
-                    const m = today.getMonth() - birthDateObj.getMonth();
-                    if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
-                        age--;
+                    today.setHours(0, 0, 0, 0);
+                    if (!isNaN(secondLessonDate.getTime()) && isAfter(today, secondLessonDate)) {
+                        setAssociationEnabled(true);
                     }
+                } catch (e) {
+                    console.error("Error parsing second lesson date", e);
+                    setAssociationEnabled(false);
                 }
-                
-                let paymentDate = localStorage.getItem('paymentDate');
-                if (localStorage.getItem('paymentMethod') === 'online' && !paymentDate) {
-                    paymentDate = format(new Date(), "dd/MM/yyyy HH:mm");
-                    localStorage.setItem('paymentDate', paymentDate);
-                } else if (localStorage.getItem('paymentMethod') === 'cash') {
-                    paymentDate = null; // Ensure no date for cash payment
-                }
-
-                setSummaryData({
-                    firstLesson: localStorage.getItem('lessonDate') || '',
-                    paymentMethod: localStorage.getItem('paymentMethod') || '',
-                    paymentDate: paymentDate,
-                    amount: localStorage.getItem('paymentAmount') || '',
-                    name: localStorage.getItem('userName') || '',
-                    age: age,
-                    comune: localStorage.getItem('comune') || '',
-                    phone: localStorage.getItem('phone') || '',
-                    isMinor: localStorage.getItem('isMinor') === 'true',
-                    parentName: localStorage.getItem('parentName') || '',
-                    parentPhone: localStorage.getItem('parentPhone') || ''
-                });
             }
         }
-    }, [initialStep]);
+
+
+        if (initialStep === 2) {
+            let age = null;
+            if (userData.birthDate) {
+                const [day, month, year] = userData.birthDate.split('/');
+                const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
+                const today = new Date();
+                age = today.getFullYear() - birthDateObj.getFullYear();
+                const m = today.getMonth() - birthDateObj.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
+                    age--;
+                }
+            }
+            
+            let paymentDate = userData.paymentDate;
+            if (userData.paymentMethod === 'online' && !paymentDate) {
+                paymentDate = format(new Date(), "dd/MM/yyyy HH:mm");
+            } else if (userData.paymentMethod === 'cash') {
+                paymentDate = null;
+            }
+
+            setSummaryData({
+                firstLesson: userData.lessonDate || '',
+                paymentMethod: userData.paymentMethod || '',
+                paymentDate: paymentDate,
+                amount: userData.paymentAmount || '',
+                name: userData.name || '',
+                age: age,
+                comune: userData.comune || '',
+                phone: userData.phone || '',
+                isMinor: userData.isMinor,
+                parentName: userData.parentName || '',
+                parentPhone: userData.parentPhone || ''
+            });
+        }
+    }, [initialStep, userData]);
 
     useEffect(() => {
-        // Reset lesson date if dojo changes
         setLessonDate("");
     }, [dojo]);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const storedName = localStorage.getItem('userName') || '';
-            // Don't set the name from local storage if it's the class selection form
-            // setName(storedName);
-            const storedCodiceFiscale = localStorage.getItem('codiceFiscale') || '';
-            const storedBirthDate = localStorage.getItem('birthDate');
-            const storedAddress = localStorage.getItem('address') || '';
-            const storedComune = localStorage.getItem('comune') || '';
-            const storedProvincia = localStorage.getItem('provincia') || '';
-            const storedBirthplace = localStorage.getItem('birthplace') || '';
-            const storedCivicNumber = localStorage.getItem('civicNumber') || '';
-            const storedCap = localStorage.getItem('cap') || '';
-            const storedPhone = localStorage.getItem('phone') || '';
-            const storedParentName = localStorage.getItem('parentName') || '';
-            const storedParentCf = localStorage.getItem('parentCf') || '';
-            const storedParentPhone = localStorage.getItem('parentPhone') || '';
-            
-            setCodiceFiscale(storedCodiceFiscale);
-            setAddress(storedAddress);
-            setComune(storedComune);
-            setProvincia(storedProvincia);
-            setBirthplace(storedBirthplace);
-            setCivicNumber(storedCivicNumber);
-            setCap(storedCap);
-            setPhone(storedPhone);
-            setParentName(storedParentName);
-            setParentCf(storedParentCf);
-            setParentPhone(storedParentPhone);
+        if(userData){
+            setName(userData.name || "");
+            setCodiceFiscale(userData.codiceFiscale || "");
+            setAddress(userData.address || "");
+            setComune(userData.comune || "");
+            setProvincia(userData.provincia || "");
+            setBirthplace(userData.birthplace || "");
+            setCivicNumber(userData.civicNumber || "");
+            setCap(userData.cap || "");
+            setPhone(userData.phone || "");
+            setParentName(userData.parentName || "");
+            setParentCf(userData.parentCf || "");
+            setParentPhone(userData.parentPhone || "");
            
-            if (storedBirthDate) {
-                const parts = storedBirthDate.split('/');
+            if (userData.birthDate) {
+                const parts = userData.birthDate.split('/');
                 if (parts.length === 3) {
                     setDay(parts[0]);
                     setMonth(parts[1]);
                     setYear(parts[2]);
                 }
             }
-
-            setRegistrationEmail(localStorage.getItem('registrationEmail'));
         }
-    }, []);
+    }, [userData]);
 
     useEffect(() => {
         if (day && month && year) {
@@ -277,87 +252,65 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         }
     }, [day, month, year]);
     
-    const saveDataToLocalStorage = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('martialArt', martialArt);
-            localStorage.setItem('selectedDojo', dojo);
-            localStorage.setItem('lessonDate', lessonDate);
-            localStorage.setItem('userName', name);
-            localStorage.setItem('codiceFiscale', codiceFiscale);
-            if (birthDate) {
-                localStorage.setItem('birthDate', `${day}/${month}/${year}`);
-            }
-            localStorage.setItem('birthplace', birthplace);
-            localStorage.setItem('address', address);
-            localStorage.setItem('civicNumber', civicNumber);
-            localStorage.setItem('cap', cap);
-            localStorage.setItem('comune', comune);
-            localStorage.setItem('provincia', provincia);
-            
-            if (isMinor) {
-                localStorage.setItem('isMinor', 'true');
-                localStorage.setItem('parentName', parentName);
-                localStorage.setItem('parentCf', parentCf);
-                localStorage.setItem('parentPhone', parentPhone);
-                localStorage.setItem('parentEmail', parentEmail);
-            } else {
-                localStorage.setItem('isMinor', 'false');
-                localStorage.setItem('phone', phone);
-                localStorage.setItem('emailConfirm', emailConfirm);
-            }
-            
-            if (paymentMethod) localStorage.setItem('paymentMethod', paymentMethod);
-            if (amount) localStorage.setItem('paymentAmount', amount);
+    const saveDataToFirestore = async () => {
+        const user = auth.currentUser;
+        if (!user) {
+            toast({ title: "Errore", description: "Utente non autenticato", variant: "destructive" });
+            return;
+        }
 
-            if (paymentMethod === 'cash') {
-                localStorage.removeItem('paymentDate');
-            }
+        const dataToUpdate = {
+            martialArt,
+            selectedDojo,
+            lessonDate,
+            name,
+            codiceFiscale,
+            birthDate: birthDate ? format(birthDate, "dd/MM/yyyy") : '',
+            birthplace,
+            address,
+            civicNumber,
+            cap,
+            comune,
+            provincia,
+            isMinor,
+            parentName: isMinor ? parentName : '',
+            parentCf: isMinor ? parentCf : '',
+            parentPhone: isMinor ? parentPhone : '',
+            phone: isMinor ? '' : phone,
+            paymentMethod,
+            paymentAmount: amount,
+            isSelectionPassportComplete: true,
+            paymentDate: paymentMethod === 'cash' ? null : format(new Date(), "dd/MM/yyyy HH:mm")
+        };
+
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, dataToUpdate);
+        } catch (error) {
+            console.error("Error updating user data:", error);
+            toast({ title: "Errore", description: "Impossibile salvare i dati.", variant: "destructive" });
+            throw error;
         }
     };
     
-    const handleNextStep = () => {
-        saveDataToLocalStorage();
-        setCurrentStep(2);
-        if (typeof window !== 'undefined') {
-            const storedBirthDate = localStorage.getItem('birthDate');
-            let age = null;
-            if (storedBirthDate) {
-                const [day, month, year] = storedBirthDate.split('/');
-                const birthDateObj = new Date(parseInt(year!), parseInt(month!) - 1, parseInt(day!));
-                const today = new Date();
-                age = today.getFullYear() - birthDateObj.getFullYear();
-                const m = today.getMonth() - birthDateObj.getMonth();
-                if (m < 0 || (m === 0 && today.getDate() < birthDateObj.getDate())) {
-                    age--;
-                }
-            }
-            
-            let paymentDate = localStorage.getItem('paymentDate');
-             if (localStorage.getItem('paymentMethod') === 'cash') {
-                paymentDate = null;
-            }
-
-            setSummaryData({
-                firstLesson: localStorage.getItem('lessonDate') || '',
-                paymentMethod: localStorage.getItem('paymentMethod') || '',
-                paymentDate: paymentDate,
-                amount: localStorage.getItem('paymentAmount') || '',
-                name: localStorage.getItem('userName') || '',
-                age: age,
-                comune: localStorage.getItem('comune') || '',
-                phone: localStorage.getItem('phone') || '',
-                isMinor: localStorage.getItem('isMinor') === 'true',
-                parentName: localStorage.getItem('parentName') || '',
-                parentPhone: localStorage.getItem('parentPhone') || ''
-            });
+    const handleNextStep = async () => {
+        try {
+            await saveDataToFirestore();
+            window.location.reload(); 
+        } catch (error) {
+            // Error is already toasted
         }
     };
 
-    const handleOnlinePayment = () => {
-        saveDataToLocalStorage();
-        const paymentUrl = encodeURIComponent(SUMUP_PAYMENT_LINK);
-        const returnUrl = encodeURIComponent('/dashboard/class-selection');
-        router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+    const handleOnlinePayment = async () => {
+        try {
+            await saveDataToFirestore();
+            const paymentUrl = encodeURIComponent(SUMUP_PAYMENT_LINK);
+            const returnUrl = encodeURIComponent('/dashboard/class-selection');
+            router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+        } catch (error) {
+            // Error is already toasted
+        }
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -399,26 +352,6 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         setParentName(capitalized);
     };
     
-    const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newEmail = e.target.value.toLowerCase();
-        setEmailConfirm(newEmail);
-        if (registrationEmail && newEmail && newEmail !== registrationEmail.toLowerCase()) {
-            setEmailError(true);
-        } else {
-            setEmailError(false);
-        }
-    }
-
-    const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newEmail = e.target.value.toLowerCase();
-        setParentEmail(newEmail);
-        if (registrationEmail && newEmail && newEmail !== registrationEmail.toLowerCase()) {
-            setEmailError(true);
-        } else {
-            setEmailError(false);
-        }
-    }
-    
     const isMinor = useMemo(() => {
         if (!birthDate) return false;
         const today = new Date();
@@ -430,31 +363,42 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         return age < 18;
     }, [birthDate]);
 
-    const handleSaveDates = () => {
-        const formatDate = (day: string | undefined, month: string | undefined, year: string | undefined): string => {
+    const handleSaveDates = async () => {
+        const user = auth.currentUser;
+        if (!user) {
+            toast({ title: "Errore", description: "Utente non autenticato", variant: "destructive" });
+            return;
+        }
+
+        const formatDateStr = (day: string | undefined, month: string | undefined, year: string | undefined): string => {
             if (!day || !month || !year) return '';
             const monthLabel = months.find(m => m.value === month)?.label;
             if (!monthLabel) return '';
             return `${day} ${monthLabel} ${year}`;
         }
         
-        const secondDate = formatDate(secondLessonDay, secondLessonMonth, secondLessonYear);
-        const thirdDate = formatDate(thirdLessonDay, thirdLessonMonth, thirdLessonYear);
+        const secondDate = formatDateStr(secondLessonDay, secondLessonMonth, secondLessonYear);
+        const thirdDate = formatDateStr(thirdLessonDay, thirdLessonMonth, thirdLessonYear);
 
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('selectionLessonDatesSaved', 'true');
-            localStorage.setItem('savedSecondLessonDate', secondDate);
-            localStorage.setItem('savedThirdLessonDate', thirdDate);
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, {
+                lessonSelected: true,
+                selectionDetails: {
+                    secondLessonDate: secondDate,
+                    thirdLessonDate: thirdDate
+                }
+            });
+
+             toast({
+                title: "Date salvate!",
+                description: "Le date delle lezioni sono state aggiornate.",
+            });
+            window.location.reload();
+        } catch (error) {
+             console.error("Error saving dates:", error);
+            toast({ title: "Errore", description: "Impossibile salvare le date.", variant: "destructive" });
         }
-
-        setSavedSecondLessonDate(secondDate);
-        setSavedThirdLessonDate(thirdDate);
-        setDatesSaved(true);
-        toast({
-            title: "Date salvate!",
-            description: "Le date delle lezioni sono state aggiornate.",
-        });
-        window.location.reload();
     };
 
     const canSaveDates = useMemo(() => {
@@ -470,12 +414,19 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
         thirdLessonYear,
     ]);
 
-    const handleExit = () => {
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('isSelectionPassportComplete', 'true');
-            localStorage.setItem('isInsured', 'true');
+    const handleExit = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+        try {
+            await updateDoc(doc(db, "users", user.uid), {
+                isSelectionPassportComplete: true, // Should already be set but good to be sure
+                isInsured: true
+            });
+             router.push('/dashboard');
+        } catch(error) {
+            console.error("Error finalising selection passport", error);
+            toast({title: "Errore", description: "Si è verificato un problema, riprova."})
         }
-        router.push('/dashboard');
     }
     
     const handleAssociationChoiceChange = (choice: 'yes' | 'no') => {
@@ -494,8 +445,8 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
             description: "Il tuo account e i tuoi dati verranno eliminati a breve.",
         });
         setShowLeaveConfirm(false);
-        // Potentially clear localStorage and redirect
-        // localStorage.clear();
+        // Potentially clear data and redirect
+        // auth.signOut();
         // router.push('/');
     }
 
@@ -514,10 +465,10 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
     const isContactInfoComplete = useMemo(() => {
         if (!isPersonalInfoComplete) return false;
         if (isMinor) {
-            return !!(parentName && parentCf && parentPhone && parentEmail && !emailError);
+            return !!(parentName && parentCf && parentPhone);
         }
-        return !!(phone && emailConfirm && !emailError);
-    }, [isMinor, isPersonalInfoComplete, parentName, parentCf, parentPhone, parentEmail, phone, emailConfirm, emailError]);
+        return !!phone;
+    }, [isMinor, isPersonalInfoComplete, parentName, parentCf, parentPhone, phone]);
     
     const isPaymentSectionComplete = !!(paymentMethod);
 
@@ -645,16 +596,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                     {/* Contact Info (Adult or Minor) */}
                     <div className="space-y-4">
                         {!isMinor ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone">Numero di telefono:</Label>
-                                    <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!isPersonalInfoComplete} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                                    <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange} disabled={!isPersonalInfoComplete}/>
-                                    {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
-                                </div>
+                             <div className="space-y-2">
+                                <Label htmlFor="phone">Numero di telefono:</Label>
+                                <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!isPersonalInfoComplete} />
                             </div>
                         ) : (
                             <div className="space-y-4 pt-4 mt-4 border-t">
@@ -667,16 +611,9 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
                                     <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
                                     <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())} disabled={!isPersonalInfoComplete} />
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                                        <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} disabled={!isPersonalInfoComplete} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="parent-email-confirm">Conferma email per contatti:</Label>
-                                        <Input id="parent-email-confirm" type="email" placeholder="m@example.com" required={isMinor} value={parentEmail} onChange={handleParentEmailChange} disabled={!isPersonalInfoComplete} />
-                                        {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="parent-phone">Numero di telefono:</Label>
+                                    <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} disabled={!isPersonalInfoComplete} />
                                 </div>
                             </div>
                         )}
@@ -912,3 +849,4 @@ export function ClassSelection({ setLessonSelected, initialStep = 1 }: { setLess
   )
 }
 
+    
