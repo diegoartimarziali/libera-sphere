@@ -217,24 +217,23 @@ export function EventBooking() {
             },
             (error) => {
                 console.error("Upload failed:", error);
-                reject("Caricamento del volantino fallito.");
+                reject(error);
             },
             () => {
-                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                    resolve(downloadURL);
-                }).catch(reject);
+                getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
             }
         );
     });
-  }
+}
 
-  const handleSaveStage = async () => {
+const handleSaveStage = async () => {
     if (!currentStage.name) {
         toast({ title: "Dati mancanti", description: "Il nome dello stage è obbligatorio.", variant: "destructive"});
         return;
     }
     
     let stageData = { ...currentStage };
+    setIsUploading(true); // Set uploading true at the start of the save process
 
     try {
         if (flyerFile) {
@@ -243,23 +242,28 @@ export function EventBooking() {
         }
 
         if (isEditing && stageData.id) {
-            const stageRef = doc(db, "events", stageData.id);
-            await updateDoc(stageRef, stageData);
+            const { id, ...dataToUpdate } = stageData;
+            const stageRef = doc(db, "events", id);
+            await updateDoc(stageRef, dataToUpdate);
             toast({ title: "Stage Aggiornato", description: "I dati dello stage sono stati aggiornati."});
         } else {
             await addDoc(collection(db, "events"), { ...stageData, createdAt: Timestamp.now() });
             toast({ title: "Stage Creato", description: "Il nuovo stage è stato aggiunto."});
         }
-        
-    } catch (error) {
+        setOpenDialog(false);
+    } catch (error: any) {
         console.error("Error saving stage:", error);
-        toast({ title: "Errore", description: `Impossibile salvare i dati dello stage. ${error}`, variant: "destructive" });
+        toast({ 
+            title: "Errore nel salvataggio", 
+            description: `Impossibile salvare i dati. Errore: ${error.message || 'Sconosciuto'}`, 
+            variant: "destructive" 
+        });
     } finally {
         setIsUploading(false);
         setUploadProgress(0);
-        setOpenDialog(false);
     }
   };
+
 
   const handleDialogChange = (open: boolean) => {
     if (!open) {
@@ -429,3 +433,5 @@ export function EventBooking() {
     </>
   )
 }
+
+    
