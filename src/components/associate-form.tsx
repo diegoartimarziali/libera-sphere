@@ -27,7 +27,7 @@ import { Separator } from "./ui/separator"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog"
 import { Copy, Loader2 } from "lucide-react"
 import { db, auth } from "@/lib/firebase"
-import { collection, addDoc, serverTimestamp, doc, updateDoc, getDoc } from "firebase/firestore"
+import { doc, updateDoc } from "firebase/firestore"
 import { format } from "date-fns"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
@@ -40,7 +40,7 @@ const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(cu
 
 const SUMUP_ASSOCIATION_LINK = 'https://pay.sumup.com/b2c/Q9ZH35JE';
 
-export function AssociateForm({ setHasUserData, userData: initialUserData }: { setHasUserData: (value: boolean) => void, userData?: any }) {
+export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (value: boolean) => void, userData?: any }) {
     const { toast } = useToast()
     const router = useRouter()
     
@@ -89,31 +89,33 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
     }
 
     useEffect(() => {
-        if (initialUserData) {
-            setName(initialUserData.name || "");
-            setCodiceFiscale(initialUserData.codiceFiscale || "");
-            if (initialUserData.birthDate) {
-                const parts = initialUserData.birthDate.split('/');
+        if (userData) {
+            setName(userData.name || "");
+            setCodiceFiscale(userData.codiceFiscale || "");
+            if (userData.birthDate) {
+                const parts = userData.birthDate.split('/');
                 if (parts.length === 3) {
                     setDay(parts[0]);
                     setMonth(parts[1]);
                     setYear(parts[2]);
                 }
             }
-            setBirthplace(initialUserData.birthplace || "");
-            setAddress(initialUserData.address || "");
-            setCivicNumber(initialUserData.civicNumber || "");
-            setCap(initialUserData.cap || "");
-            setComune(initialUserData.comune || "");
-            setProvincia(initialUserData.provincia || "");
-            setPhone(initialUserData.phone || "");
-            setParentName(initialUserData.parentName || "");
-            setParentCf(initialUserData.parentCf || "");
-            setParentPhone(initialUserData.parentPhone || "");
-            setParentEmail(initialUserData.parentEmail || "");
-            setEmailConfirm(initialUserData.email || "");
+            setBirthplace(userData.birthplace || "");
+            setAddress(userData.address || "");
+            setCivicNumber(userData.civicNumber || "");
+            setCap(userData.cap || "");
+            setComune(userData.comune || "");
+            setProvincia(userData.provincia || "");
+            setPhone(userData.phone || "");
+            setParentName(userData.parentName || "");
+            setParentCf(userData.parentCf || "");
+            setParentPhone(userData.parentPhone || "");
+            setParentEmail(userData.parentEmail || "");
+            setEmailConfirm(userData.email || "");
+            setMartialArt(userData.martialArt);
+            setDojo(userData.selectedDojo);
         }
-    }, [initialUserData]);
+    }, [userData]);
 
     useEffect(() => {
         if (paymentMethod === 'online' || paymentMethod === 'bank') {
@@ -146,11 +148,9 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
         }
 
         const dataToUpdate: any = {
-            martialArt,
-            selectedDojo,
             name,
             codiceFiscale,
-            birthDate: `${day}/${month}/${year}`,
+            birthDate: birthDate ? format(birthDate, "dd/MM/yyyy") : '',
             birthplace,
             address,
             civicNumber,
@@ -162,7 +162,8 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
             paymentAmount: amount,
             associationStatus: 'requested',
             associationRequestDate: format(new Date(), "dd/MM/yyyy"),
-            lessonSelected: true,
+            martialArt,
+            selectedDojo
         };
 
         if (isMinor) {
@@ -178,16 +179,6 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
 
-            await addDoc(collection(db, "subscriptions"), {
-                userEmail: user.email,
-                planId: "associazione_annuale",
-                planName: "Quota Associativa",
-                price: amount,
-                paymentMethod: paymentMethod,
-                status: 'In attesa',
-                subscriptionDate: serverTimestamp()
-            });
-
         } catch (error) {
             console.error("Error writing data to Firestore: ", error);
             toast({ title: "Errore Database", description: "Impossibile salvare i dati.", variant: "destructive" });
@@ -196,10 +187,8 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
     };
 
     const proceedToConfirmation = () => {
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, '', newUrl);
         setHasUserData(true);
-        setTimeout(() => window.location.reload(), 100);
+        window.location.reload()
     }
     
     const handlePayment = async () => {
@@ -223,14 +212,17 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
                 proceedToConfirmation();
             }
         } catch (error) {
-            // Error is already toasted
+             // Error is already toasted, do nothing
         } finally {
-            setIsSubmitting(false);
+            if (paymentMethod !== 'bank') {
+                setIsSubmitting(false);
+            }
         }
     };
 
      const handleConfirmBankTransfer = () => {
         setShowBankTransferDialog(false);
+        setIsSubmitting(false);
         toast({
             title: "Dati Salvati e Domanda Inviata!",
             description: "Effettua il bonifico usando i dati forniti. La tua domanda verrà approvata alla ricezione del pagamento.",
@@ -289,7 +281,7 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
     const handleEmailConfirmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newEmail = e.target.value.toLowerCase();
         setEmailConfirm(newEmail);
-        if (initialUserData?.email && newEmail && newEmail !== initialUserData.email.toLowerCase()) {
+        if (userData?.email && newEmail && newEmail !== userData.email.toLowerCase()) {
             setEmailError(true);
         } else {
             setEmailError(false);
@@ -299,7 +291,7 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
     const handleParentEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newEmail = e.target.value.toLowerCase();
         setParentEmail(newEmail);
-        if (initialUserData?.email && newEmail && newEmail !== initialUserData.email.toLowerCase()) {
+        if (userData?.email && newEmail && newEmail !== userData.email.toLowerCase()) {
             setEmailError(true);
         } else {
             setEmailError(false);
@@ -328,7 +320,11 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
 
     const isParentInfoComplete = isMinor && parentName.trim() !== '' && parentCf.trim().length === 16 && parentPhone.trim() !== '' && parentEmail.trim() !== '' && !emailError;
     
-    const isFormComplete = ((isStudentInfoComplete && !isMinor) || (isStudentInfoComplete && isParentInfoComplete)) && !!paymentMethod;
+    const isFormComplete = !!(
+        isStudentInfoComplete &&
+        (!isMinor || isParentInfoComplete) &&
+        paymentMethod
+    );
 
 
   return (
@@ -479,15 +475,15 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
                 Chiede di essere ammesso in qualità di socio all'associazione Libera Energia.
             </p>
 
-            {!isMinor && (
+            {!isMinor && isLocationComplete && (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="phone">Numero di telefono:</Label>
-                        <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} disabled={!isLocationComplete} />
+                        <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="email-confirm">Conferma email per contatti:</Label>
-                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange} disabled={!isLocationComplete}/>
+                        <Input id="email-confirm" type="email" placeholder="m@example.com" required={!isMinor} value={emailConfirm} onChange={handleEmailConfirmChange}/>
                         {emailError && <p className="text-sm text-destructive">L'email di contatto deve essere uguale all'email di registrazione</p>}
                     </div>
                 </div>
@@ -558,7 +554,12 @@ export function AssociateForm({ setHasUserData, userData: initialUserData }: { s
         </CardFooter>
     </Card>
 
-    <AlertDialog open={showBankTransferDialog} onOpenChange={setShowBankTransferDialog}>
+    <AlertDialog open={showBankTransferDialog} onOpenChange={(open) => {
+        setShowBankTransferDialog(open);
+        if (!open) {
+            setIsSubmitting(false); // Reset submitting state when dialog is closed
+        }
+    }}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Dati per Bonifico Bancario</AlertDialogTitle>
