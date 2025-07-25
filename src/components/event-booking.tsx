@@ -18,10 +18,11 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "./ui/button"
-import { FileText, Loader2, MoreHorizontal, PlusCircle, Trash } from "lucide-react"
-import { useEffect, useState } from "react"
-import { db } from "@/lib/firebase"
+import { FileText, Loader2, MoreHorizontal, PlusCircle, Trash, Upload } from "lucide-react"
+import { useEffect, useState, useRef } from "react"
+import { db, storage } from "@/lib/firebase"
 import { collection, addDoc, getDocs, query, where, Timestamp, onSnapshot, doc, deleteDoc, updateDoc } from "firebase/firestore"
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"
 import { useToast } from "./ui/use-toast"
 import {
   DropdownMenu,
@@ -38,10 +39,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
+import { Progress } from "./ui/progress"
 
 
 interface Stage {
@@ -69,6 +70,11 @@ export function EventBooking() {
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentStage, setCurrentStage] = useState<Partial<Stage>>({});
+
+  const [flyerFile, setFlyerFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const showAdminFeatures = process.env.NODE_ENV === 'development' || (typeof window !== 'undefined' && window.location.hostname === 'localhost');
 
@@ -169,12 +175,16 @@ export function EventBooking() {
   const handleAddNewStage = () => {
     setIsEditing(false);
     setCurrentStage({});
+    setFlyerFile(null);
+    setUploadProgress(0);
     setOpenDialog(true);
   };
 
   const handleEditStage = (stage: Stage) => {
     setIsEditing(true);
     setCurrentStage(stage);
+    setFlyerFile(null);
+    setUploadProgress(0);
     setOpenDialog(true);
   };
 
@@ -194,33 +204,77 @@ export function EventBooking() {
     }
   };
 
+  const uploadFlyer = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        setIsUploading(true);
+        const storageRef = ref(storage, `flyers/${Date.now()}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        uploadTask.on('state_changed',
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                setUploadProgress(progress);
+            },
+            (error) => {
+                console.error("Upload failed:", error);
+                reject("Caricamento del volantino fallito.");
+            },
+            () => {
+                getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                    resolve(downloadURL);
+                }).catch(reject);
+            }
+        );
+    });
+  }
+
   const handleSaveStage = async () => {
     if (!currentStage.name) {
         toast({ title: "Dati mancanti", description: "Il nome dello stage è obbligatorio.", variant: "destructive"});
         return;
     }
+    
+    let stageData = { ...currentStage };
 
     try {
-        if (isEditing && currentStage.id) {
-            const stageRef = doc(db, "events", currentStage.id);
-            await updateDoc(stageRef, currentStage);
+        if (flyerFile) {
+            const downloadURL = await uploadFlyer(flyerFile);
+            stageData.flyerUrl = downloadURL;
+        }
+
+        if (isEditing && stageData.id) {
+            const stageRef = doc(db, "events", stageData.id);
+            await updateDoc(stageRef, stageData);
             toast({ title: "Stage Aggiornato", description: "I dati dello stage sono stati aggiornati."});
         } else {
-            await addDoc(collection(db, "events"), { ...currentStage, createdAt: Timestamp.now() });
+            await addDoc(collection(db, "events"), { ...stageData, createdAt: Timestamp.now() });
             toast({ title: "Stage Creato", description: "Il nuovo stage è stato aggiunto."});
         }
-        setOpenDialog(false);
+        
     } catch (error) {
         console.error("Error saving stage:", error);
-        toast({ title: "Errore", description: "Impossibile salvare i dati dello stage.", variant: "destructive" });
+        toast({ title: "Errore", description: `Impossibile salvare i dati dello stage. ${error}`, variant: "destructive" });
+    } finally {
+        setIsUploading(false);
+        setUploadProgress(0);
+        setOpenDialog(false);
     }
   };
 
   const handleDialogChange = (open: boolean) => {
     if (!open) {
         setCurrentStage({});
+        setFlyerFile(null);
+        setUploadProgress(0);
+        setIsUploading(false);
     }
     setOpenDialog(open);
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+        setFlyerFile(e.target.files[0]);
+    }
   }
 
   return (
@@ -348,18 +402,30 @@ export function EventBooking() {
                     <Input id="contribution" value={currentStage.contribution || ''} onChange={(e) => setCurrentStage({...currentStage, contribution: e.target.value})} className="col-span-3" placeholder="Es. 25" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="flyerUrl" className="text-right">URL Volantino</Label>
-                    <Input id="flyerUrl" value={currentStage.flyerUrl || ''} onChange={(e) => setCurrentStage({...currentStage, flyerUrl: e.target.value})} className="col-span-3" placeholder="https://..." />
+                    <Label htmlFor="flyerUrl" className="text-right">Volantino</Label>
+                    <div className="col-span-3 space-y-2">
+                        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                           <Upload className="mr-2 h-4 w-4" /> Carica File
+                        </Button>
+                        <input type="file" ref={fileInputRef} onChange={handleFileSelect} className="hidden" accept="application/pdf,image/*" />
+                        {flyerFile && <p className="text-sm text-muted-foreground">{flyerFile.name}</p>}
+                        {isUploading && <Progress value={uploadProgress} className="w-full h-2" />}
+                         {!flyerFile && currentStage.flyerUrl && (
+                             <a href={currentStage.flyerUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline truncate block">
+                                Visualizza volantino attuale
+                             </a>
+                         )}
+                    </div>
                 </div>
             </div>
             <DialogFooter>
                 <Button variant="outline" onClick={() => setOpenDialog(false)}>Annulla</Button>
-                <Button onClick={handleSaveStage}>Salva</Button>
+                <Button onClick={handleSaveStage} disabled={isUploading}>
+                    {isUploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Caricamento...</> : 'Salva'}
+                </Button>
             </DialogFooter>
         </DialogContent>
     </Dialog>
     </>
   )
 }
-
-    
