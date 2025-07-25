@@ -218,7 +218,7 @@ export default function DashboardLayout({
         }
     } else if (userData && !userData.regulationsAccepted && currentPath !== '/dashboard/regulations' && currentPath !== '/dashboard/liberasphere' && !essentialPages.includes(currentPath)) {
        router.push('/dashboard/regulations');
-    } else if (userData && userData.isFormerMember === 'yes' && !associated && associationStatus !== 'requested' && !essentialPages.includes(currentPath) && currentPath !== '/dashboard/associates' && currentPath !== '/dashboard/liberasphere' && currentPath !== '/dashboard/regulations') {
+    } else if (userData && userData.isFormerMember === 'yes' && !associated && userData.associationStatus !== 'requested' && !essentialPages.includes(currentPath) && currentPath !== '/dashboard/associates' && currentPath !== '/dashboard/liberasphere' && currentPath !== '/dashboard/regulations') {
       router.push('/dashboard/associates?renewal=true');
     }
   }, [isDataReady, pathname, router, userData, isMedicalBlocked, isSubscriptionBlocked, associated]);
