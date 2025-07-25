@@ -43,12 +43,18 @@ import {
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 import { Progress } from "./ui/progress"
+import { format, isPast, parseISO } from "date-fns"
+import { it } from "date-fns/locale"
+import { cn } from "@/lib/utils"
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
+import { CalendarIcon } from "lucide-react"
+import { Calendar } from "./ui/calendar"
 
 
 interface Stage {
   id: string;
   name: string;
-  date: string;
+  date: string; // ISO date string (e.g., "2024-05-11T00:00:00.000Z")
   time: string;
   participants: string;
   contribution: string;
@@ -70,6 +76,7 @@ export function EventBooking() {
   const [openDialog, setOpenDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentStage, setCurrentStage] = useState<Partial<Stage>>({});
+  const [stageDate, setStageDate] = useState<Date | undefined>();
 
   const [flyerFile, setFlyerFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -83,6 +90,7 @@ export function EventBooking() {
     const stagesQuery = query(collection(db, "events"), where("isDeleted", "!=", true));
     const unsubscribeStages = onSnapshot(stagesQuery, (snapshot) => {
         const stagesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Stage));
+        stagesData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         setStages(stagesData);
         setLoadingStages(false);
     }, (error) => {
@@ -131,9 +139,8 @@ export function EventBooking() {
       setSubmittingStage(stageId);
       const userEmail = localStorage.getItem('registrationEmail');
       const userName = localStorage.getItem('userName');
-      const userId = localStorage.getItem('userId');
-
-      if (!userEmail || !userName || !userId) {
+      
+      if (!userEmail || !userName) {
           toast({
               title: "Utente non riconosciuto",
               description: "Effettua nuovamente il login per iscriverti.",
@@ -147,7 +154,6 @@ export function EventBooking() {
           await addDoc(collection(db, "eventRegistrations"), {
               userEmail,
               userName,
-              userId,
               stageId,
               stageName,
               stageDate,
@@ -177,6 +183,7 @@ export function EventBooking() {
   const handleAddNewStage = () => {
     setIsEditing(false);
     setCurrentStage({});
+    setStageDate(undefined);
     setFlyerFile(null);
     setUploadProgress(0);
     setOpenDialog(true);
@@ -185,6 +192,7 @@ export function EventBooking() {
   const handleEditStage = (stage: Stage) => {
     setIsEditing(true);
     setCurrentStage(stage);
+    setStageDate(stage.date ? parseISO(stage.date) : undefined);
     setFlyerFile(null);
     setUploadProgress(0);
     setOpenDialog(true);
@@ -238,13 +246,16 @@ export function EventBooking() {
 }
 
 const handleSaveStage = async () => {
-    if (!currentStage.name) {
-        toast({ title: "Dati mancanti", description: "Il nome dello stage è obbligatorio.", variant: "destructive"});
+    if (!currentStage.name || !stageDate) {
+        toast({ title: "Dati mancanti", description: "Il nome e la data dello stage sono obbligatori.", variant: "destructive"});
         return;
     }
     
     setSubmittingStage('save');
-    let stageData = { ...currentStage };
+    let stageData: Partial<Stage> & { date: string } = { 
+        ...currentStage,
+        date: stageDate.toISOString() // Save date in standard ISO format
+    };
 
     try {
         if (flyerFile) {
@@ -281,6 +292,7 @@ const handleSaveStage = async () => {
   const handleDialogChange = (open: boolean) => {
     if (!open) {
         setCurrentStage({});
+        setStageDate(undefined);
         setFlyerFile(null);
         setUploadProgress(0);
         setIsUploading(false);
@@ -294,6 +306,16 @@ const handleSaveStage = async () => {
         setFlyerFile(e.target.files[0]);
     }
   }
+
+  const formatDate = (isoDate: string) => {
+      try {
+        const date = parseISO(isoDate);
+        return format(date, "EEEE dd MMMM yyyy", { locale: it });
+      } catch (error) {
+        console.error("Invalid date format:", isoDate);
+        return "Data non valida";
+      }
+  };
 
   return (
     <>
@@ -331,17 +353,18 @@ const handleSaveStage = async () => {
               const isSubmitting = submittingStage === stage.id;
               const registeredCount = stageCounts[stage.id] || 0;
               const totalCount = registeredCount + 4; // Add base of 4 technicians
+              const pastEvent = isPast(parseISO(stage.date));
 
               return (
-              <TableRow key={stage.id}>
+              <TableRow key={stage.id} className={cn(pastEvent && "text-muted-foreground opacity-60")}>
                 <TableCell className="font-medium">{stage.name}</TableCell>
-                <TableCell>{stage.date}</TableCell>
+                <TableCell className="capitalize">{formatDate(stage.date)}</TableCell>
                 <TableCell>{stage.time}</TableCell>
                 <TableCell>{stage.participants}</TableCell>
                 <TableCell>€ {stage.contribution}</TableCell>
                 <TableCell className="font-bold text-center">{totalCount}</TableCell>
                 <TableCell>
-                   <a href={stage.flyerUrl || '#'} target="_blank" rel="noopener noreferrer" className={`transition-colors ${stage.flyerUrl ? 'text-muted-foreground hover:text-primary' : 'text-muted-foreground/50 cursor-not-allowed'}`}>
+                   <a href={stage.flyerUrl || '#'} target="_blank" rel="noopener noreferrer" className={cn("transition-colors", stage.flyerUrl ? 'text-primary' : 'text-muted-foreground/50 cursor-not-allowed', pastEvent ? 'text-muted-foreground/80 hover:text-muted-foreground' : 'hover:text-primary')}>
                       <FileText className="h-5 w-5" />
                       <span className="sr-only">Visualizza volantino</span>
                    </a>
@@ -351,18 +374,18 @@ const handleSaveStage = async () => {
                     variant={isRegistered ? "secondary" : "outline"} 
                     size="sm"
                     onClick={() => handleSubscription(stage.id, stage.name, stage.date)}
-                    disabled={isRegistered || isSubmitting}
+                    disabled={isRegistered || isSubmitting || pastEvent}
                   >
                     {isSubmitting ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : isRegistered ? 'Iscritto' : 'Iscriviti'}
+                    ) : isRegistered ? 'Iscritto' : (pastEvent ? 'Concluso' : 'Iscriviti')}
                   </Button>
                 </TableCell>
                 {showAdminFeatures && (
                     <TableCell className="text-right">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button size="icon" variant="ghost">
+                                <Button size="icon" variant="ghost" disabled={pastEvent}>
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -406,7 +429,29 @@ const handleSaveStage = async () => {
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="date" className="text-right">Data</Label>
-                    <Input id="date" value={currentStage.date || ''} onChange={(e) => setCurrentStage({...currentStage, date: e.target.value})} className="col-span-3" placeholder="Es. sabato-11-maggio-2025" />
+                     <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                            variant={"outline"}
+                            className={cn(
+                                "col-span-3 justify-start text-left font-normal",
+                                !stageDate && "text-muted-foreground"
+                            )}
+                            >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {stageDate ? format(stageDate, 'PPP', { locale: it }) : <span>Scegli una data</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                            <Calendar
+                            mode="single"
+                            selected={stageDate}
+                            onSelect={setStageDate}
+                            initialFocus
+                            locale={it}
+                            />
+                        </PopoverContent>
+                    </Popover>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="time" className="text-right">Orario</Label>

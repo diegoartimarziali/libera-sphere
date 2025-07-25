@@ -58,6 +58,7 @@ export function MemberSummaryCard() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [subscriptionExpiry, setSubscriptionExpiry] = useState<Date | null>(null);
   const [monthlyStatus, setMonthlyStatus] = useState<'valido' | 'in_scadenza' | 'scaduto' | 'non_attivo'>('non_attivo');
+  const [stageParticipationCount, setStageParticipationCount] = useState<number>(0);
 
 
   useEffect(() => {
@@ -178,6 +179,8 @@ export function MemberSummaryCard() {
           setMonthlyStatus('non_attivo');
       }
 
+      const participationCount = parseInt(localStorage.getItem('stageParticipationCount') || '0');
+      setStageParticipationCount(participationCount);
     }
     const kanji = kanjiList[Math.floor(Math.random() * kanjiList.length)];
     if(kanji) {
@@ -280,6 +283,13 @@ export function MemberSummaryCard() {
         }
         return <span className="font-medium text-red-600">Non attivo</span>;
   };
+
+  const renderParticipationStatus = (count: number) => {
+      if (count === 0) {
+          return <span className="font-medium text-red-600">Nessuna</span>;
+      }
+      return <span className="font-medium text-green-700">{count}</span>;
+  }
 
 
   const simulateApproval = () => {
@@ -390,7 +400,7 @@ export function MemberSummaryCard() {
                   Prossimo esame: <span className="font-medium text-red-600">Nessuno</span>
               </div>
               <div className="text-muted-foreground">
-                  Partecipazione stage: <span className="font-medium text-red-600">N/D</span>
+                  Partecipazione stage: {renderParticipationStatus(stageParticipationCount)}
               </div>
               <div className="text-muted-foreground">
                   Regolarità allenamenti: <span className="font-medium text-red-600">N/D</span>
