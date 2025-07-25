@@ -245,7 +245,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
                 // No need to set isSubmitting to false here, as we are navigating away.
             } else if (paymentMethod === 'bank') {
                 setShowBankTransferDialog(true);
-                // isSubmitting will be set to false when the dialog is closed.
+                // isSubmitting will be set to false when the dialog is closed via onOpenChange.
             } else if (paymentMethod === 'cash') {
                 toast({
                     title: "Dati Salvati e Domanda Inviata!",
@@ -262,7 +262,6 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
 
      const handleConfirmBankTransfer = async () => {
         setShowBankTransferDialog(false);
-        setIsSubmitting(false);
         toast({
             title: "Dati Salvati e Domanda Inviata!",
             description: "Effettua il bonifico usando i dati forniti. La tua domanda verrà approvata alla ricezione del pagamento.",

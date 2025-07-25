@@ -342,14 +342,13 @@ export function ClassSelection({ setLessonSelected, initialStep = 1, userData }:
                 const paymentUrl = encodeURIComponent(SUMUP_PAYMENT_LINK);
                 const returnUrl = encodeURIComponent('/dashboard/class-selection');
                 router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-                // No need to reset isSubmitting, we are navigating away.
+                // Don't reset isSubmitting here, the page is changing.
             } else if(paymentMethod === 'cash') {
                  toast({
                     title: "Iscrizione completata!",
                     description: "I tuoi dati sono stati salvati. Ci vediamo a lezione!",
                 });
                 window.location.reload();
-                setIsSubmitting(false);
             }
         } catch (error) {
             setIsSubmitting(false);
