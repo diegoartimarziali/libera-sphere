@@ -60,8 +60,8 @@ export function PaymentHistory() {
       try {
         const q = query(
           collection(db, "subscriptions"), 
-          where("userEmail", "==", userEmail)
-          // orderBy("subscriptionDate", "desc") // Temporarily removed to prevent index error
+          where("userEmail", "==", userEmail),
+          orderBy("subscriptionDate", "desc")
         );
         
         const querySnapshot = await getDocs(q);
@@ -77,19 +77,11 @@ export function PaymentHistory() {
             } as Subscription;
         });
 
-        // Manual sort after fetching
-        subsData.sort((a, b) => {
-            if (a.subscriptionDate && b.subscriptionDate) {
-                return b.subscriptionDate.toMillis() - a.subscriptionDate.toMillis();
-            }
-            return 0;
-        });
-
         setSubscriptions(subsData);
         setError(null);
       } catch (err) {
         console.error("Error fetching subscriptions:", err);
-        setError("Errore nel recupero dello storico dei pagamenti. Riprova più tardi.");
+        setError("Errore nel recupero dello storico dei pagamenti. Controlla la console del browser per creare l'indice Firestore necessario.");
       } finally {
         setIsLoading(false);
       }
