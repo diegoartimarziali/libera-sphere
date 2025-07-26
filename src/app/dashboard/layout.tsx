@@ -129,7 +129,7 @@ function AuthRedirector({ userData, children }: { userData: DocumentData, childr
                 router.push('/dashboard/associates');
             }
         }
-    }, [userData, pathname, router]);
+    }, [userData, pathname]);
 
     return <>{children}</>;
 }
