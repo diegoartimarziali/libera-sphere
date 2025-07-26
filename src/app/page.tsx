@@ -20,7 +20,7 @@ const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
         xmlns="http://www.w3.org/2000/svg" 
         width="24" 
         height="24" 
-        viewBox="0 0 24 24" 
+        viewBox="0 0 24" 
         fill="currentColor"
         {...props}>
         <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" fontSize="24" fontFamily="serif">
@@ -140,6 +140,7 @@ export default function AuthPage() {
         router.push('/dashboard/liberasphere');
     } catch (error: any) {
         let description = "Si è verificato un errore durante la registrazione. Riprova.";
+        // Firebase wraps the specific error in a 'cause' object
         if (error.code === 'auth/email-already-in-use') {
             description = "Questa email è già in uso. Prova ad accedere.";
         }
