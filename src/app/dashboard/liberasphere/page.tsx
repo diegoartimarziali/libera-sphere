@@ -29,14 +29,9 @@ export default function LiberaSpherePage() {
     const [grade, setGrade] = useState<string | undefined>();
     const [isLoading, setIsLoading] = useState(false);
 
+    // Simplified logic: The button is enabled as soon as a choice is made.
     const isButtonDisabled = () => {
-        if (isFormerMember === 'no') {
-            return false;
-        }
-        if (isFormerMember === 'yes') {
-            return !startYear || !grade;
-        }
-        return true;
+        return !isFormerMember || isLoading;
     };
 
     const handleIsFormerMemberChange = (value: string) => {
@@ -46,6 +41,8 @@ export default function LiberaSpherePage() {
     };
 
     const handleEnterLiberaSphere = async () => {
+        if (!isFormerMember) return;
+
         setIsLoading(true);
         const user = auth.currentUser;
         if (!user) {
@@ -54,6 +51,7 @@ export default function LiberaSpherePage() {
             return;
         }
 
+        // Simplified data update logic
         let dataToUpdate: any = {
             isFormerMember: isFormerMember
         };
@@ -61,27 +59,27 @@ export default function LiberaSpherePage() {
         if (isFormerMember === 'no') {
             dataToUpdate.firstAssociationYear = String(currentYear);
             dataToUpdate.grade = 'Nessuno';
-        } else if (isFormerMember === 'yes' && startYear && grade) {
-            dataToUpdate.firstAssociationYear = startYear;
-            dataToUpdate.grade = grade;
-        } else {
-             setIsLoading(false);
-             return; // Nothing to do
+        } else if (isFormerMember === 'yes') {
+            // Save year and grade only if they have been provided, but don't block the process.
+            if (startYear) {
+                dataToUpdate.firstAssociationYear = startYear;
+            }
+            if (grade) {
+                dataToUpdate.grade = grade;
+            }
         }
 
         try {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
 
-            // Force a full page reload. This makes the layout re-fetch fresh user data
-            // and apply the correct redirection logic.
+            // Force a full page reload. This is the most reliable way to ensure
+            // the layout component re-fetches the fresh user data and applies the correct redirection logic.
             window.location.reload();
 
         } catch (error) {
             console.error("Error updating user document:", error);
             // Handle error, maybe show a toast
-        } finally {
-            // This might not be reached if reload is successful, but it's good practice
             setIsLoading(false);
         }
     };
@@ -160,7 +158,7 @@ export default function LiberaSpherePage() {
             <CardFooter className="flex justify-end">
                 <Button 
                     onClick={handleEnterLiberaSphere} 
-                    disabled={isButtonDisabled() || isLoading} 
+                    disabled={isButtonDisabled()} 
                     className="bg-stone-800 text-amber-400 hover:bg-stone-700 disabled:bg-stone-800/50 disabled:text-amber-400/50"
                 >
                     {isLoading ? <Loader2 className="animate-spin" /> : "Prosegui"}
