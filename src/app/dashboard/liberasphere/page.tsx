@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, Loader2 } from "lucide-react";
 import { auth, db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 2016 + 1 }, (_, i) => String(currentYear - i));
@@ -22,6 +23,7 @@ const grades = [
 ];
 
 export default function LiberaSpherePage() {
+    const router = useRouter();
     const [isFormerMember, setIsFormerMember] = useState<string | undefined>();
     const [startYear, setStartYear] = useState<string | undefined>();
     const [grade, setGrade] = useState<string | undefined>();
@@ -68,6 +70,7 @@ export default function LiberaSpherePage() {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
 
+            // DIRECT and FORCED redirection.
             if (isFormerMember === 'yes') {
                 window.location.href = '/dashboard/associates';
             } else {
