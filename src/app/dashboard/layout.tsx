@@ -81,15 +81,15 @@ const isAssociatedForCurrentSeason = (approvalDateStr: string | null): boolean =
 
     try {
         const approvalDate = parse(approvalDateStr, 'dd/MM/yyyy', new Date());
-        if (isNaN(approvalDate.getTime())) return false;
+        if (!isValid(approvalDate)) return false;
 
         const today = new Date();
         const currentYear = today.getFullYear();
         const currentMonth = today.getMonth(); // 0-11
 
         let seasonStartYear = currentYear;
-        // If we are before September, the season started last year.
-        if (currentMonth < 8) { // 8 is September (0-indexed)
+        // If we are before September (month 8), the season started last year.
+        if (currentMonth < 8) { 
             seasonStartYear = currentYear - 1;
         }
 
@@ -118,7 +118,6 @@ export default function DashboardLayout({
   const [associated, setAssociated] = React.useState(false);
   const [associationRequested, setAssociationRequested] = React.useState(false);
   const [lessonSelected, setLessonSelected] = React.useState(false);
-  const [inLiberasphere, setInLiberasphere] = React.useState(false);
   const [isMedicalBlocked, setIsMedicalBlocked] = React.useState(false);
   const [isSubscriptionBlocked, setIsSubscriptionBlocked] = React.useState(false);
   const [hasSeasonalSubscription, setHasSeasonalSubscription] = React.useState(false);
@@ -132,6 +131,9 @@ export default function DashboardLayout({
         if (userDoc.exists()) {
             const data = userDoc.data();
             setUserData(data);
+        } else {
+          // Handle case where user exists in Auth but not in Firestore
+          setUserData({ uid: user.uid, email: user.email, name: user.displayName || 'Utente' });
         }
         setLoadingAuth(false);
       } else {
@@ -183,7 +185,6 @@ export default function DashboardLayout({
           }
       }
       
-      setInLiberasphere(!!userData.isFormerMember);
       setRegulationsAccepted(userData.regulationsAccepted);
       setAssociated(isAssociatedThisSeason);
       setLessonSelected(userData.lessonSelected);
@@ -191,37 +192,52 @@ export default function DashboardLayout({
       setHasSeasonalSubscription(userData.subscription?.plan === 'stagionale');
       setIsMedicalBlocked(blockUserMedical);
       setIsSubscriptionBlocked(blockUserSubscription);
-
-      // Indicate that all states derived from userData are now set.
       setIsDataReady(true);
     }
   }, [userData]);
   
    React.useEffect(() => {
-    // This effect handles redirects and should only run when data is ready.
     if (!isDataReady) return;
 
-    const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
     const currentPath = pathname;
-    
+    const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
+
     if (isMedicalBlocked) {
-      if (currentPath !== '/dashboard/aiuto' && currentPath !== '/dashboard/medical-certificate') {
+      if (!essentialPages.includes(currentPath)) {
           router.push('/dashboard/medical-certificate');
       }
-    } else if (isSubscriptionBlocked) {
-        if (currentPath !== '/dashboard/aiuto' && currentPath !== '/dashboard/subscription') {
-          router.push('/dashboard/subscription');
-      }
-    } else if (userData && userData.isFormerMember === null) {
-        if (currentPath !== '/dashboard/liberasphere') {
-            router.push('/dashboard/liberasphere');
-        }
-    } else if (userData && !userData.regulationsAccepted && currentPath !== '/dashboard/regulations' && currentPath !== '/dashboard/liberasphere' && !essentialPages.includes(currentPath)) {
-       router.push('/dashboard/regulations');
-    } else if (userData && userData.isFormerMember === 'yes' && !associated && userData.associationStatus !== 'requested' && !essentialPages.includes(currentPath) && currentPath !== '/dashboard/associates' && currentPath !== '/dashboard/liberasphere' && currentPath !== '/dashboard/regulations') {
-      router.push('/dashboard/associates?renewal=true');
+      return;
     }
-  }, [isDataReady, pathname, router, userData, isMedicalBlocked, isSubscriptionBlocked, associated]);
+    
+    if (isSubscriptionBlocked) {
+        if (!essentialPages.includes(currentPath)) {
+          router.push('/dashboard/subscription');
+        }
+        return;
+    }
+
+    if (userData.isFormerMember === null) {
+      if (currentPath !== '/dashboard/liberasphere') {
+        router.push('/dashboard/liberasphere');
+      }
+      return;
+    }
+
+    if (!userData.regulationsAccepted) {
+      if (currentPath !== '/dashboard/regulations' && currentPath !== '/dashboard/liberasphere') {
+         router.push('/dashboard/regulations');
+      }
+      return;
+    }
+
+    if (userData.regulationsAccepted && !associated && !associationRequested) {
+        if (currentPath !== '/dashboard/associates') {
+            router.push('/dashboard/associates');
+        }
+        return;
+    }
+
+  }, [isDataReady, pathname, router, userData, isMedicalBlocked, isSubscriptionBlocked, associated, associationRequested]);
 
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
@@ -247,16 +263,16 @@ export default function DashboardLayout({
   }
 
   const allNavItems = [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => regulationsAccepted && (associated || associationRequested) },
     { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto", condition: () => true },
-    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => regulationsAccepted },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => true },
-    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento ai Corsi", condition: () => regulationsAccepted && (associated || associationRequested) },
-    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => !inLiberasphere },
-    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => inLiberasphere && !regulationsAccepted },
-    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Lezioni Selezione", condition: () => regulationsAccepted && !lessonSelected && userData?.isFormerMember === 'no'},
+    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento", condition: () => regulationsAccepted && (associated || associationRequested) && !hasSeasonalSubscription },
+    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => userData?.isFormerMember === null },
+    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !regulationsAccepted },
+    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Passaporto Selezioni", condition: () => regulationsAccepted && userData?.isFormerMember === 'no' && !lessonSelected},
     { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => regulationsAccepted && !associated && !associationRequested },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => regulationsAccepted && associated },
-    { href: "/dashboard/payments", icon: Landmark, label: "Pagamenti", condition: () => regulationsAccepted && (associated || associationRequested) },
+    { href: "/dashboard/payments", icon: Landmark, label: "Storico Pagamenti", condition: () => regulationsAccepted && (associated || associationRequested) },
   ]
   
   const bottomNavItems = [
@@ -267,33 +283,19 @@ export default function DashboardLayout({
     ? allNavItems.filter(item => item.href === '/dashboard/aiuto' || item.href === '/dashboard/medical-certificate')
     : isSubscriptionBlocked 
     ? allNavItems.filter(item => item.href === '/dashboard/aiuto' || item.href === '/dashboard/subscription')
-    : allNavItems.filter(item => {
-        if (item.href === '/dashboard/subscription') {
-            const showSubscription = (associated || associationRequested);
-            if (!showSubscription) return false;
-            return !hasSeasonalSubscription;
-        }
-        if (item.condition) {
-            return item.condition();
-        }
-        return true;
-      });
+    : allNavItems.filter(item => item.condition());
 
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
         return React.cloneElement(child, {
             // @ts-ignore
-            setRegulationsAccepted,
-            setAssociated,
-            setLessonSelected,
-            setAssociationRequested,
-            userData, // Pass userData to children
+            userData,
         });
     }
     return child;
   });
 
-  if (loadingAuth || !userData || !isDataReady) {
+  if (loadingAuth || !isDataReady) {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -356,7 +358,7 @@ export default function DashboardLayout({
             <span>LiberaSphere</span>
           </Link>
           <div className="flex-1 w-full">
-            {navItems.map(item => item.condition() && (
+            {navItems.map(item => (
               <Link
                 key={item.label}
                 href={item.href}
@@ -400,7 +402,7 @@ export default function DashboardLayout({
                     <KanjiIcon className="h-5 w-5 transition-all group-hover:scale-110" />
                     <span className="sr-only">LiberaSphere</span>
                 </Link>
-                {navItems.map(item => item.condition() && (
+                {navItems.map(item => (
                     <Link
                         key={item.label}
                         href={item.href}
