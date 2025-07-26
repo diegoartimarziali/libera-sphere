@@ -35,9 +35,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { usePathname, useRouter } from "next/navigation"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/components/ui/alert-dialog"
 import { isAfter, startOfToday, parse, lastDayOfMonth, addDays, parseISO, isValid } from "date-fns"
-import { onAuthStateChanged, signOut } from "firebase/auth"
+import { onAuthStateChanged, signOut, User } from "firebase/auth"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc } from "firebase/firestore"
+import { doc, getDoc, DocumentData } from "firebase/firestore"
 
 const isAssociatedForCurrentSeason = (approvalDateStr: string | null): boolean => {
     if (!approvalDateStr) return false;
@@ -67,35 +67,100 @@ const isAssociatedForCurrentSeason = (approvalDateStr: string | null): boolean =
     }
 };
 
+function AuthRedirector({ userData, children }: { userData: DocumentData, children: React.ReactNode }) {
+    const router = useRouter();
+    const pathname = usePathname();
+
+    React.useEffect(() => {
+        if (!userData) return;
+
+        const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
+        const isOperational = isAssociatedThisSeason || userData.isSelectionPassportComplete;
+        const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription', '/dashboard/payment-gateway'];
+
+        // --- Critical Blocks for ACTIVE members ---
+        if (isAssociatedThisSeason) {
+            const appointmentDateStr = userData.medicalCertificate?.appointmentDate;
+            const certificateDateStr = userData.medicalCertificate?.expirationDate;
+            let blockUserMedical = false;
+            if (appointmentDateStr && !certificateDateStr) {
+                const appointmentDate = parseISO(appointmentDateStr);
+                if (isValid(appointmentDate) && isAfter(startOfToday(), appointmentDate)) {
+                    blockUserMedical = true;
+                }
+            }
+            
+            let blockUserSubscription = false;
+            if (userData.subscription?.plan === 'mensile' && userData.subscription?.status !== 'in_attesa') {
+                const paymentDateStr = userData.subscription?.paymentDate;
+                if (paymentDateStr) {
+                    const paymentDate = parseISO(paymentDateStr);
+                    if (isValid(paymentDate)) {
+                        const today = new Date();
+                        const endOfMonth = lastDayOfMonth(paymentDate);
+                        const gracePeriodEnd = addDays(endOfMonth, 5);
+                        if (isAfter(today, gracePeriodEnd)) {
+                            blockUserSubscription = true;
+                        }
+                    }
+                } else {
+                    blockUserSubscription = true; 
+                }
+            }
+            if (blockUserMedical && !essentialPages.includes(pathname)) {
+                router.push('/dashboard/medical-certificate');
+                return;
+            }
+            if (blockUserSubscription && !essentialPages.includes(pathname)) {
+                router.push('/dashboard/subscription');
+                return;
+            }
+        }
+
+        // --- Onboarding Flow ---
+        if (!userData.regulationsAccepted) {
+            if (pathname !== '/dashboard/regulations') router.push('/dashboard/regulations');
+        } else if (userData.isFormerMember === null) {
+            if (pathname !== '/dashboard/liberasphere') router.push('/dashboard/liberasphere');
+        } else if (!isOperational) {
+            if (userData.isFormerMember === 'no' && pathname !== '/dashboard/class-selection') {
+                router.push('/dashboard/class-selection');
+            } else if (userData.isFormerMember === 'yes' && pathname !== '/dashboard/associates') {
+                router.push('/dashboard/associates');
+            }
+        }
+    }, [userData, pathname, router]);
+
+    return <>{children}</>;
+}
+
+
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const [userData, setUserData] = React.useState<any>(null);
+  const [user, setUser] = React.useState<User | null>(null);
+  const [userData, setUserData] = React.useState<DocumentData | null>(null);
   const [loading, setLoading] = React.useState(true);
   
   const [isMedicalBlocked, setIsMedicalBlocked] = React.useState(false);
   const [isSubscriptionBlocked, setIsSubscriptionBlocked] = React.useState(false);
   
   React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const userDocRef = doc(db, "users", user.uid);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setLoading(true);
+      if (currentUser) {
+        setUser(currentUser);
+        const userDocRef = doc(db, "users", currentUser.uid);
         try {
           const userDoc = await getDoc(userDocRef);
           if (userDoc.exists()) {
-              const data = userDoc.data();
-              setUserData(data);
+            const data = userDoc.data();
+            setUserData(data);
 
-              // --- SEQUENTIAL REDIRECTION LOGIC ---
-              const currentPath = window.location.pathname; // Use window.location for immediate path
-              const isAssociatedThisSeason = data.associationStatus === 'approved' && isAssociatedForCurrentSeason(data.associationApprovalDate);
-              const isOperational = isAssociatedThisSeason || data.isSelectionPassportComplete;
-              const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription', '/dashboard/payment-gateway'];
-
+             const isAssociatedThisSeason = data.associationStatus === 'approved' && isAssociatedForCurrentSeason(data.associationApprovalDate);
               // --- PRIORITY 1: Critical Blocks for ACTIVE members ---
               if (isAssociatedThisSeason) {
                   // Medical Certificate Block
@@ -106,6 +171,7 @@ export default function DashboardLayout({
                       const appointmentDate = parseISO(appointmentDateStr);
                       if (isValid(appointmentDate) && isAfter(startOfToday(), appointmentDate)) {
                           blockUserMedical = true;
+                          setIsMedicalBlocked(true);
                       }
                   }
                   
@@ -121,56 +187,29 @@ export default function DashboardLayout({
                               const gracePeriodEnd = addDays(endOfMonth, 5);
                               if (isAfter(today, gracePeriodEnd)) {
                                   blockUserSubscription = true;
+                                   setIsSubscriptionBlocked(true);
                               }
                           }
                       } else {
                           blockUserSubscription = true; 
+                          setIsSubscriptionBlocked(true);
                       }
                   }
-
-                  if (blockUserMedical && !essentialPages.includes(currentPath)) {
-                      router.push('/dashboard/medical-certificate');
-                      setLoading(false);
-                      return;
-                  }
-                  if (blockUserSubscription && !essentialPages.includes(currentPath)) {
-                      router.push('/dashboard/subscription');
-                      setLoading(false);
-                      return;
-                  }
               }
 
-              // --- PRIORITY 2: Onboarding Flow ---
-              // Step 1: Regulations
-              if (!data.regulationsAccepted) {
-                  if (currentPath !== '/dashboard/regulations') {
-                      router.push('/dashboard/regulations');
-                  }
-              // Step 2: LiberaSphere Status
-              } else if (data.isFormerMember === null) {
-                  if (currentPath !== '/dashboard/liberasphere') {
-                      router.push('/dashboard/liberasphere');
-                  }
-              // Step 3: Redirect to correct module if not yet operational
-              } else if (!isOperational) {
-                  if (data.isFormerMember === 'no' && currentPath !== '/dashboard/class-selection') {
-                      router.push('/dashboard/class-selection');
-                  } else if (data.isFormerMember === 'yes' && currentPath !== '/dashboard/associates') {
-                      router.push('/dashboard/associates');
-                  }
-              }
           } else {
+            console.log("User document does not exist, signing out.");
             await signOut(auth);
             router.push('/');
-            return;
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
           await signOut(auth);
           router.push('/');
-          return;
         }
       } else {
+        setUser(null);
+        setUserData(null);
         router.push('/');
       }
       setLoading(false);
@@ -373,7 +412,9 @@ export default function DashboardLayout({
           </Sheet>
         </header>
         <main className="flex-1 p-4 sm:px-6 sm:py-0 space-y-4">
-            {childrenWithProps}
+            <AuthRedirector userData={userData}>
+                {childrenWithProps}
+            </AuthRedirector>
         </main>
       </div>
     </div>
