@@ -202,42 +202,43 @@ export default function DashboardLayout({
     const currentPath = pathname;
     const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
 
-    if (isMedicalBlocked) {
-      if (!essentialPages.includes(currentPath)) {
-          router.push('/dashboard/medical-certificate');
-      }
-      return;
+    // Highest priority: Block access for medical or subscription issues
+    if (isMedicalBlocked && !essentialPages.includes(currentPath)) {
+        router.push('/dashboard/medical-certificate');
+        return;
+    }
+    if (isSubscriptionBlocked && !essentialPages.includes(currentPath)) {
+        router.push('/dashboard/subscription');
+        return;
+    }
+
+    // Onboarding flow:
+    // 1. Check if user has specified if they are a former member
+    if (userData.isFormerMember === null && currentPath !== '/dashboard/liberasphere') {
+        router.push('/dashboard/liberasphere');
+        return;
+    }
+
+    // 2. Check if regulations have been accepted
+    if (userData.isFormerMember !== null && !userData.regulationsAccepted && currentPath !== '/dashboard/regulations' && currentPath !== '/dashboard/liberasphere') {
+        router.push('/dashboard/regulations');
+        return;
     }
     
-    if (isSubscriptionBlocked) {
-        if (!essentialPages.includes(currentPath)) {
-          router.push('/dashboard/subscription');
-        }
-        return;
-    }
-
-    if (userData.isFormerMember === null) {
-      if (currentPath !== '/dashboard/liberasphere') {
-        router.push('/dashboard/liberasphere');
-      }
-      return;
-    }
-
-    if (!userData.regulationsAccepted) {
-      if (currentPath !== '/dashboard/regulations' && currentPath !== '/dashboard/liberasphere') {
-         router.push('/dashboard/regulations');
-      }
-      return;
-    }
-
+    // 3. After regulations are accepted, check for association status
     if (userData.regulationsAccepted && !associated && !associationRequested) {
-        if (currentPath !== '/dashboard/associates') {
-            router.push('/dashboard/associates');
+        // This is a new user flow for selections, or a former member renewing
+        if (userData.isFormerMember === 'no' && !userData.lessonSelected && currentPath !== '/dashboard/class-selection') {
+            router.push('/dashboard/class-selection');
+            return;
+        } 
+        if (currentPath !== '/dashboard/associates' && currentPath !== '/dashboard/class-selection' && currentPath !== '/dashboard/regulations') {
+             router.push('/dashboard/associates');
+             return;
         }
-        return;
     }
 
-  }, [isDataReady, pathname, router, userData, isMedicalBlocked, isSubscriptionBlocked, associated, associationRequested]);
+  }, [isDataReady, pathname, router, userData, isMedicalBlocked, isSubscriptionBlocked, associated, associationRequested, lessonSelected]);
 
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
