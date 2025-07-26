@@ -17,6 +17,8 @@ import {
   HelpCircle,
   AlertTriangle,
   Loader2,
+  Dumbbell,
+  Shield,
 } from "lucide-react"
 
 import {
@@ -36,43 +38,6 @@ import { isAfter, startOfToday, parse, lastDayOfMonth, addDays, parseISO, isVali
 import { onAuthStateChanged, signOut } from "firebase/auth"
 import { auth, db } from "@/lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
-
-// Custom Dumbbell Icon
-const DumbbellIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    {...props}
-  >
-    <path d="M15.5 15.5c-1 0-1.5 1-1.5 2s.5 2 1.5 2 1.5-1 1.5-2-.5-2-1.5-2zM4.5 9.5c-1 0-1.5 1-1.5 2s.5 2 1.5 2 1.5-1 1.5-2-.5-2-1.5-2z" />
-    <path d="M18 6.5V15a2 2 0 002 2h1" />
-    <path d="M6 6.5V15a2 2 0 01-2 2H3" />
-    <path d="M12 8V6.5a4.5 4.5 0 00-9 0V15" />
-    <path d="M12 8h1a4.5 4.5 0 014.5 4.5V15" />
-  </svg>
-)
-
-const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    {...props}
-  >
-    <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" fontSize="24" fontFamily="serif">
-      道
-    </text>
-  </svg>
-)
 
 const isAssociatedForCurrentSeason = (approvalDateStr: string | null): boolean => {
     if (!approvalDateStr) return false;
@@ -125,10 +90,9 @@ export default function DashboardLayout({
             const data = userDoc.data();
             setUserData(data);
         } else {
-          // This case is unlikely if registration is always creating a doc, but good for safety
           setUserData({ uid: user.uid, email: user.email, name: user.displayName || 'Utente' });
         }
-        setIsDataReady(true); // Data is ready (or we know it doesn't exist)
+        setIsDataReady(true);
         setLoadingAuth(false);
       } else {
         router.push('/');
@@ -139,7 +103,6 @@ export default function DashboardLayout({
 
   React.useEffect(() => {
     if (!isDataReady || !userData) {
-      // Don't do any logic until user data is loaded
       return;
     }
     
@@ -272,7 +235,7 @@ export default function DashboardLayout({
     { href: "/dashboard/help", icon: HelpCircle, label: "Aiuto", condition: () => true },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !userData.regulationsAccepted },
     { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => userData.regulationsAccepted && userData.isFormerMember === null },
-    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Passaporto Selezioni", condition: () => userData.regulationsAccepted && userData.isFormerMember === 'no' && !userData.isSelectionPassportComplete },
+    { href: "/dashboard/class-selection", icon: Dumbbell, label: "Passaporto Selezioni", condition: () => userData.regulationsAccepted && userData.isFormerMember === 'no' && !userData.isSelectionPassportComplete },
     { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => userData.regulationsAccepted && userData.isFormerMember === 'yes' && !isAssociatedThisSeason && !associationRequested },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => isAssociatedThisSeason },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento", condition: () => isAssociatedThisSeason && !hasSeasonalSubscription },
@@ -350,7 +313,7 @@ export default function DashboardLayout({
             href="#"
             className="group flex h-9 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-stone-800 text-amber-400 md:h-8 md:text-base"
           >
-            <KanjiIcon className="h-4 w-4 transition-all group-hover:scale-110" />
+            <Shield className="h-4 w-4 transition-all group-hover:scale-110" />
             <span>LiberaSphere</span>
           </Link>
           <div className="flex-1 w-full">
@@ -395,7 +358,7 @@ export default function DashboardLayout({
                     href="#"
                     className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-stone-800 text-lg font-semibold text-amber-400 md:text-base"
                 >
-                    <KanjiIcon className="h-5 w-5 transition-all group-hover:scale-110" />
+                    <Shield className="h-5 w-5 transition-all group-hover:scale-110" />
                     <span className="sr-only">LiberaSphere</span>
                 </Link>
                 {navItems.map(item => (

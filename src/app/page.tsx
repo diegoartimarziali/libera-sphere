@@ -12,21 +12,8 @@ import { useState } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Shield } from 'lucide-react';
 
-const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="24" 
-        height="24" 
-        viewBox="0 0 24" 
-        fill="currentColor"
-        {...props}>
-        <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" fontSize="24" fontFamily="serif">
-            道
-        </text>
-    </svg>
-)
 
 export default function AuthPage() {
   const router = useRouter();
@@ -49,9 +36,6 @@ export default function AuthPage() {
     
     try {
         await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-        if (typeof window !== 'undefined') {
-            localStorage.clear(); 
-        }
         router.push('/dashboard');
     } catch (error: any) {
         setErrorMessage("Credenziali non valide. Riprova.");
@@ -122,9 +106,6 @@ export default function AuthPage() {
           }
         });
         
-        if (typeof window !== 'undefined') {
-          localStorage.clear();
-        }
         router.push('/dashboard');
     } catch (error: any) {
         if (error.code === 'auth/email-already-in-use') {
@@ -150,7 +131,7 @@ export default function AuthPage() {
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <div className="w-full max-w-md mx-auto">
         <div className="text-center mb-8">
-          <KanjiIcon className="mx-auto h-12 w-12 text-primary" />
+          <Shield className="mx-auto h-12 w-12 text-primary" />
           <h1 className="text-4xl font-bold font-headline mt-4">LiberaSphere</h1>
           <p className="text-muted-foreground mt-2">La tua sfera di liberta nelle Arti Marziali</p>
         </div>

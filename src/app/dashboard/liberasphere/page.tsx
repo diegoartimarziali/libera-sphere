@@ -74,7 +74,8 @@ export default function LiberaSpherePage() {
             await updateDoc(userDocRef, dataToUpdate);
             // Force a hard reload to ensure the layout component refetches the latest user data
             // and applies the correct redirection logic.
-            window.location.reload();
+            router.push('/dashboard');
+            router.refresh();
         } catch (error) {
             console.error("Error updating user document:", error);
             // Handle error, maybe show a toast
