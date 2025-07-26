@@ -22,11 +22,7 @@ import {
 import { useToast } from "@/components/ui/use-toast"
 import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
-import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
-import { db, auth } from "@/lib/firebase"
-import { doc, updateDoc } from "firebase/firestore"
-import { format } from "date-fns"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -36,9 +32,8 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(currentYear - i));
 
-export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (value: boolean) => void, userData?: any }) {
+export function AssociateForm({ initialData, onFormSubmit }: { initialData?: any, onFormSubmit: (data: any) => void }) {
     const { toast } = useToast()
-    const router = useRouter()
     
     // Form state
     const [name, setName] = useState("");
@@ -46,6 +41,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     const [month, setMonth] = useState<string | undefined>(undefined);
     const [year, setYear] = useState<string | undefined>(undefined);
     const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
+
     const [codiceFiscale, setCodiceFiscale] = useState("");
     const [provincia, setProvincia] = useState("");
     const [birthplace, setBirthplace] = useState("");
@@ -61,20 +57,37 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     const [dojo, setDojo] = useState<string | undefined>();
     
     // Control state
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [isFormComplete, setIsFormComplete] = useState(false);
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
 
     useEffect(() => {
-        const currentUser = auth.currentUser;
-        if (currentUser && currentUser.email) {
-            setRegistrationEmail(currentUser.email);
+        // Pre-fill form if initialData is provided (e.g., when editing)
+        if (initialData) {
+            setName(initialData.name || "");
+            if (initialData.birthDate) {
+                const parts = initialData.birthDate.split('/');
+                if (parts.length === 3) {
+                    setDay(parts[0]);
+                    setMonth(parts[1]);
+                    setYear(parts[2]);
+                }
+            }
+            setCodiceFiscale(initialData.codiceFiscale || "");
+            setProvincia(initialData.provincia || "");
+            setBirthplace(initialData.birthplace || "");
+            setAddress(initialData.address || "");
+            setCivicNumber(initialData.civicNumber || "");
+            setCap(initialData.cap || "");
+            setComune(initialData.comune || "");
+            setPhone(initialData.phone || "");
+            setParentName(initialData.parentName || "");
+            setParentCf(initialData.parentCf || "");
+            setParentPhone(initialData.parentPhone || "");
+            setMartialArt(initialData.martialArt || undefined);
+            setDojo(initialData.selectedDojo || undefined);
+            setRegistrationEmail(initialData.email || "");
         }
-
-        if (userData) {
-            setName(userData.name || "");
-        }
-    }, [userData]);
+    }, [initialData]);
 
 
     useEffect(() => {
@@ -162,21 +175,16 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
         setParentName(capitalized);
     };
 
-    const handleSubmit = async () => {
-        if (!isFormComplete || isSubmitting) return;
+    const handleSubmit = () => {
+        if (!isFormComplete) {
+             toast({ title: "Modulo Incompleto", description: "Per favore, compila tutti i campi obbligatori.", variant: "destructive" });
+            return
+        };
 
-        setIsSubmitting(true);
-        const user = auth.currentUser;
-        if (!user) {
-            toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
-            setIsSubmitting(false);
-            return;
-        }
-        
-        const dataToUpdate = {
+        const formData = {
             name,
             codiceFiscale,
-            birthDate: birthDate ? format(birthDate, "dd/MM/yyyy") : '',
+            birthDate: birthDate ? `${day}/${month}/${year}` : '',
             birthplace,
             address,
             civicNumber,
@@ -184,8 +192,6 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             comune,
             provincia,
             isMinor,
-            associationStatus: 'requested',
-            associationRequestDate: format(new Date(), "dd/MM/yyyy"),
             martialArt,
             selectedDojo: dojo,
             phone: isMinor ? '' : phone,
@@ -195,23 +201,8 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             parentEmail: isMinor ? registrationEmail : '',
             email: isMinor ? '' : registrationEmail,
         };
-
-        try {
-            const userDocRef = doc(db, "users", user.uid);
-            await updateDoc(userDocRef, dataToUpdate);
-            
-            toast({
-                title: "Domanda Inviata!",
-                description: "Verrai reindirizzato alla scheda di riepilogo.",
-            });
-            
-            window.location.reload();
-
-        } catch (error) {
-            console.error("Error writing data to Firestore: ", error);
-            toast({ title: "Errore Database", description: "Impossibile salvare i dati.", variant: "destructive" });
-            setIsSubmitting(false);
-        }
+        
+        onFormSubmit(formData);
     };
     
   return (
@@ -359,9 +350,9 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             <Button 
                 className="bg-blue-600 hover:bg-blue-700" 
                 onClick={handleSubmit} 
-                disabled={!isFormComplete || isSubmitting}
+                disabled={!isFormComplete}
             >
-                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Invia Domanda'}
+                Vai al Riepilogo
             </Button>
         </CardFooter>
     </Card>

@@ -1,38 +1,60 @@
 
 'use client'
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AssociateCard } from "@/components/associate-card";
 import { AssociateForm } from "@/components/associate-form";
-import { AssociateEditForm } from "@/components/associate-edit-form";
+import { Loader2 } from "lucide-react";
 
-export default function AssociatesPage({ setRegulationsAccepted, setAssociated, setAssociationRequested, userData }: { setRegulationsAccepted?: (value: boolean) => void, setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void, userData?: any }) {
-    const [wantsToEdit, setWantsToEdit] = useState(false);
+export default function AssociatesPage({ userData }: { userData?: any }) {
+    const [formData, setFormData] = useState<any>(null);
+    const [showSummary, setShowSummary] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const handleDataSaved = () => {
-        setWantsToEdit(false);
-        // Reload to ensure all data is fresh from the layout down
-        window.location.reload(); 
+    useEffect(() => {
+        if (userData) {
+            // If user has already submitted (status is 'requested' or 'approved'),
+            // show the summary card immediately with data from Firestore.
+            if (userData.associationStatus === 'requested' || userData.associationStatus === 'approved') {
+                setFormData(userData); // Use Firestore data
+                setShowSummary(true);
+            }
+        }
+        setIsLoading(false);
+    }, [userData]);
+
+    const handleFormSubmit = (data: any) => {
+        setFormData(data);
+        setShowSummary(true);
+    };
+
+    const handleBackToForm = () => {
+        // This function allows the user to go back and edit their data
+        // from the summary card before final submission.
+        setShowSummary(false);
     }
-
-    // Determine whether to show the summary card based on a clear, single source of truth.
-    const showSummary = userData?.associationStatus === 'requested' || userData?.associationStatus === 'approved';
+    
+    if (isLoading) {
+        return (
+            <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                <p className="mt-4 text-muted-foreground">Caricamento...</p>
+            </div>
+        );
+    }
 
     return (
         <div>
             {showSummary ? (
-                wantsToEdit ? (
-                    <AssociateEditForm onSave={handleDataSaved} userData={userData} />
-                ) : (
-                    <AssociateCard 
-                        setAssociated={setAssociated} 
-                        setAssociationRequested={setAssociationRequested} 
-                        setWantsToEdit={setWantsToEdit} // Pass the setter directly
-                        userData={userData}
-                    />
-                )
+                <AssociateCard 
+                    initialData={formData} 
+                    onBack={handleBackToForm}
+                />
             ) : (
-                <AssociateForm setHasUserData={() => {}} userData={userData} />
+                <AssociateForm 
+                    initialData={formData || userData} // Pass existing data to pre-fill the form
+                    onFormSubmit={handleFormSubmit} 
+                />
             )}
         </div>
     );
