@@ -187,7 +187,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             associationStatus: 'requested',
             associationRequestDate: format(new Date(), "dd/MM/yyyy"),
             martialArt,
-            selectedDojo,
+            selectedDojo: dojo,
             phone: isMinor ? '' : phone,
             parentName: isMinor ? parentName : '',
             parentCf: isMinor ? parentCf : '',
