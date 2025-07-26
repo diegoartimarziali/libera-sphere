@@ -68,7 +68,6 @@ export default function LiberaSpherePage() {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
 
-            // Use hard navigation to force a full reload and ensure layout gets fresh data
             if (isFormerMember === 'yes') {
                 window.location.href = '/dashboard/associates';
             } else {
@@ -77,7 +76,6 @@ export default function LiberaSpherePage() {
 
         } catch (error) {
             console.error("Error updating user document:", error);
-            // Handle error, maybe show a toast
             setIsLoading(false);
         }
     };
