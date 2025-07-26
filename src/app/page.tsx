@@ -9,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useToast } from "@/components/ui/use-toast"
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -31,22 +30,19 @@ const KanjiIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function AuthPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const [name, setName] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleLogin = async () => {
     setIsLoading(true);
+    setErrorMessage('');
     if (!loginEmail || loginPassword.length < 6) {
-        toast({
-            title: "Dati non validi",
-            description: "Inserisci un'email valida e una password di almeno 6 caratteri.",
-            variant: "destructive",
-        });
+        setErrorMessage("Inserisci un'email valida e una password di almeno 6 caratteri.");
         setIsLoading(false);
         return;
     }
@@ -58,11 +54,7 @@ export default function AuthPage() {
         }
         router.push('/dashboard');
     } catch (error: any) {
-        toast({
-            title: "Errore di accesso",
-            description: "Credenziali non valide. Riprova.",
-            variant: "destructive",
-        });
+        setErrorMessage("Credenziali non valide. Riprova.");
     } finally {
         setIsLoading(false);
     }
@@ -70,12 +62,9 @@ export default function AuthPage() {
 
   const handleSignup = async () => {
      setIsLoading(true);
+     setErrorMessage('');
      if (!name || !signupEmail || signupPassword.length < 6) {
-        toast({
-            title: "Dati non validi",
-            description: "Compila tutti i campi. La password deve essere di almeno 6 caratteri.",
-            variant: "destructive",
-        });
+        setErrorMessage("Compila tutti i campi. La password deve essere di almeno 6 caratteri.");
         setIsLoading(false);
         return;
     }
@@ -84,7 +73,6 @@ export default function AuthPage() {
         const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
         const user = userCredential.user;
 
-        // Create a new document for the user in Firestore
         await setDoc(doc(db, "users", user.uid), {
           uid: user.uid,
           name: name,
@@ -112,7 +100,7 @@ export default function AuthPage() {
           isSelectionPassportComplete: false,
           lessonSelected: false,
           isInsured: false,
-          associationStatus: 'none', // none, requested, approved
+          associationStatus: 'none',
           associationRequestDate: null,
           associationApprovalDate: null,
           martialArt: '',
@@ -137,18 +125,13 @@ export default function AuthPage() {
         if (typeof window !== 'undefined') {
           localStorage.clear();
         }
-        router.push('/dashboard/liberasphere');
+        router.push('/dashboard');
     } catch (error: any) {
-        let description = "Si è verificato un errore durante la registrazione. Riprova.";
-        // Firebase wraps the specific error in a 'cause' object
         if (error.code === 'auth/email-already-in-use') {
-            description = "Questa email è già in uso. Prova ad accedere.";
+            setErrorMessage("Questa email è già in uso. Prova ad accedere.");
+        } else {
+            setErrorMessage("Si è verificato un errore durante la registrazione. Riprova.");
         }
-         toast({
-            title: "Errore di registrazione",
-            description: description,
-            variant: "destructive",
-        });
     } finally {
         setIsLoading(false);
     }
@@ -214,6 +197,11 @@ export default function AuthPage() {
                 <Button type="submit" className="w-full" onClick={handleLogin} disabled={isLoading}>
                     {isLoading ? <Loader2 className="animate-spin" /> : "Accedi"}
                 </Button>
+                 {errorMessage && (
+                  <div className="mt-4 text-center text-sm font-medium text-destructive">
+                    {errorMessage}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -259,6 +247,11 @@ export default function AuthPage() {
                 <Button type="submit" className="w-full" onClick={handleSignup} disabled={isLoading}>
                    {isLoading ? <Loader2 className="animate-spin" /> : "Registrati"}
                 </Button>
+                 {errorMessage && (
+                  <div className="mt-4 text-center text-sm font-medium text-destructive">
+                    {errorMessage}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

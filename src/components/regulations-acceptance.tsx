@@ -26,7 +26,7 @@ const documents = [
   { name: "REGOLAMENTO", href: "#" },
 ]
 
-export function RegulationsAcceptance({ setRegulationsAccepted, userData }: { setRegulationsAccepted?: (value: boolean) => void, userData?: any }) {
+export function RegulationsAcceptance({ userData }: { userData?: any }) {
     const { toast } = useToast()
     const router = useRouter();
     const [accepted, setAccepted] = useState(false);
@@ -58,18 +58,13 @@ export function RegulationsAcceptance({ setRegulationsAccepted, userData }: { se
                 regulationsAcceptanceDate: acceptanceDate
             });
 
-            if (setRegulationsAccepted) {
-                setRegulationsAccepted(true);
-            }
-
             toast({
                 title: "Regolamenti Accettati",
                 description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
             });
             
-            // Reload the page to force the layout to re-evaluate the redirection logic
-            // with the fresh data from Firestore.
-            window.location.href = '/dashboard';
+            // Hard reload to force the layout to re-evaluate the redirection logic
+            window.location.reload();
 
         } catch (error) {
             console.error("Error updating regulations acceptance:", error);

@@ -14,7 +14,7 @@ export default function AssociatesPage({ userData }: { userData?: any }) {
     const [showSummary, setShowSummary] = useState(false);
     
     useEffect(() => {
-        // This effect runs only once on mount to handle returning from payment or if data is already in progress
+        // This effect runs to handle returning from payment or if data is already in progress
         const shouldShowSummaryFromUrl = searchParams.get('showSummary') === 'true';
         if (shouldShowSummaryFromUrl) {
             const storedData = localStorage.getItem('associationFormData');
@@ -26,6 +26,7 @@ export default function AssociatesPage({ userData }: { userData?: any }) {
     }, [searchParams]);
 
     useEffect(() => {
+        // This effect handles showing the summary if the user is already associated or has a pending request
         if (userData?.associationStatus === 'requested' || userData?.associationStatus === 'approved') {
             setFormData(userData);
             setShowSummary(true);

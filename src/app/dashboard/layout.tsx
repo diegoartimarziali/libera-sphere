@@ -10,9 +10,7 @@ import {
   HeartPulse,
   LayoutDashboard,
   PanelLeft,
-  Settings,
   Users,
-  Info,
   FileText,
   LogOut,
   Landmark,
@@ -126,10 +124,11 @@ export default function DashboardLayout({
         if (userDoc.exists()) {
             const data = userDoc.data();
             setUserData(data);
-            setIsDataReady(true);
         } else {
+          // This case is unlikely if registration is always creating a doc, but good for safety
           setUserData({ uid: user.uid, email: user.email, name: user.displayName || 'Utente' });
         }
+        setIsDataReady(true); // Data is ready (or we know it doesn't exist)
         setLoadingAuth(false);
       } else {
         router.push('/');
@@ -139,93 +138,97 @@ export default function DashboardLayout({
   }, [router]);
 
   React.useEffect(() => {
-    if (isDataReady && userData) {
-      const approvalDate = userData.associationApprovalDate;
-      const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(approvalDate);
-      
-      const appointmentDateStr = userData.medicalCertificate?.appointmentDate;
-      const certificateDateStr = userData.medicalCertificate?.expirationDate;
-      let blockUserMedical = false;
-      if (appointmentDateStr && !certificateDateStr) {
-          const appointmentDate = parseISO(appointmentDateStr);
-          if (isValid(appointmentDate)) {
-            const today = startOfToday();
-            if (isAfter(today, appointmentDate)) {
-                blockUserMedical = true;
-            }
-          }
-      }
-      setIsMedicalBlocked(blockUserMedical);
-
-      let blockUserSubscription = false;
-      if (userData.subscription?.plan === 'mensile' && userData.subscription?.status !== 'in_attesa') {
-          const paymentDateStr = userData.subscription?.paymentDate;
-          if (paymentDateStr) {
-              const paymentDate = parseISO(paymentDateStr);
-              if (isValid(paymentDate)) {
-                  const today = new Date();
-                  const endOfMonth = lastDayOfMonth(paymentDate);
-                  const gracePeriodEnd = addDays(endOfMonth, 5);
-
-                  if (isAfter(today, gracePeriodEnd)) {
-                      blockUserSubscription = true;
-                  }
-              }
-          } else {
-              if (isAssociatedThisSeason) {
-                blockUserSubscription = true;
-              }
-          }
-      }
-      setIsSubscriptionBlocked(blockUserSubscription);
-      
-      const currentPath = pathname;
-      const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
-
-      // Priority 1: Medical or Subscription blocks override everything.
-      if (isMedicalBlocked && !essentialPages.includes(currentPath)) {
-          router.push('/dashboard/medical-certificate');
-          return;
-      }
-      if (isSubscriptionBlocked && !essentialPages.includes(currentPath)) {
-          router.push('/dashboard/subscription');
-          return;
-      }
-
-      // Onboarding Flow: A clear, sequential path for new users.
-      // Step 1: Identify as former member or new.
-      if (userData.isFormerMember === null) {
-          if (currentPath !== '/dashboard/liberasphere') {
-              router.push('/dashboard/liberasphere');
-          }
-          return;
-      }
-
-      // Step 2: Accept regulations.
-      if (!userData.regulationsAccepted) {
-          if (currentPath !== '/dashboard/regulations') {
-              router.push('/dashboard/regulations');
-          }
-          return;
-      }
-
-      // Step 3: Main action based on user type.
-      const hasPendingAssociation = userData.associationStatus === 'requested';
-      const hasActiveAssociation = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
-
-      if (!hasActiveAssociation && !hasPendingAssociation) {
-          if (userData.isFormerMember === 'no' && !userData.lessonSelected) {
-              if (currentPath !== '/dashboard/class-selection') {
-                  router.push('/dashboard/class-selection');
-              }
-          } else {
-              // This covers former members and new members who have finished selection.
-              if (currentPath !== '/dashboard/associates') {
-                  router.push('/dashboard/associates');
-              }
-          }
-      }
+    if (!isDataReady || !userData) {
+      // Don't do any logic until user data is loaded
+      return;
     }
+      
+    // --- Priority 1: Health & Payment Blocks ---
+    const approvalDate = userData.associationApprovalDate;
+    const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(approvalDate);
+    
+    // Medical Certificate Block
+    const appointmentDateStr = userData.medicalCertificate?.appointmentDate;
+    const certificateDateStr = userData.medicalCertificate?.expirationDate;
+    let blockUserMedical = false;
+    if (appointmentDateStr && !certificateDateStr) {
+        const appointmentDate = parseISO(appointmentDateStr);
+        if (isValid(appointmentDate)) {
+          const today = startOfToday();
+          if (isAfter(today, appointmentDate)) {
+              blockUserMedical = true;
+          }
+        }
+    }
+    setIsMedicalBlocked(blockUserMedical);
+    
+    // Subscription Block
+    let blockUserSubscription = false;
+    if (userData.subscription?.plan === 'mensile' && userData.subscription?.status !== 'in_attesa') {
+        const paymentDateStr = userData.subscription?.paymentDate;
+        if (paymentDateStr) {
+            const paymentDate = parseISO(paymentDateStr);
+            if (isValid(paymentDate)) {
+                const today = new Date();
+                const endOfMonth = lastDayOfMonth(paymentDate);
+                const gracePeriodEnd = addDays(endOfMonth, 5);
+
+                if (isAfter(today, gracePeriodEnd)) {
+                    blockUserSubscription = true;
+                }
+            }
+        } else {
+            if (isAssociatedThisSeason) {
+              blockUserSubscription = true;
+            }
+        }
+    }
+    setIsSubscriptionBlocked(blockUserSubscription);
+    
+    const currentPath = pathname;
+    const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
+
+    if (blockUserMedical && !essentialPages.includes(currentPath)) {
+        router.push('/dashboard/medical-certificate');
+        return;
+    }
+    if (blockUserSubscription && !essentialPages.includes(currentPath)) {
+        router.push('/dashboard/subscription');
+        return;
+    }
+
+    // --- Priority 2: Onboarding Flow (Simplified Logic) ---
+
+    // Step 1: User is completely new and must define their status
+    if (userData.isFormerMember === null) {
+        if (currentPath !== '/dashboard/liberasphere') {
+            router.push('/dashboard/liberasphere');
+        }
+        return;
+    }
+
+    // Step 2: User must accept regulations
+    if (!userData.regulationsAccepted) {
+        if (currentPath !== '/dashboard/regulations') {
+            router.push('/dashboard/regulations');
+        }
+        return;
+    }
+    
+    // Step 3: Check if user is fully operational
+    const isOperational = 
+        userData.associationStatus === 'approved' ||
+        (userData.isFormerMember === 'no' && userData.isSelectionPassportComplete);
+
+    // If user is NOT operational and is on a page other than their required next step, redirect them.
+    if (!isOperational) {
+        if (userData.isFormerMember === 'no' && currentPath !== '/dashboard/class-selection') {
+            router.push('/dashboard/class-selection');
+        } else if (userData.isFormerMember === 'yes' && currentPath !== '/dashboard/associates') {
+             router.push('/dashboard/associates');
+        }
+    }
+    
   }, [isDataReady, userData, pathname, router]);
 
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -264,15 +267,16 @@ export default function DashboardLayout({
   const associationRequested = userData.associationStatus === 'requested';
   const hasSeasonalSubscription = userData.subscription?.plan === 'stagionale';
 
+  // --- Navigation Items Logic ---
   const allNavItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => userData.regulationsAccepted && (isAssociatedThisSeason || associationRequested) },
-    { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto", condition: () => true },
+    { href: "/dashboard/help", icon: HelpCircle, label: "Aiuto", condition: () => true },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => true },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento", condition: () => userData.regulationsAccepted && (isAssociatedThisSeason || associationRequested) && !hasSeasonalSubscription },
     { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => userData.isFormerMember === null },
-    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !userData.regulationsAccepted },
-    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Passaporto Selezioni", condition: () => userData.regulationsAccepted && userData.isFormerMember === 'no' && !userData.lessonSelected },
-    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => userData.regulationsAccepted && !isAssociatedThisSeason && !associationRequested },
+    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !userData.regulationsAccepted && userData.isFormerMember !== null },
+    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Passaporto Selezioni", condition: () => userData.regulationsAccepted && userData.isFormerMember === 'no' && !userData.isSelectionPassportComplete },
+    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => userData.regulationsAccepted && !isAssociatedThisSeason && !associationRequested && userData.isFormerMember === 'yes' },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => userData.regulationsAccepted && isAssociatedThisSeason },
     { href: "/dashboard/payments", icon: Landmark, label: "Storico Pagamenti", condition: () => userData.regulationsAccepted && (isAssociatedThisSeason || associationRequested) },
   ];
@@ -282,9 +286,9 @@ export default function DashboardLayout({
   ];
 
   const navItems = isMedicalBlocked 
-    ? allNavItems.filter(item => ['/dashboard/aiuto', '/dashboard/medical-certificate'].includes(item.href))
+    ? allNavItems.filter(item => ['/dashboard/help', '/dashboard/medical-certificate'].includes(item.href))
     : isSubscriptionBlocked 
-    ? allNavItems.filter(item => ['/dashboard/aiuto', '/dashboard/subscription'].includes(item.href))
+    ? allNavItems.filter(item => ['/dashboard/help', '/dashboard/subscription'].includes(item.href))
     : allNavItems.filter(item => item.condition());
 
   const childrenWithProps = React.Children.map(children, child => {
