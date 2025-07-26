@@ -26,8 +26,8 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
     useEffect(() => {
         setIsClient(true);
         if (userData) {
-            const { name, codiceFiscale, birthDate } = userData;
-            if (name && codiceFiscale && birthDate) {
+            // Updated logic: Show the summary card if the user has requested or is already approved.
+            if (userData.associationStatus === 'requested' || userData.associationStatus === 'approved') {
                 setHasUserData(true);
             } else {
                 setHasUserData(false);
@@ -71,5 +71,3 @@ export default function AssociatesPage({ setRegulationsAccepted, setAssociated, 
         </div>
     );
 }
-
-    
