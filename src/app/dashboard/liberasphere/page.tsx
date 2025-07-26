@@ -72,10 +72,14 @@ export default function LiberaSpherePage() {
         try {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
-            // Force a hard reload to ensure the layout component refetches the latest user data
-            // and applies the correct redirection logic.
-            router.push('/dashboard');
-            router.refresh();
+
+            // Explicit redirection based on user choice
+            if (isFormerMember === 'yes') {
+                router.push('/dashboard/associates');
+            } else if (isFormerMember === 'no') {
+                router.push('/dashboard/class-selection');
+            }
+
         } catch (error) {
             console.error("Error updating user document:", error);
             // Handle error, maybe show a toast
@@ -161,7 +165,7 @@ export default function LiberaSpherePage() {
                     disabled={isButtonDisabled() || isLoading} 
                     className="bg-stone-800 text-amber-400 hover:bg-stone-700 disabled:bg-stone-800/50 disabled:text-amber-400/50"
                 >
-                    {isLoading ? <Loader2 className="animate-spin" /> : "Entra in Libera Sphere"}
+                    {isLoading ? <Loader2 className="animate-spin" /> : "Prosegui"}
                 </Button>
             </CardFooter>
         </Card>
