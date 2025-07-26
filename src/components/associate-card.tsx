@@ -15,14 +15,12 @@ import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Separator } from "./ui/separator"
-import { Checkbox } from "./ui/checkbox"
-import { Label } from "./ui/label"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertTriangle, ArrowLeft, Copy, Loader2 } from "lucide-react"
+import { AlertTriangle, ArrowLeft, Copy, Loader2, CheckCircle } from "lucide-react"
 import { doc, updateDoc } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog"
+import { Alert } from "./ui/alert"
 
 const SUMUP_ASSOCIATION_LINK = 'https://pay.sumup.com/b2c/QT5P5G2T';
 
@@ -31,6 +29,7 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
     const router = useRouter();
     
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
+    const [paymentActionTaken, setPaymentActionTaken] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
     
@@ -48,12 +47,32 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
       });
     }
 
-    const handleFinalSubmit = async () => {
+    const handlePaymentAction = () => {
         if (!paymentMethod) {
             toast({ title: "Attenzione", description: "Seleziona un metodo di pagamento.", variant: "destructive" });
             return;
         }
 
+        if (paymentMethod === 'online') {
+            const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
+            // After payment, user will be redirected back here to finalize submission
+            const returnUrl = encodeURIComponent('/dashboard/associates');
+            setPaymentActionTaken(true); // Assume they will attempt payment
+            router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+        } else if (paymentMethod === 'bank') {
+            setShowBankTransferDialog(true);
+            setPaymentActionTaken(true);
+        } else if (paymentMethod === 'cash') {
+            setPaymentActionTaken(true);
+            toast({
+                title: "Metodo di Pagamento Selezionato",
+                description: "Hai scelto di pagare in contanti. Clicca su 'Invia Domanda' per completare.",
+            });
+        }
+    }
+
+
+    const handleFinalSubmit = async () => {
         setIsLoading(true);
         const user = auth.currentUser;
         if (!user) {
@@ -73,20 +92,11 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
 
-            if (paymentMethod === 'online') {
-                const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
-                const returnUrl = encodeURIComponent('/dashboard');
-                router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-                // Don't set loading to false, as we are navigating away
-            } else if (paymentMethod === 'bank') {
-                setShowBankTransferDialog(true);
-            } else if (paymentMethod === 'cash') {
-                 toast({
-                    title: "Domanda Registrata!",
-                    description: `Presentati in segreteria per completare il pagamento.`,
-                 });
-                 router.push('/dashboard');
-            }
+            toast({
+                title: "Domanda Inviata!",
+                description: "La tua richiesta di associazione è stata registrata con successo.",
+            });
+            router.push('/dashboard');
 
         } catch (error) {
             console.error("Error submitting association:", error);
@@ -98,10 +108,9 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
     const handleConfirmBankTransfer = () => {
       setShowBankTransferDialog(false);
       toast({
-          title: "Domanda Registrata!",
-          description: "Effettua il bonifico usando i dati forniti. Vedrai lo stato aggiornato nella sezione pagamenti.",
+          title: "Istruzioni Bonifico",
+          description: "Effettua il bonifico e poi clicca su 'Invia Domanda' per completare.",
       });
-      router.push('/dashboard');
     };
 
     if (!initialData) {
@@ -112,9 +121,6 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
             </Card>
         );
     }
-    
-    // Check if the user has ALREADY submitted. If so, show a read-only summary.
-    const isAlreadySubmitted = initialData.associationStatus === 'requested' || initialData.associationStatus === 'approved';
 
     return (
         <>
@@ -122,7 +128,7 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
             <CardHeader>
                 <CardTitle>Riepilogo Domanda di Associazione</CardTitle>
                 <CardDescription>
-                    Verifica che i tuoi dati siano corretti. {isAlreadySubmitted ? 'La tua domanda è stata inviata.' : 'Se lo sono, procedi con il pagamento per completare la tua domanda.'}
+                   Verifica che i tuoi dati siano corretti. Se lo sono, scegli un metodo di pagamento e invia la tua domanda.
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
@@ -150,13 +156,13 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
                     )}
                 </div>
                 
-                {!isAlreadySubmitted && (
-                    <>
-                    <Separator />
-                    <div className="space-y-2">
-                        <Label htmlFor="payment-method" className="font-semibold">Metodo di Pagamento</Label>
-                        <Select onValueChange={setPaymentMethod} value={paymentMethod}>
-                            <SelectTrigger id="payment-method">
+                <Separator />
+
+                <div className="space-y-4">
+                    <div>
+                        <Label htmlFor="payment-method" className="font-semibold text-lg">1. Scegli un Metodo di Pagamento</Label>
+                        <Select onValueChange={setPaymentMethod} value={paymentMethod} disabled={paymentActionTaken}>
+                            <SelectTrigger id="payment-method" className="mt-2">
                                 <SelectValue placeholder="Seleziona un'opzione" />
                             </SelectTrigger>
                             <SelectContent>
@@ -166,16 +172,28 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
                             </SelectContent>
                         </Select>
                     </div>
-                    </>
+                     <Button onClick={handlePaymentAction} disabled={!paymentMethod || paymentActionTaken} className="w-full">
+                        2. Procedi al Pagamento
+                    </Button>
+                </div>
+
+                {paymentActionTaken && (
+                     <Alert variant="default" className="border-green-500 text-green-800 [&>svg]:text-green-800">
+                        <CheckCircle className="h-4 w-4" />
+                        <CardTitle>Pronto per l'invio</CardTitle>
+                        <CardDescription>
+                            Ora puoi inviare la tua domanda di associazione.
+                        </CardDescription>
+                    </Alert>
                 )}
 
             </CardContent>
-            <CardFooter className="flex justify-between items-center">
-                <Button variant="outline" onClick={onBack} disabled={isAlreadySubmitted}>
-                   <ArrowLeft className="mr-2 h-4 w-4"/> Modifica Dati
+            <CardFooter className="flex-col items-stretch space-y-4">
+                <Button onClick={handleFinalSubmit} disabled={!paymentActionTaken || isLoading} className="w-full">
+                    {isLoading ? <Loader2 className="animate-spin" /> : "3. Invia Domanda di Associazione"}
                 </Button>
-                <Button onClick={handleFinalSubmit} disabled={isAlreadySubmitted || !paymentMethod || isLoading}>
-                    {isLoading ? <Loader2 className="animate-spin" /> : "Conferma e Invia Domanda"}
+                 <Button variant="outline" onClick={onBack} disabled={isLoading}>
+                   <ArrowLeft className="mr-2 h-4 w-4"/> Modifica Dati
                 </Button>
             </CardFooter>
         </Card>
