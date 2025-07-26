@@ -58,7 +58,6 @@ export default function AuthPage() {
         }
         router.push('/dashboard');
     } catch (error: any) {
-        console.error("Login failed:", error);
         toast({
             title: "Errore di accesso",
             description: "Credenziali non valide. Riprova.",
@@ -140,7 +139,6 @@ export default function AuthPage() {
         }
         router.push('/dashboard/liberasphere');
     } catch (error: any) {
-        console.error("Signup failed:", error);
         let description = "Si è verificato un errore durante la registrazione. Riprova.";
         if (error.code === 'auth/email-already-in-use') {
             description = "Questa email è già in uso. Prova ad accedere.";
