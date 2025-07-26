@@ -70,10 +70,11 @@ export default function LiberaSpherePage() {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
 
+            // Use window.location.href for a hard navigation to force layout reload
             if (isFormerMember === 'yes') {
-                router.push('/dashboard/associates');
+                window.location.href = '/dashboard/associates';
             } else {
-                router.push('/dashboard/class-selection');
+                window.location.href = '/dashboard/class-selection';
             }
 
         } catch (error) {
