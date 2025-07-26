@@ -113,16 +113,11 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [userData, setUserData] = React.useState<any>(null);
   const [loadingAuth, setLoadingAuth] = React.useState(true);
+  const [isDataReady, setIsDataReady] = React.useState(false);
   
-  const [regulationsAccepted, setRegulationsAccepted] = React.useState(false);
-  const [associated, setAssociated] = React.useState(false);
-  const [associationRequested, setAssociationRequested] = React.useState(false);
-  const [lessonSelected, setLessonSelected] = React.useState(false);
   const [isMedicalBlocked, setIsMedicalBlocked] = React.useState(false);
   const [isSubscriptionBlocked, setIsSubscriptionBlocked] = React.useState(false);
-  const [hasSeasonalSubscription, setHasSeasonalSubscription] = React.useState(false);
-  const [isDataReady, setIsDataReady] = React.useState(false);
-
+  
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -131,8 +126,8 @@ export default function DashboardLayout({
         if (userDoc.exists()) {
             const data = userDoc.data();
             setUserData(data);
+            setIsDataReady(true);
         } else {
-          // Handle case where user exists in Auth but not in Firestore
           setUserData({ uid: user.uid, email: user.email, name: user.displayName || 'Utente' });
         }
         setLoadingAuth(false);
@@ -144,10 +139,9 @@ export default function DashboardLayout({
   }, [router]);
 
   React.useEffect(() => {
-    if (userData) {
-      const isApproved = userData.associationStatus === 'approved';
+    if (isDataReady && userData) {
       const approvalDate = userData.associationApprovalDate;
-      const isAssociatedThisSeason = isApproved && isAssociatedForCurrentSeason(approvalDate);
+      const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(approvalDate);
       
       const appointmentDateStr = userData.medicalCertificate?.appointmentDate;
       const certificateDateStr = userData.medicalCertificate?.expirationDate;
@@ -161,6 +155,7 @@ export default function DashboardLayout({
             }
           }
       }
+      setIsMedicalBlocked(blockUserMedical);
 
       let blockUserSubscription = false;
       if (userData.subscription?.plan === 'mensile' && userData.subscription?.status !== 'in_attesa') {
@@ -172,9 +167,7 @@ export default function DashboardLayout({
                   const endOfMonth = lastDayOfMonth(paymentDate);
                   const gracePeriodEnd = addDays(endOfMonth, 5);
 
-                  if (today.getFullYear() === paymentDate.getFullYear() && today.getMonth() === paymentDate.getMonth()) {
-                      blockUserSubscription = false;
-                  } else if (today > gracePeriodEnd) {
+                  if (isAfter(today, gracePeriodEnd)) {
                       blockUserSubscription = true;
                   }
               }
@@ -184,68 +177,56 @@ export default function DashboardLayout({
               }
           }
       }
-      
-      setRegulationsAccepted(userData.regulationsAccepted);
-      setAssociated(isAssociatedThisSeason);
-      setLessonSelected(userData.lessonSelected);
-      setAssociationRequested(userData.associationStatus === 'requested' && !isAssociatedThisSeason);
-      setHasSeasonalSubscription(userData.subscription?.plan === 'stagionale');
-      setIsMedicalBlocked(blockUserMedical);
       setIsSubscriptionBlocked(blockUserSubscription);
-      setIsDataReady(true);
-    }
-  }, [userData]);
-  
-   React.useEffect(() => {
-    if (!isDataReady) return;
+      
+      const currentPath = pathname;
+      const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
 
-    const currentPath = pathname;
-    const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
+      // Priority 1: Medical or Subscription blocks override everything.
+      if (isMedicalBlocked && !essentialPages.includes(currentPath)) {
+          router.push('/dashboard/medical-certificate');
+          return;
+      }
+      if (isSubscriptionBlocked && !essentialPages.includes(currentPath)) {
+          router.push('/dashboard/subscription');
+          return;
+      }
 
-    // Priority 1: Medical or Subscription blocks override everything.
-    if (isMedicalBlocked && !essentialPages.includes(currentPath)) {
-        router.push('/dashboard/medical-certificate');
-        return;
-    }
-    if (isSubscriptionBlocked && !essentialPages.includes(currentPath)) {
-        router.push('/dashboard/subscription');
-        return;
-    }
-    
-    // Onboarding flow in strict order
-    // Step 1: Has the user identified as a former member or new?
-    if (userData.isFormerMember === null) {
-        if (currentPath !== '/dashboard/liberasphere') {
-            router.push('/dashboard/liberasphere');
-        }
-        return; // Stop further checks until this is done
-    }
+      // Onboarding Flow: A clear, sequential path for new users.
+      // Step 1: Identify as former member or new.
+      if (userData.isFormerMember === null) {
+          if (currentPath !== '/dashboard/liberasphere') {
+              router.push('/dashboard/liberasphere');
+          }
+          return;
+      }
 
-    // Step 2: Have regulations been accepted?
-    if (!userData.regulationsAccepted) {
-        if (currentPath !== '/dashboard/regulations') {
-            router.push('/dashboard/regulations');
-        }
-        return; // Stop further checks until this is done
-    }
+      // Step 2: Accept regulations.
+      if (!userData.regulationsAccepted) {
+          if (currentPath !== '/dashboard/regulations') {
+              router.push('/dashboard/regulations');
+          }
+          return;
+      }
 
-    // Step 3: Association / Class Selection
-    if (!associated && !associationRequested) {
-        if (userData.isFormerMember === 'no' && !userData.lessonSelected) {
-            // New user, hasn't done selection yet
-             if (currentPath !== '/dashboard/class-selection') {
-                router.push('/dashboard/class-selection');
-            }
-        } else {
-             // User has done selections, or is a former member. They need to associate.
-             if (currentPath !== '/dashboard/associates') {
-                router.push('/dashboard/associates');
-            }
-        }
-        return; // Stop further checks
-    }
+      // Step 3: Main action based on user type.
+      const hasPendingAssociation = userData.associationStatus === 'requested';
+      const hasActiveAssociation = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
 
-  }, [isDataReady, pathname, router, userData, isMedicalBlocked, isSubscriptionBlocked, associated, associationRequested, lessonSelected]);
+      if (!hasActiveAssociation && !hasPendingAssociation) {
+          if (userData.isFormerMember === 'no' && !userData.lessonSelected) {
+              if (currentPath !== '/dashboard/class-selection') {
+                  router.push('/dashboard/class-selection');
+              }
+          } else {
+              // This covers former members and new members who have finished selection.
+              if (currentPath !== '/dashboard/associates') {
+                  router.push('/dashboard/associates');
+              }
+          }
+      }
+    }
+  }, [isDataReady, userData, pathname, router]);
 
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
@@ -270,27 +251,40 @@ export default function DashboardLayout({
     router.push('/dashboard/subscription');
   }
 
+  if (loadingAuth || !isDataReady || !userData) {
+    return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Caricamento...</p>
+        </div>
+    );
+  }
+
+  const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
+  const associationRequested = userData.associationStatus === 'requested';
+  const hasSeasonalSubscription = userData.subscription?.plan === 'stagionale';
+
   const allNavItems = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => regulationsAccepted && (associated || associationRequested) },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => userData.regulationsAccepted && (isAssociatedThisSeason || associationRequested) },
     { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto", condition: () => true },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => true },
-    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento", condition: () => regulationsAccepted && (associated || associationRequested) && !hasSeasonalSubscription },
-    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => userData?.isFormerMember === null },
-    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !regulationsAccepted },
-    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Passaporto Selezioni", condition: () => regulationsAccepted && userData?.isFormerMember === 'no' && !lessonSelected},
-    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => regulationsAccepted && !associated && !associationRequested },
-    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => regulationsAccepted && associated },
-    { href: "/dashboard/payments", icon: Landmark, label: "Storico Pagamenti", condition: () => regulationsAccepted && (associated || associationRequested) },
-  ]
+    { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento", condition: () => userData.regulationsAccepted && (isAssociatedThisSeason || associationRequested) && !hasSeasonalSubscription },
+    { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => userData.isFormerMember === null },
+    { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !userData.regulationsAccepted },
+    { href: "/dashboard/class-selection", icon: DumbbellIcon, label: "Passaporto Selezioni", condition: () => userData.regulationsAccepted && userData.isFormerMember === 'no' && !userData.lessonSelected },
+    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => userData.regulationsAccepted && !isAssociatedThisSeason && !associationRequested },
+    { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => userData.regulationsAccepted && isAssociatedThisSeason },
+    { href: "/dashboard/payments", icon: Landmark, label: "Storico Pagamenti", condition: () => userData.regulationsAccepted && (isAssociatedThisSeason || associationRequested) },
+  ];
   
   const bottomNavItems = [
     { href: "/", icon: LogOut, label: "Esci", onClick: handleLogout, condition: () => true },
-  ]
+  ];
 
   const navItems = isMedicalBlocked 
-    ? allNavItems.filter(item => item.href === '/dashboard/aiuto' || item.href === '/dashboard/medical-certificate')
+    ? allNavItems.filter(item => ['/dashboard/aiuto', '/dashboard/medical-certificate'].includes(item.href))
     : isSubscriptionBlocked 
-    ? allNavItems.filter(item => item.href === '/dashboard/aiuto' || item.href === '/dashboard/subscription')
+    ? allNavItems.filter(item => ['/dashboard/aiuto', '/dashboard/subscription'].includes(item.href))
     : allNavItems.filter(item => item.condition());
 
   const childrenWithProps = React.Children.map(children, child => {
@@ -302,15 +296,6 @@ export default function DashboardLayout({
     }
     return child;
   });
-
-  if (loadingAuth || !isDataReady) {
-    return (
-        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Caricamento...</p>
-        </div>
-    );
-  }
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40">
