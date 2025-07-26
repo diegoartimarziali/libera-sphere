@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -23,7 +22,6 @@ const grades = [
 ];
 
 export default function LiberaSpherePage() {
-    const router = useRouter();
     const [isFormerMember, setIsFormerMember] = useState<string | undefined>();
     const [startYear, setStartYear] = useState<string | undefined>();
     const [grade, setGrade] = useState<string | undefined>();
@@ -70,7 +68,7 @@ export default function LiberaSpherePage() {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
 
-            // Use window.location.href for a hard navigation to force layout reload
+            // Use hard navigation to force a full reload and ensure layout gets fresh data
             if (isFormerMember === 'yes') {
                 window.location.href = '/dashboard/associates';
             } else {
