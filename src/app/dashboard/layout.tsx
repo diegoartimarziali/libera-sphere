@@ -75,8 +75,7 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [userData, setUserData] = React.useState<any>(null);
-  const [loadingAuth, setLoadingAuth] = React.useState(true);
-  const [isDataReady, setIsDataReady] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
   
   const [isMedicalBlocked, setIsMedicalBlocked] = React.useState(false);
   const [isSubscriptionBlocked, setIsSubscriptionBlocked] = React.useState(false);
@@ -85,44 +84,56 @@ export default function DashboardLayout({
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userDocRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            const data = userDoc.data();
-            setUserData(data);
-        } else {
-          setUserData({ uid: user.uid, email: user.email, name: user.displayName || 'Utente' });
+        try {
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+              const data = userDoc.data();
+              setUserData(data);
+          } else {
+            // This case might happen if registration succeeded but Firestore doc creation failed.
+            // Forcing a logout is a safe way to handle this inconsistency.
+            await signOut(auth);
+            router.push('/');
+            return;
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          // Also force logout on data fetching error
+          await signOut(auth);
+          router.push('/');
+          return;
         }
-        setIsDataReady(true);
-        setLoadingAuth(false);
       } else {
         router.push('/');
       }
+      // We set loading to false only after we have a user and their data, or we know there's no user.
+      setLoading(false);
     });
     return () => unsubscribe();
   }, [router]);
 
   React.useEffect(() => {
-    if (!isDataReady || !userData) {
+    // This effect handles redirection logic and runs ONLY when userData or pathname changes.
+    // It is crucial that `loading` is false and `userData` is populated.
+    if (loading || !userData) {
       return;
     }
     
     const currentPath = pathname;
-    const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
     const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
 
-    // --- Priority 1: Health & Payment Blocks (ONLY FOR ACTIVE MEMBERS) ---
+    // --- PRIORITY 1: Critical Blocks for ACTIVE members ---
     if (isAssociatedThisSeason) {
+        const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription'];
+        
         // Medical Certificate Block
         const appointmentDateStr = userData.medicalCertificate?.appointmentDate;
         const certificateDateStr = userData.medicalCertificate?.expirationDate;
         let blockUserMedical = false;
         if (appointmentDateStr && !certificateDateStr) {
             const appointmentDate = parseISO(appointmentDateStr);
-            if (isValid(appointmentDate)) {
-                const today = startOfToday();
-                if (isAfter(today, appointmentDate)) {
-                    blockUserMedical = true;
-                }
+            if (isValid(appointmentDate) && isAfter(startOfToday(), appointmentDate)) {
+                blockUserMedical = true;
             }
         }
         setIsMedicalBlocked(blockUserMedical);
@@ -137,13 +148,12 @@ export default function DashboardLayout({
                     const today = new Date();
                     const endOfMonth = lastDayOfMonth(paymentDate);
                     const gracePeriodEnd = addDays(endOfMonth, 5);
-
                     if (isAfter(today, gracePeriodEnd)) {
                         blockUserSubscription = true;
                     }
                 }
             } else {
-                blockUserSubscription = true; // No payment date for an active subscription is a problem
+                blockUserSubscription = true; 
             }
         }
         setIsSubscriptionBlocked(blockUserSubscription);
@@ -159,9 +169,10 @@ export default function DashboardLayout({
     }
 
 
-    // --- Priority 2: Onboarding Flow ---
-    
-    // Step 1: User must accept regulations
+    // --- PRIORITY 2: Onboarding Flow ---
+    const isOperational = isAssociatedThisSeason || (userData.isSelectionPassportComplete);
+
+    // Step 1: Regulations
     if (!userData.regulationsAccepted) {
         if (currentPath !== '/dashboard/regulations') {
             router.push('/dashboard/regulations');
@@ -169,7 +180,7 @@ export default function DashboardLayout({
         return;
     }
 
-    // Step 2: User must define their status (new or former member)
+    // Step 2: LiberaSphere Status
     if (userData.isFormerMember === null) {
         if (currentPath !== '/dashboard/liberasphere') {
             router.push('/dashboard/liberasphere');
@@ -177,12 +188,7 @@ export default function DashboardLayout({
         return;
     }
     
-    // Step 3: Check if user is fully operational
-    const isOperational = 
-        isAssociatedThisSeason ||
-        (userData.isFormerMember === 'no' && userData.isSelectionPassportComplete);
-
-    // If user is NOT operational and is on a page other than their required next step, redirect them.
+    // Step 3: Redirect to correct module if not yet operational
     if (!isOperational) {
         if (userData.isFormerMember === 'no' && currentPath !== '/dashboard/class-selection') {
             router.push('/dashboard/class-selection');
@@ -191,7 +197,7 @@ export default function DashboardLayout({
         }
     }
     
-  }, [isDataReady, userData, pathname, router]);
+  }, [userData, pathname, router, loading]);
 
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
@@ -216,7 +222,7 @@ export default function DashboardLayout({
     router.push('/dashboard/subscription');
   }
 
-  if (loadingAuth || !isDataReady || !userData) {
+  if (loading || !userData) {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
