@@ -36,7 +36,11 @@ export default function PaymentGatewayPage() {
     };
 
     const handleCancel = () => {
-        router.back();
+        if (returnTo) {
+            router.push(returnTo);
+        } else {
+            router.back();
+        }
     };
     
     if (!isClient) {

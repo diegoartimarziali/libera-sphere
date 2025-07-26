@@ -15,15 +15,15 @@ import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Separator } from "./ui/separator"
-import { Label } from "./ui/label"
 import { AlertTriangle, ArrowLeft, Copy, Loader2, CheckCircle } from "lucide-react"
 import { doc, updateDoc } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog"
 import { Alert } from "./ui/alert"
+import { Label } from "./ui/label"
 
-const SUMUP_ASSOCIATION_LINK = 'https://pay.sumup.com/b2c/QT5P5G2T';
+const SUMUP_ASSOCIATION_LINK = 'https://pay.sumup.com/b2c/Q9ZH35JE';
 
 export function AssociateCard({ initialData, onBack }: { initialData: any, onBack: () => void }) {
     const { toast } = useToast();
@@ -37,7 +37,7 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
     const bankDetails = {
       iban: "IT12A345B678C901D234E567F890",
       beneficiary: "Associazione Libera Energia ASD",
-      cause: `Quota Associativa ${initialData.name}`
+      cause: `Quota Associativa ${initialData?.name}`
     }
 
     const copyToClipboard = (text: string) => {
@@ -56,8 +56,8 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
 
         if (paymentMethod === 'online') {
             const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
-            // After payment, user will be redirected back here to finalize submission
-            const returnUrl = encodeURIComponent('/dashboard/associates');
+            // After payment, user should return to the summary card
+            const returnUrl = encodeURIComponent('/dashboard/associates?showSummary=true');
             setPaymentActionTaken(true); // Assume they will attempt payment
             router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
         } else if (paymentMethod === 'bank') {
@@ -74,6 +74,11 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
 
 
     const handleFinalSubmit = async () => {
+        if (!paymentActionTaken) {
+            toast({ title: "Azione Richiesta", description: "Per favore, scegli un metodo di pagamento e clicca su 'Procedi al Pagamento' prima di inviare.", variant: "destructive" });
+            return;
+        }
+
         setIsLoading(true);
         const user = auth.currentUser;
         if (!user) {
@@ -92,12 +97,14 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
         try {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
+            localStorage.removeItem('associationFormData'); // Clean up local storage
 
             toast({
                 title: "Domanda Inviata!",
                 description: "La tua richiesta di associazione è stata registrata con successo.",
             });
             router.push('/dashboard');
+            router.refresh(); // Force a refresh to update layout state
 
         } catch (error) {
             console.error("Error submitting association:", error);
@@ -190,7 +197,7 @@ export function AssociateCard({ initialData, onBack }: { initialData: any, onBac
 
             </CardContent>
             <CardFooter className="flex-col items-stretch space-y-4">
-                <Button onClick={handleFinalSubmit} disabled={!paymentActionTaken || isLoading} className="w-full">
+                 <Button onClick={handleFinalSubmit} disabled={!paymentActionTaken || isLoading} className="w-full">
                     {isLoading ? <Loader2 className="animate-spin" /> : "3. Invia Domanda di Associazione"}
                 </Button>
                  <Button variant="outline" onClick={onBack} disabled={isLoading}>
