@@ -29,9 +29,12 @@ export default function LiberaSpherePage() {
     const [grade, setGrade] = useState<string | undefined>();
     const [isLoading, setIsLoading] = useState(false);
 
-    // Simplified logic: The button is enabled as soon as a choice is made.
     const isButtonDisabled = () => {
-        return !isFormerMember || isLoading;
+        if (isLoading) return true;
+        if (isFormerMember === 'yes') {
+            return !startYear || !grade;
+        }
+        return !isFormerMember;
     };
 
     const handleIsFormerMemberChange = (value: string) => {
@@ -41,7 +44,7 @@ export default function LiberaSpherePage() {
     };
 
     const handleEnterLiberaSphere = async () => {
-        if (!isFormerMember) return;
+        if (isButtonDisabled()) return;
 
         setIsLoading(true);
         const user = auth.currentUser;
@@ -51,7 +54,6 @@ export default function LiberaSpherePage() {
             return;
         }
 
-        // Simplified data update logic
         let dataToUpdate: any = {
             isFormerMember: isFormerMember
         };
@@ -60,22 +62,19 @@ export default function LiberaSpherePage() {
             dataToUpdate.firstAssociationYear = String(currentYear);
             dataToUpdate.grade = 'Nessuno';
         } else if (isFormerMember === 'yes') {
-            // Save year and grade only if they have been provided, but don't block the process.
-            if (startYear) {
-                dataToUpdate.firstAssociationYear = startYear;
-            }
-            if (grade) {
-                dataToUpdate.grade = grade;
-            }
+            dataToUpdate.firstAssociationYear = startYear;
+            dataToUpdate.grade = grade;
         }
 
         try {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
 
-            // Force a full page reload. This is the most reliable way to ensure
-            // the layout component re-fetches the fresh user data and applies the correct redirection logic.
-            window.location.reload();
+            if (isFormerMember === 'yes') {
+                router.push('/dashboard/associates');
+            } else {
+                router.push('/dashboard/class-selection');
+            }
 
         } catch (error) {
             console.error("Error updating user document:", error);
