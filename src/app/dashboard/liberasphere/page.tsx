@@ -73,17 +73,15 @@ export default function LiberaSpherePage() {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
 
-            // Explicit redirection based on user choice
-            if (isFormerMember === 'yes') {
-                router.push('/dashboard/associates');
-            } else if (isFormerMember === 'no') {
-                router.push('/dashboard/class-selection');
-            }
+            // Force a full page reload. This makes the layout re-fetch fresh user data
+            // and apply the correct redirection logic.
+            window.location.reload();
 
         } catch (error) {
             console.error("Error updating user document:", error);
             // Handle error, maybe show a toast
         } finally {
+            // This might not be reached if reload is successful, but it's good practice
             setIsLoading(false);
         }
     };
