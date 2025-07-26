@@ -202,11 +202,10 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             
             toast({
                 title: "Domanda Inviata!",
-                description: "I tuoi dati sono stati salvati. Ora puoi procedere con il pagamento.",
+                description: "Verrai reindirizzato alla scheda di riepilogo.",
             });
             
-            setHasUserData(true);
-            router.push('/dashboard/associates');
+            window.location.reload();
 
         } catch (error) {
             console.error("Error writing data to Firestore: ", error);
