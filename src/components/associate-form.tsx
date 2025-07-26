@@ -23,9 +23,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useState, useMemo, useEffect } from "react"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
-import { Separator } from "./ui/separator"
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog"
-import { Copy, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { db, auth } from "@/lib/firebase"
 import { doc, updateDoc } from "firebase/firestore"
 import { format } from "date-fns"
@@ -37,8 +35,6 @@ const months = Array.from({ length: 12 }, (_, i) => ({
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => String(currentYear - i));
-
-const SUMUP_ASSOCIATION_LINK = 'https://pay.sumup.com/b2c/Q9ZH35JE';
 
 export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (value: boolean) => void, userData?: any }) {
     const { toast } = useToast()
@@ -64,29 +60,11 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     const [martialArt, setMartialArt] = useState<string | undefined>();
     const [dojo, setDojo] = useState<string | undefined>();
     
-    const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
-    const [amount, setAmount] = useState<string | undefined>();
-
     // Control state
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
     const [isFormComplete, setIsFormComplete] = useState(false);
     const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
 
-    const bankDetails = {
-        iban: "IT12A345B678C901D234E567F890",
-        beneficiary: "Associazione Libera Energia ASD",
-        cause: `Quota associativa ${name}`
-    }
-
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text).then(() => {
-            toast({ title: "Copiato!", description: "Dettagli bancari copiati negli appunti." });
-        }, (err) => {
-            toast({ title: "Errore", description: "Impossibile copiare i dettagli.", variant: "destructive" });
-        });
-    }
-    
     useEffect(() => {
         const currentUser = auth.currentUser;
         if (currentUser && currentUser.email) {
@@ -130,23 +108,11 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             const isAddressComplete = !!(address && civicNumber && cap && comune && provincia);
             const isContactComplete = isMinor ? !!(parentName && parentCf && parentPhone) : !!(phone);
             
-            const isPaymentSelected = !!paymentMethod;
-
-            setIsFormComplete(isCourseSelectionComplete && isStudentDataComplete && isAddressComplete && isContactComplete && isPaymentSelected);
+            setIsFormComplete(isCourseSelectionComplete && isStudentDataComplete && isAddressComplete && isContactComplete);
         };
         checkFormCompleteness();
-    }, [name, birthDate, birthplace, codiceFiscale, address, civicNumber, cap, comune, provincia, phone, parentName, parentCf, parentPhone, martialArt, dojo, paymentMethod, isMinor]);
+    }, [name, birthDate, birthplace, codiceFiscale, address, civicNumber, cap, comune, provincia, phone, parentName, parentCf, parentPhone, martialArt, dojo, isMinor]);
 
-
-    useEffect(() => {
-        if (paymentMethod === 'online' || paymentMethod === 'bank') {
-            setAmount("120");
-        } else if (paymentMethod === 'cash') {
-            setAmount("122");
-        } else {
-            setAmount(undefined);
-        }
-    }, [paymentMethod]);
 
     const handleMartialArtChange = (value: string) => {
         setMartialArt(value);
@@ -196,11 +162,15 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
         setParentName(capitalized);
     };
 
-    const saveDataToFirestore = async () => {
+    const handleSubmit = async () => {
+        if (!isFormComplete || isSubmitting) return;
+
+        setIsSubmitting(true);
         const user = auth.currentUser;
-        if (!user || !paymentMethod || !amount) {
-            toast({ title: "Errore", description: "Dati utente o di pagamento mancanti.", variant: "destructive" });
-            throw new Error("Dati mancanti");
+        if (!user) {
+            toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
+            setIsSubmitting(false);
+            return;
         }
         
         const dataToUpdate = {
@@ -214,8 +184,6 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             comune,
             provincia,
             isMinor,
-            paymentMethod,
-            paymentAmount: amount,
             associationStatus: 'requested',
             associationRequestDate: format(new Date(), "dd/MM/yyyy"),
             martialArt,
@@ -231,52 +199,23 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
         try {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, dataToUpdate);
+            
+            toast({
+                title: "Domanda Inviata!",
+                description: "I tuoi dati sono stati salvati. Ora puoi procedere con il pagamento.",
+            });
+            
+            setHasUserData(true);
+            router.push('/dashboard/associates');
 
         } catch (error) {
             console.error("Error writing data to Firestore: ", error);
             toast({ title: "Errore Database", description: "Impossibile salvare i dati.", variant: "destructive" });
-            throw error;
+            setIsSubmitting(false);
         }
-    };
-    
-    const handlePayment = async () => {
-        if (!isFormComplete || isSubmitting) return;
-
-        setIsSubmitting(true);
-
-        try {
-            await saveDataToFirestore();
-
-            if (paymentMethod === 'online') {
-                const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
-                const returnUrl = encodeURIComponent('/dashboard');
-                router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-                // No need to set isSubmitting to false here, as we are navigating away.
-            } else if (paymentMethod === 'bank') {
-                setShowBankTransferDialog(true);
-            } else if (paymentMethod === 'cash') {
-                toast({
-                    title: "Dati Salvati e Domanda Inviata!",
-                    description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
-                });
-                router.push('/dashboard');
-            }
-        } catch (error) {
-            // Error is already toasted, but we need to reset the submitting state
-             setIsSubmitting(false);
-        }
-    };
-
-    const handleConfirmBankTransfer = async () => {
-        toast({
-            title: "Dati Salvati e Domanda Inviata!",
-            description: "Effettua il bonifico usando i dati forniti. La tua domanda verrà approvata alla ricezione del pagamento.",
-        });
-        router.push('/dashboard');
     };
     
   return (
-    <>
     <Card>
         <CardHeader>
             <CardTitle className="bg-blue-600 text-white p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Domanda di Associazione</CardTitle>
@@ -416,98 +355,16 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
                     )}
                 </div>
             )}
-
-            {/* Sezione Pagamento */}
-            <div className="space-y-4 p-4 border rounded-lg">
-                <h3 className="font-semibold text-lg">Contributo Associativo</h3>
-                 <p className="pt-4 text-sm text-foreground font-bold text-center">
-                    Chiedo di essere ammesso in qualità di socio all'associazione Libera Energia.
-                </p>
-                <div className="space-y-2">
-                    <Label className="font-bold">Contributo: € {amount || '120'}</Label>
-                    <Select onValueChange={setPaymentMethod} value={paymentMethod}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Scegli un metodo di pagamento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="online">Carta di credito on line</SelectItem>
-                            <SelectItem value="bank">Bonifico Bancario</SelectItem>
-                            <SelectItem value="cash">Contanti o Bancomat in palestra (+ 2 € costi di gestione)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
         </CardContent>
         <CardFooter className="flex justify-end">
             <Button 
                 className="bg-blue-600 hover:bg-blue-700" 
-                onClick={handlePayment} 
+                onClick={handleSubmit} 
                 disabled={!isFormComplete || isSubmitting}
             >
-                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Procedi con il Pagamento'}
+                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Invia Domanda'}
             </Button>
         </CardFooter>
     </Card>
-
-    <AlertDialog open={showBankTransferDialog} onOpenChange={(open) => {
-        setShowBankTransferDialog(open);
-        if (!open) {
-            setIsSubmitting(false);
-        }
-    }}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Dati per Bonifico Bancario</AlertDialogTitle>
-                <AlertDialogDescription>
-                    Effettua il bonifico utilizzando i dati seguenti. La tua associazione verrà confermata alla ricezione del pagamento.
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <div className="space-y-4 my-4">
-                <div className="space-y-1">
-                    <Label className="text-muted-foreground">Beneficiario</Label>
-                    <div className="flex items-center justify-between rounded-md border bg-muted p-2">
-                        <span className="font-mono">{bankDetails.beneficiary}</span>
-                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(bankDetails.beneficiary)}>
-                            <Copy className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-                 <div className="space-y-1">
-                    <Label className="text-muted-foreground">IBAN</Label>
-                    <div className="flex items-center justify-between rounded-md border bg-muted p-2">
-                        <span className="font-mono">{bankDetails.iban}</span>
-                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(bankDetails.iban)}>
-                            <Copy className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-                 <div className="space-y-1">
-                    <Label className="text-muted-foreground">Importo</Label>
-                     <div className="flex items-center justify-between rounded-md border bg-muted p-2">
-                        <span className="font-mono">€ {amount}</span>
-                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(amount || '')}>
-                            <Copy className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-                 <div className="space-y-1">
-                    <Label className="text-muted-foreground">Causale</Label>
-                    <div className="flex items-center justify-between rounded-md border bg-muted p-2">
-                        <span className="font-mono">{bankDetails.cause}</span>
-                         <Button variant="ghost" size="icon" onClick={() => copyToClipboard(bankDetails.cause)}>
-                            <Copy className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-            </div>
-            <AlertDialogFooter>
-                <AlertDialogAction onClick={handleConfirmBankTransfer}>Ho capito, procedi</AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
-    </AlertDialog>
-    </>
   )
 }
-
-    

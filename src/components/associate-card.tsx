@@ -22,16 +22,6 @@ import { AlertTriangle, Loader2 } from "lucide-react"
 import { doc, updateDoc } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
 
-
-const translatePaymentMethod = (method: string | null) => {
-    if (!method) return 'Non specificato';
-    switch (method) {
-        case 'online': return 'Carta di Credito on line';
-        case 'bank': return 'Bonifico Bancario';
-        case 'cash': return 'Contanti o Bancomat in Palestra (+ 2 € costi di gestione)';
-        default: return method;
-    }
-}
   
 export function AssociateCard({ setAssociated, setAssociationRequested, setWantsToEdit, userData: initialUserData }: { setAssociated?: (value: boolean) => void, setAssociationRequested?: (value: boolean) => void, setWantsToEdit?: (value: boolean) => void, userData?: any }) {
     const { toast } = useToast();
@@ -43,50 +33,6 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
     useEffect(() => {
         setUserData(initialUserData);
     }, [initialUserData]);
-
-
-    const handleAssociation = async () => {
-        setIsLoading(true);
-        const user = auth.currentUser;
-        if (!user) {
-            toast({ title: "Errore", description: "Utente non trovato.", variant: "destructive" });
-            setIsLoading(false);
-            return;
-        }
-
-        const associationDate = format(new Date(), "dd/MM/yyyy");
-        try {
-            const userDocRef = doc(db, "users", user.uid);
-            await updateDoc(userDocRef, {
-                associationStatus: 'approved', // Or 'requested' if there's an approval flow
-                associationApprovalDate: associationDate, // Assuming direct approval for now
-                isInsured: true,
-            });
-
-            if (setAssociationRequested) {
-                setAssociationRequested(false);
-            }
-             if (setAssociated) {
-                setAssociated(true);
-            }
-            
-            toast({
-                title: "Domanda Inviata!",
-                description: `La tua domanda di associazione è stata inviata il ${associationDate}.`,
-            });
-            
-            window.location.href = '/dashboard';
-
-        } catch (error) {
-             toast({
-                title: "Errore",
-                description: "Impossibile salvare la domanda di associazione.",
-                variant: "destructive"
-            });
-        } finally {
-            setIsLoading(false);
-        }
-    }
 
     if (!userData) {
         return (
@@ -100,9 +46,9 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
     return (
         <Card className="h-full flex flex-col">
             <CardHeader>
-                <CardTitle>Conferma i tuoi dati e Associati</CardTitle>
+                <CardTitle>Riepilogo Domanda di Associazione</CardTitle>
                 <CardDescription>
-                    Verifica che i tuoi dati siano corretti.
+                    Verifica che i tuoi dati siano corretti. Se lo sono, procedi con il pagamento per completare la tua domanda.
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-4">
@@ -129,16 +75,8 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                     )}
                 </div>
                 <Separator />
-                <div className="space-y-2">
-                    <h4 className="font-semibold text-lg text-foreground">Metodo di Pagamento Scelto</h4>
-                    <p className="text-muted-foreground"><b>Metodo:</b> <span className="text-foreground font-bold">{translatePaymentMethod(userData.paymentMethod)}</span></p>
-                    <p className="text-muted-foreground"><b>Importo:</b> <span className="text-foreground font-bold">€ {userData.paymentAmount}</span></p>
-                </div>
-                <Separator />
                 <p className="text-sm text-muted-foreground">
                     Far parte della nostra associazione no profit non significa semplicemente iscriversi a un corso di Arti Marziali. Significa intraprendere un percorso di crescita condiviso, dove l'allenamento fisico è solo una parte di un'esperienza molto più ricca e profonda.
-                    <br /><br />
-                    Siamo una associazione senza scopo di lucro, nata dalla profonda passione per le arti marziali e dalla volontà di condividerne i valori autentici. Ogni aspetto della nostra gestione è guidato da principi di trasparenza e dedizione, tutti i ricavi derivanti dai contributi associativi vengono interamente reinvestiti in Didattica, Formazione, Aggiornamento e progetti di utilità sociale.
                 </p>
             </CardContent>
             <CardFooter className="flex flex-col items-start gap-4">
@@ -151,12 +89,12 @@ export function AssociateCard({ setAssociated, setAssociationRequested, setWants
                 <div className="flex items-center space-x-2">
                     <Checkbox id="confirm-data" onCheckedChange={(checked) => setDataConfirmed(!!checked)} />
                     <Label htmlFor="confirm-data" className="text-sm font-normal text-muted-foreground">
-                        Confermo che i dati riportati sono corretti e procedo con la domanda di associazione.
+                        Confermo che i dati riportati sono corretti e procedo con il pagamento.
                     </Label>
                 </div>
                 <div className="self-end">
-                    <Button onClick={handleAssociation} disabled={!dataConfirmed || isLoading}>
-                        {isLoading ? <Loader2 className="animate-spin" /> : "Procedi"}
+                    <Button disabled={!dataConfirmed || isLoading}>
+                        {isLoading ? <Loader2 className="animate-spin" /> : "Procedi con il Pagamento"}
                     </Button>
                 </div>
             </CardFooter>
