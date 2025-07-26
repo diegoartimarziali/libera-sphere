@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -30,7 +29,6 @@ import { Copy, Loader2 } from "lucide-react"
 import { db, auth } from "@/lib/firebase"
 import { doc, updateDoc } from "firebase/firestore"
 import { format } from "date-fns"
-import { Progress } from "./ui/progress"
 
 const months = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -46,15 +44,12 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     const { toast } = useToast()
     const router = useRouter()
     
-    const [martialArt, setMartialArt] = useState<string | undefined>();
-    const [dojo, setDojo] = useState<string | undefined>();
-
+    // Form state
     const [name, setName] = useState("");
     const [day, setDay] = useState<string | undefined>(undefined);
     const [month, setMonth] = useState<string | undefined>(undefined);
     const [year, setYear] = useState<string | undefined>(undefined);
     const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
-
     const [codiceFiscale, setCodiceFiscale] = useState("");
     const [provincia, setProvincia] = useState("");
     const [birthplace, setBirthplace] = useState("");
@@ -63,19 +58,20 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     const [cap, setCap] = useState("");
     const [comune, setComune] = useState("");
     const [phone, setPhone] = useState("");
-
     const [parentName, setParentName] = useState("");
     const [parentCf, setParentCf] = useState("");
     const [parentPhone, setParentPhone] = useState("");
+    const [martialArt, setMartialArt] = useState<string | undefined>();
+    const [dojo, setDojo] = useState<string | undefined>();
     
     const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
     const [amount, setAmount] = useState<string | undefined>();
-    const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
+
+    // Control state
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    // Multi-step logic
-    const [currentStep, setCurrentStep] = useState(1);
-    const TOTAL_STEPS = 5;
+    const [showBankTransferDialog, setShowBankTransferDialog] = useState(false);
+    const [isFormComplete, setIsFormComplete] = useState(false);
+    const [registrationEmail, setRegistrationEmail] = useState<string | null>(null);
 
     const bankDetails = {
         iban: "IT12A345B678C901D234E567F890",
@@ -90,43 +86,18 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             toast({ title: "Errore", description: "Impossibile copiare i dettagli.", variant: "destructive" });
         });
     }
-
+    
     useEffect(() => {
+        const currentUser = auth.currentUser;
+        if (currentUser && currentUser.email) {
+            setRegistrationEmail(currentUser.email);
+        }
+
         if (userData) {
             setName(userData.name || "");
-            setCodiceFiscale(userData.codiceFiscale || "");
-            if (userData.birthDate) {
-                const [dayStr, monthStr, yearStr] = userData.birthDate.split('/');
-                if (dayStr && monthStr && yearStr) {
-                    setDay(dayStr);
-                    setMonth(monthStr);
-                    setYear(yearStr);
-                }
-            }
-            setBirthplace(userData.birthplace || "");
-            setAddress(userData.address || "");
-            setCivicNumber(userData.civicNumber || "");
-            setCap(userData.cap || "");
-            setComune(userData.comune || "");
-            setProvincia(userData.provincia || "");
-            setPhone(userData.phone || "");
-            setParentName(userData.parentName || "");
-            setParentCf(userData.parentCf || "");
-            setParentPhone(userData.parentPhone || "");
-            setMartialArt(userData.martialArt);
-            setDojo(userData.selectedDojo);
         }
     }, [userData]);
 
-    useEffect(() => {
-        if (paymentMethod === 'online' || paymentMethod === 'bank') {
-            setAmount("120");
-        } else if (paymentMethod === 'cash') {
-            setAmount("122");
-        } else {
-            setAmount(undefined);
-        }
-    }, [paymentMethod]);
 
     useEffect(() => {
         if (day && month && year) {
@@ -140,7 +111,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             setBirthDate(undefined);
         }
     }, [day, month, year]);
-
+    
     const isMinor = useMemo(() => {
         if (!birthDate) return false;
         const today = new Date();
@@ -152,122 +123,30 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
         return age < 18;
     }, [birthDate]);
 
-    // Step validation
-    const isStep1Complete = !!(martialArt && dojo);
-    const isStep2Complete = !!(name && birthDate && birthplace && codiceFiscale);
-    const isStep3Complete = !!(address && civicNumber && cap && comune && provincia);
-    const isStep4Complete = isMinor ? !!(parentName && parentCf && parentPhone) : !!(phone);
-    const isStep5Complete = !!paymentMethod;
-    
-    const canGoToNextStep = () => {
-        switch (currentStep) {
-            case 1: return isStep1Complete;
-            case 2: return isStep2Complete;
-            case 3: return isStep3Complete;
-            case 4: return isStep4Complete;
-            case 5: return isStep5Complete;
-            default: return false;
-        }
-    };
-    
-    const handleNext = () => {
-        if (canGoToNextStep()) {
-            // Skip parent data step if user is not a minor and we are at step 3
-            if (currentStep === 3 && !isMinor) {
-                 setCurrentStep(5); // Skip to step 5 (payment)
-            } else {
-                setCurrentStep(currentStep + 1);
-            }
-        }
-    };
+    useEffect(() => {
+        const checkFormCompleteness = () => {
+            const isCourseSelectionComplete = !!(martialArt && dojo);
+            const isStudentDataComplete = !!(name && birthDate && birthplace && codiceFiscale);
+            const isAddressComplete = !!(address && civicNumber && cap && comune && provincia);
+            const isContactComplete = isMinor ? !!(parentName && parentCf && parentPhone) : !!(phone);
+            
+            const isPaymentSelected = !!paymentMethod;
 
-    const handleBack = () => {
-         // Skip parent data step if user is not a minor and we are at step 5
-        if (currentStep === 5 && !isMinor) {
-             setCurrentStep(3); // Go back to step 3
-        } else {
-            setCurrentStep(currentStep - 1);
-        }
-    };
-
-    const saveDataToFirestore = async () => {
-        const user = auth.currentUser;
-        if (!user || !paymentMethod || !amount) {
-            toast({ title: "Errore", description: "Dati utente o di pagamento mancanti.", variant: "destructive" });
-            throw new Error("Dati mancanti");
-        }
-        
-        const dataToUpdate = {
-            name,
-            codiceFiscale,
-            birthDate: birthDate ? format(birthDate, "dd/MM/yyyy") : '',
-            birthplace,
-            address,
-            civicNumber,
-            cap,
-            comune,
-            provincia,
-            isMinor,
-            paymentMethod,
-            paymentAmount: amount,
-            associationStatus: 'requested',
-            associationRequestDate: format(new Date(), "dd/MM/yyyy"),
-            martialArt,
-            selectedDojo,
-            phone: isMinor ? '' : phone,
-            parentName: isMinor ? parentName : '',
-            parentCf: isMinor ? parentCf : '',
-            parentPhone: isMinor ? parentPhone : '',
+            setIsFormComplete(isCourseSelectionComplete && isStudentDataComplete && isAddressComplete && isContactComplete && isPaymentSelected);
         };
+        checkFormCompleteness();
+    }, [name, birthDate, birthplace, codiceFiscale, address, civicNumber, cap, comune, provincia, phone, parentName, parentCf, parentPhone, martialArt, dojo, paymentMethod, isMinor]);
 
-        try {
-            const userDocRef = doc(db, "users", user.uid);
-            await updateDoc(userDocRef, dataToUpdate);
 
-        } catch (error) {
-            console.error("Error writing data to Firestore: ", error);
-            toast({ title: "Errore Database", description: "Impossibile salvare i dati.", variant: "destructive" });
-            throw error;
+    useEffect(() => {
+        if (paymentMethod === 'online' || paymentMethod === 'bank') {
+            setAmount("120");
+        } else if (paymentMethod === 'cash') {
+            setAmount("122");
+        } else {
+            setAmount(undefined);
         }
-    };
-    
-    const handlePayment = async () => {
-        if (isSubmitting) return;
-        setIsSubmitting(true);
-
-        try {
-            await saveDataToFirestore();
-
-            if (paymentMethod === 'online') {
-                const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
-                const returnUrl = encodeURIComponent('/dashboard');
-                router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
-                // No need to set isSubmitting to false here, as we are navigating away.
-            } else if (paymentMethod === 'bank') {
-                setShowBankTransferDialog(true);
-                // isSubmitting will be set to false when the dialog is closed via onOpenChange.
-            } else if (paymentMethod === 'cash') {
-                toast({
-                    title: "Dati Salvati e Domanda Inviata!",
-                    description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
-                });
-                router.push('/dashboard');
-                setIsSubmitting(false);
-            }
-        } catch (error) {
-            // Error is already toasted, but we need to reset the submitting state
-             setIsSubmitting(false);
-        }
-    };
-
-     const handleConfirmBankTransfer = async () => {
-        setShowBankTransferDialog(false);
-        toast({
-            title: "Dati Salvati e Domanda Inviata!",
-            description: "Effettua il bonifico usando i dati forniti. La tua domanda verrà approvata alla ricezione del pagamento.",
-        });
-        router.push('/dashboard');
-    };
+    }, [paymentMethod]);
 
     const handleMartialArtChange = (value: string) => {
         setMartialArt(value);
@@ -277,7 +156,7 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             setDojo(undefined);
         }
     };
-
+    
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         const capitalized = value
@@ -316,182 +195,267 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
             .join(' ');
         setParentName(capitalized);
     };
+
+    const saveDataToFirestore = async () => {
+        const user = auth.currentUser;
+        if (!user || !paymentMethod || !amount) {
+            toast({ title: "Errore", description: "Dati utente o di pagamento mancanti.", variant: "destructive" });
+            throw new Error("Dati mancanti");
+        }
+        
+        const dataToUpdate = {
+            name,
+            codiceFiscale,
+            birthDate: birthDate ? format(birthDate, "dd/MM/yyyy") : '',
+            birthplace,
+            address,
+            civicNumber,
+            cap,
+            comune,
+            provincia,
+            isMinor,
+            paymentMethod,
+            paymentAmount: amount,
+            associationStatus: 'requested',
+            associationRequestDate: format(new Date(), "dd/MM/yyyy"),
+            martialArt,
+            selectedDojo,
+            phone: isMinor ? '' : phone,
+            parentName: isMinor ? parentName : '',
+            parentCf: isMinor ? parentCf : '',
+            parentPhone: isMinor ? parentPhone : '',
+            parentEmail: isMinor ? registrationEmail : '',
+            email: isMinor ? '' : registrationEmail,
+        };
+
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, dataToUpdate);
+
+        } catch (error) {
+            console.error("Error writing data to Firestore: ", error);
+            toast({ title: "Errore Database", description: "Impossibile salvare i dati.", variant: "destructive" });
+            throw error;
+        }
+    };
+    
+    const handlePayment = async () => {
+        if (!isFormComplete || isSubmitting) return;
+
+        setIsSubmitting(true);
+
+        try {
+            await saveDataToFirestore();
+
+            if (paymentMethod === 'online') {
+                const paymentUrl = encodeURIComponent(SUMUP_ASSOCIATION_LINK);
+                const returnUrl = encodeURIComponent('/dashboard');
+                router.push(`/dashboard/payment-gateway?url=${paymentUrl}&returnTo=${returnUrl}`);
+                // No need to set isSubmitting to false here, as we are navigating away.
+            } else if (paymentMethod === 'bank') {
+                setShowBankTransferDialog(true);
+            } else if (paymentMethod === 'cash') {
+                toast({
+                    title: "Dati Salvati e Domanda Inviata!",
+                    description: `Presentati in segreteria per completare il pagamento di ${amount}€.`,
+                });
+                router.push('/dashboard');
+            }
+        } catch (error) {
+            // Error is already toasted, but we need to reset the submitting state
+             setIsSubmitting(false);
+        }
+    };
+
+    const handleConfirmBankTransfer = async () => {
+        toast({
+            title: "Dati Salvati e Domanda Inviata!",
+            description: "Effettua il bonifico usando i dati forniti. La tua domanda verrà approvata alla ricezione del pagamento.",
+        });
+        router.push('/dashboard');
+    };
     
   return (
     <>
     <Card>
         <CardHeader>
             <CardTitle className="bg-blue-600 text-white p-6 -mt-6 -mx-6 rounded-t-lg mb-6">Domanda di Associazione</CardTitle>
-            <CardDescription className="text-foreground font-bold">Compila i dati per inviare la tua domanda di associazione.</CardDescription>
-            <Progress value={(currentStep / (isMinor ? TOTAL_STEPS : TOTAL_STEPS - 1)) * 100} className="w-full mt-4" />
+            <CardDescription className="text-foreground font-bold">Compila tutti i dati per inviare la tua domanda di associazione.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-            {currentStep === 1 && (
-                <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Step 1: Scelta del Corso</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="martial-art">Corso di:</Label>
-                            <Select onValueChange={handleMartialArtChange} value={martialArt}>
-                                <SelectTrigger id="martial-art">
-                                    <SelectValue placeholder="Seleziona un corso" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="karate">Karate</SelectItem>
-                                    <SelectItem value="aikido">Aikido</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="dojo">Palestra di:</Label>
-                            <Select onValueChange={setDojo} value={dojo} disabled={martialArt === 'aikido' || !martialArt}>
-                                <SelectTrigger id="dojo">
-                                    <SelectValue placeholder="Seleziona una palestra" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="aosta">Aosta</SelectItem>
-                                    <SelectItem value="verres">Verres</SelectItem>
-                                    <SelectItem value="villeneuve">Villeneuve</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                </div>
-            )}
-             {currentStep === 2 && (
-                <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Step 2: Dati Anagrafici</h3>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="name">Nome e Cognome</Label>
-                            <Input id="name" placeholder="Mario Rossi" required value={name} onChange={handleNameChange} />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="birthplace">nato a:</Label>
-                                <Input id="birthplace" type="text" placeholder="Roma" required value={birthplace} onChange={handleBirthplaceChange}/>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Data di nascita:</Label>
-                                <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
-                                    <Select onValueChange={setDay} value={day}>
-                                        <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
-                                        <SelectContent>
-                                            {Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select onValueChange={setMonth} value={month}>
-                                        <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
-                                        <SelectContent>
-                                            {months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <Select onValueChange={setYear} value={year}>
-                                        <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
-                                        <SelectContent>
-                                            {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            {/* Sezione Corso */}
+            <div className="space-y-4 p-4 border rounded-lg">
+                <h3 className="font-semibold text-lg">Scelta del Corso</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                        <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
-                        <div className="w-full md:w-1/2">
-                            <Input id="codice-fiscale" placeholder="RSSMRA80A01H501U" required value={codiceFiscale} onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())} />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {currentStep === 3 && (
-                <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Step 3: Residenza</h3>
-                     <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="address">Residente in:</Label>
-                            <Input id="address" placeholder="Via, Piazza, etc." required value={address} onChange={handleAddressChange} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="civic-number">N° civico:</Label>
-                            <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="cap">C.A.P.:</Label>
-                            <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="comune">Comune:</Label>
-                            <Input id="comune" placeholder="Roma" required value={comune} onChange={handleComuneChange}/>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="provincia">Provincia:</Label>
-                            <Input id="provincia" placeholder="RM" required value={provincia} onChange={(e) => setProvincia(e.target.value.toUpperCase())}/>
-                        </div>
-                    </div>
-                     <p className="pt-4 text-sm text-foreground font-bold text-center">
-                        Chiede di essere ammesso in qualità di socio all'associazione Libera Energia.
-                    </p>
-                </div>
-            )}
-             {currentStep === 4 && (
-                 <div className="space-y-4">
-                     <h3 className="text-lg font-semibold">Step 4: Dati Genitore/Tutore</h3>
-                     <div className="space-y-2">
-                        <Label htmlFor="parent-name">Nome e Cognome Genitore/Tutore</Label>
-                        <Input id="parent-name" placeholder="Paolo Bianchi" required={isMinor} value={parentName} onChange={handleParentNameChange} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
-                        <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())}/>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="parent-phone">Numero di telefono:</Label>
-                        <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
-                    </div>
-                 </div>
-            )}
-            {currentStep === 5 && (
-                <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Step {isMinor ? 5 : 4}: Contatti e Pagamento</h3>
-                    {!isMinor && (
-                        <div className="space-y-2">
-                            <Label htmlFor="phone">Numero di telefono:</Label>
-                            <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
-                        </div>
-                    )}
-                    <Separator />
-                    <div className="space-y-2">
-                        <Label className="font-bold">Contributo associativo: € {amount || '120'}</Label>
-                        <Select onValueChange={setPaymentMethod} value={paymentMethod}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Scegli un metodo di pagamento" />
+                        <Label htmlFor="martial-art">Corso di:</Label>
+                        <Select onValueChange={handleMartialArtChange} value={martialArt}>
+                            <SelectTrigger id="martial-art">
+                                <SelectValue placeholder="Seleziona un corso" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="online">Carta di credito on line</SelectItem>
-                                <SelectItem value="bank">Bonifico Bancario</SelectItem>
-                                <SelectItem value="cash">Contanti o Bancomat in palestra (+ 2 € costi di gestione)</SelectItem>
+                                <SelectItem value="karate">Karate</SelectItem>
+                                <SelectItem value="aikido">Aikido</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="dojo">Palestra di:</Label>
+                        <Select onValueChange={setDojo} value={dojo} disabled={martialArt === 'aikido' || !martialArt}>
+                            <SelectTrigger id="dojo">
+                                <SelectValue placeholder="Seleziona una palestra" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="aosta">Aosta</SelectItem>
+                                <SelectItem value="verres">Verres</SelectItem>
+                                <SelectItem value="villeneuve">Villeneuve</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
                 </div>
+            </div>
+
+            {/* Sezione Anagrafica */}
+            <div className="space-y-4 p-4 border rounded-lg">
+                <h3 className="font-semibold text-lg">Dati Anagrafici Allievo</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Nome e Cognome</Label>
+                        <Input id="name" placeholder="Mario Rossi" required value={name} onChange={handleNameChange} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="birthplace">Nato a:</Label>
+                            <Input id="birthplace" type="text" placeholder="Roma" required value={birthplace} onChange={handleBirthplaceChange}/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Data di nascita:</Label>
+                            <div className="grid grid-cols-[1fr_1.5fr_1fr] gap-2">
+                                <Select onValueChange={setDay} value={day}>
+                                    <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                                    <SelectContent>{Array.from({ length: 31 }, (_, i) => String(i + 1)).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <Select onValueChange={setMonth} value={month}>
+                                    <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                                    <SelectContent>{months.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
+                                </Select>
+                                <Select onValueChange={setYear} value={year}>
+                                    <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                                    <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="codice-fiscale">Codice Fiscale:</Label>
+                    <div className="w-full md:w-1/2">
+                        <Input id="codice-fiscale" placeholder="RSSMRA80A01H501U" required value={codiceFiscale} onChange={(e) => setCodiceFiscale(e.target.value.toUpperCase())} />
+                    </div>
+                </div>
+            </div>
+            
+            {/* Sezione Residenza */}
+            <div className="space-y-4 p-4 border rounded-lg">
+                <h3 className="font-semibold text-lg">Dati di Residenza</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-[3fr_1fr] gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="address">Residente in:</Label>
+                        <Input id="address" placeholder="Via, Piazza, etc." required value={address} onChange={handleAddressChange} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="civic-number">N° civico:</Label>
+                        <Input id="civic-number" placeholder="12/A" required value={civicNumber} onChange={(e) => setCivicNumber(e.target.value)} />
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="cap">C.A.P.:</Label>
+                        <Input id="cap" placeholder="00100" required value={cap} onChange={(e) => setCap(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="comune">Comune:</Label>
+                        <Input id="comune" placeholder="Roma" required value={comune} onChange={handleComuneChange}/>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="provincia">Provincia:</Label>
+                        <Input id="provincia" placeholder="RM" required value={provincia} onChange={(e) => setProvincia(e.target.value.toUpperCase())}/>
+                    </div>
+                </div>
+            </div>
+
+            {/* Sezione Contatti (Adulto) o Dati Genitore (Minore) */}
+            {birthDate && (
+                <div className="space-y-4 p-4 border rounded-lg">
+                    {isMinor ? (
+                        <>
+                            <h3 className="text-lg font-semibold">Dati Genitore/Tutore</h3>
+                            <p className="text-sm text-muted-foreground">L'email del genitore per le comunicazioni sarà quella usata per la registrazione: <b>{registrationEmail}</b></p>
+                            <div className="space-y-2">
+                                <Label htmlFor="parent-name">Nome e Cognome Genitore/Tutore</Label>
+                                <Input id="parent-name" placeholder="Paolo Bianchi" required={isMinor} value={parentName} onChange={handleParentNameChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="parent-cf">Codice Fiscale Genitore/Tutore</Label>
+                                <Input id="parent-cf" placeholder="BNCPLA80A01H501Z" required={isMinor} value={parentCf} onChange={(e) => setParentCf(e.target.value.toUpperCase())}/>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="parent-phone">Numero di telefono Genitore/Tutore:</Label>
+                                <Input id="parent-phone" type="tel" placeholder="3331234567" required={isMinor} value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} />
+                            </div>
+                        </>
+                    ) : (
+                         <>
+                            <h3 className="text-lg font-semibold">Dati di Contatto</h3>
+                            <p className="text-sm text-muted-foreground">L'email per le comunicazioni sarà quella usata per la registrazione: <b>{registrationEmail}</b></p>
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">Numero di telefono:</Label>
+                                <Input id="phone" type="tel" placeholder="3331234567" required={!isMinor} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                            </div>
+                        </>
+                    )}
+                </div>
             )}
+
+            {/* Sezione Pagamento */}
+            <div className="space-y-4 p-4 border rounded-lg">
+                <h3 className="font-semibold text-lg">Contributo Associativo</h3>
+                 <p className="pt-4 text-sm text-foreground font-bold text-center">
+                    Chiedo di essere ammesso in qualità di socio all'associazione Libera Energia.
+                </p>
+                <div className="space-y-2">
+                    <Label className="font-bold">Contributo: € {amount || '120'}</Label>
+                    <Select onValueChange={setPaymentMethod} value={paymentMethod}>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Scegli un metodo di pagamento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="online">Carta di credito on line</SelectItem>
+                            <SelectItem value="bank">Bonifico Bancario</SelectItem>
+                            <SelectItem value="cash">Contanti o Bancomat in palestra (+ 2 € costi di gestione)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
         </CardContent>
-        <CardFooter className="flex justify-between">
-             <Button variant="outline" onClick={handleBack} disabled={currentStep === 1}>Indietro</Button>
-            {currentStep < 5 && <Button onClick={handleNext} disabled={!canGoToNextStep()}>Avanti</Button>}
-            {currentStep === 5 && (
-                <Button className="bg-blue-600 hover:bg-blue-700" onClick={handlePayment} disabled={!isStep5Complete || isSubmitting}>
-                    {isSubmitting ? <Loader2 className="animate-spin" /> : 'Procedi con il Pagamento'}
-                </Button>
-            )}
+        <CardFooter className="flex justify-end">
+            <Button 
+                className="bg-blue-600 hover:bg-blue-700" 
+                onClick={handlePayment} 
+                disabled={!isFormComplete || isSubmitting}
+            >
+                {isSubmitting ? <Loader2 className="animate-spin" /> : 'Procedi con il Pagamento'}
+            </Button>
         </CardFooter>
     </Card>
 
-    <AlertDialog open={showBankTransferDialog} onOpenChange={(open) => { if (!open) { setIsSubmitting(false); } setShowBankTransferDialog(open); }}>
+    <AlertDialog open={showBankTransferDialog} onOpenChange={(open) => {
+        setShowBankTransferDialog(open);
+        if (!open) {
+            setIsSubmitting(false);
+        }
+    }}>
         <AlertDialogContent>
             <AlertDialogHeader>
                 <AlertDialogTitle>Dati per Bonifico Bancario</AlertDialogTitle>
@@ -545,3 +509,5 @@ export function AssociateForm({ setHasUserData, userData }: { setHasUserData: (v
     </>
   )
 }
+
+    
