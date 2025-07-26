@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { Loader2, Shield } from 'lucide-react';
 
 
@@ -35,7 +35,23 @@ export default function AuthPage() {
     }
     
     try {
-        await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+        const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+        const user = userCredential.user;
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            // Salva i dati nel localStorage
+            Object.keys(userData).forEach(key => {
+                const value = userData[key];
+                if (value !== null && value !== undefined) {
+                   if (typeof value === 'object' && value !== null) {
+                       localStorage.setItem(key, JSON.stringify(value));
+                   } else {
+                       localStorage.setItem(key, String(value));
+                   }
+                }
+            });
+        }
         router.push('/dashboard');
     } catch (error: any) {
         setErrorMessage("Credenziali non valide. Riprova.");
@@ -57,53 +73,69 @@ export default function AuthPage() {
         const userCredential = await createUserWithEmailAndPassword(auth, signupEmail, signupPassword);
         const user = userCredential.user;
 
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          name: name,
-          email: signupEmail,
-          createdAt: serverTimestamp(),
-          codiceFiscale: '',
-          birthDate: '',
-          birthplace: '',
-          address: '',
-          civicNumber: '',
-          cap: '',
-          comune: '',
-          provincia: '',
-          phone: '',
-          isMinor: false,
-          parentName: '',
-          parentCf: '',
-          parentPhone: '',
-          parentEmail: '',
-          firstAssociationYear: null,
-          grade: null,
-          isFormerMember: null,
-          regulationsAccepted: false,
-          regulationsAcceptanceDate: null,
-          isSelectionPassportComplete: false,
-          lessonSelected: false,
-          isInsured: false,
-          associationStatus: 'none',
-          associationRequestDate: null,
-          associationApprovalDate: null,
-          martialArt: '',
-          selectedDojo: '',
-          lessonDate: '',
-          paymentMethod: '',
-          paymentAmount: '',
-          medicalCertificate: {
-              expirationDate: null,
-              fileName: null,
-              fileUrl: null,
-              appointmentDate: null,
-          },
-          subscription: {
-              plan: null,
-              status: null,
-              paymentDate: null,
-              expiryDate: null,
-          }
+        const initialUserData = {
+            uid: user.uid,
+            name: name,
+            email: signupEmail,
+            createdAt: serverTimestamp(),
+            codiceFiscale: '',
+            birthDate: '',
+            birthplace: '',
+            address: '',
+            civicNumber: '',
+            cap: '',
+            comune: '',
+            provincia: '',
+            phone: '',
+            isMinor: false,
+            parentName: '',
+            parentCf: '',
+            parentPhone: '',
+            parentEmail: '',
+            firstAssociationYear: null,
+            grade: null,
+            isFormerMember: null,
+            regulationsAccepted: false,
+            regulationsAcceptanceDate: null,
+            isSelectionPassportComplete: false,
+            lessonSelected: false,
+            isInsured: false,
+            associationStatus: 'none',
+            associationRequestDate: null,
+            associationApprovalDate: null,
+            martialArt: '',
+            selectedDojo: '',
+            lessonDate: '',
+            paymentMethod: '',
+            paymentAmount: '',
+            medicalCertificate: {
+                expirationDate: null,
+                fileName: null,
+                fileUrl: null,
+                appointmentDate: null,
+            },
+            subscription: {
+                plan: null,
+                status: null,
+                paymentDate: null,
+                expiryDate: null,
+            }
+        };
+
+        await setDoc(doc(db, "users", user.uid), initialUserData);
+
+        // Pulisci il localStorage e salva i nuovi dati
+        localStorage.clear();
+        Object.keys(initialUserData).forEach(key => {
+            // @ts-ignore
+            const value = initialUserData[key];
+            if (value !== null && value !== undefined) {
+                if (typeof value === 'object' && value !== null) {
+                    localStorage.setItem(key, JSON.stringify(value));
+                } else {
+                    localStorage.setItem(key, String(value));
+                }
+            }
         });
         
         router.push('/dashboard');
@@ -117,6 +149,7 @@ export default function AuthPage() {
         setIsLoading(false);
     }
   };
+
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -144,7 +177,7 @@ export default function AuthPage() {
           <TabsContent value="login">
             <Card>
               <CardHeader>
-                <CardTitle>Oss, benvenuto nel Dojo!</CardTitle>
+                <CardTitle>Bentornato nel Dojo!</CardTitle>
                 <CardDescription>Inserisci le tue credenziali per accedere al tuo account.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -175,14 +208,14 @@ export default function AuthPage() {
                   />
                    <p className="text-xs text-muted-foreground">La password deve essere minimo di 6 caratteri/numeri</p>
                 </div>
-                <Button type="submit" className="w-full" onClick={handleLogin} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="animate-spin" /> : "Accedi"}
-                </Button>
-                 {errorMessage && (
-                  <div className="mt-4 text-center text-sm font-medium text-destructive">
+                {errorMessage && (
+                  <div className="mt-2 text-center text-sm font-medium text-destructive">
                     {errorMessage}
                   </div>
                 )}
+                <Button type="submit" className="w-full" onClick={handleLogin} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="animate-spin" /> : "Accedi"}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -225,14 +258,14 @@ export default function AuthPage() {
                   />
                   <p className="text-xs text-muted-foreground">La password deve essere minimo di 6 caratteri/numeri</p>
                 </div>
-                <Button type="submit" className="w-full" onClick={handleSignup} disabled={isLoading}>
-                   {isLoading ? <Loader2 className="animate-spin" /> : "Registrati"}
-                </Button>
                  {errorMessage && (
-                  <div className="mt-4 text-center text-sm font-medium text-destructive">
+                  <div className="mt-2 text-center text-sm font-medium text-destructive">
                     {errorMessage}
                   </div>
                 )}
+                <Button type="submit" className="w-full" onClick={handleSignup} disabled={isLoading}>
+                   {isLoading ? <Loader2 className="animate-spin" /> : "Registrati"}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
