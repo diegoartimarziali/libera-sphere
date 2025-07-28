@@ -2,35 +2,82 @@
 "use client"
 
 import { useState } from "react"
-import { z } from "zod"
 
 import { useToast } from "@/hooks/use-toast"
 import { PersonalDataForm, type PersonalDataSchemaType } from "@/components/dashboard/PersonalDataForm"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { format } from "date-fns"
+import { it } from "date-fns/locale"
 
-// Componente per lo Step 2
-function HealthStep({ onBack, onComplete }: { onBack: () => void, onComplete: () => void }) {
-    // Logica per il caricamento del certificato e pagamento andrà qui
-    
+// Componente per visualizzare i dati in modo pulito
+const DataRow = ({ label, value }: { label: string; value?: string | null }) => (
+    value ? (
+        <div className="flex flex-col sm:flex-row sm:justify-between">
+            <dt className="font-medium text-muted-foreground">{label}</dt>
+            <dd className="mt-1 text-foreground sm:mt-0">{value}</dd>
+        </div>
+    ) : null
+);
+
+// Componente per lo Step 2: Riepilogo e Conferma
+function ConfirmationStep({ 
+    formData,
+    onBack, 
+    onComplete 
+}: { 
+    formData: PersonalDataSchemaType,
+    onBack: () => void, 
+    onComplete: () => void 
+}) {
+    const [isConfirmed, setIsConfirmed] = useState(false);
+
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 2: Certificato Medico e Pagamento</CardTitle>
+                <CardTitle>Passo 2: Riepilogo e Conferma Dati</CardTitle>
                 <CardDescription>
-                    Carica il tuo certificato medico e completa l'iscrizione.
+                    Controlla attentamente i dati che hai inserito. Se tutto è corretto,
+                    conferma e completa l'iscrizione.
                 </CardDescription>
             </CardHeader>
-            <CardContent>
-                <div className="flex h-48 items-center justify-center rounded-lg border-2 border-dashed">
-                     <p className="text-muted-foreground">
-                        Work in Progress: Modulo di upload e pagamento.
-                    </p>
+            <CardContent className="space-y-6">
+                <div className="space-y-4 rounded-md border p-4">
+                     <h3 className="font-semibold text-lg">Dati Anagrafici</h3>
+                     <dl className="space-y-2">
+                        <DataRow label="Nome e Cognome" value={`${formData.name} ${formData.surname}`} />
+                        <DataRow label="Codice Fiscale" value={formData.taxCode} />
+                        <DataRow label="Data di Nascita" value={formData.birthDate ? format(formData.birthDate, "PPP", { locale: it }) : ''} />
+                        <DataRow label="Luogo di Nascita" value={formData.birthPlace} />
+                        <DataRow label="Indirizzo" value={`${formData.address}, ${formData.streetNumber}`} />
+                        <DataRow label="Città" value={`${formData.city} (${formData.province}), ${formData.zipCode}`} />
+                        <DataRow label="Telefono" value={formData.phone} />
+                     </dl>
                 </div>
+                
+                {formData.isMinor && formData.parentData && (
+                    <div className="space-y-4 rounded-md border p-4">
+                        <h3 className="font-semibold text-lg">Dati Genitore/Tutore</h3>
+                        <dl className="space-y-2">
+                           <DataRow label="Nome e Cognome" value={`${formData.parentData.parentName} ${formData.parentData.parentSurname}`} />
+                           <DataRow label="Codice Fiscale" value={formData.parentData.parentTaxCode} />
+                        </dl>
+                    </div>
+                )}
+                
+                <div className="flex items-center space-x-2 pt-4">
+                    <Checkbox id="confirm-data" checked={isConfirmed} onCheckedChange={(checked) => setIsConfirmed(checked as boolean)} />
+                    <Label htmlFor="confirm-data" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Dichiaro che i dati inseriti sono corretti.
+                    </Label>
+                </div>
+
             </CardContent>
             <CardFooter className="justify-between">
                 <Button variant="outline" onClick={onBack}>Indietro</Button>
-                <Button onClick={onComplete}>Completa Iscrizione</Button>
+                <Button onClick={onComplete} disabled={!isConfirmed}>Completa Iscrizione</Button>
             </CardFooter>
         </Card>
     )
@@ -39,17 +86,19 @@ function HealthStep({ onBack, onComplete }: { onBack: () => void, onComplete: ()
 
 export default function ClassSelectionPage() {
     const [step, setStep] = useState(1)
-    const [formData, setFormData] = useState({})
+    const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null)
     const { toast } = useToast()
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
-        setFormData(prev => ({ ...prev, ...data }))
+        setFormData(data)
         setStep(2)
     }
     
     const handleComplete = () => {
-        // Qui andrà la logica finale, es. reindirizzamento
+        // Qui andrà la logica finale, es. salvataggio iscrizione e reindirizzamento
+        console.log("Iscrizione completata con i seguenti dati:", formData);
         toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni."});
+        // router.push("/dashboard/some-success-page")
     }
 
     const handleBack = () => {
@@ -74,7 +123,13 @@ export default function ClassSelectionPage() {
                         onFormSubmit={handleNextStep1}
                     />
                 )}
-                {step === 2 && <HealthStep onBack={handleBack} onComplete={handleComplete} />}
+                {step === 2 && formData && (
+                    <ConfirmationStep 
+                        formData={formData}
+                        onBack={handleBack} 
+                        onComplete={handleComplete} 
+                    />
+                )}
             </div>
         </div>
     )
