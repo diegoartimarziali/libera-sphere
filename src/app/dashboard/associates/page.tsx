@@ -9,18 +9,84 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { CreditCard, Landmark } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { CreditCard, Landmark, ArrowLeft, CheckCircle, University } from "lucide-react"
 
-type PaymentMethod = "in_person" | "online"
+type PaymentMethod = "in_person" | "online" | "bank_transfer"
+
+// Componente per il Popup del Bonifico
+function BankTransferDialog({ open, onOpenChange, onConfirm }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void }) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Dati per Bonifico Bancario</DialogTitle>
+                    <DialogDescription>
+                        Effettua un bonifico di 120€ utilizzando i dati seguenti. Una volta eseguito, clicca su "Pagamento Effettuato".
+                        La tua richiesta verrà approvata dopo la verifica della transazione.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4 text-sm">
+                    <div className="space-y-1">
+                        <p className="font-semibold text-foreground">IBAN:</p>
+                        <p className="font-mono bg-muted p-2 rounded-md">IT00 A000 0000 0000 0000 0000 000</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="font-semibold text-foreground">Intestatario:</p>
+                        <p>ASD LiberaSphere</p>
+                    </div>
+                     <div className="space-y-1">
+                        <p className="font-semibold text-foreground">Causale:</p>
+                        <p className="font-mono bg-muted p-2 rounded-md">Quota Associativa [Nome Cognome Socio]</p>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button onClick={onConfirm}>Ho effettuato il pagamento</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+// Componente per lo Step di Pagamento Online (iFrame)
+function OnlinePaymentStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Passo 3: Pagamento Online</CardTitle>
+                <CardDescription>
+                    Completa il pagamento di 120€ tramite il portale sicuro di SumUp qui sotto. Una volta terminato, clicca sul pulsante per procedere.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="aspect-video w-full">
+                    <iframe
+                        src="https://pay.sumup.com/b2c/Q9ZH35JE"
+                        className="h-full w-full rounded-md border"
+                        title="Pagamento SumUp Quota Associativa"
+                    ></iframe>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href="https://pay.sumup.com/b2c/Q9ZH35JE" target="_blank" rel="noopener noreferrer" className="underline">cliccando qui</a>.
+                </p>
+            </CardContent>
+            <CardFooter className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+                <Button variant="outline" onClick={onBack}>
+                    <ArrowLeft />
+                    Torna alla scelta
+                </Button>
+                <Button onClick={onNext}>
+                    <CheckCircle />
+                    Ho effettuato il pagamento
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
 
 // Componente per lo Step 2: Pagamento
-function PaymentStep({
-    onBack,
-    onNext
-}: {
-    onBack: () => void,
-    onNext: (method: PaymentMethod) => void
-}) {
+function PaymentStep({ onBack, onNext }: { onBack: () => void, onNext: (method: PaymentMethod) => void }) {
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
 
     return (
@@ -64,6 +130,20 @@ function PaymentStep({
                         </div>
                          <CreditCard className="h-6 w-6 text-muted-foreground" />
                     </Label>
+
+                    <Label
+                        htmlFor="bank_transfer"
+                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    >
+                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" />
+                        <div className="flex-1 space-y-1">
+                            <h4 className="font-semibold">Bonifico Bancario</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Versa la quota di 120€ tramite bonifico. La tua richiesta sarà valida dopo la verifica.
+                            </p>
+                        </div>
+                         <University className="h-6 w-6 text-muted-foreground" />
+                    </Label>
                 </RadioGroup>
             </CardContent>
             <CardFooter className="justify-between">
@@ -78,6 +158,8 @@ export default function AssociatesPage() {
     const [step, setStep] = useState(1)
     const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null)
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
+    const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
+
 
     const { toast } = useToast()
     const router = useRouter()
@@ -88,12 +170,44 @@ export default function AssociatesPage() {
     }
 
     const handlePaymentSubmit = (method: PaymentMethod) => {
-        setPaymentMethod(method)
-        console.log("Dati per associazione:", formData)
-        console.log("Metodo di pagamento:", method, "Quota: 120€")
-        // Qui andrà la logica specifica per la richiesta di associazione
-        toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo." })
-        router.push("/dashboard")
+        setPaymentMethod(method);
+        switch (method) {
+            case 'online':
+                setStep(3); // Vai allo step dell'iframe SumUp
+                break;
+            case 'bank_transfer':
+                setIsBankTransferDialogOpen(true); // Apri il popup del bonifico
+                break;
+            case 'in_person':
+            default:
+                // Per il pagamento in sede, andiamo direttamente alla fine.
+                // Potremmo aggiungere uno step di riepilogo qui se necessario.
+                submitApplication('in_person');
+                break;
+        }
+    };
+    
+    const handleOnlinePaymentNext = () => {
+        // L'utente ha cliccato "Ho effettuato il pagamento" dallo step dell'iframe
+        submitApplication('online');
+    }
+
+    const handleBankTransferConfirm = () => {
+        // L'utente ha confermato di aver effettuato il bonifico
+        setIsBankTransferDialogOpen(false);
+        submitApplication('bank_transfer');
+    }
+
+    const submitApplication = (finalPaymentMethod: PaymentMethod) => {
+         console.log("Dati per associazione:", formData);
+         console.log("Metodo di pagamento:", finalPaymentMethod, "Quota: 120€");
+         // Qui andrà la logica specifica per la richiesta di associazione
+         toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo." });
+         router.push("/dashboard");
+    }
+
+    const handleBack = () => {
+        setStep(prev => prev - 1);
     }
 
     return (
@@ -120,7 +234,16 @@ export default function AssociatesPage() {
                         onNext={handlePaymentSubmit}
                     />
                 )}
+                {step === 3 && paymentMethod === 'online' && (
+                     <OnlinePaymentStep onBack={handleBack} onNext={handleOnlinePaymentNext} />
+                )}
             </div>
+            
+            <BankTransferDialog 
+                open={isBankTransferDialogOpen}
+                onOpenChange={setIsBankTransferDialogOpen}
+                onConfirm={handleBankTransferConfirm}
+            />
         </div>
     )
 }
