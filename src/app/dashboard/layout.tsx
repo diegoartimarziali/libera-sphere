@@ -31,7 +31,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, redirect } from "next/navigation"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter } from "@/components/ui/alert-dialog"
 import { isAfter, startOfToday, parse, lastDayOfMonth, addDays, parseISO, isValid } from "date-fns"
 import { onAuthStateChanged, signOut, User } from "firebase/auth"
@@ -141,19 +141,42 @@ export default function DashboardLayout({
     return () => unsubscribe();
   }, [router]);
 
-  // SAFE REDIRECTION LOGIC
-  React.useEffect(() => {
-    if (loading || !userData) return;
+  if (loading) {
+    return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p className="mt-4 text-muted-foreground">Caricamento...</p>
+        </div>
+    );
+  }
 
-    const safePages = ['/dashboard/regulations', '/dashboard/aiuto', '/dashboard/instructions'];
+  // --- SAFE REDIRECTION LOGIC ---
+  if (userData) {
+    const safePages = ['/dashboard/aiuto', '/dashboard/instructions'];
+    const regulationsAccepted = userData.regulationsAccepted === true;
+    const isFormerMemberKnown = userData.isFormerMember !== null;
+    const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
+    const associationRequested = userData.associationStatus === 'requested';
+    const isOperational = isAssociatedThisSeason || userData.isSelectionPassportComplete;
 
-    if (!userData.regulationsAccepted && !safePages.includes(pathname)) {
-        router.push('/dashboard/regulations');
-    } else if (userData.regulationsAccepted && userData.isFormerMember === null && pathname !== '/dashboard/liberasphere' && !safePages.includes(pathname)) {
-        router.push('/dashboard/liberasphere');
+    // 1. Must accept regulations first
+    if (!regulationsAccepted && !safePages.includes(pathname) && pathname !== '/dashboard/regulations') {
+        redirect('/dashboard/regulations');
     }
+    // 2. After regulations, must choose if former member
+    if (regulationsAccepted && !isFormerMemberKnown && !safePages.includes(pathname) && pathname !== '/dashboard/liberasphere') {
+        redirect('/dashboard/liberasphere');
+    }
+    // 3. Logic for FORMER members
+    if (regulationsAccepted && userData.isFormerMember === 'yes' && !isAssociatedThisSeason && !associationRequested && !safePages.includes(pathname) && pathname !== '/dashboard/associates') {
+        redirect('/dashboard/associates');
+    }
+    // 4. Logic for NEW members
+    if (regulationsAccepted && userData.isFormerMember === 'no' && !isOperational && !safePages.includes(pathname) && pathname !== '/dashboard/class-selection') {
+        redirect('/dashboard/class-selection');
+    }
+  }
 
-  }, [userData, pathname, loading, router]);
   
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
@@ -173,15 +196,6 @@ export default function DashboardLayout({
   const handleGoToSubscription = () => {
     setIsSubscriptionBlocked(false);
     router.push('/dashboard/subscription');
-  }
-
-  if (loading) {
-    return (
-        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="mt-4 text-muted-foreground">Caricamento...</p>
-        </div>
-    );
   }
 
   const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
