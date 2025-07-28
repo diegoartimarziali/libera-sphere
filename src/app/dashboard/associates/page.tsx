@@ -104,20 +104,6 @@ function PaymentStep({ onBack, onNext }: { onBack: () => void, onNext: (method: 
                     className="space-y-4"
                 >
                     <Label
-                        htmlFor="in_person"
-                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                    >
-                        <RadioGroupItem value="in_person" id="in_person" className="mt-1" />
-                        <div className="flex-1 space-y-1">
-                            <h4 className="font-semibold">In Sede (Contanti o Bancomat)</h4>
-                            <p className="text-sm text-muted-foreground">
-                                Potrai saldare la quota di 120€ direttamente presso la nostra sede.
-                            </p>
-                        </div>
-                        <Landmark className="h-6 w-6 text-muted-foreground" />
-                    </Label>
-
-                    <Label
                         htmlFor="online"
                         className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                     >
@@ -143,6 +129,20 @@ function PaymentStep({ onBack, onNext }: { onBack: () => void, onNext: (method: 
                             </p>
                         </div>
                          <University className="h-6 w-6 text-muted-foreground" />
+                    </Label>
+
+                    <Label
+                        htmlFor="in_person"
+                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    >
+                        <RadioGroupItem value="in_person" id="in_person" className="mt-1" />
+                        <div className="flex-1 space-y-1">
+                            <h4 className="font-semibold">In Sede (Contanti o Bancomat)</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Potrai saldare la quota di 120€ direttamente presso la nostra sede.
+                            </p>
+                        </div>
+                        <Landmark className="h-6 w-6 text-muted-foreground" />
                     </Label>
                 </RadioGroup>
             </CardContent>
