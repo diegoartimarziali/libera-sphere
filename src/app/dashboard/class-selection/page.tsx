@@ -1,12 +1,15 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
+import { auth, db } from "@/lib/firebase"
+import { useAuthState } from "react-firebase-hooks/auth"
+import { doc, getDoc, updateDoc } from "firebase/firestore"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -17,9 +20,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar as CalendarIcon, Loader2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 // Schema per il primo step: Dati Anagrafici
 const personalDataSchema = z.object({
+  name: z.string().min(2, "Il nome è obbligatorio."),
+  surname: z.string().min(2, "Il cognome è obbligatorio."),
   taxCode: z.string().min(16, "Il codice fiscale deve essere di 16 caratteri.").max(16, "Il codice fiscale deve essere di 16 caratteri."),
   birthDate: z.date({ required_error: "La data di nascita è obbligatoria." }),
   birthPlace: z.string().min(1, "Il luogo di nascita è obbligatorio."),
@@ -33,19 +39,74 @@ const personalDataSchema = z.object({
 // Componente per lo Step 1
 function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDataSchema>) => void }) {
   const [isLoading, setIsLoading] = useState(false)
+  const [user] = useAuthState(auth)
+  const { toast } = useToast()
   
   const form = useForm<z.infer<typeof personalDataSchema>>({
     resolver: zodResolver(personalDataSchema),
+    defaultValues: {
+        name: "",
+        surname: "",
+        taxCode: "",
+        birthPlace: "",
+        address: "",
+        city: "",
+        zipCode: "",
+        province: "",
+        phone: "",
+    }
   })
 
-  const onSubmit = (data: z.infer<typeof personalDataSchema>) => {
+  useEffect(() => {
+    if (user) {
+        const fetchUserData = async () => {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+            if (userDocSnap.exists()) {
+                const userData = userDocSnap.data();
+                // Pre-fill form with existing data
+                const [name, ...surnameParts] = (userData.name || "").split(" ");
+                form.reset({
+                    name: name || "",
+                    surname: surnameParts.join(" ") || "",
+                    taxCode: userData.taxCode || "",
+                    birthDate: userData.birthDate?.toDate() || undefined,
+                    birthPlace: userData.birthPlace || "",
+                    address: userData.address || "",
+                    city: userData.city || "",
+                    zipCode: userData.zipCode || "",
+                    province: userData.province || "",
+                    phone: userData.phone || "",
+                });
+            }
+        };
+        fetchUserData();
+    }
+  }, [user, form]);
+
+
+  const onSubmit = async (data: z.infer<typeof personalDataSchema>) => {
+    if (!user) {
+        toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
+        return;
+    }
     setIsLoading(true)
-    console.log("Dati anagrafici:", data)
-    // Simula un salvataggio
-    setTimeout(() => {
+    try {
+        const userDocRef = doc(db, "users", user.uid);
+        // Combine name and surname for the 'name' field in Firestore
+        const fullName = `${data.name} ${data.surname}`.trim();
+        await updateDoc(userDocRef, {
+            ...data,
+            name: fullName // We save the full name in the main 'name' field
+        });
+        toast({ title: "Successo", description: "Dati anagrafici salvati correttamente." });
         onNext(data)
+    } catch (error) {
+        console.error("Errore salvataggio dati anagrafici:", error)
+        toast({ title: "Errore", description: "Impossibile salvare i dati. Riprova.", variant: "destructive" });
+    } finally {
         setIsLoading(false)
-    }, 1000)
+    }
   }
 
   return (
@@ -53,12 +114,43 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
       <CardHeader>
         <CardTitle>Passo 1: Dati Anagrafici</CardTitle>
         <CardDescription>
-          Completa le tue informazioni personali per procedere con l'iscrizione.
+          Completa le tue informazioni personali per procedere con l'iscrizione. Questi dati verranno salvati per future iscrizioni.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6">
+            
+            {/* Nome e Cognome */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                 <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Nome</FormLabel>
+                        <FormControl>
+                        <Input placeholder="Mario" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="surname"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Cognome</FormLabel>
+                        <FormControl>
+                        <Input placeholder="Rossi" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            </div>
+
             {/* Codice Fiscale e Telefono */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField
@@ -125,6 +217,9 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
                               date > new Date() || date < new Date("1930-01-01")
                             }
                             initialFocus
+                            captionLayout="dropdown-buttons"
+                            fromYear={1930}
+                            toYear={new Date().getFullYear()}
                           />
                         </PopoverContent>
                       </Popover>
