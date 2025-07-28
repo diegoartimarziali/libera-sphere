@@ -76,7 +76,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (!userData.applicationSubmitted) {
       // If the application is not submitted, the user should be at the starting point of the flow.
       const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-      if (pathname !== "/dashboard/liberasphere" && !allowedPaths.some(p => pathname.startsWith(p))) {
+      if (!allowedPaths.some(p => pathname.startsWith(p))) {
          redirect("/dashboard/liberasphere");
       }
        return (

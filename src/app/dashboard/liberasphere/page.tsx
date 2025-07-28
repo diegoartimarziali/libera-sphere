@@ -62,6 +62,7 @@ export default function LiberaSpherePage() {
     }
     
     let dataToUpdate: any = { isFormerMember };
+    let destination = "";
 
     if (isFormerMember === 'yes') {
         if (!firstYear || !lastGrade) {
@@ -70,6 +71,7 @@ export default function LiberaSpherePage() {
         }
         dataToUpdate.firstYear = firstYear;
         dataToUpdate.lastGrade = lastGrade;
+        destination = "/dashboard/associates";
     } else { // isFormerMember === 'no'
         if (!hasPracticedBefore) {
              toast({ variant: "destructive", title: "Attenzione", description: "Per favore, specifica se hai già praticato." })
@@ -100,6 +102,7 @@ export default function LiberaSpherePage() {
                 dataToUpdate.lastGrade = aikidoGrade.trim();
             }
         }
+        destination = "/dashboard/class-selection";
     }
 
 
@@ -108,7 +111,7 @@ export default function LiberaSpherePage() {
       const userDocRef = doc(db, "users", user.uid);
       await updateDoc(userDocRef, dataToUpdate);
       
-      window.location.reload();
+      router.push(destination);
 
     } catch (error) {
       console.error("Error updating user choice:", error);
