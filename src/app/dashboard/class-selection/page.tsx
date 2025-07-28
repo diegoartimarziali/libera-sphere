@@ -95,8 +95,8 @@ function GymSelectionStep({
     const handleGymChange = (gymId: string) => {
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
-        setLessonDay(null);
-        setLessonMonth(null);
+        setLessonDay(null); // Reset day when gym changes
+        setLessonMonth(null); // Reset month when gym changes
     }
 
     const handleSubmit = () => {
@@ -119,7 +119,7 @@ function GymSelectionStep({
         )
     }
 
-    const availableDaysSorted = selectedGym?.availableDays && Array.isArray(selectedGym.availableDays)
+    const availableDaysSorted = (selectedGym?.availableDays && Array.isArray(selectedGym.availableDays))
         ? [...selectedGym.availableDays].sort((a, b) => a - b)
         : [];
 
@@ -151,7 +151,7 @@ function GymSelectionStep({
                  {selectedGym && (
                      <div className="space-y-2 animate-in fade-in-50">
                         <Label htmlFor="day-select">2. Giorno della Lezione</Label>
-                        <Select onValueChange={setLessonDay} value={lessonDay || ''}>
+                        <Select onValueChange={setLessonDay} value={lessonDay || ''} disabled={!availableDaysSorted.length}>
                             <SelectTrigger id="day-select">
                                 <SelectValue placeholder="Seleziona un giorno" />
                             </SelectTrigger>
@@ -163,10 +163,13 @@ function GymSelectionStep({
                                 ))}
                             </SelectContent>
                         </Select>
+                         {!availableDaysSorted.length && (
+                            <p className="text-sm text-muted-foreground">Nessun giorno disponibile per questa palestra.</p>
+                         )}
                     </div>
                  )}
                  
-                 {selectedGym && lessonDay && (
+                 {selectedGym && (
                      <div className="space-y-2 animate-in fade-in-50">
                         <Label htmlFor="month-select">3. Mese di Inizio</Label>
                         <Select onValueChange={setLessonMonth} value={lessonMonth || ''}>
