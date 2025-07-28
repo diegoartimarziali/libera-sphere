@@ -28,7 +28,7 @@ function PaymentStep({
             <CardHeader>
                 <CardTitle>Passo 2: Quota Associativa</CardTitle>
                 <CardDescription>
-                    Scegli come versare la quota associativa annuale di 50€.
+                    Scegli come versare la quota associativa annuale di 120€.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -45,7 +45,7 @@ function PaymentStep({
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">In Sede (Contanti o Bancomat)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Potrai saldare la quota di 50€ direttamente presso la nostra sede.
+                                Potrai saldare la quota di 120€ direttamente presso la nostra sede.
                             </p>
                         </div>
                         <Landmark className="h-6 w-6 text-muted-foreground" />
@@ -59,7 +59,7 @@ function PaymentStep({
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Online (Carta di Credito)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Paga in modo sicuro e veloce la quota di 50€ con la tua carta tramite SumUp.
+                                Paga in modo sicuro e veloce la quota di 120€ con la tua carta tramite SumUp.
                             </p>
                         </div>
                          <CreditCard className="h-6 w-6 text-muted-foreground" />
@@ -90,7 +90,7 @@ export default function AssociatesPage() {
     const handlePaymentSubmit = (method: PaymentMethod) => {
         setPaymentMethod(method)
         console.log("Dati per associazione:", formData)
-        console.log("Metodo di pagamento:", method, "Quota: 50€")
+        console.log("Metodo di pagamento:", method, "Quota: 120€")
         // Qui andrà la logica specifica per la richiesta di associazione
         toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo." })
         router.push("/dashboard")
