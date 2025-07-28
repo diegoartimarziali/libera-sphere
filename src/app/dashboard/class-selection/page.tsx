@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
+import { differenceInYears } from "date-fns"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, updateDoc } from "firebase/firestore"
@@ -22,23 +23,34 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarIcon, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-// Schema per il primo step: Dati Anagrafici
+// Schema combinato per il primo step
+const parentDataSchema = z.object({
+    parentName: z.string().min(2, "Il nome del genitore è obbligatorio."),
+    parentSurname: z.string().min(2, "Il cognome del genitore è obbligatorio."),
+    parentTaxCode: z.string().length(16, "Il codice fiscale del genitore deve essere di 16 caratteri."),
+});
+
 const personalDataSchema = z.object({
   name: z.string().min(2, "Il nome è obbligatorio."),
   surname: z.string().min(2, "Il cognome è obbligatorio."),
-  taxCode: z.string().min(16, "Il codice fiscale deve essere di 16 caratteri.").max(16, "Il codice fiscale deve essere di 16 caratteri."),
+  taxCode: z.string().length(16, "Il codice fiscale deve essere di 16 caratteri."),
   birthDate: z.date({ required_error: "La data di nascita è obbligatoria." }),
   birthPlace: z.string().min(1, "Il luogo di nascita è obbligatorio."),
   address: z.string().min(1, "L'indirizzo è obbligatorio."),
   city: z.string().min(1, "La città è obbligatoria."),
-  zipCode: z.string().min(5, "Il CAP deve essere di 5 cifre.").max(5, "Il CAP deve essere di 5 cifre."),
-  province: z.string().min(2, "La sigla della provincia è obbligatoria.").max(2, "La sigla della provincia è obbligatoria."),
+  zipCode: z.string().length(5, "Il CAP deve essere di 5 cifre."),
+  province: z.string().length(2, "La sigla della provincia è obbligatoria."),
   phone: z.string().min(1, "Il numero di telefono è obbligatorio."),
-})
+}).and(z.discriminatedUnion("isMinor", [
+    z.object({ isMinor: z.literal(true), parentData: parentDataSchema }),
+    z.object({ isMinor: z.literal(false), parentData: parentDataSchema.optional() }),
+]));
+
 
 // Componente per lo Step 1
 function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDataSchema>) => void }) {
   const [isLoading, setIsLoading] = useState(false)
+  const [isMinor, setIsMinor] = useState<boolean | null>(null)
   const [user] = useAuthState(auth)
   const { toast } = useToast()
   
@@ -54,8 +66,22 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
         zipCode: "",
         province: "",
         phone: "",
+        isMinor: false,
     }
   })
+
+  const birthDate = form.watch("birthDate");
+
+  useEffect(() => {
+      if (birthDate) {
+          const age = differenceInYears(new Date(), birthDate);
+          const minor = age < 18;
+          setIsMinor(minor);
+          form.setValue("isMinor", minor);
+      } else {
+          setIsMinor(null);
+      }
+  }, [birthDate, form]);
 
   useEffect(() => {
     if (user) {
@@ -77,6 +103,8 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
                     zipCode: userData.zipCode || "",
                     province: userData.province || "",
                     phone: userData.phone || "",
+                    isMinor: userData.birthDate ? differenceInYears(new Date(), userData.birthDate.toDate()) < 18 : false,
+                    parentData: userData.parentData || undefined
                 });
             }
         };
@@ -93,11 +121,14 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
     setIsLoading(true)
     try {
         const userDocRef = doc(db, "users", user.uid);
-        // Combine name and surname for the 'name' field in Firestore
         const fullName = `${data.name} ${data.surname}`.trim();
+
+        // Rimuove isMinor prima di salvare, dato che non è un campo di Firestore
+        const { isMinor, ...dataToSave } = data;
+
         await updateDoc(userDocRef, {
-            ...data,
-            name: fullName // We save the full name in the main 'name' field
+            ...dataToSave,
+            name: fullName 
         });
         toast({ title: "Successo", description: "Dati anagrafici salvati correttamente." });
         onNext(data)
@@ -297,11 +328,56 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
                 </div>
             </div>
 
+            {/* Sezione Genitore/Tutore per Minorenni */}
+            {isMinor === true && (
+                <div className="space-y-4 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
+                    <h4 className="font-semibold text-foreground">Dati del Genitore/Tutore</h4>
+                     <p className="text-sm text-muted-foreground">
+                        Poiché l'iscritto è minorenne, è obbligatorio compilare i dati di un genitore o tutore legale.
+                    </p>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <FormField
+                            control={form.control}
+                            name="parentData.parentName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Nome Genitore</FormLabel>
+                                    <FormControl><Input placeholder="Nome" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="parentData.parentSurname"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Cognome Genitore</FormLabel>
+                                    <FormControl><Input placeholder="Cognome" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                     <FormField
+                        control={form.control}
+                        name="parentData.parentTaxCode"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Codice Fiscale Genitore</FormLabel>
+                                <FormControl><Input placeholder="Codice Fiscale" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+            )}
+
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Prosegui
+              Prosegui al Passo 2
             </Button>
           </CardFooter>
         </form>
@@ -310,20 +386,28 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
   )
 }
 
-// Componente per lo Step 2 (placeholder)
-function HealthStep({ onBack }: { onBack: () => void }) {
+// Componente per lo Step 2
+function HealthStep({ onBack, onComplete }: { onBack: () => void, onComplete: () => void }) {
+    // Logica per il caricamento del certificato e pagamento andrà qui
+    
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 2: Certificato Medico</CardTitle>
-                <CardDescription>Work in progress...</CardDescription>
+                <CardTitle>Passo 2: Certificato Medico e Pagamento</CardTitle>
+                <CardDescription>
+                    Carica il tuo certificato medico e completa l'iscrizione.
+                </CardDescription>
             </CardHeader>
             <CardContent>
-                <p>Qui andrà il modulo per caricare il certificato medico.</p>
+                <div className="flex h-48 items-center justify-center rounded-lg border-2 border-dashed">
+                     <p className="text-muted-foreground">
+                        Work in Progress: Modulo di upload e pagamento.
+                    </p>
+                </div>
             </CardContent>
             <CardFooter className="justify-between">
                 <Button variant="outline" onClick={onBack}>Indietro</Button>
-                <Button>Prosegui</Button>
+                <Button onClick={onComplete}>Completa Iscrizione</Button>
             </CardFooter>
         </Card>
     )
@@ -333,10 +417,16 @@ function HealthStep({ onBack }: { onBack: () => void }) {
 export default function ClassSelectionPage() {
     const [step, setStep] = useState(1)
     const [formData, setFormData] = useState({})
+    const { toast } = useToast()
 
     const handleNextStep1 = (data: z.infer<typeof personalDataSchema>) => {
         setFormData(prev => ({ ...prev, ...data }))
         setStep(2)
+    }
+    
+    const handleComplete = () => {
+        // Qui andrà la logica finale, es. reindirizzamento
+        toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni."});
     }
 
     const handleBack = () => {
@@ -354,8 +444,10 @@ export default function ClassSelectionPage() {
             
             <div className="w-full max-w-3xl">
                 {step === 1 && <PersonalDataStep onNext={handleNextStep1} />}
-                {step === 2 && <HealthStep onBack={handleBack} />}
+                {step === 2 && <HealthStep onBack={handleBack} onComplete={handleComplete} />}
             </div>
         </div>
     )
 }
+
+    
