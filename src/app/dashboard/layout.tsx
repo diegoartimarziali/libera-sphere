@@ -76,7 +76,6 @@ export default function DashboardLayout({
   const [user, setUser] = React.useState<User | null>(null);
   const [userData, setUserData] = React.useState<DocumentData | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [redirecting, setRedirecting] = React.useState(true);
   
   const [isMedicalBlocked, setIsMedicalBlocked] = React.useState(false);
   const [isSubscriptionBlocked, setIsSubscriptionBlocked] = React.useState(false);
@@ -92,35 +91,34 @@ export default function DashboardLayout({
             const data = userDoc.data();
             setUserData(data);
 
-             const isAssociatedThisSeason = data.associationStatus === 'approved' && isAssociatedForCurrentSeason(data.associationApprovalDate);
-              if (isAssociatedThisSeason) {
-                  const appointmentDateStr = data.medicalCertificate?.appointmentDate;
-                  const certificateDateStr = data.medicalCertificate?.expirationDate;
-                  if (appointmentDateStr && !certificateDateStr) {
-                      const appointmentDate = parseISO(appointmentDateStr);
-                      if (isValid(appointmentDate) && isAfter(startOfToday(), appointmentDate)) {
-                          setIsMedicalBlocked(true);
-                      }
-                  }
-                  
-                  if (data.subscription?.plan === 'mensile' && data.subscription?.status !== 'in_attesa') {
-                      const paymentDateStr = data.subscription?.paymentDate;
-                      if (paymentDateStr) {
-                          const paymentDate = parseISO(paymentDateStr);
-                          if (isValid(paymentDate)) {
-                              const today = new Date();
-                              const endOfMonth = lastDayOfMonth(paymentDate);
-                              const gracePeriodEnd = addDays(endOfMonth, 5);
-                              if (isAfter(today, gracePeriodEnd)) {
-                                   setIsSubscriptionBlocked(true);
-                              }
-                          }
-                      } else {
-                          setIsSubscriptionBlocked(true);
-                      }
-                  }
-              }
-
+            const isAssociatedThisSeason = data.associationStatus === 'approved' && isAssociatedForCurrentSeason(data.associationApprovalDate);
+            if (isAssociatedThisSeason) {
+                const appointmentDateStr = data.medicalCertificate?.appointmentDate;
+                const certificateDateStr = data.medicalCertificate?.expirationDate;
+                if (appointmentDateStr && !certificateDateStr) {
+                    const appointmentDate = parseISO(appointmentDateStr);
+                    if (isValid(appointmentDate) && isAfter(startOfToday(), appointmentDate)) {
+                        setIsMedicalBlocked(true);
+                    }
+                }
+                
+                if (data.subscription?.plan === 'mensile' && data.subscription?.status !== 'in_attesa') {
+                    const paymentDateStr = data.subscription?.paymentDate;
+                    if (paymentDateStr) {
+                        const paymentDate = parseISO(paymentDateStr);
+                        if (isValid(paymentDate)) {
+                            const today = new Date();
+                            const endOfMonth = lastDayOfMonth(paymentDate);
+                            const gracePeriodEnd = addDays(endOfMonth, 5);
+                            if (isAfter(today, gracePeriodEnd)) {
+                                 setIsSubscriptionBlocked(true);
+                            }
+                        }
+                    } else {
+                        setIsSubscriptionBlocked(true);
+                    }
+                }
+            }
           } else {
             console.log("User document does not exist, signing out.");
             await signOut(auth);
@@ -130,55 +128,22 @@ export default function DashboardLayout({
           console.error("Error fetching user data:", error);
           await signOut(auth);
           router.push('/');
+        } finally {
+          setLoading(false);
         }
       } else {
         setUser(null);
         setUserData(null);
         router.push('/');
+        setLoading(false);
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, [router]);
-
-  React.useEffect(() => {
-    if (loading || !userData) return;
-
-    setRedirecting(true);
-    const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
-    const isOperational = isAssociatedThisSeason || userData.isSelectionPassportComplete;
-    const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription', '/dashboard/payment-gateway', '/dashboard/regulations', '/dashboard/liberasphere', '/dashboard/class-selection', '/dashboard/associates'];
-
-    if (isMedicalBlocked && !essentialPages.includes(pathname)) {
-        router.push('/dashboard/medical-certificate');
-        return;
-    }
-     if (isSubscriptionBlocked && !essentialPages.includes(pathname)) {
-        router.push('/dashboard/subscription');
-        return;
-    }
-
-    if (!userData.regulationsAccepted && pathname !== '/dashboard/regulations') {
-        router.push('/dashboard/regulations');
-        return;
-    }
-    if (userData.regulationsAccepted && userData.isFormerMember === null && pathname !== '/dashboard/liberasphere') {
-        router.push('/dashboard/liberasphere');
-        return;
-    }
-    if (userData.isFormerMember === 'no' && !isOperational && pathname !== '/dashboard/class-selection') {
-        router.push('/dashboard/class-selection');
-        return;
-    }
-    if (userData.isFormerMember === 'yes' && !isOperational && pathname !== '/dashboard/associates') {
-        router.push('/dashboard/associates');
-        return;
-    }
-
-    setRedirecting(false);
-
-  }, [userData, pathname, loading, isMedicalBlocked, isSubscriptionBlocked, router]);
-
+  
+  // --- REDIRECTION LOGIC MOVED TO INDIVIDUAL PAGES ---
+  // The layout is now only responsible for fetching data and rendering the UI shell.
+  // It no longer handles complex redirection, which was the source of the infinite loading loop.
 
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
@@ -203,7 +168,7 @@ export default function DashboardLayout({
     router.push('/dashboard/subscription');
   }
 
-  if (loading || !userData || redirecting) {
+  if (loading || !userData) {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -215,15 +180,16 @@ export default function DashboardLayout({
   const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
   const associationRequested = userData.associationStatus === 'requested';
   const hasSeasonalSubscription = userData.subscription?.plan === 'stagionale';
+  const isOperational = isAssociatedThisSeason || userData.isSelectionPassportComplete;
 
   // --- Navigation Items Logic ---
   const allNavItems = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => isAssociatedThisSeason || associationRequested },
+    { href: "/dashboard", icon: LayoutDashboard, label: "Scheda personale", condition: () => isAssociatedThisSeason || associationRequested || (isOperational && userData.isFormerMember === 'no') },
     { href: "/dashboard/aiuto", icon: HelpCircle, label: "Aiuto", condition: () => true },
     { href: "/dashboard/regulations", icon: FileText, label: "Regolamenti", condition: () => !userData.regulationsAccepted },
     { href: "/dashboard/liberasphere", icon: Users, label: "LiberaSphere", condition: () => userData.regulationsAccepted && userData.isFormerMember === null },
-    { href: "/dashboard/class-selection", icon: Dumbbell, label: "Passaporto Selezioni", condition: () => userData.regulationsAccepted && userData.isFormerMember === 'no' && !userData.isSelectionPassportComplete },
-    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => (userData.regulationsAccepted && userData.isFormerMember === 'yes' && !isAssociatedThisSeason && !associationRequested) || (userData.isSelectionPassportComplete && !isAssociatedThisSeason && !associationRequested) },
+    { href: "/dashboard/class-selection", icon: Dumbbell, label: "Passaporto Selezioni", condition: () => userData.regulationsAccepted && userData.isFormerMember === 'no' && !isOperational },
+    { href: "/dashboard/associates", icon: Users, label: "Associati", condition: () => (userData.regulationsAccepted && userData.isFormerMember === 'yes' && !isAssociatedThisSeason && !associationRequested) || (isOperational && !isAssociatedThisSeason && !associationRequested) },
     { href: "/dashboard/medical-certificate", icon: HeartPulse, label: "Certificato Medico", condition: () => isAssociatedThisSeason },
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento", condition: () => isAssociatedThisSeason && !hasSeasonalSubscription },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => isAssociatedThisSeason },
@@ -235,11 +201,15 @@ export default function DashboardLayout({
     { href: "/", icon: LogOut, label: "Esci", onClick: handleLogout, condition: () => true },
   ];
 
-  const navItems = isMedicalBlocked 
-    ? allNavItems.filter(item => ['/dashboard/aiuto', '/dashboard/medical-certificate'].includes(item.href))
-    : isSubscriptionBlocked 
-    ? allNavItems.filter(item => ['/dashboard/aiuto', '/dashboard/subscription'].includes(item.href))
-    : allNavItems.filter(item => item.condition());
+  let navItems;
+
+  if (isMedicalBlocked) {
+    navItems = allNavItems.filter(item => ['/dashboard/aiuto', '/dashboard/medical-certificate'].includes(item.href));
+  } else if (isSubscriptionBlocked) {
+    navItems = allNavItems.filter(item => ['/dashboard/aiuto', '/dashboard/subscription'].includes(item.href));
+  } else {
+    navItems = allNavItems.filter(item => item.condition());
+  }
 
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
@@ -381,3 +351,5 @@ export default function DashboardLayout({
     </div>
   )
 }
+
+    

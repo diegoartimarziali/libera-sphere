@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -22,12 +22,19 @@ const grades = [
   "nera 1 dan", "nera 2 dan", "nera 3 dan", "nera 4 dan"
 ];
 
-export default function LiberaSpherePage() {
+export default function LiberaSpherePage({ userData }: { userData?: any }) {
     const router = useRouter();
     const [isFormerMember, setIsFormerMember] = useState<string | undefined>();
     const [startYear, setStartYear] = useState<string | undefined>();
     const [grade, setGrade] = useState<string | undefined>();
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (userData && userData.isFormerMember !== null) {
+            const destination = userData.isFormerMember === 'yes' ? '/dashboard/associates' : '/dashboard/class-selection';
+            router.push(destination);
+        }
+    }, [userData, router]);
 
     const isButtonDisabled = () => {
         if (isLoading) return true;
@@ -166,3 +173,5 @@ export default function LiberaSpherePage() {
         </Card>
     );
 }
+
+    

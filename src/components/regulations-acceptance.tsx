@@ -14,7 +14,7 @@ import { useToast } from "./ui/use-toast"
 import { Eye, Download, Loader2 } from "lucide-react"
 import { Checkbox } from "./ui/checkbox"
 import { Label } from "./ui/label"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
@@ -31,6 +31,15 @@ export function RegulationsAcceptance({ userData }: { userData?: any }) {
     const router = useRouter();
     const [accepted, setAccepted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        // This effect will run when the component mounts and if userData changes.
+        // It's a "guard" that runs within the page itself.
+        if (userData?.regulationsAccepted) {
+            router.push('/dashboard/liberasphere');
+        }
+    }, [userData, router]);
+
 
     const handleAccept = async () => {
         if (!accepted) {
@@ -63,7 +72,7 @@ export function RegulationsAcceptance({ userData }: { userData?: any }) {
                 description: `Grazie per aver accettato i nostri termini e regolamenti in data ${acceptanceDate}.`,
             });
             
-            // Hard reload to force the layout to re-evaluate the redirection logic
+            // Hard reload to force the layout to re-evaluate its state with fresh data
             window.location.reload();
 
         } catch (error) {
@@ -73,7 +82,6 @@ export function RegulationsAcceptance({ userData }: { userData?: any }) {
                 description: "Impossibile salvare l'accettazione dei regolamenti.",
                 variant: "destructive"
             });
-        } finally {
             setIsLoading(false);
         }
     }
@@ -119,3 +127,5 @@ export function RegulationsAcceptance({ userData }: { userData?: any }) {
     </Card>
   )
 }
+
+    
