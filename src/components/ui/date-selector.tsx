@@ -35,28 +35,27 @@ export function DateSelector({ value, onChange, disableFuture, disablePast }: Da
     }, [value]);
 
     const handleDateChange = (part: 'day' | 'month' | 'year', val: string) => {
-        let currentDay = day;
-        let currentMonth = month;
-        let currentYear = year;
+        let newDay = day;
+        let newMonth = month;
+        let newYear = year;
 
-        if (part === 'day') currentDay = val;
-        if (part === 'month') currentMonth = val;
-        if (part === 'year') currentYear = val;
+        if (part === 'day') newDay = val;
+        if (part === 'month') newMonth = val;
+        if (part === 'year') newYear = val;
         
-        // Reset day if month/year changes and day is invalid for new month/year
         if (part === 'month' || part === 'year') {
-            const maxDays = new Date(Number(currentYear), Number(currentMonth), 0).getDate();
-            if (Number(currentDay) > maxDays) {
-                currentDay = "";
+            const maxDays = new Date(Number(newYear), Number(newMonth), 0).getDate();
+            if (Number(newDay) > maxDays) {
+                newDay = ""; 
             }
         }
         
-        setDay(currentDay);
-        setMonth(currentMonth);
-        setYear(currentYear);
+        setDay(newDay);
+        setMonth(newMonth);
+        setYear(newYear);
 
-        if (currentDay && currentMonth && currentYear) {
-            const newDate = new Date(Number(currentYear), Number(currentMonth) - 1, Number(currentDay));
+        if (newDay && newMonth && newYear) {
+            const newDate = new Date(Number(newYear), Number(newMonth) - 1, Number(newDay));
             if (!isNaN(newDate.getTime()) && newDate.getTime() !== value?.getTime()) {
                 onChange(newDate);
             }
