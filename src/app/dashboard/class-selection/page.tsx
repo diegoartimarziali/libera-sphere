@@ -26,7 +26,7 @@ interface Gym {
     id: string;
     name: string;
     time: string;
-    availableDays?: number[] | string; // Può essere un array o una stringa
+    availableDays?: number[];
 }
 interface GymSelectionData {
     gym: Gym;
@@ -119,33 +119,7 @@ function GymSelectionStep({
         )
     }
 
-    const getSafeAvailableDays = (): number[] => {
-        if (!selectedGym || !selectedGym.availableDays) return [];
-
-        let days = selectedGym.availableDays;
-        
-        // Se è una stringa tipo "[1, 3]", la convertiamo in un array di numeri
-        if (typeof days === 'string') {
-            try {
-                const parsed = JSON.parse(days);
-                if (Array.isArray(parsed)) {
-                    days = parsed.map(Number).filter(n => !isNaN(n));
-                } else {
-                    return [];
-                }
-            } catch (e) {
-                return []; // Non è una stringa JSON valida
-            }
-        }
-        
-        if (Array.isArray(days)) {
-            return [...days].sort((a, b) => a - b);
-        }
-
-        return [];
-    };
-
-    const availableDaysSorted = getSafeAvailableDays();
+    const availableDaysSorted = selectedGym?.availableDays ? [...selectedGym.availableDays].sort((a, b) => a - b) : [];
 
     return (
         <Card>
@@ -193,7 +167,7 @@ function GymSelectionStep({
                     </div>
                  )}
                  
-                 {selectedGym && (
+                 {selectedGym && lessonDay && (
                      <div className="space-y-2 animate-in fade-in-50">
                         <Label htmlFor="month-select">3. Mese di Inizio</Label>
                         <Select onValueChange={setLessonMonth} value={lessonMonth || ''}>
