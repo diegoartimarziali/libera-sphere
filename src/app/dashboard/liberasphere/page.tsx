@@ -67,7 +67,20 @@ export default function LiberaSpherePage() {
         }
         dataToUpdate.firstYear = firstYear;
         dataToUpdate.lastGrade = lastGrade;
+    } else { // isFormerMember === 'no'
+        if (!hasPracticedBefore) {
+             toast({ variant: "destructive", title: "Attenzione", description: "Per favore, specifica se hai già praticato." })
+            return
+        }
+        dataToUpdate.hasPracticedBefore = hasPracticedBefore;
+
+        if (hasPracticedBefore === 'no') {
+            dataToUpdate.lastGrade = 'Cintura bianca';
+        } else {
+            // Qui andrà la logica per quando l'utente ha già praticato
+        }
     }
+
 
     setIsLoading(true);
     try {
