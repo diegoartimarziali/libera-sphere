@@ -107,9 +107,9 @@ export default function DashboardPage() {
       <h1 className="text-3xl font-bold">
         {dataLoading ? <Skeleton className="h-9 w-1/2" /> : `Benvenuto in LiberaSphere, ${userData?.name?.split(' ')[0] || ''}!`}
       </h1>
-      <p className="mt-4 text-muted-foreground">
+      <div className="mt-4 text-muted-foreground">
         {dataLoading ? <Skeleton className="h-5 w-3/4" /> : "Questa è la tua dashboard. Da qui potrai gestire la tua iscrizione e le tue attività."}
-      </p>
+      </div>
     </div>
   )
 }
