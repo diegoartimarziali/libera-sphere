@@ -171,7 +171,6 @@ function GymSelectionStep({
                 {selectedGym && lessonMonth && (
                     <div className="space-y-4 rounded-md border p-4 animate-in fade-in-50">
                         <h4 className="font-semibold text-foreground">3. Giorno della Lezione</h4>
-                        {/* Aggiunto controllo per assicurarsi che availableDays sia un array */}
                         {Array.isArray(selectedGym.availableDays) && selectedGym.availableDays.length > 0 ? (
                              <RadioGroup
                                 value={lessonDay?.toString() ?? ""}
@@ -549,3 +548,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
