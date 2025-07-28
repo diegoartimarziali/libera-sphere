@@ -5,12 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse } from "lucide-react"
 
 export interface MemberSummaryProps {
     name: string;
     email: string;
     membershipStatus: string;
+    medicalStatus: string;
     discipline?: string;
     grade?: string;
     avatarUrl?: string;
@@ -25,13 +26,21 @@ const getInitials = (name: string) => {
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
 }
 
-const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string }) => {
-    if (!value && typeof value !== 'string') return null;
+const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string | boolean | null }) => {
+    if (value === undefined || value === null) return null;
+    
+    let displayValue: string;
+    if (typeof value === 'boolean') {
+        displayValue = value ? 'SI' : 'NO';
+    } else {
+        displayValue = value;
+    }
+
     return (
         <div className="flex items-center text-sm">
             <div className="w-5 text-muted-foreground">{icon}</div>
             <span className="ml-3 font-medium">{label}:</span>
-            <span className="ml-auto text-muted-foreground text-right">{value}</span>
+            <span className="ml-auto text-muted-foreground text-right">{displayValue}</span>
         </div>
     )
 }
@@ -57,9 +66,10 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <Separator />
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
-                    <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured ? 'SI' : 'NO'} />
+                    <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
                     <InfoRow icon={<CalendarDays size={16} />} label="Stagione Sportiva" value={props.sportingSeason} />
                     <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
+                    <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} />
                     <InfoRow icon={<Sparkles size={16} />} label="Disciplina" value={props.discipline} />
                     <InfoRow icon={<Award size={16} />} label="Grado" value={props.grade} />
                  </div>

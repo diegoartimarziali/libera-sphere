@@ -11,7 +11,7 @@ import { it } from "date-fns/locale"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, AlertTriangle } from "lucide-react"
+import { AlertCircle, AlertTriangle, HeartPulse } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps } from "@/components/dashboard/MemberSummaryCard"
 
 interface UserData {
@@ -24,9 +24,9 @@ interface UserData {
   associationExpiryDate?: Timestamp;
   isInsured?: boolean;
   medicalInfo?: {
+    type: 'certificate' | 'booking';
     expiryDate?: Timestamp;
     bookingDate?: Timestamp;
-    type: 'certificate' | 'booking';
   };
 }
 
@@ -64,20 +64,37 @@ export default function DashboardPage() {
             setUserData(data)
             
             let statusLabel = "Non Associato";
-            if (data.associationStatus === 'pending') {
-                statusLabel = 'In Attesa';
-            } else if (data.associationStatus === 'active' && data.associationExpiryDate) {
-                statusLabel = `Valida fino al ${format(data.associationExpiryDate.toDate(), 'dd/MM/yyyy')}`;
-            } else if (data.associationStatus === 'expired') {
-                statusLabel = 'Scaduta';
-            } else if (data.associationStatus === 'not_associated') {
-                statusLabel = 'Non Associato';
+            switch (data.associationStatus) {
+                case 'pending':
+                    statusLabel = 'In Attesa';
+                    break;
+                case 'active':
+                    statusLabel = data.associationExpiryDate ? `Valida fino al ${format(data.associationExpiryDate.toDate(), 'dd/MM/yyyy')}` : 'Attiva';
+                    break;
+                case 'expired':
+                    statusLabel = 'Scaduta';
+                    break;
+                case 'not_associated':
+                default:
+                    statusLabel = 'Non Associato';
+                    break;
             }
+            
+            let medicalStatusLabel = "Non Presente";
+            if (data.medicalInfo) {
+                if (data.medicalInfo.type === 'certificate' && data.medicalInfo.expiryDate) {
+                    medicalStatusLabel = `Scade il ${format(data.medicalInfo.expiryDate.toDate(), 'dd/MM/yyyy')}`;
+                } else if (data.medicalInfo.type === 'booking' && data.medicalInfo.bookingDate) {
+                    medicalStatusLabel = `Visita il ${format(data.medicalInfo.bookingDate.toDate(), 'dd/MM/yyyy')}`;
+                }
+            }
+
 
             setMemberCardProps({
                 name: data.name,
                 email: data.email,
                 membershipStatus: statusLabel,
+                medicalStatus: medicalStatusLabel,
                 discipline: data.discipline,
                 grade: data.lastGrade,
                 sportingSeason: getCurrentSportingSeason(),
