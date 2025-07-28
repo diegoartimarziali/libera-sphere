@@ -31,8 +31,13 @@ interface Gym {
 interface GymSelectionData {
     gym: Gym;
     lessonMonth: string;
+    lessonDay: string;
 }
 
+const getDayName = (dayNumber: number): string => {
+    const days = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+    return days[dayNumber] || '';
+};
 
 // Componente per visualizzare i dati in modo pulito
 const DataRow = ({ label, value, icon }: { label: string; value?: string | null, icon?: React.ReactNode }) => (
@@ -59,6 +64,7 @@ function GymSelectionStep({
     const [loading, setLoading] = useState(true);
     const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
     const [lessonMonth, setLessonMonth] = useState<string | null>(null);
+    const [lessonDay, setLessonDay] = useState<string | null>(null);
     const { toast } = useToast();
 
     const months = [
@@ -89,12 +95,13 @@ function GymSelectionStep({
     const handleGymChange = (gymId: string) => {
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
+        setLessonDay(null);
         setLessonMonth(null);
     }
 
     const handleSubmit = () => {
-        if (selectedGym && lessonMonth) {
-            onNext({ gym: selectedGym, lessonMonth });
+        if (selectedGym && lessonMonth && lessonDay) {
+            onNext({ gym: selectedGym, lessonMonth, lessonDay });
         }
     }
 
@@ -112,10 +119,14 @@ function GymSelectionStep({
         )
     }
 
+    const availableDaysSorted = selectedGym?.availableDays && Array.isArray(selectedGym.availableDays)
+        ? [...selectedGym.availableDays].sort((a, b) => a - b)
+        : [];
+
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 2: Scegli Palestra e Mese di Prova</CardTitle>
+                <CardTitle>Passo 2: Scegli Palestra e Lezione</CardTitle>
                 <CardDescription>
                     Seleziona dove e quando vuoi iniziare la tua prova.
                 </CardDescription>
@@ -139,8 +150,26 @@ function GymSelectionStep({
                 
                  {selectedGym && (
                      <div className="space-y-2 animate-in fade-in-50">
-                        <Label htmlFor="month-select">2. Mese di Inizio</Label>
-                        <Select onValueChange={setLessonMonth} disabled={!selectedGym}>
+                        <Label htmlFor="day-select">2. Giorno della Lezione</Label>
+                        <Select onValueChange={setLessonDay} value={lessonDay || ''}>
+                            <SelectTrigger id="day-select">
+                                <SelectValue placeholder="Seleziona un giorno" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableDaysSorted.map(day => (
+                                    <SelectItem key={day} value={String(day)}>
+                                        {getDayName(day)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                 )}
+                 
+                 {selectedGym && lessonDay && (
+                     <div className="space-y-2 animate-in fade-in-50">
+                        <Label htmlFor="month-select">3. Mese di Inizio</Label>
+                        <Select onValueChange={setLessonMonth} value={lessonMonth || ''}>
                             <SelectTrigger id="month-select">
                                 <SelectValue placeholder="Seleziona un mese" />
                             </SelectTrigger>
@@ -158,7 +187,7 @@ function GymSelectionStep({
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack}>Indietro</Button>
-                 <Button onClick={handleSubmit} disabled={!selectedGym || !lessonMonth}>Prosegui al Pagamento</Button>
+                 <Button onClick={handleSubmit} disabled={!selectedGym || !lessonMonth || !lessonDay}>Prosegui al Pagamento</Button>
             </CardFooter>
         </Card>
     )
@@ -324,6 +353,7 @@ function ConfirmationStep({
                     <dl className="space-y-3">
                         <DataRow label="Palestra" value={gymSelection.gym.name} icon={<Building size={16} />} />
                         <DataRow label="Mese Inizio" value={gymSelection.lessonMonth} icon={<CalendarIconMonth size={16} />} />
+                        <DataRow label="Giorno" value={getDayName(Number(gymSelection.lessonDay))} />
                         <DataRow label="Orario" value={gymSelection.gym.time} icon={<Clock size={16} />} />
                     </dl>
                 </div>
@@ -420,6 +450,7 @@ export default function ClassSelectionPage() {
                     gymId: gymSelection.gym.id,
                     gymName: gymSelection.gym.name,
                     lessonMonth: gymSelection.lessonMonth,
+                    lessonDay: getDayName(Number(gymSelection.lessonDay)),
                     time: gymSelection.gym.time,
                 },
                 paymentMethod: paymentMethod,
