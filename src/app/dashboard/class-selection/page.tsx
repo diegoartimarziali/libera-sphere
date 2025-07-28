@@ -42,7 +42,7 @@ function PaymentStep({
             <CardHeader>
                 <CardTitle>Passo 2: Metodo di Pagamento</CardTitle>
                 <CardDescription>
-                    Scegli come preferisci pagare la quota di iscrizione.
+                    Scegli come preferisci pagare la quota di iscrizione di 30€.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -59,7 +59,7 @@ function PaymentStep({
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">In Palestra (Contanti o Bancomat)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Potrai saldare la quota direttamente presso la nostra sede prima dell'inizio delle lezioni.
+                                Potrai saldare la quota di 30€ direttamente presso la nostra sede prima dell'inizio delle lezioni.
                             </p>
                         </div>
                         <Landmark className="h-6 w-6 text-muted-foreground" />
@@ -73,7 +73,7 @@ function PaymentStep({
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Online (Carta di Credito)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Paga in modo sicuro e veloce con la tua carta tramite SumUp.
+                                Paga in modo sicuro e veloce la quota di 30€ con la tua carta tramite SumUp.
                             </p>
                         </div>
                          <CreditCard className="h-6 w-6 text-muted-foreground" />
@@ -101,7 +101,7 @@ function OnlinePaymentStep({
             <CardHeader>
                 <CardTitle>Passo 3: Pagamento Online</CardTitle>
                 <CardDescription>
-                    Completa il pagamento tramite il portale sicuro di SumUp qui sotto. Una volta terminato, clicca sul pulsante per procedere.
+                    Completa il pagamento di 30€ tramite il portale sicuro di SumUp qui sotto. Una volta terminato, clicca sul pulsante per procedere.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -185,6 +185,7 @@ function ConfirmationStep({
                           label="Metodo Scelto" 
                           value={paymentMethod === 'in_person' ? 'In Palestra' : 'Online con Carta'} 
                        />
+                       <DataRow label="Importo da Pagare" value="30,00 €" />
                     </dl>
                 </div>
                 
@@ -234,7 +235,10 @@ export default function ClassSelectionPage() {
         // Qui andrà la logica finale, es. salvataggio iscrizione
         console.log("Iscrizione completata con i seguenti dati:", {
             personalData: formData,
-            payment: paymentMethod
+            payment: {
+                method: paymentMethod,
+                amount: 30
+            }
         });
         toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni."});
         router.push("/dashboard")
