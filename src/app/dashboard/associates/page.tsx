@@ -201,12 +201,14 @@ function ConfirmationStep({
     formData,
     paymentMethod,
     onBack,
-    onComplete
+    onComplete,
+    isSubmitting
 }: {
     formData: PersonalDataSchemaType,
     paymentMethod: PaymentMethod | null,
     onBack: () => void,
-    onComplete: () => void
+    onComplete: () => void,
+    isSubmitting: boolean
 }) {
     const [isConfirmed, setIsConfirmed] = useState(false);
 
@@ -259,7 +261,10 @@ function ConfirmationStep({
             </CardContent>
             <CardFooter className="justify-between">
                 <Button variant="outline" onClick={onBack}>Indietro</Button>
-                <Button onClick={onComplete} disabled={!isConfirmed}>Invia Domanda di Associazione</Button>
+                <Button onClick={onComplete} disabled={!isConfirmed || isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Invia Domanda di Associazione
+                </Button>
             </CardFooter>
         </Card>
     )
@@ -323,14 +328,24 @@ export default function AssociatesPage() {
 
 
     const submitApplication = async () => {
-         if (!user) {
-             toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
+         if (!user || !formData) {
+             toast({ title: "Errore", description: "Utente o dati del form non trovati.", variant: "destructive" });
              return;
          }
          setIsSubmitting(true);
          try {
             const userDocRef = doc(db, "users", user.uid);
+
+            const { isMinor, ...dataToSave } = formData;
+            if (!isMinor) {
+                delete (dataToSave as any).parentData;
+            }
+
+            const fullName = `${dataToSave.name} ${dataToSave.surname}`.trim();
+
             await updateDoc(userDocRef, {
+                ...dataToSave,
+                name: fullName,
                 applicationSubmitted: true,
                 associationStatus: "pending",
                 associationExpiryDate: getSeasonExpiryDate(),
@@ -395,6 +410,7 @@ export default function AssociatesPage() {
                         paymentMethod={paymentMethod}
                         onBack={handleBack}
                         onComplete={submitApplication}
+                        isSubmitting={isSubmitting}
                     />
                 )}
             </div>

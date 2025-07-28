@@ -8,7 +8,7 @@ import { z } from "zod"
 import { differenceInYears } from "date-fns"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, getDoc, updateDoc } from "firebase/firestore"
+import { doc, getDoc } from "firebase/firestore"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -85,7 +85,6 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
   const [isLoading, setIsLoading] = useState(false)
   const [isMinor, setIsMinor] = useState<boolean | null>(null)
   const [user] = useAuthState(auth)
-  const { toast } = useToast()
   
   const form = useForm<PersonalDataSchemaType>({
     resolver: zodResolver(personalDataSchema),
@@ -130,6 +129,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
 
   useEffect(() => {
     if (user) {
+        setIsLoading(true);
         const fetchUserData = async () => {
             const userDocRef = doc(db, "users", user.uid);
             const userDocSnap = await getDoc(userDocRef);
@@ -163,57 +163,35 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                 
                 form.reset(existingData);
             }
+            setIsLoading(false);
         };
         fetchUserData();
     }
-  }, [user, form, form.reset]);
+  }, [user, form]);
 
 
   const onSubmit = async (data: PersonalDataSchemaType) => {
-    if (!user) {
-        toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
-        return;
-    }
     setIsLoading(true)
-    try {
-        const userDocRef = doc(db, "users", user.uid);
-        
-        const formattedData = {
-            ...data,
-            name: capitalizeFirstLetter(data.name),
-            surname: capitalizeWords(data.surname),
-            taxCode: data.taxCode.toUpperCase(),
-            birthPlace: capitalizeWords(data.birthPlace),
-            address: capitalizeWords(data.address),
-            city: capitalizeWords(data.city),
-            province: data.province.toUpperCase(),
-            parentData: data.isMinor && data.parentData ? {
-                ...data.parentData,
-                parentName: capitalizeWords(data.parentData.parentName),
-                parentSurname: capitalizeWords(data.parentData.parentSurname),
-                parentTaxCode: data.parentData.parentTaxCode.toUpperCase(),
-            } : undefined,
-        };
-        
-        const fullName = `${formattedData.name} ${formattedData.surname}`.trim();
-        const { isMinor, ...dataToSave } = formattedData;
-
-        if (!isMinor) {
-          delete (dataToSave as any).parentData;
-        }
-
-        await updateDoc(userDocRef, {
-            ...dataToSave,
-            name: fullName 
-        });
-        toast({ title: "Successo", description: "Dati anagrafici salvati correttamente." });
-        onFormSubmit(formattedData)
-    } catch (error) {
-        console.error("Errore salvataggio dati anagrafici:", error)
-        toast({ title: "Errore", description: "Impossibile salvare i dati. Riprova.", variant: "destructive" });
-    } finally {
-        setIsLoading(false)
-    }
+    
+    const formattedData = {
+        ...data,
+        name: capitalizeFirstLetter(data.name),
+        surname: capitalizeWords(data.surname),
+        taxCode: data.taxCode.toUpperCase(),
+        birthPlace: capitalizeWords(data.birthPlace),
+        address: capitalizeWords(data.address),
+        city: capitalizeWords(data.city),
+        province: data.province.toUpperCase(),
+        parentData: data.isMinor && data.parentData ? {
+            ...data.parentData,
+            parentName: capitalizeWords(data.parentData.parentName),
+            parentSurname: capitalizeWords(data.parentData.parentSurname),
+            parentTaxCode: data.parentData.parentTaxCode.toUpperCase(),
+        } : undefined,
+    };
+    
+    onFormSubmit(formattedData)
+    setIsLoading(false)
   }
 
   return (
@@ -441,3 +419,5 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
+
+    

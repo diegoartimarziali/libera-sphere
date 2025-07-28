@@ -141,15 +141,16 @@ function ConfirmationStep({
     formData,
     paymentMethod,
     onBack, 
-    onComplete 
+    onComplete,
+    isSubmitting
 }: { 
     formData: PersonalDataSchemaType,
     paymentMethod: PaymentMethod,
     onBack: () => void, 
-    onComplete: () => void 
+    onComplete: () => void,
+    isSubmitting: boolean
 }) {
     const [isConfirmed, setIsConfirmed] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
     return (
         <Card>
@@ -258,14 +259,23 @@ export default function ClassSelectionPage() {
     };
     
     const handleComplete = async () => {
-        if (!user || !paymentMethod) {
+        if (!user || !paymentMethod || !formData) {
             toast({ title: "Errore", description: "Dati mancanti per completare l'iscrizione.", variant: "destructive" });
             return;
         }
         setIsSubmitting(true);
         try {
             const userDocRef = doc(db, "users", user.uid);
+            
+            const { isMinor, ...dataToSave } = formData;
+            if (!isMinor) {
+                delete (dataToSave as any).parentData;
+            }
+            const fullName = `${dataToSave.name} ${dataToSave.surname}`.trim();
+            
             await updateDoc(userDocRef, {
+                ...dataToSave,
+                name: fullName,
                 applicationSubmitted: true,
                 associationStatus: "pending",
                 associationExpiryDate: getSeasonExpiryDate(),
@@ -332,6 +342,7 @@ export default function ClassSelectionPage() {
                         paymentMethod={paymentMethod}
                         onBack={handleBack} 
                         onComplete={handleComplete} 
+                        isSubmitting={isSubmitting}
                     />
                 )}
             </div>
