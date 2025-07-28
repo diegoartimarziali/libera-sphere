@@ -25,7 +25,7 @@ export default function AssociatesPage() {
             
             <div className="w-full max-w-3xl">
                  <PersonalDataForm
-                    title="Verifica i tuoi Dati Anagrafici"
+                    title="Inserisci i tuoi dati anagrafici"
                     description="Assicurati che tutte le informazioni siano corrette prima di inviare la tua domanda di associazione."
                     buttonText="Invia Domanda di Associazione"
                     onFormSubmit={handleAssociateSubmit}
