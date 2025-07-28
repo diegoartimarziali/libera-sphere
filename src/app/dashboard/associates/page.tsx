@@ -22,18 +22,22 @@ function BankTransferDialog({ open, onOpenChange, onConfirm }: { open: boolean, 
                 <DialogHeader>
                     <DialogTitle>Dati per Bonifico Bancario</DialogTitle>
                     <DialogDescription>
-                        Effettua un bonifico di 120€ utilizzando i dati seguenti. Una volta eseguito, clicca su "Pagamento Effettuato".
+                        Effettua un bonifico utilizzando i dati seguenti. Una volta eseguito, clicca su "Pagamento Effettuato".
                         La tua richiesta verrà approvata dopo la verifica della transazione.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4 text-sm">
                     <div className="space-y-1">
-                        <p className="font-semibold text-foreground">IBAN:</p>
-                        <p className="font-mono bg-muted p-2 rounded-md">IT00 A000 0000 0000 0000 0000 000</p>
-                    </div>
-                    <div className="space-y-1">
                         <p className="font-semibold text-foreground">Intestatario:</p>
                         <p>ASD LiberaSphere</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="font-semibold text-foreground">IBAN:</p>
+                        <p className="font-mono bg-muted p-2 rounded-md">IT66R0503431690000000025476</p>
+                    </div>
+                     <div className="space-y-1">
+                        <p className="font-semibold text-foreground">Importo:</p>
+                        <p>120,00 €</p>
                     </div>
                      <div className="space-y-1">
                         <p className="font-semibold text-foreground">Causale:</p>
