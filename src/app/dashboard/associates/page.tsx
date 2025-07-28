@@ -320,8 +320,8 @@ export default function AssociatesPage() {
             await updateDoc(userDocRef, {
                 applicationSubmitted: true
             });
-            toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo." });
-            router.push("/dashboard");
+            toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo. Verrai reindirizzato al prossimo passo." });
+            router.push("/dashboard/medical-certificate");
          } catch (error) {
             console.error("Errore durante l'invio della domanda:", error);
             toast({ title: "Errore", description: "Impossibile inviare la domanda. Riprova.", variant: "destructive" });

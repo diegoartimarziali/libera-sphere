@@ -256,8 +256,8 @@ export default function ClassSelectionPage() {
             await updateDoc(userDocRef, {
                 applicationSubmitted: true,
             });
-            toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni."});
-            router.push("/dashboard")
+            toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
+            router.push("/dashboard/medical-certificate")
         } catch (error) {
              console.error("Errore durante il completamento dell'iscrizione:", error);
              toast({ title: "Errore", description: "Impossibile completare l'iscrizione. Riprova.", variant: "destructive" });

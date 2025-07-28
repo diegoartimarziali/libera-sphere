@@ -14,6 +14,7 @@ interface UserData {
   regulationsAccepted: boolean
   isFormerMember: 'yes' | 'no' | null
   applicationSubmitted: boolean
+  medicalCertificateSubmitted: boolean
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -60,13 +61,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   if (userData) {
-    const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+    const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
 
-    // Step 1: Regulations check. This is the first gate.
+    // Step 1: Regulations check.
     if (!userData.regulationsAccepted) {
       if (pathname !== "/dashboard/regulations") {
         redirect("/dashboard/regulations")
       }
+      // Render children because this is the correct page
       return (
         <div className="flex h-screen w-full bg-background">
           <main className="flex-1 p-8">{children}</main>
@@ -74,30 +76,39 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
     }
 
-    // Step 2: Onboarding Flow. User has accepted regulations but not submitted application.
+    // Step 2: Main application flow (demographic, payment, etc.).
     if (!userData.applicationSubmitted) {
       const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-      // If the user is not on one of the allowed onboarding pages, redirect them to the start of their specific flow.
       if (!allowedPaths.some(p => pathname.startsWith(p))) {
-         if (userData.isFormerMember === null) {
-            redirect("/dashboard/liberasphere");
-         } else if (userData.isFormerMember === 'yes') {
-            redirect("/dashboard/associates");
-         } else { // isFormerMember === 'no'
-            redirect("/dashboard/class-selection");
-         }
+         // Redirect to the starting point of the application flow if not on an allowed page
+         redirect("/dashboard/liberasphere");
       }
-       return (
+      // Render children because user is in the correct flow
+      return (
         <div className="flex h-screen w-full bg-background">
           <main className="flex-1 p-8">{children}</main>
         </div>
       )
     }
+
+    // Step 3: Medical certificate submission.
+    if (!userData.medicalCertificateSubmitted) {
+        if (pathname !== "/dashboard/medical-certificate") {
+            redirect("/dashboard/medical-certificate");
+        }
+        // Render children because this is the correct page
+        return (
+          <div className="flex h-screen w-full bg-background">
+            <main className="flex-1 p-8">{children}</main>
+          </div>
+        )
+    }
     
-    // Step 3: Onboarding is complete. User can access the main dashboard.
-    // If they try to access any onboarding page, redirect them to the main dashboard.
+    // Step 4: Onboarding is complete.
+    // If they try to access any onboarding page now, redirect them to the main dashboard.
     if (onboardingPages.some(p => pathname.startsWith(p))) {
       redirect('/dashboard');
+      // Show loader while redirecting
       return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -106,6 +117,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }
 
+  // User is fully onboarded, render the main dashboard layout.
   return (
       <div className="flex h-screen w-full bg-background">
         <main className="flex-1 p-8">
