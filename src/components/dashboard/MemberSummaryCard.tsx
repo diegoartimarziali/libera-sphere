@@ -55,7 +55,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <Separator />
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
-                    <InfoRow icon={<Shield size={16} />} label="Stato" value={props.membershipType} />
+                    <InfoRow icon={<Shield size={16} />} label="Associazione" value={props.membershipType} />
                     <InfoRow icon={<Sparkles size={16} />} label="Disciplina" value={props.discipline} />
                     <InfoRow icon={<Award size={16} />} label="Grado" value={props.grade} />
                  </div>
