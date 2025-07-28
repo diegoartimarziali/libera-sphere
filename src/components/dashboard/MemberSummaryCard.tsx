@@ -56,10 +56,10 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <Separator />
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
+                    <InfoRow icon={<CalendarDays size={16} />} label="Stagione Sportiva" value={props.sportingSeason} />
                     <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
                     <InfoRow icon={<Sparkles size={16} />} label="Disciplina" value={props.discipline} />
                     <InfoRow icon={<Award size={16} />} label="Grado" value={props.grade} />
-                    <InfoRow icon={<CalendarDays size={16} />} label="Stagione Sportiva" value={props.sportingSeason} />
                  </div>
             </CardContent>
             <CardFooter>
