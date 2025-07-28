@@ -61,23 +61,38 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   if (userData) {
+    // Step 1: Regulations
     if (!userData.regulationsAccepted) {
       if (pathname !== "/dashboard/regulations") {
         redirect("/dashboard/regulations")
       }
-    } else if (userData.isFormerMember === null) {
+      return (
+        <div className="flex h-screen w-full bg-background">
+          <main className="flex-1 p-8">{children}</main>
+        </div>
+      )
+    }
+
+    // Step 2: Former Member Check
+    if (userData.isFormerMember === null) {
       if (pathname !== "/dashboard/liberasphere") {
         redirect("/dashboard/liberasphere")
       }
-    } else if (pathname === '/dashboard/regulations' || pathname === '/dashboard/liberasphere') {
-      // Se l'onboarding è completo, reindirizza alla dashboard principale
-      if(userData.isFormerMember === 'yes' && pathname !== '/dashboard/associates') {
-        redirect('/dashboard/associates')
-      } else if (userData.isFormerMember === 'no' && pathname !== '/dashboard/class-selection') {
-        redirect('/dashboard/class-selection')
-      } else if (pathname !== '/dashboard') {
-         redirect('/dashboard');
-      }
+       return (
+        <div className="flex h-screen w-full bg-background">
+          <main className="flex-1 p-8">{children}</main>
+        </div>
+      )
+    }
+    
+    // Onboarding complete, handle main app routing
+    if (pathname === '/dashboard/regulations' || pathname === '/dashboard/liberasphere') {
+      redirect('/dashboard');
+      return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+      );
     }
   }
 
