@@ -89,7 +89,7 @@ export default function LiberaSpherePage() {
     <div className="flex h-full items-center justify-center">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Bentornato in LiberaSphere</CardTitle>
+          <CardTitle className="text-2xl">Benvenuto!</CardTitle>
           <CardDescription>
             Aiutaci a capire il tuo percorso. Sei già stato dei nostri in passato?
           </CardDescription>
