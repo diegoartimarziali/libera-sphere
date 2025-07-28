@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
-import { CreditCard, Landmark, ArrowLeft, CheckCircle, CalendarIcon, Clock, Building, Calendar as CalendarIconMonth } from "lucide-react"
+import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconMonth } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, collection, getDocs, Timestamp } from "firebase/firestore"
@@ -30,7 +30,6 @@ interface Gym {
 }
 interface GymSelectionData {
     gym: Gym;
-    lessonDay: number;
     lessonMonth: string;
 }
 
@@ -48,11 +47,6 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
     ) : null
 );
 
-const getDayName = (dayNumber: number) => {
-    const days = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
-    return days[dayNumber];
-}
-
 // Componente per lo Step 2: Selezione Palestra e Lezione
 function GymSelectionStep({ 
     onBack, 
@@ -64,7 +58,6 @@ function GymSelectionStep({
     const [gyms, setGyms] = useState<Gym[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-    const [lessonDay, setLessonDay] = useState<number | null>(null);
     const [lessonMonth, setLessonMonth] = useState<string | null>(null);
     const { toast } = useToast();
 
@@ -97,17 +90,11 @@ function GymSelectionStep({
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
         setLessonMonth(null);
-        setLessonDay(null);
-    }
-    
-    const handleMonthChange = (month: string) => {
-        setLessonMonth(month);
-        setLessonDay(null); // Reset day on month change
     }
 
     const handleSubmit = () => {
-        if (selectedGym && lessonDay !== null && lessonMonth) {
-            onNext({ gym: selectedGym, lessonDay, lessonMonth });
+        if (selectedGym && lessonMonth) {
+            onNext({ gym: selectedGym, lessonMonth });
         }
     }
 
@@ -128,7 +115,7 @@ function GymSelectionStep({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 2: Scegli Palestra e Lezione di Prova</CardTitle>
+                <CardTitle>Passo 2: Scegli Palestra e Mese di Prova</CardTitle>
                 <CardDescription>
                     Seleziona dove e quando vuoi iniziare la tua prova.
                 </CardDescription>
@@ -153,7 +140,7 @@ function GymSelectionStep({
                  {selectedGym && (
                      <div className="space-y-2 animate-in fade-in-50">
                         <Label htmlFor="month-select">2. Mese di Inizio</Label>
-                        <Select onValueChange={handleMonthChange} disabled={!selectedGym}>
+                        <Select onValueChange={setLessonMonth} disabled={!selectedGym}>
                             <SelectTrigger id="month-select">
                                 <SelectValue placeholder="Seleziona un mese" />
                             </SelectTrigger>
@@ -168,37 +155,10 @@ function GymSelectionStep({
                     </div>
                  )}
 
-                {selectedGym && lessonMonth && (
-                    <div className="space-y-4 rounded-md border p-4 animate-in fade-in-50">
-                        <h4 className="font-semibold text-foreground">3. Giorno della Lezione</h4>
-                        {Array.isArray(selectedGym.availableDays) && selectedGym.availableDays.length > 0 ? (
-                             <RadioGroup
-                                value={lessonDay?.toString() ?? ""}
-                                onValueChange={(value) => setLessonDay(Number(value))}
-                                className="space-y-2"
-                            >
-                                {selectedGym.availableDays.sort().map(day => (
-                                    <Label key={day} htmlFor={`day-${day}`} className="flex cursor-pointer items-center justify-between space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                                        <div className="flex items-center space-x-3">
-                                            <RadioGroupItem value={day.toString()} id={`day-${day}`} />
-                                            <span className="font-semibold">{getDayName(day)}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <Clock size={14} />
-                                            <span>{selectedGym.time}</span>
-                                        </div>
-                                    </Label>
-                                ))}
-                            </RadioGroup>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">Nessun giorno di lezione disponibile per questa palestra. Contatta la segreteria.</p>
-                        )}
-                    </div>
-                )}
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack}>Indietro</Button>
-                 <Button onClick={handleSubmit} disabled={!selectedGym || !lessonMonth || lessonDay === null}>Prosegui al Pagamento</Button>
+                 <Button onClick={handleSubmit} disabled={!selectedGym || !lessonMonth}>Prosegui al Pagamento</Button>
             </CardFooter>
         </Card>
     )
@@ -364,7 +324,6 @@ function ConfirmationStep({
                     <dl className="space-y-3">
                         <DataRow label="Palestra" value={gymSelection.gym.name} icon={<Building size={16} />} />
                         <DataRow label="Mese Inizio" value={gymSelection.lessonMonth} icon={<CalendarIconMonth size={16} />} />
-                        <DataRow label="Giorno" value={getDayName(gymSelection.lessonDay)} icon={<CalendarIcon size={16} />} />
                         <DataRow label="Orario" value={gymSelection.gym.time} icon={<Clock size={16} />} />
                     </dl>
                 </div>
@@ -461,7 +420,6 @@ export default function ClassSelectionPage() {
                     gymId: gymSelection.gym.id,
                     gymName: gymSelection.gym.name,
                     lessonMonth: gymSelection.lessonMonth,
-                    lessonDay: gymSelection.lessonDay,
                     time: gymSelection.gym.time,
                 },
                 paymentMethod: paymentMethod,
@@ -548,5 +506,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
