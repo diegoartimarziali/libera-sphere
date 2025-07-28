@@ -21,6 +21,11 @@ export default function RegulationsPage() {
   
   const [accepted, setAccepted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  
+  const statutoUrl = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/documents%2Fstatuto.pdf?alt=media";
+  const regolamentoUrl = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/documents%2Fregolamento.pdf?alt=media";
+  const privacyUrl = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/documents%2Fprivacy.pdf?alt=media";
+
 
   const handleAccept = async () => {
     if (!user) {
@@ -82,12 +87,12 @@ export default function RegulationsPage() {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="icon" asChild>
-                  <a href="/documents/statuto.pdf" target="_blank" aria-label="Visualizza Statuto">
+                  <a href={statutoUrl} target="_blank" aria-label="Visualizza Statuto">
                     <Eye className="h-4 w-4" />
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                   <a href="/documents/statuto.pdf" download aria-label="Scarica Statuto">
+                   <a href={statutoUrl} download aria-label="Scarica Statuto">
                     <Download className="h-4 w-4" />
                    </a>
                 </Button>
@@ -100,12 +105,12 @@ export default function RegulationsPage() {
               </div>
                <div className="flex gap-2">
                 <Button variant="outline" size="icon" asChild>
-                  <a href="/documents/regolamento.pdf" target="_blank" aria-label="Visualizza Regolamento">
+                  <a href={regolamentoUrl} target="_blank" aria-label="Visualizza Regolamento">
                     <Eye className="h-4 w-4" />
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                   <a href="/documents/regolamento.pdf" download aria-label="Scarica Regolamento">
+                   <a href={regolamentoUrl} download aria-label="Scarica Regolamento">
                     <Download className="h-4 w-4" />
                    </a>
                 </Button>
@@ -118,12 +123,12 @@ export default function RegulationsPage() {
               </div>
                <div className="flex gap-2">
                 <Button variant="outline" size="icon" asChild>
-                  <a href="/documents/privacy.pdf" target="_blank" aria-label="Visualizza Informativa Privacy">
+                  <a href={privacyUrl} target="_blank" aria-label="Visualizza Informativa Privacy">
                     <Eye className="h-4 w-4" />
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                   <a href="/documents/privacy.pdf" download aria-label="Scarica Informativa Privacy">
+                   <a href={privacyUrl} download aria-label="Scarica Informativa Privacy">
                     <Download className="h-4 w-4" />
                    </a>
                 </Button>
