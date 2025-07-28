@@ -29,7 +29,11 @@ function BankTransferDialog({ open, onOpenChange, onConfirm }: { open: boolean, 
                 <div className="space-y-4 py-4 text-sm">
                     <div className="space-y-1">
                         <p className="font-semibold text-foreground">Intestatario:</p>
-                        <p>ASD LiberaSphere</p>
+                        <p>ASD Libera Energia</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="font-semibold text-foreground">Banca:</p>
+                        <p>Banco BPM Verres</p>
                     </div>
                     <div className="space-y-1">
                         <p className="font-semibold text-foreground">IBAN:</p>
