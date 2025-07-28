@@ -72,10 +72,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
     }
 
-    // Step 2: Application submission check. This is the second and final gate.
+    // Step 2: Onboarding Flow. User has accepted regulations but not submitted application.
     if (!userData.applicationSubmitted) {
-      // If the application is not submitted, the user should be at the starting point of the flow.
       const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+      // If the user is not on one of the allowed onboarding pages, redirect them to the start.
       if (!allowedPaths.some(p => pathname.startsWith(p))) {
          redirect("/dashboard/liberasphere");
       }
