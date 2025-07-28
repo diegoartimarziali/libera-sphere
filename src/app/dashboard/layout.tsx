@@ -86,21 +86,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // Step 2: Main application flow (demographic, payment, etc.).
     if (!userData.applicationSubmitted) {
-      const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-      if (!allowedPaths.some(p => pathname.startsWith(p))) {
-         redirect("/dashboard/liberasphere");
-      }
-      return (
-        <div className="flex h-screen w-full bg-background">
-          <main className="flex-1 p-8">{children}</main>
-        </div>
-      )
+       const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+       if (!allowedPaths.some(p => pathname.startsWith(p))) {
+           if (userData.isFormerMember === 'yes') {
+               redirect("/dashboard/associates");
+           } else if (userData.isFormerMember === 'no') {
+               redirect("/dashboard/class-selection");
+           } else {
+               redirect("/dashboard/liberasphere");
+           }
+       }
+       return (
+          <div className="flex h-screen w-full bg-background">
+            <main className="flex-1 p-8">{children}</main>
+          </div>
+       )
     }
-
+    
     // Step 3: Medical certificate submission & validation.
     const isBookingDatePast = userData.medicalInfo?.bookingDate && isPast(userData.medicalInfo.bookingDate.toDate()) && !userData.medicalInfo.fileUrl;
+    const isCertificateExpired = userData.medicalInfo?.expiryDate && isPast(userData.medicalInfo.expiryDate.toDate());
     
-    if (!userData.medicalCertificateSubmitted || isBookingDatePast) {
+    if (!userData.medicalCertificateSubmitted || isBookingDatePast || isCertificateExpired) {
         if (pathname !== "/dashboard/medical-certificate") {
             redirect("/dashboard/medical-certificate");
         }
