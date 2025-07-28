@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { useState } from "react"
@@ -351,7 +350,7 @@ export default function AssociatesPage() {
                 associationStatus: "pending",
                 associationExpiryDate: getSeasonExpiryDate(),
                 paymentMethod: paymentMethod,
-                isInsured: true,
+                isInsured: false,
             });
             toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo. Verrai reindirizzato al prossimo passo." });
             router.push("/dashboard/medical-certificate");
@@ -425,3 +424,5 @@ export default function AssociatesPage() {
         </div>
     )
 }
+
+    
