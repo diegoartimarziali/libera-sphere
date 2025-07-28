@@ -48,7 +48,7 @@ export default function DashboardPage() {
             setMemberCardProps({
                 name: data.name,
                 email: data.email,
-                membershipType: data.isFormerMember === 'yes' ? 'Socio Ordinario' : 'In Prova (Selezione)',
+                membershipType: 'Associazione',
                 discipline: data.discipline,
                 grade: data.lastGrade,
             });

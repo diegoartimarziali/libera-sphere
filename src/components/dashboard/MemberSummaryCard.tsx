@@ -10,7 +10,7 @@ import { User, Mail, Shield, Award, Sparkles } from "lucide-react"
 export interface MemberSummaryProps {
     name: string;
     email: string;
-    membershipType: 'Socio Ordinario' | 'In Prova (Selezione)';
+    membershipType: string;
     discipline?: string;
     grade?: string;
     avatarUrl?: string;
@@ -61,8 +61,8 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  </div>
             </CardContent>
             <CardFooter>
-                 <Badge variant={props.membershipType === 'Socio Ordinario' ? "default" : "secondary"} className="w-full justify-center">
-                    {props.membershipType === 'Socio Ordinario' ? 'Membro Attivo' : 'Accesso Selezioni'}
+                 <Badge variant={"default"} className="w-full justify-center">
+                    Accesso Completo
                 </Badge>
             </CardFooter>
         </Card>
