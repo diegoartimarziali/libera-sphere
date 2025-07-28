@@ -139,6 +139,7 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
             ...data,
             name: capitalizeFirstLetter(data.name),
             surname: capitalizeWords(data.surname), // Gestisce cognomi multipli
+            taxCode: data.taxCode.toUpperCase(),
             birthPlace: capitalizeWords(data.birthPlace),
             address: capitalizeWords(data.address),
             city: capitalizeWords(data.city),
@@ -147,6 +148,7 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
                 ...data.parentData,
                 parentName: capitalizeWords(data.parentData.parentName),
                 parentSurname: capitalizeWords(data.parentData.parentSurname),
+                parentTaxCode: data.parentData.parentTaxCode.toUpperCase(),
             } : undefined,
         };
         
@@ -489,5 +491,6 @@ export default function ClassSelectionPage() {
             </div>
         </div>
     )
+}
 
     
