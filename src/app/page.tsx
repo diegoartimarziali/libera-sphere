@@ -33,6 +33,8 @@ export default function AuthPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState("login");
+
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -57,12 +59,17 @@ export default function AuthPage() {
       await signInWithEmailAndPassword(auth, values.email, values.password)
       router.push("/dashboard")
     } catch (error: any) {
+        let description = "Email o password non corretti. Riprova."
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+            description = "Utente non trovato. Prova a registrarti."
+        }
       toast({
         variant: "destructive",
         title: "Errore di accesso",
-        description: "Email o password non corretti. Riprova.",
+        description: description,
       })
-      setIsLoading(false)
+    } finally {
+        setIsLoading(false)
     }
   }
 
@@ -89,8 +96,14 @@ export default function AuthPage() {
         title: "Errore di registrazione",
         description: error.message,
       })
-      setIsLoading(false)
+    } finally {
+        setIsLoading(false)
     }
+  }
+
+  const onTabChange = (value: string) => {
+    setIsLoading(false); // Reset loading state when switching tabs
+    setActiveTab(value);
   }
 
   return (
@@ -113,7 +126,7 @@ export default function AuthPage() {
         <h1 className="text-4xl font-bold text-foreground">LiberaSphere</h1>
         <p className="text-lg text-muted-foreground mt-2">Pronti a ricominciare.</p>
       </div>
-      <Tabs defaultValue="login" className="w-full max-w-md">
+      <Tabs value={activeTab} onValueChange={onTabChange} className="w-full max-w-md">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="login">Accedi</TabsTrigger>
           <TabsTrigger value="register">Registrati</TabsTrigger>
@@ -153,8 +166,8 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="submit" className="w-full" disabled={isLoading && activeTab === 'login'}>
+                    {isLoading && activeTab === 'login' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Accedi
                   </Button>
                 </form>
@@ -210,8 +223,8 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="submit" className="w-full" disabled={isLoading && activeTab === 'register'}>
+                    {isLoading && activeTab === 'register' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Registrati
                   </Button>
                 </form>
@@ -223,5 +236,3 @@ export default function AuthPage() {
     </main>
   )
 }
-
-    
