@@ -35,23 +35,9 @@ export default function AuthPage() {
     }
     
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-        const user = userCredential.user;
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            // Salva i dati nel localStorage
-            Object.keys(userData).forEach(key => {
-                const value = userData[key];
-                if (value !== null && value !== undefined) {
-                   if (typeof value === 'object' && value !== null) {
-                       localStorage.setItem(key, JSON.stringify(value));
-                   } else {
-                       localStorage.setItem(key, String(value));
-                   }
-                }
-            });
-        }
+        await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+        // The dashboard layout will handle fetching user data from firestore.
+        // We just need to redirect.
         router.push('/dashboard');
     } catch (error: any) {
         setErrorMessage("Credenziali non valide. Riprova.");
@@ -123,20 +109,6 @@ export default function AuthPage() {
         };
 
         await setDoc(doc(db, "users", user.uid), initialUserData);
-
-        // Pulisci il localStorage e salva i nuovi dati
-        localStorage.clear();
-        Object.keys(initialUserData).forEach(key => {
-            // @ts-ignore
-            const value = initialUserData[key];
-            if (value !== null && value !== undefined) {
-                if (typeof value === 'object' && value !== null) {
-                    localStorage.setItem(key, JSON.stringify(value));
-                } else {
-                    localStorage.setItem(key, String(value));
-                }
-            }
-        });
         
         router.push('/dashboard');
     } catch (error: any) {
