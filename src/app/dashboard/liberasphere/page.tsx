@@ -14,6 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 
 export default function LiberaSpherePage() {
   const [user] = useAuthState(auth)
@@ -24,6 +26,10 @@ export default function LiberaSpherePage() {
   const [lastYear, setLastYear] = useState('')
   const [lastGrade, setLastGrade] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  const currentYear = new Date().getFullYear();
+  const startYear = 2016;
+  const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => (currentYear - i).toString());
 
   const handleContinue = async () => {
     if (!user) {
@@ -95,13 +101,16 @@ export default function LiberaSpherePage() {
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                      <div>
                         <Label htmlFor="lastYear">Ultimo Anno di Iscrizione</Label>
-                        <Input 
-                            id="lastYear" 
-                            type="text" 
-                            placeholder="Es. 2022"
-                            value={lastYear}
-                            onChange={(e) => setLastYear(e.target.value)}
-                        />
+                        <Select value={lastYear} onValueChange={setLastYear}>
+                            <SelectTrigger id="lastYear">
+                                <SelectValue placeholder="Seleziona l'anno" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {years.map(year => (
+                                    <SelectItem key={year} value={year}>{year}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                      </div>
                      <div>
                         <Label htmlFor="lastGrade">Ultimo Grado Ottenuto</Label>
