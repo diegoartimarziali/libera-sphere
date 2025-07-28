@@ -37,6 +37,7 @@ const personalDataSchema = z.object({
   birthDate: z.date({ required_error: "La data di nascita è obbligatoria." }),
   birthPlace: z.string().min(1, "Il luogo di nascita è obbligatorio."),
   address: z.string().min(1, "L'indirizzo è obbligatorio."),
+  streetNumber: z.string().min(1, "Il N° civico è obbligatorio."),
   city: z.string().min(1, "La città è obbligatoria."),
   zipCode: z.string().length(5, "Il CAP deve essere di 5 cifre."),
   province: z.string().length(2, "La sigla della provincia è obbligatoria."),
@@ -62,6 +63,7 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
         taxCode: "",
         birthPlace: "",
         address: "",
+        streetNumber: "",
         city: "",
         zipCode: "",
         province: "",
@@ -99,6 +101,7 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
                     birthDate: userData.birthDate?.toDate() || undefined,
                     birthPlace: userData.birthPlace || "",
                     address: userData.address || "",
+                    streetNumber: userData.streetNumber || "",
                     city: userData.city || "",
                     zipCode: userData.zipCode || "",
                     province: userData.province || "",
@@ -276,18 +279,32 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
             {/* Indirizzo di Residenza */}
             <div className="space-y-2">
                 <Label>Indirizzo di Residenza</Label>
-                <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                    <FormItem className="!mt-0">
-                        <FormControl>
-                        <Input placeholder="Via / Piazza" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                  <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                      <FormItem className="sm:col-span-3">
+                          <FormControl>
+                          <Input placeholder="Via / Piazza" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                   <FormField
+                      control={form.control}
+                      name="streetNumber"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormControl>
+                          <Input placeholder="N° Civico" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+                </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <FormField
                         control={form.control}
@@ -449,5 +466,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
