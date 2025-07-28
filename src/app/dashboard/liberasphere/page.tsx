@@ -27,7 +27,6 @@ export default function LiberaSpherePage() {
   const [lastGrade, setLastGrade] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
-  // New states for new members
   const [hasPracticed, setHasPracticed] = useState<'yes' | 'no' | null>(null);
   const [discipline, setDiscipline] = useState('');
   const [newMemberGrade, setNewMemberGrade] = useState('');
@@ -73,7 +72,7 @@ export default function LiberaSpherePage() {
         }
         dataToUpdate.firstYear = firstYear;
         dataToUpdate.lastGrade = lastGrade;
-    } else { // isFormerMember === 'no'
+    } else { 
       if (!hasPracticed) {
         toast({ variant: "destructive", title: "Attenzione", description: "Indica se hai già praticato." });
         return;
@@ -93,26 +92,23 @@ export default function LiberaSpherePage() {
       }
     }
 
-
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const userDocRef = doc(db, "users", user.uid)
-      await updateDoc(userDocRef, dataToUpdate)
+      const userDocRef = doc(db, "users", user.uid);
+      await updateDoc(userDocRef, dataToUpdate);
       
-      // Ricarica la pagina per far scattare il guardiano nel layout
-      // e reindirizzare alla pagina corretta.
-      window.location.reload()
+      window.location.reload();
 
     } catch (error) {
-      console.error("Error updating user choice:", error)
+      console.error("Error updating user choice:", error);
       toast({
         variant: "destructive",
         title: "Errore",
         description: "Non è stato possibile salvare la tua scelta. Riprova.",
-      })
-      setIsLoading(false)
+      });
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex h-full items-center justify-center">
