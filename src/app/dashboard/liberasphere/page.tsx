@@ -65,10 +65,11 @@ export default function LiberaSpherePage() {
     let destination = "";
 
     if (isFormerMember === 'yes') {
-        if (!firstYear || !lastGrade) {
-            toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila anno e grado." })
+        if (!firstYear || !lastGrade || !discipline) {
+            toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi: disciplina, anno e grado." })
             return
         }
+        dataToUpdate.discipline = discipline;
         dataToUpdate.firstYear = firstYear;
         dataToUpdate.lastGrade = lastGrade;
         destination = "/dashboard/associates";
@@ -124,6 +125,17 @@ export default function LiberaSpherePage() {
     }
   };
 
+  const handleIsFormerMemberChange = (value: 'yes' | 'no') => {
+      setIsFormerMember(value);
+      // Reset other states to avoid carrying over data between choices
+      setHasPracticedBefore(null);
+      setDiscipline(null);
+      setLastGrade('');
+      setAikidoGrade('');
+      setFirstYear('');
+  };
+
+
   return (
     <div className="flex h-full items-center justify-center">
       <Card className="w-full max-w-2xl">
@@ -136,7 +148,7 @@ export default function LiberaSpherePage() {
         <CardContent className="space-y-6">
           <RadioGroup 
             value={isFormerMember || ''} 
-            onValueChange={(value) => setIsFormerMember(value as 'yes' | 'no')}
+            onValueChange={(value) => handleIsFormerMemberChange(value as 'yes' | 'no')}
             className="space-y-2"
           >
             <div className="flex items-center space-x-2">
@@ -220,7 +232,23 @@ export default function LiberaSpherePage() {
 
           {isFormerMember === 'yes' && (
             <div className="space-y-4 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
-                <h4 className="font-semibold text-foreground">Da che anno sei con noi?</h4>
+                <h4 className="font-semibold text-foreground">Quale disciplina hai praticato con noi?</h4>
+                <RadioGroup
+                    value={discipline || ''}
+                    onValueChange={(value) => setDiscipline(value as 'karate' | 'aikido')}
+                    className="space-y-2"
+                >
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="karate" id="former_karate" />
+                        <Label htmlFor="former_karate">Karate</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="aikido" id="former_aikido" />
+                        <Label htmlFor="former_aikido">Aikido</Label>
+                    </div>
+                </RadioGroup>
+                
+                <h4 className="font-semibold text-foreground mt-4 pt-4 border-t">Completa i tuoi dati</h4>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                      <div>
                         <Label htmlFor="firstYear">Primo Anno di Iscrizione</Label>
@@ -262,3 +290,5 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
+
+    
