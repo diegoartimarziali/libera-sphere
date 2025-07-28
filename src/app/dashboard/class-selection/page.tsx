@@ -185,7 +185,10 @@ function ConfirmationStep({
                           label="Metodo Scelto" 
                           value={paymentMethod === 'in_person' ? 'In Palestra' : 'Online con Carta'} 
                        />
-                       <DataRow label="Importo da Pagare" value="30,00 €" />
+                       <DataRow 
+                          label={paymentMethod === 'in_person' ? "Importo da Pagare" : "Importo"}
+                          value={paymentMethod === 'in_person' ? "30,00 €" : "30,00 € (In attesa di conferma)"}
+                       />
                     </dl>
                 </div>
                 
