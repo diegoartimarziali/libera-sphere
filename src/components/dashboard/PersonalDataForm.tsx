@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { format } from "date-fns"
+import { format, parse } from "date-fns"
 import { it } from "date-fns/locale"
 import { differenceInYears } from "date-fns"
 import { auth, db } from "@/lib/firebase"
@@ -299,16 +299,16 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                             <Button
                               variant={"outline"}
                               className={cn(
-                                "w-full pl-3 text-left font-normal",
+                                "w-full justify-start text-left font-normal",
                                 !field.value && "text-muted-foreground"
                               )}
                             >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
                               {field.value ? (
-                                format(field.value, "PPP", { locale: it })
+                                format(field.value, "dd/MM/yyyy")
                               ) : (
                                 <span>Seleziona una data</span>
                               )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
@@ -324,6 +324,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                             captionLayout="dropdown-buttons"
                             fromYear={1930}
                             toYear={new Date().getFullYear()}
+                            locale={it}
                           />
                         </PopoverContent>
                       </Popover>
