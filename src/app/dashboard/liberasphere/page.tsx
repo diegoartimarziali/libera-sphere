@@ -22,7 +22,7 @@ export default function LiberaSpherePage() {
   const { toast } = useToast()
 
   const [isFormerMember, setIsFormerMember] = useState<'yes' | 'no' | null>(null)
-  const [lastYear, setLastYear] = useState('')
+  const [firstYear, setFirstYear] = useState('')
   const [lastGrade, setLastGrade] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -57,7 +57,7 @@ export default function LiberaSpherePage() {
       return
     }
 
-    if (isFormerMember === 'yes' && (!lastYear || !lastGrade)) {
+    if (isFormerMember === 'yes' && (!firstYear || !lastGrade)) {
         toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila anno e grado." })
         return
     }
@@ -67,7 +67,7 @@ export default function LiberaSpherePage() {
       const userDocRef = doc(db, "users", user.uid)
       await updateDoc(userDocRef, {
         isFormerMember: isFormerMember,
-        ...(isFormerMember === 'yes' && { lastYear, lastGrade })
+        ...(isFormerMember === 'yes' && { firstYear, lastGrade })
       })
       
       // Ricarica la pagina per far scattare il guardiano nel layout
@@ -112,12 +112,12 @@ export default function LiberaSpherePage() {
 
           {isFormerMember === 'yes' && (
             <div className="space-y-4 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
-                <h4 className="font-semibold text-foreground">Dettagli Iscrizione Precedente</h4>
+                <h4 className="font-semibold text-foreground">Dettagli Prima Iscrizione</h4>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                      <div>
-                        <Label htmlFor="lastYear">Ultimo Anno di Iscrizione</Label>
-                        <Select value={lastYear} onValueChange={setLastYear}>
-                            <SelectTrigger id="lastYear">
+                        <Label htmlFor="firstYear">Primo Anno di Iscrizione</Label>
+                        <Select value={firstYear} onValueChange={setFirstYear}>
+                            <SelectTrigger id="firstYear">
                                 <SelectValue placeholder="Seleziona l'anno" />
                             </SelectTrigger>
                             <SelectContent>
