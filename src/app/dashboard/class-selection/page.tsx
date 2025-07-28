@@ -47,6 +47,15 @@ const personalDataSchema = z.object({
     z.object({ isMinor: z.literal(false), parentData: parentDataSchema.optional() }),
 ]));
 
+// Funzioni di utilità per la formattazione
+const capitalizeFirstLetter = (str: string) => {
+    if (!str) return str;
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+const capitalizeWords = (str: string) => {
+    if (!str) return str;
+    return str.split(' ').map(word => capitalizeFirstLetter(word)).join(' ');
+};
 
 // Componente per lo Step 1
 function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDataSchema>) => void }) {
@@ -124,17 +133,32 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
     setIsLoading(true)
     try {
         const userDocRef = doc(db, "users", user.uid);
-        const fullName = `${data.name} ${data.surname}`.trim();
-
-        // Rimuove isMinor prima di salvare, dato che non è un campo di Firestore
-        const { isMinor, ...dataToSave } = data;
+        
+        // Applica le trasformazioni prima di salvare
+        const formattedData = {
+            ...data,
+            name: capitalizeFirstLetter(data.name),
+            surname: capitalizeWords(data.surname), // Gestisce cognomi multipli
+            birthPlace: capitalizeWords(data.birthPlace),
+            address: capitalizeWords(data.address),
+            city: capitalizeWords(data.city),
+            province: data.province.toUpperCase(),
+            parentData: data.parentData ? {
+                ...data.parentData,
+                parentName: capitalizeWords(data.parentData.parentName),
+                parentSurname: capitalizeWords(data.parentData.parentSurname),
+            } : undefined,
+        };
+        
+        const fullName = `${formattedData.name} ${formattedData.surname}`.trim();
+        const { isMinor, ...dataToSave } = formattedData;
 
         await updateDoc(userDocRef, {
             ...dataToSave,
             name: fullName 
         });
         toast({ title: "Successo", description: "Dati anagrafici salvati correttamente." });
-        onNext(data)
+        onNext(formattedData)
     } catch (error) {
         console.error("Errore salvataggio dati anagrafici:", error)
         toast({ title: "Errore", description: "Impossibile salvare i dati. Riprova.", variant: "destructive" });
@@ -465,4 +489,5 @@ export default function ClassSelectionPage() {
             </div>
         </div>
     )
-}
+
+    
