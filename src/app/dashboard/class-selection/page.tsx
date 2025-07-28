@@ -78,6 +78,11 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
         province: "",
         phone: "",
         isMinor: false,
+        parentData: {
+            parentName: "",
+            parentSurname: "",
+            parentTaxCode: "",
+        }
     }
   })
 
@@ -103,7 +108,8 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
                 const userData = userDocSnap.data();
                 // Pre-fill form with existing data
                 const [name, ...surnameParts] = (userData.name || "").split(" ");
-                form.reset({
+                
+                const existingData = {
                     name: name || "",
                     surname: surnameParts.join(" ") || "",
                     taxCode: userData.taxCode || "",
@@ -116,8 +122,10 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
                     province: userData.province || "",
                     phone: userData.phone || "",
                     isMinor: userData.birthDate ? differenceInYears(new Date(), userData.birthDate.toDate()) < 18 : false,
-                    parentData: userData.parentData || undefined
-                });
+                    parentData: userData.parentData || { parentName: "", parentSurname: "", parentTaxCode: "" }
+                };
+
+                form.reset(existingData);
             }
         };
         fetchUserData();
@@ -144,7 +152,7 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
             address: capitalizeWords(data.address),
             city: capitalizeWords(data.city),
             province: data.province.toUpperCase(),
-            parentData: data.parentData ? {
+            parentData: data.isMinor && data.parentData ? {
                 ...data.parentData,
                 parentName: capitalizeWords(data.parentData.parentName),
                 parentSurname: capitalizeWords(data.parentData.parentSurname),
@@ -154,6 +162,11 @@ function PersonalDataStep({ onNext }: { onNext: (data: z.infer<typeof personalDa
         
         const fullName = `${formattedData.name} ${formattedData.surname}`.trim();
         const { isMinor, ...dataToSave } = formattedData;
+
+        // Rimuovi parentData se l'utente non è minorenne
+        if (!isMinor) {
+          delete (dataToSave as any).parentData;
+        }
 
         await updateDoc(userDocRef, {
             ...dataToSave,
