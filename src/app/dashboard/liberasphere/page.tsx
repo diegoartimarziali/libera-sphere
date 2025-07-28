@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 
 export default function LiberaSpherePage() {
   const [user] = useAuthState(auth)
@@ -25,6 +26,8 @@ export default function LiberaSpherePage() {
   const [lastGrade, setLastGrade] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [hasPracticedBefore, setHasPracticedBefore] = useState<'yes' | 'no' | null>(null);
+  const [discipline, setDiscipline] = useState<'karate' | 'aikido' | null>(null);
+  const [aikidoGrade, setAikidoGrade] = useState('');
 
 
   const currentYear = new Date().getFullYear();
@@ -76,8 +79,26 @@ export default function LiberaSpherePage() {
 
         if (hasPracticedBefore === 'no') {
             dataToUpdate.lastGrade = 'Cintura bianca';
-        } else {
-            // Qui andrà la logica per quando l'utente ha già praticato
+        } else { // hasPracticedBefore === 'yes'
+            if (!discipline) {
+                 toast({ variant: "destructive", title: "Attenzione", description: "Seleziona la disciplina che hai praticato." });
+                return;
+            }
+            dataToUpdate.discipline = discipline;
+            
+            if (discipline === 'karate') {
+                if (!lastGrade) {
+                    toast({ variant: "destructive", title: "Attenzione", description: "Seleziona il tuo grado di Karate." });
+                    return;
+                }
+                dataToUpdate.lastGrade = lastGrade;
+            } else { // discipline === 'aikido'
+                if (!aikidoGrade.trim()) {
+                     toast({ variant: "destructive", title: "Attenzione", description: "Inserisci il tuo grado di Aikido." });
+                    return;
+                }
+                dataToUpdate.lastGrade = aikidoGrade.trim();
+            }
         }
     }
 
@@ -142,6 +163,55 @@ export default function LiberaSpherePage() {
                   <Label htmlFor="practiced_yes">Sì, ho già praticato</Label>
                 </div>
               </RadioGroup>
+
+              {hasPracticedBefore === 'yes' && (
+                  <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
+                      <h4 className="font-semibold text-foreground">Quale disciplina?</h4>
+                       <RadioGroup
+                          value={discipline || ''}
+                          onValueChange={(value) => setDiscipline(value as 'karate' | 'aikido')}
+                          className="space-y-2"
+                      >
+                          <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="karate" id="karate" />
+                              <Label htmlFor="karate">Karate</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="aikido" id="aikido" />
+                              <Label htmlFor="aikido">Aikido</Label>
+                          </div>
+                      </RadioGroup>
+
+                      {discipline === 'karate' && (
+                          <div className="mt-4 space-y-2">
+                               <Label htmlFor="lastGradeNew">Il tuo grado attuale</Label>
+                               <Select value={lastGrade} onValueChange={setLastGrade}>
+                                  <SelectTrigger id="lastGradeNew">
+                                      <SelectValue placeholder="Seleziona il grado" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      {grades.map(grade => (
+                                          <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                          </div>
+                      )}
+
+                      {discipline === 'aikido' && (
+                          <div className="mt-4 space-y-2">
+                              <Label htmlFor="aikidoGrade">Il tuo grado attuale</Label>
+                              <Input 
+                                id="aikidoGrade" 
+                                value={aikidoGrade}
+                                onChange={(e) => setAikidoGrade(e.target.value)}
+                                placeholder="Es. 1° Kyu"
+                              />
+                          </div>
+                      )}
+
+                  </div>
+              )}
             </div>
           )}
 
