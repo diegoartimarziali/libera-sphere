@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconMonth } from "lucide-react"
@@ -19,6 +18,7 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, collection, getDocs, Timestamp } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 // Tipi di dati
 type PaymentMethod = "in_person" | "online"
@@ -26,7 +26,7 @@ interface Gym {
     id: string;
     name: string;
     time: string;
-    availableDays?: number[];
+    availableDays?: number[] | string; // Può essere un array o una stringa
 }
 interface GymSelectionData {
     gym: Gym;
@@ -95,8 +95,8 @@ function GymSelectionStep({
     const handleGymChange = (gymId: string) => {
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
-        setLessonDay(null); // Reset day when gym changes
-        setLessonMonth(null); // Reset month when gym changes
+        setLessonDay(null);
+        setLessonMonth(null);
     }
 
     const handleSubmit = () => {
@@ -119,9 +119,33 @@ function GymSelectionStep({
         )
     }
 
-    const availableDaysSorted = (selectedGym?.availableDays && Array.isArray(selectedGym.availableDays))
-        ? [...selectedGym.availableDays].sort((a, b) => a - b)
-        : [];
+    const getSafeAvailableDays = (): number[] => {
+        if (!selectedGym || !selectedGym.availableDays) return [];
+
+        let days = selectedGym.availableDays;
+        
+        // Se è una stringa tipo "[1, 3]", la convertiamo in un array di numeri
+        if (typeof days === 'string') {
+            try {
+                const parsed = JSON.parse(days);
+                if (Array.isArray(parsed)) {
+                    days = parsed.map(Number).filter(n => !isNaN(n));
+                } else {
+                    return [];
+                }
+            } catch (e) {
+                return []; // Non è una stringa JSON valida
+            }
+        }
+        
+        if (Array.isArray(days)) {
+            return [...days].sort((a, b) => a - b);
+        }
+
+        return [];
+    };
+
+    const availableDaysSorted = getSafeAvailableDays();
 
     return (
         <Card>
