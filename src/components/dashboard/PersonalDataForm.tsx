@@ -42,10 +42,28 @@ const personalDataSchema = z.object({
   zipCode: z.string().length(5, "Il CAP deve essere di 5 cifre."),
   province: z.string().length(2, "La sigla della provincia è obbligatoria."),
   phone: z.string().min(1, "Il numero di telefono è obbligatorio."),
-}).and(z.discriminatedUnion("isMinor", [
-    z.object({ isMinor: z.literal(true), parentData: parentDataSchema }),
-    z.object({ isMinor: z.literal(false), parentData: parentDataSchema.optional() }),
-]));
+  isMinor: z.boolean(),
+  parentData: parentDataSchema.optional(),
+}).superRefine((data, ctx) => {
+    if (data.isMinor && !data.parentData) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["parentData.parentName"],
+            message: "Dati del genitore richiesti per i minorenni.",
+        });
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["parentData.parentSurname"],
+            message: "Dati del genitore richiesti per i minorenni.",
+        });
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["parentData.parentTaxCode"],
+            message: "Dati del genitore richiesti per i minorenni.",
+        });
+    }
+});
+
 
 export type PersonalDataSchemaType = z.infer<typeof personalDataSchema>;
 
@@ -102,7 +120,11 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
           const age = differenceInYears(new Date(), birthDate);
           const minor = age < 18;
           setIsMinor(minor);
-          form.setValue("isMinor", minor);
+          form.setValue("isMinor", minor, { shouldValidate: true });
+          if (!minor) {
+              // Se l'utente è maggiorenne, puliamo i dati del genitore per evitare errori di validazione non necessari
+              form.setValue("parentData", undefined, { shouldValidate: true });
+          }
       } else {
           setIsMinor(null);
       }
@@ -118,7 +140,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                 
                 const [firstName, ...lastNameParts] = (userData.name || "").split(" ");
                 
-                const existingData = {
+                const existingData: Partial<PersonalDataSchemaType> = {
                     name: firstName || "",
                     surname: lastNameParts.join(" ") || "",
                     taxCode: userData.taxCode || "",
@@ -130,10 +152,17 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                     zipCode: userData.zipCode || "",
                     province: userData.province || "",
                     phone: userData.phone || "",
-                    isMinor: userData.birthDate ? differenceInYears(new Date(), userData.birthDate.toDate()) < 18 : false,
-                    parentData: userData.parentData || { parentName: "", parentSurname: "", parentTaxCode: "" }
                 };
-
+                
+                if (userData.birthDate) {
+                    const age = differenceInYears(new Date(), userData.birthDate.toDate());
+                    const isMinor = age < 18;
+                    existingData.isMinor = isMinor;
+                    if (isMinor) {
+                       existingData.parentData = userData.parentData || { parentName: "", parentSurname: "", parentTaxCode: "" };
+                    }
+                }
+                
                 form.reset(existingData);
             }
         };
