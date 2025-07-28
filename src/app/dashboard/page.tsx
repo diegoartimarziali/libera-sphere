@@ -9,6 +9,7 @@ import { differenceInDays, isPast, format } from "date-fns"
 import { it } from "date-fns/locale"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, AlertTriangle } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps } from "@/components/dashboard/MemberSummaryCard"
