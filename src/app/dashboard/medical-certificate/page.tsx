@@ -3,15 +3,13 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useForm, Controller } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { auth, db, storage } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
-import { format } from "date-fns"
-import { it } from "date-fns/locale"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -19,18 +17,17 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, UploadCloud, CalendarIcon, CheckCircle } from "lucide-react"
+import { Loader2, UploadCloud, CheckCircle } from "lucide-react"
+import { DateSelector } from "@/components/ui/date-selector"
 
 const schema = z.object({
     submissionType: z.enum(["certificate", "booking"], {
         required_error: "Devi selezionare un'opzione.",
     }),
     certificateFile: z.instanceof(File).optional(),
-    expiryDate: z.date().optional(),
-    bookingDate: z.date().optional(),
+    expiryDate: z.date({ required_error: "La data di scadenza è obbligatoria." }).optional(),
+    bookingDate: z.date({ required_error: "La data della prenotazione è obbligatoria." }).optional(),
 }).superRefine((data, ctx) => {
     if (data.submissionType === "certificate") {
         if (!data.certificateFile) {
@@ -220,34 +217,15 @@ export default function MedicalCertificatePage() {
                     control={form.control}
                     name="expiryDate"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                      <FormItem>
                         <FormLabel>Data di scadenza del certificato</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className="w-full pl-3 text-left font-normal"
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP", { locale: it })
-                                ) : (
-                                  <span>Scegli una data</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
+                        <FormControl>
+                           <DateSelector
+                                value={field.value}
+                                onChange={field.onChange}
+                                disablePast
                             />
-                          </PopoverContent>
-                        </Popover>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -262,34 +240,15 @@ export default function MedicalCertificatePage() {
                     control={form.control}
                     name="bookingDate"
                     render={({ field }) => (
-                      <FormItem className="flex flex-col">
+                      <FormItem>
                         <FormLabel>Data della visita prenotata</FormLabel>
-                         <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className="w-full pl-3 text-left font-normal"
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP", { locale: it })
-                                ) : (
-                                  <span>Scegli una data</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => date < new Date()}
-                              initialFocus
+                        <FormControl>
+                           <DateSelector
+                                value={field.value}
+                                onChange={field.onChange}
+                                disablePast
                             />
-                          </PopoverContent>
-                        </Popover>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
