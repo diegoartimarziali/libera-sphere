@@ -5,28 +5,33 @@ import { useEffect, useState } from "react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, Timestamp } from "firebase/firestore"
-import { differenceInDays, isPast, format } from "date-fns"
-import { it } from "date-fns/locale"
+import { differenceInDays, isPast } from "date-fns"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, AlertTriangle } from "lucide-react"
-
-interface MedicalInfo {
-  expiryDate?: Timestamp;
-}
+import { MemberSummaryCard, type MemberSummaryProps } from "@/components/dashboard/MemberSummaryCard"
 
 interface UserData {
   name: string
-  medicalInfo?: MedicalInfo;
+  email: string
+  isFormerMember: 'yes' | 'no';
+  discipline: string;
+  lastGrade: string;
+  medicalInfo?: {
+    expiryDate?: Timestamp;
+    bookingDate?: Timestamp;
+    type: 'certificate' | 'booking';
+  };
 }
 
 export default function DashboardPage() {
   const [user, authLoading] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [dataLoading, setDataLoading] = useState(true)
-  const [certificateStatus, setCertificateStatus] = useState<'valid' | 'expiring' | 'expired' | null>(null);
+  const [certificateStatus, setCertificateStatus] = useState<'valid' | 'expiring' | 'expired' | 'booked' | null>(null);
   const [daysToExpire, setDaysToExpire] = useState<number | null>(null);
+  const [memberCardProps, setMemberCardProps] = useState<MemberSummaryProps | null>(null);
 
   useEffect(() => {
     if (authLoading) return
@@ -40,7 +45,15 @@ export default function DashboardPage() {
             const data = userDocSnap.data() as UserData;
             setUserData(data)
             
-            if (data.medicalInfo?.expiryDate) {
+            setMemberCardProps({
+                name: data.name,
+                email: data.email,
+                membershipType: data.isFormerMember === 'yes' ? 'Socio Ordinario' : 'In Prova (Selezione)',
+                discipline: data.discipline,
+                grade: data.lastGrade,
+            });
+
+            if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
               const expiryDate = data.medicalInfo.expiryDate.toDate();
               const today = new Date();
               const daysDiff = differenceInDays(expiryDate, today);
@@ -54,7 +67,10 @@ export default function DashboardPage() {
               } else {
                 setCertificateStatus('valid');
               }
+            } else if (data.medicalInfo?.type === 'booking') {
+                setCertificateStatus('booked');
             }
+
           }
         } catch (error) {
           console.error("Error fetching user data for dashboard:", error)
@@ -70,7 +86,7 @@ export default function DashboardPage() {
 
   const renderCertificateAlert = () => {
     if (dataLoading) {
-      return <Skeleton className="h-24 w-full" />;
+      return <Skeleton className="h-24 w-full mb-6" />;
     }
     
     if (certificateStatus === 'expired') {
@@ -96,20 +112,40 @@ export default function DashboardPage() {
         </Alert>
       );
     }
+    
+    if (certificateStatus === 'booked') {
+        return (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Visita Medica Prenotata</AlertTitle>
+          <AlertDescription>
+            Ricorda di caricare il certificato medico non appena sarà disponibile per completare la tua iscrizione.
+          </AlertDescription>
+        </Alert>
+      );
+    }
 
     return null;
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       {renderCertificateAlert()}
       
-      <h1 className="text-3xl font-bold">
-        {dataLoading ? <Skeleton className="h-9 w-1/2" /> : `Benvenuto in LiberaSphere, ${userData?.name?.split(' ')[0] || ''}!`}
-      </h1>
-      <div className="mt-4 text-muted-foreground">
-        {dataLoading ? <Skeleton className="h-5 w-3/4" /> : "Questa è la tua dashboard. Da qui potrai gestire la tua iscrizione e le tue attività."}
+      <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">
+            {dataLoading ? <Skeleton className="h-9 w-64" /> : `Benvenuto, ${userData?.name?.split(' ')[0] || ''}!`}
+          </h1>
       </div>
+      
+       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {dataLoading || !memberCardProps ? (
+            <Skeleton className="h-64 w-full" />
+        ) : (
+            <MemberSummaryCard {...memberCardProps} />
+        )}
+      </div>
+
     </div>
   )
 }
