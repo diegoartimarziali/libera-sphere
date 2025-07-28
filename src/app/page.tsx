@@ -87,6 +87,7 @@ export default function AuthPage() {
         createdAt: serverTimestamp(),
         regulationsAccepted: false,
         isFormerMember: null,
+        applicationSubmitted: false, // <-- Campo aggiunto
       })
       
       router.push("/dashboard")

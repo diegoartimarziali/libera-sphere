@@ -13,6 +13,7 @@ interface UserData {
   email: string
   regulationsAccepted: boolean
   isFormerMember: 'yes' | 'no' | null
+  applicationSubmitted: boolean
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -22,9 +23,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
   useEffect(() => {
-    if (loadingAuth) {
-      return
-    }
+    if (loadingAuth) return;
     if (!user) {
       redirect("/")
       return
@@ -61,7 +60,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   if (userData) {
-    // Step 1: Regulations
+    // Step 1: Regulations check. This is the first gate.
     if (!userData.regulationsAccepted) {
       if (pathname !== "/dashboard/regulations") {
         redirect("/dashboard/regulations")
@@ -73,10 +72,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
     }
 
-    // Step 2: Former Member Check
-    if (userData.isFormerMember === null) {
-      if (pathname !== "/dashboard/liberasphere") {
-        redirect("/dashboard/liberasphere")
+    // Step 2: Application submission check. This is the second and final gate.
+    if (!userData.applicationSubmitted) {
+      // If the application is not submitted, the user should be at the starting point of the flow.
+      const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+      if (pathname !== "/dashboard/liberasphere" && !allowedPaths.some(p => pathname.startsWith(p))) {
+         redirect("/dashboard/liberasphere");
       }
        return (
         <div className="flex h-screen w-full bg-background">
@@ -85,8 +86,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
     }
     
-    // Onboarding complete, handle main app routing
-    if (pathname === '/dashboard/regulations' || pathname === '/dashboard/liberasphere') {
+    // Step 3: Onboarding is complete. User can access the main dashboard.
+    // If they try to access any onboarding page, redirect them to the main dashboard.
+    const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+    if (onboardingPages.some(p => pathname.startsWith(p))) {
       redirect('/dashboard');
       return (
         <div className="flex h-screen w-full items-center justify-center bg-background">

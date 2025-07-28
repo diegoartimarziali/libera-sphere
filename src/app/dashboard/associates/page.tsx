@@ -14,6 +14,10 @@ import { CreditCard, Landmark, ArrowLeft, CheckCircle, University } from "lucide
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { Checkbox } from "@/components/ui/checkbox"
+import { auth, db } from "@/lib/firebase"
+import { useAuthState } from "react-firebase-hooks/auth"
+import { doc, updateDoc } from "firebase/firestore"
+import { Loader2 } from "lucide-react"
 
 
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
@@ -266,6 +270,8 @@ export default function AssociatesPage() {
     const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null)
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
+    const [user] = useAuthState(auth);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
 
     const { toast } = useToast()
@@ -303,12 +309,25 @@ export default function AssociatesPage() {
         setStep(4);
     }
 
-    const submitApplication = () => {
-         console.log("Dati per associazione:", formData);
-         console.log("Metodo di pagamento:", paymentMethod, "Quota: 120€");
-         // Qui andrà la logica specifica per la richiesta di associazione
-         toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo." });
-         router.push("/dashboard");
+    const submitApplication = async () => {
+         if (!user) {
+             toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
+             return;
+         }
+         setIsSubmitting(true);
+         try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, {
+                applicationSubmitted: true
+            });
+            toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo." });
+            router.push("/dashboard");
+         } catch (error) {
+            console.error("Errore durante l'invio della domanda:", error);
+            toast({ title: "Errore", description: "Impossibile inviare la domanda. Riprova.", variant: "destructive" });
+         } finally {
+            setIsSubmitting(false);
+         }
     }
 
     const handleBack = () => {
@@ -372,5 +391,3 @@ export default function AssociatesPage() {
         </div>
     )
 }
-
-    

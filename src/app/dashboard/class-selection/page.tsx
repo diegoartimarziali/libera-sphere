@@ -14,6 +14,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle } from "lucide-react"
+import { auth, db } from "@/lib/firebase"
+import { useAuthState } from "react-firebase-hooks/auth"
+import { doc, updateDoc } from "firebase/firestore"
+import { Loader2 } from "lucide-react"
+
 
 type PaymentMethod = "in_person" | "online"
 
@@ -144,6 +149,7 @@ function ConfirmationStep({
     onComplete: () => void 
 }) {
     const [isConfirmed, setIsConfirmed] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     return (
         <Card>
@@ -202,7 +208,10 @@ function ConfirmationStep({
             </CardContent>
             <CardFooter className="justify-between">
                 <Button variant="outline" onClick={onBack}>Indietro</Button>
-                <Button onClick={onComplete} disabled={!isConfirmed}>Completa Iscrizione</Button>
+                <Button onClick={onComplete} disabled={!isConfirmed || isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Completa Iscrizione
+                </Button>
             </CardFooter>
         </Card>
     )
@@ -215,6 +224,8 @@ export default function ClassSelectionPage() {
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
     const { toast } = useToast()
     const router = useRouter()
+    const [user] = useAuthState(auth);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data)
@@ -234,17 +245,25 @@ export default function ClassSelectionPage() {
         setStep(4); // Dal pagamento online, vai al riepilogo
     }
     
-    const handleComplete = () => {
-        // Qui andrà la logica finale, es. salvataggio iscrizione
-        console.log("Iscrizione completata con i seguenti dati:", {
-            personalData: formData,
-            payment: {
-                method: paymentMethod,
-                amount: 30
-            }
-        });
-        toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni."});
-        router.push("/dashboard")
+    const handleComplete = async () => {
+        if (!user) {
+            toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, {
+                applicationSubmitted: true,
+            });
+            toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni."});
+            router.push("/dashboard")
+        } catch (error) {
+             console.error("Errore durante il completamento dell'iscrizione:", error);
+             toast({ title: "Errore", description: "Impossibile completare l'iscrizione. Riprova.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     const handleBack = () => {
