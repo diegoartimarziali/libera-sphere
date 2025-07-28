@@ -181,7 +181,7 @@ function ConfirmationStep({
                         <h3 className="font-semibold text-lg">Dati Genitore/Tutore</h3>
                         <dl className="space-y-2">
                            <DataRow label="Nome e Cognome" value={`${formData.parentData.parentName} ${formData.parentData.parentSurname}`} />
-                           <DataRow label="Codice Fiscale" value={formData.parentData.parentTaxCode} />
+                           <DataRow label="Codice Fiscale" value={`${formData.parentData.parentTaxCode}`} />
                         </dl>
                     </div>
                 )}
@@ -338,3 +338,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
