@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 
 
 export default function LiberaSpherePage() {
@@ -25,6 +26,12 @@ export default function LiberaSpherePage() {
   const [firstYear, setFirstYear] = useState('')
   const [lastGrade, setLastGrade] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // New states for new members
+  const [hasPracticed, setHasPracticed] = useState<'yes' | 'no' | null>(null);
+  const [discipline, setDiscipline] = useState('');
+  const [newMemberGrade, setNewMemberGrade] = useState('');
+
 
   const currentYear = new Date().getFullYear();
   const startYear = 2016;
@@ -56,19 +63,41 @@ export default function LiberaSpherePage() {
       toast({ variant: "destructive", title: "Attenzione", description: "Devi selezionare un'opzione." })
       return
     }
+    
+    let dataToUpdate: any = { isFormerMember };
 
-    if (isFormerMember === 'yes' && (!firstYear || !lastGrade)) {
-        toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila anno e grado." })
-        return
+    if (isFormerMember === 'yes') {
+        if (!firstYear || !lastGrade) {
+            toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila anno e grado." })
+            return
+        }
+        dataToUpdate.firstYear = firstYear;
+        dataToUpdate.lastGrade = lastGrade;
+    } else { // isFormerMember === 'no'
+      if (!hasPracticed) {
+        toast({ variant: "destructive", title: "Attenzione", description: "Indica se hai già praticato." });
+        return;
+      }
+      dataToUpdate.hasPracticed = hasPracticed;
+      if (hasPracticed === 'yes') {
+        if (!discipline) {
+          toast({ variant: "destructive", title: "Attenzione", description: "Seleziona una disciplina." });
+          return;
+        }
+         if (!newMemberGrade) {
+          toast({ variant: "destructive", title: "Attenzione", description: "Specifica il tuo grado." });
+          return;
+        }
+        dataToUpdate.discipline = discipline;
+        dataToUpdate.newMemberGrade = newMemberGrade;
+      }
     }
+
 
     setIsLoading(true)
     try {
       const userDocRef = doc(db, "users", user.uid)
-      await updateDoc(userDocRef, {
-        isFormerMember: isFormerMember,
-        ...(isFormerMember === 'yes' && { firstYear, lastGrade })
-      })
+      await updateDoc(userDocRef, dataToUpdate)
       
       // Ricarica la pagina per far scattare il guardiano nel layout
       // e reindirizzare alla pagina corretta.
@@ -143,6 +172,68 @@ export default function LiberaSpherePage() {
                 </div>
             </div>
           )}
+
+           {isFormerMember === 'no' && (
+             <div className="space-y-4 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
+                <h4 className="font-semibold text-foreground">La tua esperienza pregressa</h4>
+                 <div className="space-y-2">
+                    <Label>Hai mai praticato Karate o Aikido?</Label>
+                     <RadioGroup 
+                        value={hasPracticed || ''} 
+                        onValueChange={(value) => setHasPracticed(value as 'yes' | 'no')}
+                        className="flex space-x-4"
+                     >
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="no" id="practiced-no" />
+                            <Label htmlFor="practiced-no">No</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="yes" id="practiced-yes" />
+                            <Label htmlFor="practiced-yes">Sì</Label>
+                        </div>
+                     </RadioGroup>
+                 </div>
+                 {hasPracticed === 'yes' && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-2">
+                        <div>
+                            <Label htmlFor="discipline">Quale disciplina?</Label>
+                            <Select value={discipline} onValueChange={setDiscipline}>
+                                <SelectTrigger id="discipline">
+                                    <SelectValue placeholder="Seleziona disciplina" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="karate">Karate</SelectItem>
+                                    <SelectItem value="aikido">Aikido</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            {discipline === 'karate' && (
+                                 <div>
+                                    <Label htmlFor="newMemberGradeKarate">Il tuo grado attuale</Label>
+                                    <Select value={newMemberGrade} onValueChange={setNewMemberGrade}>
+                                        <SelectTrigger id="newMemberGradeKarate">
+                                            <SelectValue placeholder="Seleziona il grado" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {grades.map(grade => (
+                                                <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                 </div>
+                            )}
+                            {discipline === 'aikido' && (
+                                 <div>
+                                    <Label htmlFor="newMemberGradeAikido">Il tuo grado attuale</dLabel>
+                                    <Input id="newMemberGradeAikido" value={newMemberGrade} onChange={(e) => setNewMemberGrade(e.target.value)} placeholder="Es. 3° kyu" />
+                                 </div>
+                            )}
+                        </div>
+                    </div>
+                 )}
+             </div>
+           )}
 
         </CardContent>
         <CardFooter>
