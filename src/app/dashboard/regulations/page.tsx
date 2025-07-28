@@ -68,9 +68,9 @@ export default function RegulationsPage() {
     <div className="flex h-full items-center justify-center">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-2xl">Statuto e Regolamento</CardTitle>
+          <CardTitle className="text-2xl">Documenti Associativi e Privacy</CardTitle>
           <CardDescription>
-            Prima di continuare, leggi attentamente e accetta lo Statuto e il Regolamento dell&apos;associazione.
+            Prima di continuare, leggi attentamente e accetta lo Statuto, il Regolamento e l'Informativa sulla Privacy.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -111,11 +111,29 @@ export default function RegulationsPage() {
                 </Button>
               </div>
             </div>
+            <div className="flex items-center justify-between rounded-md border p-4">
+              <div>
+                <h3 className="font-semibold">Informativa sulla Privacy</h3>
+                <p className="text-sm text-muted-foreground">Come trattiamo i tuoi dati personali.</p>
+              </div>
+               <div className="flex gap-2">
+                <Button variant="outline" size="icon" asChild>
+                  <a href="/documents/privacy.pdf" target="_blank" aria-label="Visualizza Informativa Privacy">
+                    <Eye className="h-4 w-4" />
+                  </a>
+                </Button>
+                <Button variant="outline" size="icon" asChild>
+                   <a href="/documents/privacy.pdf" download aria-label="Scarica Informativa Privacy">
+                    <Download className="h-4 w-4" />
+                   </a>
+                </Button>
+              </div>
+            </div>
           </div>
           <div className="flex items-center space-x-2 pt-4">
             <Checkbox id="accept" checked={accepted} onCheckedChange={(checked) => setAccepted(checked as boolean)} />
             <Label htmlFor="accept" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              Dichiaro di aver letto e di accettare integralmente lo Statuto e il Regolamento.
+              Dichiaro di aver letto e di accettare integralmente lo Statuto, il Regolamento e l'Informativa sulla Privacy.
             </Label>
           </div>
         </CardContent>
