@@ -106,7 +106,7 @@ export default function LiberaSpherePage() {
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="yes" id="yes" />
-              <Label htmlFor="yes">Sì, sono un ex socio</Label>
+              <Label htmlFor="yes">Si, sono già stato socio</Label>
             </div>
           </RadioGroup>
 
