@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 
@@ -30,6 +29,22 @@ export default function LiberaSpherePage() {
   const currentYear = new Date().getFullYear();
   const startYear = 2016;
   const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => (currentYear - i).toString());
+
+  const grades = [
+    "Cintura bianca",
+    "Cintura bianca gialla",
+    "Cintura gialla",
+    "Cintura arancio",
+    "Cintura verde",
+    "Cintura blu",
+    "Cintura viola",
+    "Cintura marrone 2° kyu",
+    "Cintura marrone 1° kyu",
+    "Cintura nera 1 dan",
+    "Cintura nera 2 dan",
+    "Cintura nera 3 dan",
+    "Cintura nera 4° dan"
+  ];
 
   const handleContinue = async () => {
     if (!user) {
@@ -114,12 +129,16 @@ export default function LiberaSpherePage() {
                      </div>
                      <div>
                         <Label htmlFor="lastGrade">Ultimo Grado Ottenuto</Label>
-                        <Input 
-                            id="lastGrade" 
-                            placeholder="Es. Cintura Blu"
-                            value={lastGrade}
-                            onChange={(e) => setLastGrade(e.target.value)}
-                        />
+                        <Select value={lastGrade} onValueChange={setLastGrade}>
+                            <SelectTrigger id="lastGrade">
+                                <SelectValue placeholder="Seleziona il grado" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {grades.map(grade => (
+                                    <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                      </div>
                 </div>
             </div>
