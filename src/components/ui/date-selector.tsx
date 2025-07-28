@@ -35,19 +35,25 @@ export function DateSelector({ value, onChange, disableFuture, disablePast }: Da
     }, [value]);
 
     const handleDateChange = (part: 'day' | 'month' | 'year', val: string) => {
-        let newDay = day;
-        let newMonth = month;
-        let newYear = year;
+        let newDay = part === 'day' ? val : day;
+        let newMonth = part === 'month' ? val : month;
+        let newYear = part === 'year' ? val : year;
 
-        if (part === 'day') newDay = val;
-        if (part === 'month') newMonth = val;
-        if (part === 'year') newYear = val;
-        
-        if (part === 'month' || part === 'year') {
-            const maxDays = new Date(Number(newYear), Number(newMonth), 0).getDate();
-            if (Number(newDay) > maxDays) {
-                newDay = ""; 
+        if (part === 'day') {
+            // Se cambio giorno, resetto mese e anno se il giorno non è valido
+            const maxDays = new Date(Number(newYear) || 0, Number(newMonth) || 1, 0).getDate();
+            if (Number(val) > maxDays) {
+                newMonth = "";
+                newYear = "";
             }
+        }
+        
+        if (part === 'month') {
+            const maxDays = new Date(Number(newYear) || 0, Number(val), 0).getDate();
+            if (Number(newDay) > maxDays) {
+                newDay = ""; // Resetta giorno se non valido
+            }
+            newYear = ""; // Reset anno quando cambia il mese
         }
         
         setDay(newDay);
@@ -56,16 +62,14 @@ export function DateSelector({ value, onChange, disableFuture, disablePast }: Da
 
         if (newDay && newMonth && newYear) {
             const newDate = new Date(Number(newYear), Number(newMonth) - 1, Number(newDay));
-            if (!isNaN(newDate.getTime()) && newDate.getTime() !== value?.getTime()) {
+            if (!isNaN(newDate.getTime())) {
                 onChange(newDate);
             }
         } else {
-             if (value !== undefined) {
-                onChange(undefined);
-            }
+            onChange(undefined);
         }
     };
-
+    
     const today = new Date();
     const currentYear = today.getFullYear();
     const startYear = disablePast ? currentYear : 1930;
@@ -77,28 +81,23 @@ export function DateSelector({ value, onChange, disableFuture, disablePast }: Da
         label: capitalizeFirstLetter(new Date(0, i).toLocaleString('it-IT', { month: 'long' })) 
     }));
     
-    const maxDaysInMonth = (m: string, y: string) => {
-        if (!m || !y) return 31;
-        return new Date(Number(y), Number(m), 0).getDate();
-    };
-    
-    const days = Array.from({ length: maxDaysInMonth(month, year) }, (_, i) => i + 1);
+    const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
     return (
         <div className="grid grid-cols-3 gap-2">
-            <Select value={day} onValueChange={(v) => handleDateChange('day', v)} disabled={!month || !year}>
+            <Select value={day} onValueChange={(v) => handleDateChange('day', v)}>
                 <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
                 <SelectContent>
                     {days.map(d => <SelectItem key={d} value={String(d)}>{d}</SelectItem>)}
                 </SelectContent>
             </Select>
-            <Select value={month} onValueChange={(v) => handleDateChange('month', v)} disabled={!year}>
+            <Select value={month} onValueChange={(v) => handleDateChange('month', v)} disabled={!day}>
                 <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
                 <SelectContent>
                     {months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
                 </SelectContent>
             </Select>
-            <Select value={year} onValueChange={(v) => handleDateChange('year', v)}>
+            <Select value={year} onValueChange={(v) => handleDateChange('year', v)} disabled={!day || !month}>
                 <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
                 <SelectContent>
                     {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
