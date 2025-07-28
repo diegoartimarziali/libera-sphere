@@ -2,6 +2,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 import { useToast } from "@/hooks/use-toast"
 import { PersonalDataForm, type PersonalDataSchemaType } from "@/components/dashboard/PersonalDataForm"
@@ -209,6 +210,7 @@ export default function ClassSelectionPage() {
     const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null)
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
     const { toast } = useToast()
+    const router = useRouter()
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data)
@@ -229,19 +231,22 @@ export default function ClassSelectionPage() {
     }
     
     const handleComplete = () => {
-        // Qui andrà la logica finale, es. salvataggio iscrizione e reindirizzamento
+        // Qui andrà la logica finale, es. salvataggio iscrizione
         console.log("Iscrizione completata con i seguenti dati:", {
             personalData: formData,
             payment: paymentMethod
         });
         toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni."});
-        // router.push("/dashboard/some-success-page")
+        router.push("/dashboard")
     }
 
     const handleBack = () => {
         if (step === 4 && paymentMethod === 'online') {
             setStep(3); // Se vengo dal pagamento online, torno lì
-        } else {
+        } else if (step === 4 && paymentMethod === 'in_person') {
+            setStep(2); // Se ho scelto in persona, torno alla scelta del pagamento
+        }
+        else {
             setStep(prev => prev - 1);
         }
     }
@@ -270,7 +275,7 @@ export default function ClassSelectionPage() {
                 )}
                 {step === 2 && (
                     <PaymentStep
-                        onBack={handleBack}
+                        onBack={() => setStep(1)}
                         onNext={handleNextStep2}
                     />
                 )}
@@ -292,5 +297,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
