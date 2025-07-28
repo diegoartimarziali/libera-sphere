@@ -125,7 +125,7 @@ function PaymentStep({ onBack, onNext }: { onBack: () => void, onNext: (method: 
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Bonifico Bancario</h4>
                             <p className="text-sm text-muted-foreground">
-                                Versa la quota di 120€ tramite bonifico. La tua richiesta sarà valida dopo la verifica.
+                                Si aprirà un popup con gli estremi per effettuare il bonifico di 120€. La richiesta sarà valida dopo la verifica.
                             </p>
                         </div>
                          <University className="h-6 w-6 text-muted-foreground" />
