@@ -66,90 +66,23 @@ const isAssociatedForCurrentSeason = (approvalDateStr: string | null): boolean =
     }
 };
 
-function AuthRedirector({ userData, children }: { userData: DocumentData, children: React.ReactNode }) {
-    const router = useRouter();
-    const pathname = usePathname();
-
-    React.useEffect(() => {
-        if (!userData) return;
-
-        const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
-        const isOperational = isAssociatedThisSeason || userData.isSelectionPassportComplete;
-        const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription', '/dashboard/payment-gateway'];
-
-        // --- Critical Blocks for ACTIVE members ---
-        if (isAssociatedThisSeason) {
-            const appointmentDateStr = userData.medicalCertificate?.appointmentDate;
-            const certificateDateStr = userData.medicalCertificate?.expirationDate;
-            let blockUserMedical = false;
-            if (appointmentDateStr && !certificateDateStr) {
-                const appointmentDate = parseISO(appointmentDateStr);
-                if (isValid(appointmentDate) && isAfter(startOfToday(), appointmentDate)) {
-                    blockUserMedical = true;
-                }
-            }
-            
-            let blockUserSubscription = false;
-            if (userData.subscription?.plan === 'mensile' && userData.subscription?.status !== 'in_attesa') {
-                const paymentDateStr = userData.subscription?.paymentDate;
-                if (paymentDateStr) {
-                    const paymentDate = parseISO(paymentDateStr);
-                    if (isValid(paymentDate)) {
-                        const today = new Date();
-                        const endOfMonth = lastDayOfMonth(paymentDate);
-                        const gracePeriodEnd = addDays(endOfMonth, 5);
-                        if (isAfter(today, gracePeriodEnd)) {
-                            blockUserSubscription = true;
-                        }
-                    }
-                } else {
-                    blockUserSubscription = true; 
-                }
-            }
-            if (blockUserMedical && !essentialPages.includes(pathname)) {
-                router.push('/dashboard/medical-certificate');
-                return;
-            }
-            if (blockUserSubscription && !essentialPages.includes(pathname)) {
-                router.push('/dashboard/subscription');
-                return;
-            }
-        }
-
-        // --- Onboarding Flow ---
-        if (!userData.regulationsAccepted) {
-            if (pathname !== '/dashboard/regulations') router.push('/dashboard/regulations');
-        } else if (userData.isFormerMember === null) {
-            if (pathname !== '/dashboard/liberasphere') router.push('/dashboard/liberasphere');
-        } else if (!isOperational) {
-            if (userData.isFormerMember === 'no' && pathname !== '/dashboard/class-selection') {
-                router.push('/dashboard/class-selection');
-            } else if (userData.isFormerMember === 'yes' && pathname !== '/dashboard/associates') {
-                router.push('/dashboard/associates');
-            }
-        }
-    }, [userData, pathname]);
-
-    return <>{children}</>;
-}
-
-
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = React.useState<User | null>(null);
   const [userData, setUserData] = React.useState<DocumentData | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [redirecting, setRedirecting] = React.useState(true);
   
   const [isMedicalBlocked, setIsMedicalBlocked] = React.useState(false);
   const [isSubscriptionBlocked, setIsSubscriptionBlocked] = React.useState(false);
   
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setLoading(true);
       if (currentUser) {
         setUser(currentUser);
         const userDocRef = doc(db, "users", currentUser.uid);
@@ -160,22 +93,16 @@ export default function DashboardLayout({
             setUserData(data);
 
              const isAssociatedThisSeason = data.associationStatus === 'approved' && isAssociatedForCurrentSeason(data.associationApprovalDate);
-              // --- PRIORITY 1: Critical Blocks for ACTIVE members ---
               if (isAssociatedThisSeason) {
-                  // Medical Certificate Block
                   const appointmentDateStr = data.medicalCertificate?.appointmentDate;
                   const certificateDateStr = data.medicalCertificate?.expirationDate;
-                  let blockUserMedical = false;
                   if (appointmentDateStr && !certificateDateStr) {
                       const appointmentDate = parseISO(appointmentDateStr);
                       if (isValid(appointmentDate) && isAfter(startOfToday(), appointmentDate)) {
-                          blockUserMedical = true;
                           setIsMedicalBlocked(true);
                       }
                   }
                   
-                  // Subscription Block
-                  let blockUserSubscription = false;
                   if (data.subscription?.plan === 'mensile' && data.subscription?.status !== 'in_attesa') {
                       const paymentDateStr = data.subscription?.paymentDate;
                       if (paymentDateStr) {
@@ -185,12 +112,10 @@ export default function DashboardLayout({
                               const endOfMonth = lastDayOfMonth(paymentDate);
                               const gracePeriodEnd = addDays(endOfMonth, 5);
                               if (isAfter(today, gracePeriodEnd)) {
-                                  blockUserSubscription = true;
                                    setIsSubscriptionBlocked(true);
                               }
                           }
                       } else {
-                          blockUserSubscription = true; 
                           setIsSubscriptionBlocked(true);
                       }
                   }
@@ -216,6 +141,44 @@ export default function DashboardLayout({
     return () => unsubscribe();
   }, [router]);
 
+  React.useEffect(() => {
+    if (loading || !userData) return;
+
+    setRedirecting(true);
+    const isAssociatedThisSeason = userData.associationStatus === 'approved' && isAssociatedForCurrentSeason(userData.associationApprovalDate);
+    const isOperational = isAssociatedThisSeason || userData.isSelectionPassportComplete;
+    const essentialPages = ['/dashboard/aiuto', '/dashboard/medical-certificate', '/dashboard/subscription', '/dashboard/payment-gateway', '/dashboard/regulations', '/dashboard/liberasphere', '/dashboard/class-selection', '/dashboard/associates'];
+
+    if (isMedicalBlocked && !essentialPages.includes(pathname)) {
+        router.push('/dashboard/medical-certificate');
+        return;
+    }
+     if (isSubscriptionBlocked && !essentialPages.includes(pathname)) {
+        router.push('/dashboard/subscription');
+        return;
+    }
+
+    if (!userData.regulationsAccepted && pathname !== '/dashboard/regulations') {
+        router.push('/dashboard/regulations');
+        return;
+    }
+    if (userData.regulationsAccepted && userData.isFormerMember === null && pathname !== '/dashboard/liberasphere') {
+        router.push('/dashboard/liberasphere');
+        return;
+    }
+    if (userData.isFormerMember === 'no' && !isOperational && pathname !== '/dashboard/class-selection') {
+        router.push('/dashboard/class-selection');
+        return;
+    }
+    if (userData.isFormerMember === 'yes' && !isOperational && pathname !== '/dashboard/associates') {
+        router.push('/dashboard/associates');
+        return;
+    }
+
+    setRedirecting(false);
+
+  }, [userData, pathname, loading, isMedicalBlocked, isSubscriptionBlocked, router]);
+
 
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
@@ -240,7 +203,7 @@ export default function DashboardLayout({
     router.push('/dashboard/subscription');
   }
 
-  if (loading || !userData) {
+  if (loading || !userData || redirecting) {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -412,13 +375,9 @@ export default function DashboardLayout({
           </Sheet>
         </header>
         <main className="flex-1 p-4 sm:px-6 sm:py-0 space-y-4">
-            <AuthRedirector userData={userData}>
-                {childrenWithProps}
-            </AuthRedirector>
+            {childrenWithProps}
         </main>
       </div>
     </div>
   )
 }
-
-    
