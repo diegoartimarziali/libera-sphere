@@ -1,8 +1,7 @@
 
-
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
 import { useToast } from "@/hooks/use-toast"
@@ -14,26 +13,168 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
-import { CreditCard, Landmark, ArrowLeft, CheckCircle } from "lucide-react"
+import { CreditCard, Landmark, ArrowLeft, CheckCircle, CalendarIcon, Clock, Building } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs, Timestamp } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Calendar } from "@/components/ui/calendar"
+import { isSunday, addDays } from "date-fns";
 
-
+// Tipi di dati
 type PaymentMethod = "in_person" | "online"
+interface Gym {
+    id: string;
+    name: string;
+    time: string;
+    availableDays: number[];
+}
+interface GymSelectionData {
+    gym: Gym;
+    lessonDate: Date;
+}
+
 
 // Componente per visualizzare i dati in modo pulito
-const DataRow = ({ label, value }: { label: string; value?: string | null }) => (
+const DataRow = ({ label, value, icon }: { label: string; value?: string | null, icon?: React.ReactNode }) => (
     value ? (
-        <div className="flex flex-col sm:flex-row sm:justify-between">
-            <dt className="font-medium text-muted-foreground">{label}</dt>
-            <dd className="mt-1 text-foreground sm:mt-0">{value}</dd>
+        <div className="flex items-start">
+            {icon && <div className="w-5 text-muted-foreground mt-0.5">{icon}</div>}
+            <div className={`flex flex-col sm:flex-row sm:justify-between w-full ${icon ? 'ml-3' : ''}`}>
+                <dt className="font-medium text-muted-foreground">{label}</dt>
+                <dd className="mt-1 text-foreground sm:mt-0 sm:text-right">{value}</dd>
+            </div>
         </div>
     ) : null
 );
 
-// Componente per lo Step 2: Pagamento
+// Componente per lo Step 2: Selezione Palestra e Lezione
+function GymSelectionStep({ 
+    onBack, 
+    onNext 
+}: { 
+    onBack: () => void, 
+    onNext: (data: GymSelectionData) => void 
+}) {
+    const [gyms, setGyms] = useState<Gym[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
+    const [lessonDate, setLessonDate] = useState<Date | undefined>();
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchGyms = async () => {
+            try {
+                const gymsCollection = collection(db, 'gyms');
+                const gymSnapshot = await getDocs(gymsCollection);
+                const gymsList = gymSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                } as Gym));
+                setGyms(gymsList);
+            } catch (error) {
+                console.error("Error fetching gyms:", error);
+                toast({ title: "Errore", description: "Impossibile caricare le palestre.", variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchGyms();
+    }, [toast]);
+    
+    const handleGymChange = (gymId: string) => {
+        const gym = gyms.find(g => g.id === gymId) || null;
+        setSelectedGym(gym);
+        setLessonDate(undefined); // Reset date on gym change
+    }
+
+    const isDayDisabled = (day: Date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Considera solo la data, non l'ora
+
+        if (!selectedGym) return true;
+        // Disabilita le domeniche e le date passate
+        if (isSunday(day) || day < today) return true;
+        // Disabilita i giorni non presenti in availableDays
+        return !selectedGym.availableDays.includes(day.getDay());
+    }
+
+    const handleSubmit = () => {
+        if (selectedGym && lessonDate) {
+            onNext({ gym: selectedGym, lessonDate });
+        }
+    }
+
+    if (loading) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle>Passo 2: Scegli la Palestra</CardTitle>
+                    <CardDescription>Caricamento delle palestre disponibili...</CardDescription>
+                </CardHeader>
+                <CardContent className="h-48 flex items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </CardContent>
+             </Card>
+        )
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Passo 2: Scegli Palestra e Lezione di Prova</CardTitle>
+                <CardDescription>
+                    Seleziona dove vuoi allenarti e prenota la tua prima lezione.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <div className="space-y-2">
+                    <Label htmlFor="gym-select">Palestra</Label>
+                    <Select onValueChange={handleGymChange}>
+                        <SelectTrigger id="gym-select">
+                            <SelectValue placeholder="Seleziona una palestra" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {gyms.map(gym => (
+                                <SelectItem key={gym.id} value={gym.id}>
+                                    {gym.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                {selectedGym && (
+                    <div className="space-y-4 rounded-md border p-4 animate-in fade-in-50">
+                        <div className="flex justify-between items-center">
+                            <h4 className="font-semibold text-foreground">{selectedGym.name}</h4>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Clock size={14} />
+                                <span>{selectedGym.time}</span>
+                            </div>
+                        </div>
+                         <Calendar
+                            mode="single"
+                            selected={lessonDate}
+                            onSelect={setLessonDate}
+                            disabled={isDayDisabled}
+                            initialFocus
+                            locale={it}
+                            fromDate={addDays(new Date(), 1)}
+                            className="rounded-md border"
+                        />
+                    </div>
+                )}
+            </CardContent>
+            <CardFooter className="justify-between">
+                 <Button variant="outline" onClick={onBack}>Indietro</Button>
+                 <Button onClick={handleSubmit} disabled={!selectedGym || !lessonDate}>Prosegui al Pagamento</Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
+// Componente per lo Step di Pagamento
 function PaymentStep({ 
     onBack, 
     onNext 
@@ -46,7 +187,7 @@ function PaymentStep({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 2: Metodo di Pagamento</CardTitle>
+                <CardTitle>Passo 3: Metodo di Pagamento</CardTitle>
                 <CardDescription>
                     Scegli come preferisci pagare la quota di iscrizione di 30€.
                 </CardDescription>
@@ -94,7 +235,7 @@ function PaymentStep({
     )
 }
 
-// Componente per lo Step 3: Pagamento Online con iFrame
+// Componente per lo Step di Pagamento Online con iFrame
 function OnlinePaymentStep({ 
     onBack, 
     onNext 
@@ -105,7 +246,7 @@ function OnlinePaymentStep({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 3: Pagamento Online</CardTitle>
+                <CardTitle>Passo 4: Pagamento Online</CardTitle>
                 <CardDescription>
                     Completa il pagamento di 30€ tramite il portale sicuro di SumUp qui sotto. Una volta terminato, clicca sul pulsante per procedere.
                 </CardDescription>
@@ -137,15 +278,17 @@ function OnlinePaymentStep({
 }
 
 
-// Componente per lo Step 4: Riepilogo e Conferma
+// Componente per lo Step Finale: Riepilogo e Conferma
 function ConfirmationStep({ 
     formData,
+    gymSelection,
     paymentMethod,
     onBack, 
     onComplete,
     isSubmitting
 }: { 
     formData: PersonalDataSchemaType,
+    gymSelection: GymSelectionData,
     paymentMethod: PaymentMethod,
     onBack: () => void, 
     onComplete: () => void,
@@ -185,6 +328,15 @@ function ConfirmationStep({
                         </dl>
                     </div>
                 )}
+                
+                <div className="space-y-4 rounded-md border p-4">
+                    <h3 className="font-semibold text-lg">Lezione di Prova</h3>
+                    <dl className="space-y-3">
+                        <DataRow label="Palestra" value={gymSelection.gym.name} icon={<Building size={16} />} />
+                        <DataRow label="Data" value={format(gymSelection.lessonDate, "PPPP", { locale: it })} icon={<CalendarIcon size={16} />} />
+                        <DataRow label="Orario" value={gymSelection.gym.time} icon={<Clock size={16} />} />
+                    </dl>
+                </div>
 
                  <div className="space-y-4 rounded-md border p-4">
                     <h3 className="font-semibold text-lg">Metodo di Pagamento</h3>
@@ -223,6 +375,7 @@ function ConfirmationStep({
 export default function ClassSelectionPage() {
     const [step, setStep] = useState(1)
     const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null)
+    const [gymSelection, setGymSelection] = useState<GymSelectionData | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
     const { toast } = useToast()
     const router = useRouter()
@@ -230,25 +383,30 @@ export default function ClassSelectionPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
-        setFormData(data)
-        setStep(2)
+        setFormData(data);
+        setStep(2);
+    }
+    
+    const handleNextStep2 = (data: GymSelectionData) => {
+        setGymSelection(data);
+        setStep(3);
     }
 
-    const handleNextStep2 = (method: PaymentMethod) => {
+    const handleNextStep3 = (method: PaymentMethod) => {
         setPaymentMethod(method)
         if (method === 'online') {
-            setStep(3); // Vai allo step dell'iFrame
+            setStep(4); // Vai allo step dell'iFrame
         } else {
-            setStep(4); // Vai direttamente al riepilogo
+            setStep(5); // Vai direttamente al riepilogo
         }
     }
 
-    const handleNextStep3 = () => {
-        setStep(4); // Dal pagamento online, vai al riepilogo
+    const handleNextStep4 = () => {
+        setStep(5); // Dal pagamento online, vai al riepilogo
     }
     
     const handleComplete = async () => {
-        if (!user || !paymentMethod || !formData) {
+        if (!user || !paymentMethod || !formData || !gymSelection) {
             toast({ title: "Errore", description: "Dati mancanti per completare l'iscrizione.", variant: "destructive" });
             return;
         }
@@ -268,8 +426,14 @@ export default function ClassSelectionPage() {
                 applicationSubmitted: true,
                 associationStatus: "not_associated",
                 isInsured: true,
+                trialLesson: {
+                    gymId: gymSelection.gym.id,
+                    gymName: gymSelection.gym.name,
+                    date: Timestamp.fromDate(gymSelection.lessonDate),
+                },
                 paymentMethod: paymentMethod,
             });
+
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
             router.push("/dashboard/medical-certificate")
         } catch (error) {
@@ -281,19 +445,25 @@ export default function ClassSelectionPage() {
     }
 
     const handleBack = () => {
-        if (step === 4 && paymentMethod === 'online') {
-            setStep(3); // Se vengo dal pagamento online, torno lì
-        } else if (step === 4 && paymentMethod === 'in_person') {
-            setStep(2); // Se ho scelto in persona, torno alla scelta del pagamento
-        }
-        else {
+        if (step === 5) { // Riepilogo
+             if (paymentMethod === 'online') {
+                setStep(4); // Torna all'iframe
+            } else {
+                setStep(3); // Torna alla scelta pagamento
+            }
+        } else if (step === 4) { // Iframe
+            setStep(3); // Torna alla scelta pagamento
+        } else if (step === 3) { // Scelta pagamento
+            setStep(2); // Torna alla scelta palestra
+        } else {
             setStep(prev => prev - 1);
         }
     }
-
+    
     const handleBackFromPayment = () => {
-         setStep(2); // Torna sempre alla selezione metodo di pagamento
+         setStep(3); // Torna sempre alla selezione metodo di pagamento
     }
+
 
     return (
         <div className="flex w-full flex-col items-center">
@@ -309,25 +479,32 @@ export default function ClassSelectionPage() {
                     <PersonalDataForm
                         title="Passo 1: Dati Anagrafici"
                         description="Completa le tue informazioni personali per procedere con l'iscrizione. Questi dati verranno salvati per future iscrizioni."
-                        buttonText="Prosegui"
+                        buttonText="Prosegui alla Scelta della Palestra"
                         onFormSubmit={handleNextStep1}
                     />
                 )}
                 {step === 2 && (
-                    <PaymentStep
+                    <GymSelectionStep 
                         onBack={() => setStep(1)}
                         onNext={handleNextStep2}
                     />
                 )}
-                {step === 3 && paymentMethod === 'online' && (
-                    <OnlinePaymentStep
-                        onBack={handleBackFromPayment}
+                {step === 3 && (
+                    <PaymentStep
+                        onBack={() => setStep(2)}
                         onNext={handleNextStep3}
                     />
                 )}
-                {step === 4 && formData && paymentMethod && (
+                {step === 4 && paymentMethod === 'online' && (
+                    <OnlinePaymentStep
+                        onBack={handleBackFromPayment}
+                        onNext={handleNextStep4}
+                    />
+                )}
+                {step === 5 && formData && paymentMethod && gymSelection && (
                     <ConfirmationStep 
                         formData={formData}
+                        gymSelection={gymSelection}
                         paymentMethod={paymentMethod}
                         onBack={handleBack} 
                         onComplete={handleComplete} 
