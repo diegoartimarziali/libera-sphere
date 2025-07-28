@@ -309,6 +309,19 @@ export default function AssociatesPage() {
         setStep(4);
     }
 
+    const getSeasonExpiryDate = () => {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth(); // 0-11
+
+        // Se siamo già dopo agosto (settembre-dicembre), la stagione termina il 31 agosto dell'anno prossimo.
+        // Altrimenti (gennaio-agosto), termina il 31 agosto dell'anno corrente.
+        const expiryYear = currentMonth >= 8 ? currentYear + 1 : currentYear;
+
+        return new Date(expiryYear, 7, 31); // Mese 7 è agosto (0-indicizzato)
+    };
+
+
     const submitApplication = async () => {
          if (!user) {
              toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
@@ -318,7 +331,10 @@ export default function AssociatesPage() {
          try {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, {
-                applicationSubmitted: true
+                applicationSubmitted: true,
+                associationStatus: "pending",
+                associationExpiryDate: getSeasonExpiryDate(),
+                paymentMethod: paymentMethod,
             });
             toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo. Verrai reindirizzato al prossimo passo." });
             router.push("/dashboard/medical-certificate");
@@ -391,3 +407,5 @@ export default function AssociatesPage() {
         </div>
     )
 }
+
+    

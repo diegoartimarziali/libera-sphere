@@ -10,7 +10,7 @@ import { User, Mail, Shield, Award, Sparkles } from "lucide-react"
 export interface MemberSummaryProps {
     name: string;
     email: string;
-    membershipType: string;
+    membershipStatus: string;
     discipline?: string;
     grade?: string;
     avatarUrl?: string;
@@ -55,7 +55,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <Separator />
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
-                    <InfoRow icon={<Shield size={16} />} label="Associazione" value={props.membershipType} />
+                    <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
                     <InfoRow icon={<Sparkles size={16} />} label="Disciplina" value={props.discipline} />
                     <InfoRow icon={<Award size={16} />} label="Grado" value={props.grade} />
                  </div>
@@ -68,3 +68,5 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         </Card>
     )
 }
+
+    

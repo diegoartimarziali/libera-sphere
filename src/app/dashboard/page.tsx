@@ -5,7 +5,8 @@ import { useEffect, useState } from "react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, Timestamp } from "firebase/firestore"
-import { differenceInDays, isPast } from "date-fns"
+import { differenceInDays, isPast, format } from "date-fns"
+import { it } from "date-fns/locale"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -18,6 +19,8 @@ interface UserData {
   isFormerMember: 'yes' | 'no';
   discipline: string;
   lastGrade: string;
+  associationStatus?: 'pending' | 'active' | 'expired';
+  associationExpiryDate?: Timestamp;
   medicalInfo?: {
     expiryDate?: Timestamp;
     bookingDate?: Timestamp;
@@ -45,10 +48,19 @@ export default function DashboardPage() {
             const data = userDocSnap.data() as UserData;
             setUserData(data)
             
+            let statusLabel = "Non associato";
+            if (data.associationStatus === 'pending') {
+                statusLabel = 'In attesa di approvazione';
+            } else if (data.associationStatus === 'active' && data.associationExpiryDate) {
+                statusLabel = `Valida fino al ${format(data.associationExpiryDate.toDate(), 'dd/MM/yyyy')}`;
+            } else if (data.associationStatus === 'expired') {
+                statusLabel = 'Scaduta';
+            }
+
             setMemberCardProps({
                 name: data.name,
                 email: data.email,
-                membershipType: 'Associazione',
+                membershipStatus: statusLabel,
                 discipline: data.discipline,
                 grade: data.lastGrade,
             });
@@ -140,7 +152,13 @@ export default function DashboardPage() {
       
        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {dataLoading || !memberCardProps ? (
-            <Skeleton className="h-64 w-full" />
+          <div className="space-y-4">
+             <Skeleton className="h-48 w-full" />
+             <Skeleton className="h-6 w-3/4" />
+             <div className="mt-4 text-muted-foreground">
+                 <Skeleton className="h-5 w-full" />
+             </div>
+          </div>
         ) : (
             <MemberSummaryCard {...memberCardProps} />
         )}
@@ -149,3 +167,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+    
