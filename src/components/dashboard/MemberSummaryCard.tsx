@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays } from "lucide-react"
 
 export interface MemberSummaryProps {
     name: string;
@@ -14,6 +14,7 @@ export interface MemberSummaryProps {
     discipline?: string;
     grade?: string;
     avatarUrl?: string;
+    sportingSeason?: string;
 }
 
 const getInitials = (name: string) => {
@@ -58,6 +59,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
                     <InfoRow icon={<Sparkles size={16} />} label="Disciplina" value={props.discipline} />
                     <InfoRow icon={<Award size={16} />} label="Grado" value={props.grade} />
+                    <InfoRow icon={<CalendarDays size={16} />} label="Stagione Sportiva" value={props.sportingSeason} />
                  </div>
             </CardContent>
             <CardFooter>
@@ -68,5 +70,3 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         </Card>
     )
 }
-
-    

@@ -28,6 +28,19 @@ interface UserData {
   };
 }
 
+const getCurrentSportingSeason = (): string => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-11 (Gennaio è 0)
+
+    // La stagione inizia a Settembre (mese 8)
+    if (currentMonth >= 8) {
+        return `${currentYear}/${currentYear + 1}`;
+    } else {
+        return `${currentYear - 1}/${currentYear}`;
+    }
+};
+
 export default function DashboardPage() {
   const [user, authLoading] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
@@ -63,6 +76,7 @@ export default function DashboardPage() {
                 membershipStatus: statusLabel,
                 discipline: data.discipline,
                 grade: data.lastGrade,
+                sportingSeason: getCurrentSportingSeason(),
             });
 
             if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
@@ -152,13 +166,28 @@ export default function DashboardPage() {
       
        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {dataLoading || !memberCardProps ? (
-          <div className="space-y-4">
-             <Skeleton className="h-48 w-full" />
-             <Skeleton className="h-6 w-3/4" />
-             <div className="mt-4 text-muted-foreground">
-                 <Skeleton className="h-5 w-full" />
-             </div>
-          </div>
+          <Card>
+            <CardHeader className="flex flex-row items-center gap-4">
+                <Skeleton className="h-16 w-16 rounded-full" />
+                <div className="flex-1 space-y-2">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <Skeleton className="h-px w-full" />
+                <div className="space-y-3">
+                   <Skeleton className="h-5 w-full" />
+                   <Skeleton className="h-5 w-full" />
+                   <Skeleton className="h-5 w-full" />
+                   <Skeleton className="h-5 w-full" />
+                   <Skeleton className="h-5 w-full" />
+                </div>
+            </CardContent>
+            <CardFooter>
+                 <Skeleton className="h-6 w-full" />
+            </CardFooter>
+          </Card>
         ) : (
             <MemberSummaryCard {...memberCardProps} />
         )}
@@ -167,5 +196,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-    
