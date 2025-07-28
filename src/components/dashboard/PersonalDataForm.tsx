@@ -5,23 +5,19 @@ import { useState, useEffect } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { format, parse } from "date-fns"
-import { it } from "date-fns/locale"
 import { differenceInYears } from "date-fns"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, updateDoc } from "firebase/firestore"
 
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar as CalendarIcon, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Schema combinato
 const parentDataSchema = z.object({
@@ -84,6 +80,60 @@ const capitalizeWords = (str: string) => {
     return str.split(' ').map(word => capitalizeFirstLetter(word)).join(' ');
 };
 
+// Componente per il selettore della data
+function DateOfBirthSelector({ value, onChange }: { value?: Date; onChange: (date?: Date) => void }) {
+    const [day, setDay] = useState<string>(value ? String(value.getDate()) : "");
+    const [month, setMonth] = useState<string>(value ? String(value.getMonth() + 1) : "");
+    const [year, setYear] = useState<string>(value ? String(value.getFullYear()) : "");
+
+    useEffect(() => {
+        if (day && month && year) {
+            const newDate = new Date(Number(year), Number(month) - 1, Number(day));
+            if (!isNaN(newDate.getTime())) {
+                onChange(newDate);
+            }
+        } else {
+            onChange(undefined);
+        }
+    }, [day, month, year, onChange]);
+    
+    useEffect(() => {
+        if (value) {
+            setDay(String(value.getDate()));
+            setMonth(String(value.getMonth() + 1));
+            setYear(String(value.getFullYear()));
+        }
+    }, [value]);
+
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: currentYear - 1930 + 1 }, (_, i) => currentYear - i);
+    const months = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: new Date(0, i).toLocaleString('it-IT', { month: 'long' }) }));
+    const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+    return (
+        <div className="grid grid-cols-3 gap-2">
+            <Select value={day} onValueChange={setDay}>
+                <SelectTrigger><SelectValue placeholder="Giorno" /></SelectTrigger>
+                <SelectContent>
+                    {days.map(d => <SelectItem key={d} value={String(d)}>{d}</SelectItem>)}
+                </SelectContent>
+            </Select>
+            <Select value={month} onValueChange={setMonth}>
+                <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
+                <SelectContent>
+                    {months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
+                </SelectContent>
+            </Select>
+            <Select value={year} onValueChange={setYear}>
+                <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
+                <SelectContent>
+                    {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                </SelectContent>
+            </Select>
+        </div>
+    );
+}
+
 export function PersonalDataForm({ title, description, buttonText, onFormSubmit }: PersonalDataFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isMinor, setIsMinor] = useState<boolean | null>(null)
@@ -122,8 +172,9 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
           setIsMinor(minor);
           form.setValue("isMinor", minor, { shouldValidate: true });
           if (!minor) {
-              // Se l'utente è maggiorenne, puliamo i dati del genitore per evitare errori di validazione non necessari
               form.setValue("parentData", undefined, { shouldValidate: true });
+              // Pulisci gli errori se ce ne sono
+               form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
           }
       } else {
           setIsMinor(null);
@@ -168,7 +219,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         };
         fetchUserData();
     }
-  }, [user, form]);
+  }, [user, form, form.reset]);
 
 
   const onSubmit = async (data: PersonalDataSchemaType) => {
@@ -287,47 +338,15 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             </div>
             
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <FormField
+               <FormField
                   control={form.control}
                   name="birthDate"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel>Data di Nascita</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full justify-start text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {field.value ? (
-                                format(field.value, "dd/MM/yyyy")
-                              ) : (
-                                <span>Seleziona una data</span>
-                              )}
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date > new Date() || date < new Date("1930-01-01")
-                            }
-                            initialFocus
-                            captionLayout="dropdown-buttons"
-                            fromYear={1930}
-                            toYear={new Date().getFullYear()}
-                            locale={it}
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <FormControl>
+                         <DateOfBirthSelector value={field.value} onChange={field.onChange} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -470,4 +489,5 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
       </Form>
     </Card>
   )
-}
+
+    
