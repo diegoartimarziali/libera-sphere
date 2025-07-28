@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import * as React from "react"
@@ -266,6 +265,7 @@ export default function DashboardLayout({
     { href: "/dashboard/subscription", icon: CreditCard, label: "Abbonamento", condition: () => isAssociatedThisSeason && !hasSeasonalSubscription },
     { href: "/dashboard/events", icon: Calendar, label: "Stage ed Esami", condition: () => isAssociatedThisSeason },
     { href: "/dashboard/payments", icon: Landmark, label: "Storico Pagamenti", condition: () => isAssociatedThisSeason || associationRequested },
+    { href: "/dashboard/instructions", icon: FileText, label: "Istruzioni", condition: () => true },
   ];
   
   const bottomNavItems = [
@@ -420,3 +420,5 @@ export default function DashboardLayout({
     </div>
   )
 }
+
+    
