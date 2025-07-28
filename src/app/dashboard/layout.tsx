@@ -140,18 +140,25 @@ export default function DashboardLayout({
     });
     return () => unsubscribe();
   }, [router]);
-  
-  // --- REDIRECTION LOGIC MOVED TO INDIVIDUAL PAGES ---
-  // The layout is now only responsible for fetching data and rendering the UI shell.
-  // It no longer handles complex redirection, which was the source of the infinite loading loop.
 
+  // SAFE REDIRECTION LOGIC
+  React.useEffect(() => {
+    if (loading || !userData) return;
+
+    const safePages = ['/dashboard/regulations', '/dashboard/aiuto', '/dashboard/instructions'];
+
+    if (!userData.regulationsAccepted && !safePages.includes(pathname)) {
+        router.push('/dashboard/regulations');
+    } else if (userData.regulationsAccepted && userData.isFormerMember === null && pathname !== '/dashboard/liberasphere' && !safePages.includes(pathname)) {
+        router.push('/dashboard/liberasphere');
+    }
+
+  }, [userData, pathname, loading, router]);
+  
   const handleLogout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault();
       try {
         await signOut(auth);
-        if (typeof window !== 'undefined') {
-            localStorage.clear();
-        }
         router.push('/');
       } catch (error) {
         console.error("Logout failed:", error);
@@ -168,7 +175,7 @@ export default function DashboardLayout({
     router.push('/dashboard/subscription');
   }
 
-  if (loading || !userData) {
+  if (loading) {
     return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-muted/40">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -213,10 +220,8 @@ export default function DashboardLayout({
 
   const childrenWithProps = React.Children.map(children, child => {
     if (React.isValidElement(child)) {
-        return React.cloneElement(child, {
-            // @ts-ignore
-            userData,
-        });
+        // @ts-ignore
+        return React.cloneElement(child, { userData });
     }
     return child;
   });
@@ -351,5 +356,3 @@ export default function DashboardLayout({
     </div>
   )
 }
-
-    
