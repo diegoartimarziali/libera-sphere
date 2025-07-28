@@ -24,6 +24,8 @@ export default function LiberaSpherePage() {
   const [firstYear, setFirstYear] = useState('')
   const [lastGrade, setLastGrade] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [hasPracticedBefore, setHasPracticedBefore] = useState<'yes' | 'no' | null>(null);
+
 
   const currentYear = new Date().getFullYear();
   const startYear = 2016;
@@ -109,6 +111,26 @@ export default function LiberaSpherePage() {
               <Label htmlFor="yes">Si, sono già stato socio</Label>
             </div>
           </RadioGroup>
+          
+          {isFormerMember === 'no' && (
+            <div className="space-y-4 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
+              <h4 className="font-semibold text-foreground">Hai già praticato Karate o Aikido in altre associazioni?</h4>
+              <RadioGroup
+                value={hasPracticedBefore || ''}
+                onValueChange={(value) => setHasPracticedBefore(value as 'yes' | 'no')}
+                className="space-y-2"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="practiced_no" />
+                  <Label htmlFor="practiced_no">No, mai</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes" id="practiced_yes" />
+                  <Label htmlFor="practiced_yes">Sì, ho già praticato</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
 
           {isFormerMember === 'yes' && (
             <div className="space-y-4 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
