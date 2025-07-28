@@ -4,9 +4,17 @@
 import { useEffect, useState, ReactNode } from "react"
 import { usePathname, redirect } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc } from "firebase/firestore"
+import { doc, getDoc, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { Loader2 } from "lucide-react"
+import { isPast } from "date-fns"
+
+interface MedicalInfo {
+    type: 'certificate' | 'booking';
+    bookingDate?: Timestamp;
+    expiryDate?: Timestamp;
+    fileUrl?: string;
+}
 
 interface UserData {
   name: string
@@ -15,6 +23,7 @@ interface UserData {
   isFormerMember: 'yes' | 'no' | null
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
+  medicalInfo?: MedicalInfo;
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -68,7 +77,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       if (pathname !== "/dashboard/regulations") {
         redirect("/dashboard/regulations")
       }
-      // Render children because this is the correct page
       return (
         <div className="flex h-screen w-full bg-background">
           <main className="flex-1 p-8">{children}</main>
@@ -80,10 +88,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (!userData.applicationSubmitted) {
       const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
       if (!allowedPaths.some(p => pathname.startsWith(p))) {
-         // Redirect to the starting point of the application flow if not on an allowed page
          redirect("/dashboard/liberasphere");
       }
-      // Render children because user is in the correct flow
       return (
         <div className="flex h-screen w-full bg-background">
           <main className="flex-1 p-8">{children}</main>
@@ -91,12 +97,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
     }
 
-    // Step 3: Medical certificate submission.
-    if (!userData.medicalCertificateSubmitted) {
+    // Step 3: Medical certificate submission & validation.
+    const isBookingDatePast = userData.medicalInfo?.bookingDate && isPast(userData.medicalInfo.bookingDate.toDate()) && !userData.medicalInfo.fileUrl;
+    
+    if (!userData.medicalCertificateSubmitted || isBookingDatePast) {
         if (pathname !== "/dashboard/medical-certificate") {
             redirect("/dashboard/medical-certificate");
         }
-        // Render children because this is the correct page
         return (
           <div className="flex h-screen w-full bg-background">
             <main className="flex-1 p-8">{children}</main>
@@ -105,10 +112,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
     
     // Step 4: Onboarding is complete.
-    // If they try to access any onboarding page now, redirect them to the main dashboard.
     if (onboardingPages.some(p => pathname.startsWith(p))) {
       redirect('/dashboard');
-      // Show loader while redirecting
       return (
         <div className="flex h-screen w-full items-center justify-center bg-background">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
