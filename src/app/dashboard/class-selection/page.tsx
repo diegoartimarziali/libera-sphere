@@ -244,10 +244,22 @@ export default function ClassSelectionPage() {
     const handleNextStep3 = () => {
         setStep(4); // Dal pagamento online, vai al riepilogo
     }
+
+    const getSeasonExpiryDate = () => {
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth(); // 0-11
+
+        // Se siamo già dopo agosto (settembre-dicembre), la stagione termina il 31 agosto dell'anno prossimo.
+        // Altrimenti (gennaio-agosto), termina il 31 agosto dell'anno corrente.
+        const expiryYear = currentMonth >= 8 ? currentYear + 1 : currentYear;
+
+        return new Date(expiryYear, 7, 31); // Mese 7 è agosto (0-indicizzato)
+    };
     
     const handleComplete = async () => {
-        if (!user) {
-            toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
+        if (!user || !paymentMethod) {
+            toast({ title: "Errore", description: "Dati mancanti per completare l'iscrizione.", variant: "destructive" });
             return;
         }
         setIsSubmitting(true);
@@ -255,6 +267,9 @@ export default function ClassSelectionPage() {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, {
                 applicationSubmitted: true,
+                associationStatus: "pending",
+                associationExpiryDate: getSeasonExpiryDate(),
+                paymentMethod: paymentMethod,
             });
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
             router.push("/dashboard/medical-certificate")
@@ -323,3 +338,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
