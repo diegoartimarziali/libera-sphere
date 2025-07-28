@@ -19,8 +19,6 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, collection, getDocs, Timestamp } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar } from "@/components/ui/calendar"
-import { isSunday, addDays } from "date-fns";
 
 // Tipi di dati
 type PaymentMethod = "in_person" | "online"
@@ -32,7 +30,7 @@ interface Gym {
 }
 interface GymSelectionData {
     gym: Gym;
-    lessonDate: Date;
+    lessonDay: number; // 0 for Sunday, 1 for Monday, etc.
 }
 
 
@@ -49,6 +47,11 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
     ) : null
 );
 
+const getDayName = (dayNumber: number) => {
+    const days = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+    return days[dayNumber];
+}
+
 // Componente per lo Step 2: Selezione Palestra e Lezione
 function GymSelectionStep({ 
     onBack, 
@@ -60,7 +63,7 @@ function GymSelectionStep({
     const [gyms, setGyms] = useState<Gym[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-    const [lessonDate, setLessonDate] = useState<Date | undefined>();
+    const [lessonDay, setLessonDay] = useState<number | null>(null);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -71,7 +74,7 @@ function GymSelectionStep({
                 const gymsList = gymSnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
-                } as Gym));
+                } as Gym)).sort((a, b) => a.name.localeCompare(b.name));
                 setGyms(gymsList);
             } catch (error) {
                 console.error("Error fetching gyms:", error);
@@ -86,23 +89,12 @@ function GymSelectionStep({
     const handleGymChange = (gymId: string) => {
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
-        setLessonDate(undefined); // Reset date on gym change
-    }
-
-    const isDayDisabled = (day: Date) => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Considera solo la data, non l'ora
-
-        if (!selectedGym) return true;
-        // Disabilita le domeniche e le date passate
-        if (isSunday(day) || day < today) return true;
-        // Disabilita i giorni non presenti in availableDays
-        return !selectedGym.availableDays.includes(day.getDay());
+        setLessonDay(null); // Reset date on gym change
     }
 
     const handleSubmit = () => {
-        if (selectedGym && lessonDate) {
-            onNext({ gym: selectedGym, lessonDate });
+        if (selectedGym && lessonDay !== null) {
+            onNext({ gym: selectedGym, lessonDay });
         }
     }
 
@@ -147,28 +139,32 @@ function GymSelectionStep({
                 {selectedGym && (
                     <div className="space-y-4 rounded-md border p-4 animate-in fade-in-50">
                         <div className="flex justify-between items-center">
-                            <h4 className="font-semibold text-foreground">{selectedGym.name}</h4>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Clock size={14} />
-                                <span>{selectedGym.time}</span>
-                            </div>
+                            <h4 className="font-semibold text-foreground">Scegli il giorno della lezione</h4>
                         </div>
-                         <Calendar
-                            mode="single"
-                            selected={lessonDate}
-                            onSelect={setLessonDate}
-                            disabled={isDayDisabled}
-                            initialFocus
-                            locale={it}
-                            fromDate={addDays(new Date(), 1)}
-                            className="rounded-md border"
-                        />
+                        <RadioGroup
+                            value={lessonDay?.toString() ?? ""}
+                            onValueChange={(value) => setLessonDay(Number(value))}
+                            className="space-y-2"
+                        >
+                            {selectedGym.availableDays.sort().map(day => (
+                                <Label key={day} htmlFor={`day-${day}`} className="flex cursor-pointer items-center justify-between space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                    <div className="flex items-center space-x-3">
+                                        <RadioGroupItem value={day.toString()} id={`day-${day}`} />
+                                        <span className="font-semibold">{getDayName(day)}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Clock size={14} />
+                                        <span>{selectedGym.time}</span>
+                                    </div>
+                                </Label>
+                            ))}
+                        </RadioGroup>
                     </div>
                 )}
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack}>Indietro</Button>
-                 <Button onClick={handleSubmit} disabled={!selectedGym || !lessonDate}>Prosegui al Pagamento</Button>
+                 <Button onClick={handleSubmit} disabled={!selectedGym || lessonDay === null}>Prosegui al Pagamento</Button>
             </CardFooter>
         </Card>
     )
@@ -333,7 +329,7 @@ function ConfirmationStep({
                     <h3 className="font-semibold text-lg">Lezione di Prova</h3>
                     <dl className="space-y-3">
                         <DataRow label="Palestra" value={gymSelection.gym.name} icon={<Building size={16} />} />
-                        <DataRow label="Data" value={format(gymSelection.lessonDate, "PPPP", { locale: it })} icon={<CalendarIcon size={16} />} />
+                        <DataRow label="Giorno" value={getDayName(gymSelection.lessonDay)} icon={<CalendarIcon size={16} />} />
                         <DataRow label="Orario" value={gymSelection.gym.time} icon={<Clock size={16} />} />
                     </dl>
                 </div>
@@ -429,7 +425,8 @@ export default function ClassSelectionPage() {
                 trialLesson: {
                     gymId: gymSelection.gym.id,
                     gymName: gymSelection.gym.name,
-                    date: Timestamp.fromDate(gymSelection.lessonDate),
+                    lessonDay: gymSelection.lessonDay,
+                    time: gymSelection.gym.time,
                 },
                 paymentMethod: paymentMethod,
             });
