@@ -9,10 +9,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, University } from "lucide-react"
+import { format } from "date-fns"
+import { it } from "date-fns/locale"
+import { Checkbox } from "@/components/ui/checkbox"
+
 
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
+
+// Componente per visualizzare i dati in modo pulito
+const DataRow = ({ label, value }: { label: string; value?: string | null }) => (
+    value ? (
+        <div className="flex flex-col sm:flex-row sm:justify-between">
+            <dt className="font-medium text-muted-foreground">{label}</dt>
+            <dd className="mt-1 text-foreground sm:mt-0">{value}</dd>
+        </div>
+    ) : null
+);
 
 // Componente per il Popup del Bonifico
 function BankTransferDialog({ open, onOpenChange, onConfirm }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void }) {
@@ -22,8 +36,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm }: { open: boolean, 
                 <DialogHeader>
                     <DialogTitle>Dati per Bonifico Bancario</DialogTitle>
                     <DialogDescription>
-                        Effettua un bonifico utilizzando i dati seguenti. Una volta eseguito, clicca su "Pagamento Effettuato".
-                        La tua richiesta verrà approvata dopo la verifica della transazione.
+                        Copia i dati seguenti per effettuare il bonifico. Potrai completare il pagamento con calma dopo aver finalizzato la domanda di associazione.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4 text-sm">
@@ -49,7 +62,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm }: { open: boolean, 
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={onConfirm}>Ho effettuato il pagamento</Button>
+                    <Button onClick={onConfirm}>Prosegui al Riepilogo</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -162,6 +175,92 @@ function PaymentStep({ onBack, onNext }: { onBack: () => void, onNext: (method: 
     )
 }
 
+function getPaymentDescription(method: PaymentMethod | null) {
+    switch (method) {
+        case 'online': return 'Online con Carta';
+        case 'bank_transfer': return 'Bonifico Bancario';
+        case 'in_person': return 'In Sede';
+        default: return '';
+    }
+}
+
+function getPaymentStatus(method: PaymentMethod | null) {
+     switch (method) {
+        case 'online': return '120,00 € (In attesa di conferma)';
+        case 'bank_transfer': return '120,00 € (In attesa di accredito)';
+        case 'in_person': return '120,00 € (Da versare in sede)';
+        default: return '120,00 €';
+    }
+}
+
+function ConfirmationStep({
+    formData,
+    paymentMethod,
+    onBack,
+    onComplete
+}: {
+    formData: PersonalDataSchemaType,
+    paymentMethod: PaymentMethod | null,
+    onBack: () => void,
+    onComplete: () => void
+}) {
+    const [isConfirmed, setIsConfirmed] = useState(false);
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Passo Finale: Riepilogo e Conferma</CardTitle>
+                <CardDescription>
+                    Controlla i tuoi dati. Se tutto è corretto, conferma e invia la tua domanda di associazione.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+                 <div className="space-y-4 rounded-md border p-4">
+                     <h3 className="font-semibold text-lg">Dati Anagrafici</h3>
+                     <dl className="space-y-2">
+                        <DataRow label="Nome e Cognome" value={`${formData.name} ${formData.surname}`} />
+                        <DataRow label="Codice Fiscale" value={formData.taxCode} />
+                        <DataRow label="Data di Nascita" value={formData.birthDate ? format(formData.birthDate, "PPP", { locale: it }) : ''} />
+                        <DataRow label="Luogo di Nascita" value={formData.birthPlace} />
+                        <DataRow label="Indirizzo" value={`${formData.address}, ${formData.streetNumber}`} />
+                        <DataRow label="Città" value={`${formData.city} (${formData.province}), ${formData.zipCode}`} />
+                        <DataRow label="Telefono" value={formData.phone} />
+                     </dl>
+                </div>
+                
+                {formData.isMinor && formData.parentData && (
+                    <div className="space-y-4 rounded-md border p-4">
+                        <h3 className="font-semibold text-lg">Dati Genitore/Tutore</h3>
+                        <dl className="space-y-2">
+                           <DataRow label="Nome e Cognome" value={`${formData.parentData.parentName} ${formData.parentData.parentSurname}`} />
+                           <DataRow label="Codice Fiscale" value={formData.parentData.parentTaxCode} />
+                        </dl>
+                    </div>
+                )}
+
+                 <div className="space-y-4 rounded-md border p-4">
+                    <h3 className="font-semibold text-lg">Quota Associativa</h3>
+                    <dl className="space-y-2">
+                       <DataRow label="Metodo Scelto" value={getPaymentDescription(paymentMethod)} />
+                       <DataRow label="Stato Pagamento" value={getPaymentStatus(paymentMethod)} />
+                    </dl>
+                </div>
+
+                <div className="flex items-center space-x-2 pt-4">
+                    <Checkbox id="confirm-data" checked={isConfirmed} onCheckedChange={(checked) => setIsConfirmed(checked as boolean)} />
+                    <Label htmlFor="confirm-data" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        Dichiaro che i dati inseriti sono corretti e confermo la richiesta.
+                    </Label>
+                </div>
+            </CardContent>
+            <CardFooter className="justify-between">
+                <Button variant="outline" onClick={onBack}>Indietro</Button>
+                <Button onClick={onComplete} disabled={!isConfirmed}>Invia Domanda di Associazione</Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
 export default function AssociatesPage() {
     const [step, setStep] = useState(1)
     const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null)
@@ -188,34 +287,44 @@ export default function AssociatesPage() {
                 break;
             case 'in_person':
             default:
-                // Per il pagamento in sede, andiamo direttamente alla fine.
-                // Potremmo aggiungere uno step di riepilogo qui se necessario.
-                submitApplication('in_person');
+                setStep(4); // Per il pagamento in sede, vai al riepilogo
                 break;
         }
     };
     
     const handleOnlinePaymentNext = () => {
         // L'utente ha cliccato "Ho effettuato il pagamento" dallo step dell'iframe
-        submitApplication('online');
+        setStep(4);
     }
 
     const handleBankTransferConfirm = () => {
-        // L'utente ha confermato di aver effettuato il bonifico
+        // L'utente ha confermato di aver letto i dati del bonifico
         setIsBankTransferDialogOpen(false);
-        submitApplication('bank_transfer');
+        setStep(4);
     }
 
-    const submitApplication = (finalPaymentMethod: PaymentMethod) => {
+    const submitApplication = () => {
          console.log("Dati per associazione:", formData);
-         console.log("Metodo di pagamento:", finalPaymentMethod, "Quota: 120€");
+         console.log("Metodo di pagamento:", paymentMethod, "Quota: 120€");
          // Qui andrà la logica specifica per la richiesta di associazione
          toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo." });
          router.push("/dashboard");
     }
 
     const handleBack = () => {
-        setStep(prev => prev - 1);
+        if (step === 4) {
+            if (paymentMethod === 'online') {
+                setStep(3);
+            } else {
+                setStep(2);
+            }
+        } else {
+            setStep(prev => prev - 1);
+        }
+    }
+
+    const handleBackFromOnlinePayment = () => {
+        setStep(2);
     }
 
     return (
@@ -243,7 +352,15 @@ export default function AssociatesPage() {
                     />
                 )}
                 {step === 3 && paymentMethod === 'online' && (
-                     <OnlinePaymentStep onBack={handleBack} onNext={handleOnlinePaymentNext} />
+                     <OnlinePaymentStep onBack={handleBackFromOnlinePayment} onNext={handleOnlinePaymentNext} />
+                )}
+                {step === 4 && formData && (
+                    <ConfirmationStep
+                        formData={formData}
+                        paymentMethod={paymentMethod}
+                        onBack={handleBack}
+                        onComplete={submitApplication}
+                    />
                 )}
             </div>
             
@@ -255,3 +372,5 @@ export default function AssociatesPage() {
         </div>
     )
 }
+
+    
