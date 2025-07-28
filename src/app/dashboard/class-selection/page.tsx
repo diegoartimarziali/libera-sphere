@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState } from "react"
@@ -245,18 +246,6 @@ export default function ClassSelectionPage() {
     const handleNextStep3 = () => {
         setStep(4); // Dal pagamento online, vai al riepilogo
     }
-
-    const getSeasonExpiryDate = () => {
-        const today = new Date();
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth(); // 0-11
-
-        // Se siamo già dopo agosto (settembre-dicembre), la stagione termina il 31 agosto dell'anno prossimo.
-        // Altrimenti (gennaio-agosto), termina il 31 agosto dell'anno corrente.
-        const expiryYear = currentMonth >= 8 ? currentYear + 1 : currentYear;
-
-        return new Date(expiryYear, 7, 31); // Mese 7 è agosto (0-indicizzato)
-    };
     
     const handleComplete = async () => {
         if (!user || !paymentMethod || !formData) {
@@ -277,8 +266,8 @@ export default function ClassSelectionPage() {
                 ...dataToSave,
                 name: fullName,
                 applicationSubmitted: true,
-                associationStatus: "pending",
-                associationExpiryDate: getSeasonExpiryDate(),
+                associationStatus: "not_associated",
+                isInsured: true,
                 paymentMethod: paymentMethod,
             });
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
@@ -349,5 +338,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    

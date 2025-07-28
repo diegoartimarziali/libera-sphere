@@ -88,7 +88,9 @@ export default function AuthPage() {
         regulationsAccepted: false,
         isFormerMember: null,
         applicationSubmitted: false,
-        medicalCertificateSubmitted: false, // <-- Campo aggiunto
+        medicalCertificateSubmitted: false,
+        associationStatus: null,
+        isInsured: false,
       })
       
       router.push("/dashboard")

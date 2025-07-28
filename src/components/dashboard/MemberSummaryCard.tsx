@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles, CalendarDays } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck } from "lucide-react"
 
 export interface MemberSummaryProps {
     name: string;
@@ -15,6 +15,7 @@ export interface MemberSummaryProps {
     grade?: string;
     avatarUrl?: string;
     sportingSeason?: string;
+    isInsured?: boolean;
 }
 
 const getInitials = (name: string) => {
@@ -25,7 +26,7 @@ const getInitials = (name: string) => {
 }
 
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string }) => {
-    if (!value) return null;
+    if (!value && typeof value !== 'string') return null;
     return (
         <div className="flex items-center text-sm">
             <div className="w-5 text-muted-foreground">{icon}</div>
@@ -56,6 +57,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <Separator />
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
+                    <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured ? 'SI' : 'NO'} />
                     <InfoRow icon={<CalendarDays size={16} />} label="Stagione Sportiva" value={props.sportingSeason} />
                     <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
                     <InfoRow icon={<Sparkles size={16} />} label="Disciplina" value={props.discipline} />

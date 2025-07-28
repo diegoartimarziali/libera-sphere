@@ -20,8 +20,9 @@ interface UserData {
   isFormerMember: 'yes' | 'no';
   discipline: string;
   lastGrade: string;
-  associationStatus?: 'pending' | 'active' | 'expired';
+  associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   associationExpiryDate?: Timestamp;
+  isInsured?: boolean;
   medicalInfo?: {
     expiryDate?: Timestamp;
     bookingDate?: Timestamp;
@@ -62,13 +63,15 @@ export default function DashboardPage() {
             const data = userDocSnap.data() as UserData;
             setUserData(data)
             
-            let statusLabel = "Non associato";
+            let statusLabel = "Non Associato";
             if (data.associationStatus === 'pending') {
-                statusLabel = 'In attesa di approvazione';
+                statusLabel = 'In Attesa';
             } else if (data.associationStatus === 'active' && data.associationExpiryDate) {
                 statusLabel = `Valida fino al ${format(data.associationExpiryDate.toDate(), 'dd/MM/yyyy')}`;
             } else if (data.associationStatus === 'expired') {
                 statusLabel = 'Scaduta';
+            } else if (data.associationStatus === 'not_associated') {
+                statusLabel = 'Non Associato';
             }
 
             setMemberCardProps({
@@ -78,6 +81,7 @@ export default function DashboardPage() {
                 discipline: data.discipline,
                 grade: data.lastGrade,
                 sportingSeason: getCurrentSportingSeason(),
+                isInsured: data.isInsured,
             });
 
             if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
