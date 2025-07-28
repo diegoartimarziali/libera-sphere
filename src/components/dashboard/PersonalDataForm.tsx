@@ -74,6 +74,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
   
   const form = useForm<PersonalDataSchemaType>({
     resolver: zodResolver(personalDataSchema),
+    mode: "onChange",
     defaultValues: {
         name: "",
         surname: "",
@@ -430,7 +431,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
 
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || !form.formState.isValid}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {buttonText}
             </Button>
