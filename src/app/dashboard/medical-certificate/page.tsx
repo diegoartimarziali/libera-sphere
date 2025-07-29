@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, UploadCloud, CheckCircle } from "lucide-react"
-import { DateSelector } from "@/components/ui/date-selector"
+import { DatePicker } from "@/components/ui/date-picker"
 
 const schema = z.object({
     submissionType: z.enum(["certificate", "booking"], {
@@ -92,7 +92,7 @@ export default function MedicalCertificatePage() {
 
     try {
         const userDocRef = doc(db, "users", user.uid);
-        let medicalInfo: any = {
+        const medicalInfo: any = {
             type: data.submissionType,
             updatedAt: serverTimestamp()
         };
@@ -111,7 +111,8 @@ export default function MedicalCertificatePage() {
         
         const dataToUpdate = {
              medicalCertificateSubmitted: true,
-             medicalInfo: medicalInfo
+             medicalInfo: medicalInfo,
+             updatedAt: serverTimestamp()
         };
 
         await updateDoc(userDocRef, dataToUpdate);
@@ -222,7 +223,7 @@ export default function MedicalCertificatePage() {
                       <FormItem>
                         <FormLabel>Data di scadenza del certificato</FormLabel>
                         <FormControl>
-                           <DateSelector
+                           <DatePicker
                                 value={field.value}
                                 onChange={field.onChange}
                                 disablePast
@@ -245,7 +246,7 @@ export default function MedicalCertificatePage() {
                       <FormItem>
                         <FormLabel>Data della visita prenotata</FormLabel>
                         <FormControl>
-                           <DateSelector
+                           <DatePicker
                                 value={field.value}
                                 onChange={field.onChange}
                                 disablePast

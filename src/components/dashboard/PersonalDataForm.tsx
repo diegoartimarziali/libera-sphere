@@ -1,14 +1,14 @@
 
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { differenceInYears } from "date-fns"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, getDoc, Timestamp } from "firebase/firestore"
+import { doc, getDoc } from "firebase/firestore"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { DateSelector } from "@/components/ui/date-selector"
+import { DatePicker } from "@/components/ui/date-picker"
 
 
 // Schema combinato
@@ -276,7 +276,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                     <FormItem>
                       <FormLabel>Data di Nascita</FormLabel>
                       <FormControl>
-                         <DateSelector 
+                         <DatePicker 
                             value={field.value} 
                             onChange={field.onChange} 
                             disableFuture
