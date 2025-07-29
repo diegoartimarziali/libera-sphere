@@ -150,17 +150,12 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                     zipCode: userData.zipCode || "",
                     province: userData.province || "",
                     phone: userData.phone || "",
+                    parentData: userData.parentData || { parentName: "", parentSurname: "", parentTaxCode: "" }
                 };
                 
                 if (userData.birthDate) {
                     const age = differenceInYears(new Date(), userData.birthDate.toDate());
-                    const isMinor = age < 18;
-                    existingData.isMinor = isMinor;
-                     if (isMinor) {
-                       existingData.parentData = userData.parentData || { parentName: "", parentSurname: "", parentTaxCode: "" };
-                    } else {
-                       existingData.parentData = { parentName: "", parentSurname: "", parentTaxCode: "" };
-                    }
+                    existingData.isMinor = age < 18;
                 }
                 
                 form.reset(existingData);
@@ -421,3 +416,5 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
+
+    
