@@ -81,7 +81,7 @@ function GymSelectionStep({
 
     const months = [
         "Settembre", "Ottobre", "Novembre", "Dicembre", "Gennaio", 
-        "Febbraio", "Marzo", "Aprile"
+        "Febbraio", "Marzo", "Aprile", "Maggio"
     ];
 
     useEffect(() => {
@@ -117,25 +117,31 @@ function GymSelectionStep({
             const currentYear = getYear(now);
             const currentMonth = getMonth(now);
             
-            // La stagione sportiva inizia a settembre (mese con indice 8).
-            // Se il mese corrente è da settembre a dicembre (>= 8), e il mese selezionato è da gennaio ad agosto (< 8),
-            // allora il mese selezionato si riferisce all'anno prossimo.
             let targetYear = currentYear;
-            if (currentMonth >= 8 && monthIndex < 8) {
+            // La stagione sportiva inizia a settembre (mese 8). Se il mese selezionato è da gennaio ad agosto (0-7)
+            // e il mese corrente è da settembre a dicembre (8-11), l'anno di riferimento è il prossimo.
+            if (monthIndex < 8 && currentMonth >= 8) {
                 targetYear = currentYear + 1;
             }
 
             const startDate = startOfMonth(new Date(targetYear, monthIndex, 1));
             const endDate = endOfMonth(startDate);
             
-            const dates = eachDayOfInterval({ start: startDate, end: endDate });
+            const datesInMonth = eachDayOfInterval({ start: startDate, end: endDate });
             
-            const filteredDates = dates.filter(date => {
-                const dayOfWeek = date.getDay(); // Domenica = 0, Lunedì = 1, ...
-                return dayOfWeek === Number(lessonDayOfWeek) && date > now;
+            const filteredDates = datesInMonth.filter(date => {
+                const dayOfWeek = date.getDay(); // Domenica = 0, ...
+                return dayOfWeek === Number(lessonDayOfWeek);
             });
             
-            setAvailableDates(filteredDates);
+            // Filtra ulteriormente per mostrare solo date future
+            const futureDates = filteredDates.filter(date => date >= now);
+
+            // Se ci sono date future disponibili, usa quelle. Altrimenti (es. per un mese passato), mostra tutte le date calcolate.
+            // Questo è un fallback logico; idealmente, l'utente non dovrebbe poter scegliere mesi passati.
+            // La logica principale è mostrare le date future disponibili.
+            setAvailableDates(futureDates.length > 0 ? futureDates : filteredDates.filter(d => d >= startOfMonth(now)));
+
             setSelectedDate(null); // Resetta la data selezionata quando cambiano mese o giorno
         } else {
             setAvailableDates([]);
@@ -690,5 +696,7 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
