@@ -70,7 +70,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   if (userData) {
-    const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
+    const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate", "/dashboard/subscriptions"];
 
     // Step 1: Regulations check.
     if (!userData.regulationsAccepted) {
@@ -119,7 +119,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
     
     // Step 4: Onboarding is complete.
-    if (onboardingPages.some(p => pathname.startsWith(p))) {
+    if (onboardingPages.some(p => pathname.startsWith(p) && p !== "/dashboard/subscriptions")) {
       redirect('/dashboard');
       return (
         <div className="flex h-screen w-full items-center justify-center bg-background">

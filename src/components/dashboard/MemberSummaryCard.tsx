@@ -5,7 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, CreditCard } from "lucide-react"
+import Link from "next/link"
+import { Button } from "../ui/button"
 
 export interface MemberSummaryProps {
     name: string;
@@ -75,9 +77,11 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  </div>
             </CardContent>
             <CardFooter>
-                 <Badge variant={"default"} className="w-full justify-center">
-                    Accesso Completo
-                </Badge>
+                 <Button asChild className="w-full">
+                    <Link href="/dashboard/subscriptions">
+                        <CreditCard className="mr-2 h-4 w-4" /> Gestisci Abbonamenti
+                    </Link>
+                 </Button>
             </CardFooter>
         </Card>
     )
