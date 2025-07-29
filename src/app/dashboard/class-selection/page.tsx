@@ -15,7 +15,7 @@ import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconMonth, Calendar as CalendarIconDay } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, collection, getDocs, getDoc } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -33,17 +33,12 @@ interface Gym {
     id: string;
     name: string;
     time: string;
-    availableDays?: number[];
+    availableDays?: number[]; // 1 for Monday, 7 for Sunday
 }
 interface GymSelectionData {
     gym: Gym;
     lessonDate: Date;
 }
-
-const monthNameToNumber: { [key: string]: number } = {
-    "settembre": 8, "ottobre": 9, "novembre": 10, "dicembre": 11,
-    "gennaio": 0, "febbraio": 1, "marzo": 2, "aprile": 3,
-};
 
 // Componente per visualizzare i dati in modo pulito
 const DataRow = ({ label, value, icon }: { label: string; value?: string | null, icon?: React.ReactNode }) => (
@@ -85,18 +80,13 @@ function GymSelectionStep({
     const currentYear = getYear(today);
     const currentMonthIndex = getMonth(today);
 
-    // Definiamo la finestra di selezione (da Settembre ad Aprile)
-    let seasonStartYear, seasonEndYear;
-    if (currentMonthIndex >= 8) { // Da Settembre a Dicembre
-        seasonStartYear = currentYear;
-        seasonEndYear = currentYear + 1;
-    } else { // Da Gennaio ad Agosto
-        seasonStartYear = currentYear - 1;
-        seasonEndYear = currentYear;
-    }
-
-    const fromMonth = new Date(seasonStartYear, 8, 1); // Settembre
-    const toMonth = new Date(seasonEndYear, 3, 30); // Aprile
+    // Se oggi è tra Gennaio e Agosto, la finestra di selezione va da Settembre dell'anno precedente a Aprile dell'anno corrente.
+    // Se oggi è tra Settembre e Dicembre, la finestra va da Settembre dell'anno corrente a Aprile dell'anno successivo.
+    const selectionStartYear = currentMonthIndex >= 8 ? currentYear : currentYear - 1;
+    const selectionEndYear = selectionStartYear + 1;
+    
+    const fromMonth = new Date(selectionStartYear, 8, 1); // Settembre
+    const toMonth = new Date(selectionEndYear, 3, 30); // Aprile
 
     useEffect(() => {
         const fetchGyms = async () => {
@@ -124,14 +114,16 @@ function GymSelectionStep({
     const handleGymChange = (gymId: string) => {
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
-        setSelectedMonth(new Date(seasonStartYear, 8, 1)); // Default a Settembre
+        // Default al primo mese della finestra di selezione se siamo prima di esso
+        const initialMonth = today < fromMonth ? fromMonth : today;
+        setSelectedMonth(new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1));
         setSelectedDate(undefined);
     }
     
     const handleMonthChange = (monthValue: string) => {
         const monthIndex = Number(monthValue);
         // L'anno target dipende se il mese è prima o dopo capodanno
-        const targetYear = monthIndex >= 8 ? seasonStartYear : seasonEndYear;
+        const targetYear = monthIndex >= 8 ? selectionStartYear : selectionEndYear;
         setSelectedMonth(new Date(targetYear, monthIndex, 1));
         setSelectedDate(undefined);
     }
@@ -148,7 +140,12 @@ function GymSelectionStep({
         const today = startOfDay(new Date());
         if (date < today) return false; // Non si possono scegliere date passate
 
-        const dayOfWeek = date.getDay(); // 0 (Domenica) a 6 (Sabato)
+        let dayOfWeek = date.getDay(); // JS: 0 (Sun) to 6 (Sat)
+        // Convert to ISO 8601 format where Monday is 1 and Sunday is 7
+        if (dayOfWeek === 0) {
+            dayOfWeek = 7;
+        }
+        
         return selectedGym.availableDays.includes(dayOfWeek);
     };
 
@@ -202,7 +199,11 @@ function GymSelectionStep({
                          {selectedGym && (
                              <div className="space-y-2 animate-in fade-in-50">
                                 <Label htmlFor="month-select">2. Mese di Inizio</Label>
-                                <Select onValueChange={handleMonthChange} disabled={!selectedGym}>
+                                <Select 
+                                    onValueChange={handleMonthChange} 
+                                    disabled={!selectedGym} 
+                                    value={selectedMonth ? String(getMonth(selectedMonth)) : undefined}
+                                >
                                     <SelectTrigger id="month-select">
                                         <SelectValue placeholder="Seleziona un mese" />
                                     </SelectTrigger>
