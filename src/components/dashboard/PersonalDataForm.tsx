@@ -87,7 +87,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
   
   const form = useForm<PersonalDataSchemaType>({
     resolver: zodResolver(personalDataSchema),
-    mode: "onBlur", // Changed to onBlur for better performance
+    mode: "onBlur",
     defaultValues: {
         name: "",
         surname: "",
@@ -117,7 +117,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
           setIsMinor(minor);
           form.setValue("isMinor", minor, { shouldValidate: true });
           if (!minor) {
-              form.setValue("parentData", { parentName: "", parentSurname: "", parentTaxCode: "" }, { shouldValidate: true });
+              form.setValue("parentData", undefined, { shouldValidate: true });
               form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
           }
       } else {
@@ -153,16 +153,21 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         if (userData.birthDate?.toDate) {
             const age = differenceInYears(new Date(), userData.birthDate.toDate());
             existingData.isMinor = age < 18;
+            if (age >= 18) {
+                existingData.parentData = undefined;
+            }
         } else {
             existingData.isMinor = false;
         }
         
-        if (!existingData.parentData || Object.keys(existingData.parentData).length === 0) {
+        if (!existingData.isMinor) {
+             existingData.parentData = undefined;
+        } else if (!existingData.parentData || Object.keys(existingData.parentData).length === 0) {
             existingData.parentData = defaultParentData;
         }
         
         form.reset(existingData);
-        await form.trigger(); // Force validation after resetting the form
+        await form.trigger();
     }
   }, [form]);
 
@@ -247,7 +252,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                   <FormItem>
                     <FormLabel>Codice Fiscale</FormLabel>
                     <FormControl>
-                      <Input placeholder="RSSMRA80A01H501U" {...field} value={field.value.toUpperCase()} />
+                      <Input placeholder="RSSMRA80A01H501U" {...field} value={(field.value || "").toUpperCase()} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -360,7 +365,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                         render={({ field }) => (
                         <FormItem>
                             <FormControl>
-                            <Input placeholder="Provincia (Sigla)" {...field} value={field.value.toUpperCase()} />
+                            <Input placeholder="Provincia (Sigla)" {...field} value={(field.value || "").toUpperCase()} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -405,7 +410,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Codice Fiscale Genitore</FormLabel>
-                                <FormControl><Input placeholder="Codice Fiscale" {...field} value={field.value.toUpperCase()} /></FormControl>
+                                <FormControl><Input placeholder="Codice Fiscale" {...field} value={(field.value || "").toUpperCase()} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}
@@ -425,5 +430,3 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
-
-    
