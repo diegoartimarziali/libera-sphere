@@ -16,7 +16,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
 import { DatePicker } from "@/components/ui/date-picker"
 
 
@@ -82,13 +81,13 @@ const capitalizeWords = (str: string) => {
 };
 
 export function PersonalDataForm({ title, description, buttonText, onFormSubmit }: PersonalDataFormProps) {
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [isMinor, setIsMinor] = useState<boolean | null>(null)
   const [user] = useAuthState(auth)
   
   const form = useForm<PersonalDataSchemaType>({
     resolver: zodResolver(personalDataSchema),
-    mode: "onChange",
+    mode: "onBlur", // Changed to onBlur for better performance
     defaultValues: {
         name: "",
         surname: "",
@@ -163,8 +162,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         }
         
         form.reset(existingData);
-        // We need to wait a tick for the form to update before triggering validation
-        setTimeout(() => form.trigger(), 0);
+        await form.trigger(); // Force validation after resetting the form
     }
   }, [form]);
 
@@ -172,6 +170,8 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     if (user) {
         setIsLoading(true);
         memoizedUserDataFetch(user.uid).finally(() => setIsLoading(false));
+    } else {
+        setIsLoading(false);
     }
   }, [user, memoizedUserDataFetch]);
 
@@ -425,3 +425,5 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
+
+    
