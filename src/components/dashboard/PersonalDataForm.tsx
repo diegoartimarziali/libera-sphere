@@ -8,7 +8,7 @@ import { z } from "zod"
 import { differenceInYears } from "date-fns"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, getDoc } from "firebase/firestore"
+import { doc, getDoc, Timestamp } from "firebase/firestore"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -118,7 +118,6 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
           setIsMinor(minor);
           form.setValue("isMinor", minor, { shouldValidate: true });
           if (!minor) {
-              // Se l'utente non è più minorenne, puliamo i dati del genitore ma manteniamo l'oggetto per evitare l'errore di input non controllato.
               form.setValue("parentData", { parentName: "", parentSurname: "", parentTaxCode: "" }, { shouldValidate: true });
               form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
           }
@@ -153,9 +152,16 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                     parentData: userData.parentData || { parentName: "", parentSurname: "", parentTaxCode: "" }
                 };
                 
-                if (userData.birthDate) {
+                if (userData.birthDate?.toDate) {
                     const age = differenceInYears(new Date(), userData.birthDate.toDate());
                     existingData.isMinor = age < 18;
+                } else {
+                    existingData.isMinor = false;
+                }
+                
+                // Assicura che parentData non sia mai undefined
+                if (!existingData.parentData) {
+                    existingData.parentData = { parentName: "", parentSurname: "", parentTaxCode: "" };
                 }
                 
                 form.reset(existingData);
@@ -179,15 +185,16 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         address: capitalizeWords(data.address),
         city: capitalizeWords(data.city),
         province: data.province.toUpperCase(),
+        birthDate: Timestamp.fromDate(data.birthDate),
         parentData: data.isMinor && data.parentData ? {
             ...data.parentData,
             parentName: capitalizeWords(data.parentData.parentName),
             parentSurname: capitalizeWords(data.parentData.parentSurname),
             parentTaxCode: data.parentData.parentTaxCode.toUpperCase(),
-        } : undefined,
+        } : {},
     };
     
-    onFormSubmit(formattedData)
+    onFormSubmit(formattedData as PersonalDataSchemaType)
     setIsLoading(false)
   }
 
@@ -416,5 +423,3 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
-
-    

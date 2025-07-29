@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { auth, db, storage } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore"
+import { doc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 
 import { Button } from "@/components/ui/button"
@@ -104,9 +104,9 @@ export default function MedicalCertificatePage() {
 
             medicalInfo.fileUrl = downloadURL;
             medicalInfo.fileName = data.certificateFile.name;
-            medicalInfo.expiryDate = data.expiryDate;
+            medicalInfo.expiryDate = Timestamp.fromDate(data.expiryDate);
         } else if (data.submissionType === "booking" && data.bookingDate) {
-            medicalInfo.bookingDate = data.bookingDate;
+            medicalInfo.bookingDate = Timestamp.fromDate(data.bookingDate);
         }
         
         const dataToUpdate = {

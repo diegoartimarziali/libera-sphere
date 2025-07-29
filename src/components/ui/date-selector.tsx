@@ -40,7 +40,6 @@ export function DateSelector({ value, onChange, disableFuture, disablePast }: Da
         let newYear = part === 'year' ? val : year;
 
         if (part === 'day') {
-            // Se cambio giorno, resetto mese e anno se il giorno non è valido
             const maxDays = new Date(Number(newYear) || 0, Number(newMonth) || 1, 0).getDate();
             if (Number(val) > maxDays) {
                 newMonth = "";
@@ -51,9 +50,8 @@ export function DateSelector({ value, onChange, disableFuture, disablePast }: Da
         if (part === 'month') {
             const maxDays = new Date(Number(newYear) || 0, Number(val), 0).getDate();
             if (Number(newDay) > maxDays) {
-                newDay = ""; // Resetta giorno se non valido
+                newDay = ""; 
             }
-            newYear = ""; // Reset anno quando cambia il mese
         }
         
         setDay(newDay);
@@ -81,7 +79,8 @@ export function DateSelector({ value, onChange, disableFuture, disablePast }: Da
         label: capitalizeFirstLetter(new Date(0, i).toLocaleString('it-IT', { month: 'long' })) 
     }));
     
-    const days = Array.from({ length: 31 }, (_, i) => i + 1);
+    const daysInMonth = (year && month) ? new Date(Number(year), Number(month), 0).getDate() : 31;
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
     return (
         <div className="grid grid-cols-3 gap-2">
@@ -91,13 +90,13 @@ export function DateSelector({ value, onChange, disableFuture, disablePast }: Da
                     {days.map(d => <SelectItem key={d} value={String(d)}>{d}</SelectItem>)}
                 </SelectContent>
             </Select>
-            <Select value={month} onValueChange={(v) => handleDateChange('month', v)} disabled={!day}>
+            <Select value={month} onValueChange={(v) => handleDateChange('month', v)}>
                 <SelectTrigger><SelectValue placeholder="Mese" /></SelectTrigger>
                 <SelectContent>
                     {months.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
                 </SelectContent>
             </Select>
-            <Select value={year} onValueChange={(v) => handleDateChange('year', v)} disabled={!day || !month}>
+            <Select value={year} onValueChange={(v) => handleDateChange('year', v)}>
                 <SelectTrigger><SelectValue placeholder="Anno" /></SelectTrigger>
                 <SelectContent>
                     {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
