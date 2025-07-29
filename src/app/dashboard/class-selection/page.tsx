@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { format, getMonth, getYear, eachDayOfInterval, startOfMonth, endOfMonth, parse } from "date-fns"
+import { format, getMonth, getYear, eachDayOfInterval, startOfMonth, endOfMonth, parse, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconMonth } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
@@ -114,34 +114,33 @@ function GymSelectionStep({
             if (monthIndex === undefined) return;
 
             const now = new Date();
-            const currentYear = getYear(now);
-            const currentMonth = getMonth(now);
+            const today = startOfDay(now);
+            const currentYear = getYear(today);
+            const currentMonth = getMonth(today);
             
             let targetYear = currentYear;
-            // La stagione sportiva inizia a settembre (mese 8). Se il mese selezionato è da gennaio ad agosto (0-7)
-            // e il mese corrente è da settembre a dicembre (8-11), l'anno di riferimento è il prossimo.
+            // La stagione sportiva inizia a Settembre (mese 8)
+            // Se il mese selezionato è da Settembre a Dicembre (indici 8-11)
+            // O se il mese selezionato è da Gennaio ad Agosto (0-7) e anche il mese corrente è tra 0-7, l'anno è quello corrente
+            // Se il mese selezionato è da Gennaio ad Agosto (0-7) ma il mese corrente è tra Settembre e Dicembre (8-11), l'anno è quello successivo.
             if (monthIndex < 8 && currentMonth >= 8) {
                 targetYear = currentYear + 1;
             }
 
-            const startDate = startOfMonth(new Date(targetYear, monthIndex, 1));
-            const endDate = endOfMonth(startDate);
+            const startDateOfMonth = startOfMonth(new Date(targetYear, monthIndex, 1));
+            const endDateOfMonth = endOfMonth(startDateOfMonth);
             
-            const datesInMonth = eachDayOfInterval({ start: startDate, end: endDate });
+            const datesInMonth = eachDayOfInterval({ start: startDateOfMonth, end: endDateOfMonth });
             
             const filteredDates = datesInMonth.filter(date => {
                 const dayOfWeek = date.getDay(); // Domenica = 0, ...
                 return dayOfWeek === Number(lessonDayOfWeek);
             });
             
-            // Filtra ulteriormente per mostrare solo date future
-            const futureDates = filteredDates.filter(date => date >= now);
+            // Filtra per mostrare solo date uguali o successive a oggi
+            const futureDates = filteredDates.filter(date => date >= today);
 
-            // Se ci sono date future disponibili, usa quelle. Altrimenti (es. per un mese passato), mostra tutte le date calcolate.
-            // Questo è un fallback logico; idealmente, l'utente non dovrebbe poter scegliere mesi passati.
-            // La logica principale è mostrare le date future disponibili.
-            setAvailableDates(futureDates.length > 0 ? futureDates : filteredDates.filter(d => d >= startOfMonth(now)));
-
+            setAvailableDates(futureDates);
             setSelectedDate(null); // Resetta la data selezionata quando cambiano mese o giorno
         } else {
             setAvailableDates([]);
@@ -572,7 +571,8 @@ export default function ClassSelectionPage() {
         try {
             const userDocRef = doc(db, "users", user.uid);
             
-            await updateDoc(userDocRef, {
+             // Create user document in Firestore with specific order
+            const dataToUpdate = {
                 uid: user.uid,
                 name: formData.name,
                 surname: formData.surname,
@@ -602,7 +602,9 @@ export default function ClassSelectionPage() {
                     amount: feeData.price,
                     status: 'pending'
                 }
-            });
+            };
+
+            await updateDoc(userDocRef, dataToUpdate);
 
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
             router.push("/dashboard/medical-certificate")
@@ -696,6 +698,8 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
 
