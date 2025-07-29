@@ -42,7 +42,7 @@ interface GymSelectionData {
 
 const monthNameToNumber: { [key: string]: number } = {
     "settembre": 8, "ottobre": 9, "novembre": 10, "dicembre": 11,
-    "gennaio": 0, "febbraio": 1, "marzo": 2, "aprile": 3, "maggio": 4
+    "gennaio": 0, "febbraio": 1, "marzo": 2, "aprile": 3,
 };
 
 // Componente per visualizzare i dati in modo pulito
@@ -73,13 +73,30 @@ function GymSelectionStep({
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const { toast } = useToast();
 
+    // Finestra di selezione Settembre -> Aprile
     const months = [
         { label: "Settembre", value: 8 }, { label: "Ottobre", value: 9 }, 
         { label: "Novembre", value: 10 }, { label: "Dicembre", value: 11 },
         { label: "Gennaio", value: 0 }, { label: "Febbraio", value: 1 },
         { label: "Marzo", value: 2 }, { label: "Aprile", value: 3 },
-        { label: "Maggio", value: 4 }
     ];
+
+    const today = new Date();
+    const currentYear = getYear(today);
+    const currentMonthIndex = getMonth(today);
+
+    // Definiamo la finestra di selezione (da Settembre ad Aprile)
+    let seasonStartYear, seasonEndYear;
+    if (currentMonthIndex >= 8) { // Da Settembre a Dicembre
+        seasonStartYear = currentYear;
+        seasonEndYear = currentYear + 1;
+    } else { // Da Gennaio ad Agosto
+        seasonStartYear = currentYear - 1;
+        seasonEndYear = currentYear;
+    }
+
+    const fromMonth = new Date(seasonStartYear, 8, 1); // Settembre
+    const toMonth = new Date(seasonEndYear, 3, 30); // Aprile
 
     useEffect(() => {
         const fetchGyms = async () => {
@@ -107,22 +124,14 @@ function GymSelectionStep({
     const handleGymChange = (gymId: string) => {
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
-        setSelectedMonth(undefined);
+        setSelectedMonth(new Date(seasonStartYear, 8, 1)); // Default a Settembre
         setSelectedDate(undefined);
     }
     
     const handleMonthChange = (monthValue: string) => {
         const monthIndex = Number(monthValue);
-        const now = new Date();
-        const currentYear = getYear(now);
-        const currentMonth = getMonth(now);
-
-        let targetYear = currentYear;
-        // La stagione sportiva inizia a Settembre (mese 8)
-        if (monthIndex < 8 && currentMonth >= 8) {
-            targetYear = currentYear + 1;
-        }
-
+        // L'anno target dipende se il mese è prima o dopo capodanno
+        const targetYear = monthIndex >= 8 ? seasonStartYear : seasonEndYear;
         setSelectedMonth(new Date(targetYear, monthIndex, 1));
         setSelectedDate(undefined);
     }
@@ -137,9 +146,9 @@ function GymSelectionStep({
         if (!selectedGym || !selectedGym.availableDays) return false;
         
         const today = startOfDay(new Date());
-        if (date < today) return false;
+        if (date < today) return false; // Non si possono scegliere date passate
 
-        const dayOfWeek = date.getDay();
+        const dayOfWeek = date.getDay(); // 0 (Domenica) a 6 (Sabato)
         return selectedGym.availableDays.includes(dayOfWeek);
     };
 
@@ -223,8 +232,8 @@ function GymSelectionStep({
                                     modifiersClassNames={{ available: 'bg-primary/20' }}
                                     disabled={d => !dayMatcher(d)}
                                     locale={it}
-                                    fromMonth={addMonths(new Date(), -1)}
-                                    toMonth={addMonths(new Date(), 9)}
+                                    fromMonth={fromMonth}
+                                    toMonth={toMonth}
                                     className="p-0"
                                 />
                             </div>
@@ -522,7 +531,10 @@ export default function ClassSelectionPage() {
         try {
             const userDocRef = doc(db, "users", user.uid);
             
+            const { isMinor, parentData, ...dataToSave } = formData;
+            
             await updateDoc(userDocRef, {
+                uid: user.uid,
                 name: `${formData.name} ${formData.surname}`.trim(),
                 surname: formData.surname,
                 birthPlace: formData.birthPlace,
@@ -533,12 +545,19 @@ export default function ClassSelectionPage() {
                 zipCode: formData.zipCode,
                 city: formData.city,
                 province: formData.province,
+                email: user.email,
                 phone: formData.phone,
-                parentData: formData.isMinor && formData.parentData ? formData.parentData : {},
+                isFormerMember: "no",
+                hasPracticedBefore: 'yes', // Defaulting for now, can be improved
+                discipline: "karate", // Defaulting for now, can be improved
+                lastGrade: "Cintura bianca", // Defaulting for now
+                createdAt: serverTimestamp(),
+                regulationsAccepted: true, // Assuming this step is done
                 applicationSubmitted: true,
                 paymentMethod: paymentMethod,
                 associationStatus: "not_associated",
                 isInsured: true,
+                medicalCertificateSubmitted: false, // This will be the next step
                 trialLesson: {
                     gymId: gymSelection.gym.id,
                     gymName: gymSelection.gym.name,
@@ -549,7 +568,8 @@ export default function ClassSelectionPage() {
                     feeName: feeData.name,
                     amount: feeData.price,
                     status: 'pending'
-                }
+                },
+                parentData: formData.isMinor && formData.parentData ? formData.parentData : {},
             });
 
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
@@ -644,3 +664,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
