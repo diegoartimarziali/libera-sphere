@@ -61,7 +61,7 @@ export default function LiberaSpherePage() {
       return
     }
     
-    let dataToUpdate: any = { isFormerMember };
+    let dataToUpdate: any = {};
     let destination = "";
 
     if (isFormerMember === 'yes') {
@@ -69,40 +69,52 @@ export default function LiberaSpherePage() {
             toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi: disciplina, anno e grado." })
             return
         }
-        dataToUpdate.discipline = discipline;
-        dataToUpdate.firstYear = firstYear;
-        dataToUpdate.lastGrade = lastGrade;
+        dataToUpdate = {
+            isFormerMember,
+            discipline,
+            lastGrade,
+            firstYear, // Note: not in the desired final structure but needed here
+        };
         destination = "/dashboard/associates";
     } else { // isFormerMember === 'no'
         if (!hasPracticedBefore) {
              toast({ variant: "destructive", title: "Attenzione", description: "Per favore, specifica se hai già praticato." })
             return
         }
-        dataToUpdate.hasPracticedBefore = hasPracticedBefore;
+        
+        let finalDiscipline = "";
+        let finalGrade = "";
 
         if (hasPracticedBefore === 'no') {
-            dataToUpdate.lastGrade = 'Cintura bianca';
+            finalGrade = 'Cintura bianca';
         } else { // hasPracticedBefore === 'yes'
             if (!discipline) {
                  toast({ variant: "destructive", title: "Attenzione", description: "Seleziona la disciplina che hai praticato." });
                 return;
             }
-            dataToUpdate.discipline = discipline;
+            finalDiscipline = discipline;
             
             if (discipline === 'karate') {
                 if (!lastGrade) {
                     toast({ variant: "destructive", title: "Attenzione", description: "Seleziona il tuo grado di Karate." });
                     return;
                 }
-                dataToUpdate.lastGrade = lastGrade;
+                finalGrade = lastGrade;
             } else { // discipline === 'aikido'
                 if (!aikidoGrade.trim()) {
                      toast({ variant: "destructive", title: "Attenzione", description: "Inserisci il tuo grado di Aikido." });
                     return;
                 }
-                dataToUpdate.lastGrade = aikidoGrade.trim();
+                finalGrade = aikidoGrade.trim();
             }
         }
+        
+        dataToUpdate = {
+            isFormerMember,
+            hasPracticedBefore,
+            discipline: finalDiscipline,
+            lastGrade: finalGrade,
+        };
         destination = "/dashboard/class-selection";
     }
 
@@ -239,11 +251,11 @@ export default function LiberaSpherePage() {
                     className="space-y-2"
                 >
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="karate" id="former_karate" />
+                        <RadioGroupItem value="former_karate" id="former_karate" />
                         <Label htmlFor="former_karate">Karate</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="aikido" id="former_aikido" />
+                        <RadioGroupItem value="former_aikido" id="former_aikido" />
                         <Label htmlFor="former_aikido">Aikido</Label>
                     </div>
                 </RadioGroup>
@@ -290,5 +302,3 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
-
-    

@@ -372,27 +372,27 @@ export default function AssociatesPage() {
          try {
             const userDocRef = doc(db, "users", user.uid);
 
-            const { isMinor, ...dataToSave } = formData;
-            if (!isMinor) {
-                delete (dataToSave as any).parentData;
-            }
-
-            const fullName = `${dataToSave.name} ${dataToSave.surname}`.trim();
+            const { isMinor, parentData, ...dataToSave } = formData;
+            
+            const userData = {
+                ...dataToSave,
+                ...(isMinor && { parentData: parentData })
+            };
 
             await updateDoc(userDocRef, {
-                ...dataToSave,
-                name: fullName,
+                ...userData,
+                name: `${formData.name} ${formData.surname}`.trim(),
                 applicationSubmitted: true,
+                paymentMethod: paymentMethod,
                 associationStatus: "pending",
                 associationExpiryDate: getSeasonExpiryDate(),
-                paymentMethod: paymentMethod,
-                isInsured: false,
                 paymentDetails: {
                     feeName: feeData.name,
                     amount: feeData.price,
                     status: 'pending'
                 }
             });
+
             toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo. Verrai reindirizzato al prossimo passo." });
             router.push("/dashboard/medical-certificate");
          } catch (error) {

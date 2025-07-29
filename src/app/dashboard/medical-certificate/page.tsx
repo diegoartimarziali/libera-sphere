@@ -92,12 +92,9 @@ export default function MedicalCertificatePage() {
 
     try {
         const userDocRef = doc(db, "users", user.uid);
-        let dataToUpdate: any = {
-             medicalCertificateSubmitted: true,
-             medicalInfo: {
-                type: data.submissionType,
-                updatedAt: serverTimestamp()
-            }
+        let medicalInfo: any = {
+            type: data.submissionType,
+            updatedAt: serverTimestamp()
         };
 
         if (data.submissionType === "certificate" && data.certificateFile && data.expiryDate) {
@@ -105,13 +102,18 @@ export default function MedicalCertificatePage() {
             const snapshot = await uploadBytes(fileRef, data.certificateFile);
             const downloadURL = await getDownloadURL(snapshot.ref);
 
-            dataToUpdate.medicalInfo.fileUrl = downloadURL;
-            dataToUpdate.medicalInfo.fileName = data.certificateFile.name;
-            dataToUpdate.medicalInfo.expiryDate = data.expiryDate;
+            medicalInfo.fileUrl = downloadURL;
+            medicalInfo.fileName = data.certificateFile.name;
+            medicalInfo.expiryDate = data.expiryDate;
         } else if (data.submissionType === "booking" && data.bookingDate) {
-            dataToUpdate.medicalInfo.bookingDate = data.bookingDate;
+            medicalInfo.bookingDate = data.bookingDate;
         }
         
+        const dataToUpdate = {
+             medicalCertificateSubmitted: true,
+             medicalInfo: medicalInfo
+        };
+
         await updateDoc(userDocRef, dataToUpdate);
 
         toast({

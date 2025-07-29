@@ -487,16 +487,18 @@ export default function ClassSelectionPage() {
         try {
             const userDocRef = doc(db, "users", user.uid);
             
-            const { isMinor, ...dataToSave } = formData;
-            if (!isMinor) {
-                delete (dataToSave as any).parentData;
-            }
-            const fullName = `${dataToSave.name} ${dataToSave.surname}`.trim();
+            const { isMinor, parentData, ...dataToSave } = formData;
+            
+            const userData = {
+                ...dataToSave,
+                ...(isMinor && { parentData: parentData })
+            };
             
             await updateDoc(userDocRef, {
-                ...dataToSave,
-                name: fullName,
+                ...userData,
+                name: `${formData.name} ${formData.surname}`.trim(),
                 applicationSubmitted: true,
+                paymentMethod: paymentMethod,
                 associationStatus: "not_associated",
                 isInsured: true,
                 trialLesson: {
@@ -506,7 +508,6 @@ export default function ClassSelectionPage() {
                     lessonDay: getDayName(Number(gymSelection.lessonDay)),
                     time: gymSelection.gym.time,
                 },
-                paymentMethod: paymentMethod,
                 paymentDetails: {
                     feeName: feeData.name,
                     amount: feeData.price,

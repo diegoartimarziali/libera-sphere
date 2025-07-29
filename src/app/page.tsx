@@ -79,18 +79,32 @@ export default function AuthPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password)
       const user = userCredential.user
 
-      // Create user document in Firestore
+      // Create user document in Firestore with specific order
       await setDoc(doc(db, "users", user.uid), {
-        name: values.name,
-        email: values.email,
         uid: user.uid,
+        name: values.name,
+        surname: "",
+        birthPlace: "",
+        birthDate: null,
+        taxCode: "",
+        address: "",
+        streetNumber: "",
+        zipCode: "",
+        city: "",
+        province: "",
+        email: values.email,
+        phone: "",
+        isFormerMember: null,
+        hasPracticedBefore: null,
+        discipline: "",
+        lastGrade: "",
         createdAt: serverTimestamp(),
         regulationsAccepted: false,
-        isFormerMember: null,
         applicationSubmitted: false,
-        medicalCertificateSubmitted: false,
+        paymentMethod: "",
         associationStatus: null,
         isInsured: false,
+        medicalCertificateSubmitted: false,
       })
       
       router.push("/dashboard")
