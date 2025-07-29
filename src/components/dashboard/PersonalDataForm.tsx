@@ -118,9 +118,9 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
           setIsMinor(minor);
           form.setValue("isMinor", minor, { shouldValidate: true });
           if (!minor) {
-              form.setValue("parentData", undefined, { shouldValidate: true });
-              // Pulisci gli errori se ce ne sono
-               form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
+              // Se l'utente non è più minorenne, puliamo i dati del genitore ma manteniamo l'oggetto per evitare l'errore di input non controllato.
+              form.setValue("parentData", { parentName: "", parentSurname: "", parentTaxCode: "" }, { shouldValidate: true });
+              form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
           }
       } else {
           setIsMinor(null);
@@ -156,8 +156,10 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                     const age = differenceInYears(new Date(), userData.birthDate.toDate());
                     const isMinor = age < 18;
                     existingData.isMinor = isMinor;
-                    if (isMinor) {
+                     if (isMinor) {
                        existingData.parentData = userData.parentData || { parentName: "", parentSurname: "", parentTaxCode: "" };
+                    } else {
+                       existingData.parentData = { parentName: "", parentSurname: "", parentTaxCode: "" };
                     }
                 }
                 
@@ -419,5 +421,3 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
-
-    
