@@ -119,7 +119,7 @@ function GymSelectionStep({
             const today = startOfDay(new Date());
             const lessons: UpcomingLesson[] = [];
             
-            // Genera le prossime 8 lezioni disponibili
+            // Genera le prossime 4 lezioni disponibili per ogni giorno di corso
             gym.lessons.forEach(lesson => {
                 const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
                 if (dayIndex !== undefined) {
@@ -205,17 +205,20 @@ function GymSelectionStep({
                                 setSelectedLesson(lesson || null);
                             }}
                         >
-                            {upcomingLessons.map((lesson, index) => (
-                                <Label key={index} className="flex flex-col items-start cursor-pointer rounded-lg border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                                    <div className="flex items-center w-full">
-                                         <RadioGroupItem value={`${lesson.date.toISOString()}-${lesson.time}`} id={`lesson-${index}`} className="translate-y-[2px]" />
-                                         <div className="ml-4 flex-1">
-                                            <p className="font-semibold capitalize">{format(lesson.date, 'EEEE d MMMM', { locale: it })}</p>
-                                            <p className="text-muted-foreground text-sm">{lesson.time}</p>
-                                        </div>
-                                    </div>
-                                </Label>
-                            ))}
+                            {upcomingLessons.map((lesson, index) => {
+                                const id = `lesson-${index}`;
+                                return (
+                                <div key={id}>
+                                    <RadioGroupItem value={`${lesson.date.toISOString()}-${lesson.time}`} id={id} className="peer sr-only" />
+                                    <Label 
+                                        htmlFor={id}
+                                        className="flex flex-col items-start cursor-pointer rounded-lg border p-4 transition-all hover:bg-accent/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
+                                    >
+                                        <p className="font-semibold capitalize">{format(lesson.date, 'EEEE d MMMM', { locale: it })}</p>
+                                        <p className="text-muted-foreground text-sm">{lesson.time}</p>
+                                    </Label>
+                                </div>
+                            )})}
                         </RadioGroup>
                     </div>
                 )}
@@ -642,5 +645,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
