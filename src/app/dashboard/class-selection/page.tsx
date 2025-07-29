@@ -10,15 +10,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { format, getMonth, getYear, eachDayOfInterval, startOfMonth, endOfMonth, parse, startOfDay } from "date-fns"
+import { format, getMonth, getYear, startOfDay, addMonths } from "date-fns"
 import { it } from "date-fns/locale"
-import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconMonth } from "lucide-react"
+import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconMonth, Calendar as CalendarIconDay } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, collection, getDocs, getDoc } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Calendar } from "@/components/ui/calendar"
 
 interface FeeData {
     name: string;
@@ -39,14 +40,9 @@ interface GymSelectionData {
     lessonDate: Date;
 }
 
-const getDayName = (dayNumber: number): string => {
-    const days = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
-    return days[dayNumber] || '';
-};
-
 const monthNameToNumber: { [key: string]: number } = {
-    "gennaio": 0, "febbraio": 1, "marzo": 2, "aprile": 3, "maggio": 4, "giugno": 5,
-    "luglio": 6, "agosto": 7, "settembre": 8, "ottobre": 9, "novembre": 10, "dicembre": 11
+    "settembre": 8, "ottobre": 9, "novembre": 10, "dicembre": 11,
+    "gennaio": 0, "febbraio": 1, "marzo": 2, "aprile": 3, "maggio": 4
 };
 
 // Componente per visualizzare i dati in modo pulito
@@ -73,15 +69,16 @@ function GymSelectionStep({
     const [gyms, setGyms] = useState<Gym[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-    const [lessonMonth, setLessonMonth] = useState<string | null>(null);
-    const [lessonDayOfWeek, setLessonDayOfWeek] = useState<string | null>(null);
-    const [availableDates, setAvailableDates] = useState<Date[]>([]);
-    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<Date | undefined>(undefined);
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const { toast } = useToast();
 
     const months = [
-        "Settembre", "Ottobre", "Novembre", "Dicembre", "Gennaio", 
-        "Febbraio", "Marzo", "Aprile", "Maggio"
+        { label: "Settembre", value: 8 }, { label: "Ottobre", value: 9 }, 
+        { label: "Novembre", value: 10 }, { label: "Dicembre", value: 11 },
+        { label: "Gennaio", value: 0 }, { label: "Febbraio", value: 1 },
+        { label: "Marzo", value: 2 }, { label: "Aprile", value: 3 },
+        { label: "Maggio", value: 4 }
     ];
 
     useEffect(() => {
@@ -107,72 +104,44 @@ function GymSelectionStep({
         fetchGyms();
     }, [toast]);
     
-    // Genera le date disponibili quando mese e giorno della settimana sono selezionati
-    useEffect(() => {
-        if (lessonMonth && lessonDayOfWeek) {
-            const monthIndex = monthNameToNumber[lessonMonth.toLowerCase()];
-            if (monthIndex === undefined) return;
-
-            const now = new Date();
-            const today = startOfDay(now);
-            const currentYear = getYear(today);
-            const currentMonth = getMonth(today);
-            
-            let targetYear = currentYear;
-            // La stagione sportiva inizia a Settembre (mese 8)
-            // Se il mese selezionato è da Settembre a Dicembre (indici 8-11)
-            // O se il mese selezionato è da Gennaio ad Agosto (0-7) e anche il mese corrente è tra 0-7, l'anno è quello corrente
-            // Se il mese selezionato è da Gennaio ad Agosto (0-7) ma il mese corrente è tra Settembre e Dicembre (8-11), l'anno è quello successivo.
-            if (monthIndex < 8 && currentMonth >= 8) {
-                targetYear = currentYear + 1;
-            }
-
-            const startDateOfMonth = startOfMonth(new Date(targetYear, monthIndex, 1));
-            const endDateOfMonth = endOfMonth(startDateOfMonth);
-            
-            const datesInMonth = eachDayOfInterval({ start: startDateOfMonth, end: endDateOfMonth });
-            
-            const filteredDates = datesInMonth.filter(date => {
-                const dayOfWeek = date.getDay(); // Domenica = 0, ...
-                return dayOfWeek === Number(lessonDayOfWeek);
-            });
-            
-            // Filtra per mostrare solo date uguali o successive a oggi
-            const futureDates = filteredDates.filter(date => date >= today);
-
-            setAvailableDates(futureDates);
-            setSelectedDate(null); // Resetta la data selezionata quando cambiano mese o giorno
-        } else {
-            setAvailableDates([]);
-        }
-    }, [lessonMonth, lessonDayOfWeek]);
-
-
     const handleGymChange = (gymId: string) => {
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
-        setLessonDayOfWeek(null);
-        setLessonMonth(null);
-        setSelectedDate(null);
+        setSelectedMonth(undefined);
+        setSelectedDate(undefined);
     }
     
-     const handleDayOfWeekChange = (day: string) => {
-        setLessonDayOfWeek(day);
-        setLessonMonth(null); // Resetta mese e data quando cambia il giorno
-        setSelectedDate(null);
-    }
+    const handleMonthChange = (monthValue: string) => {
+        const monthIndex = Number(monthValue);
+        const now = new Date();
+        const currentYear = getYear(now);
+        const currentMonth = getMonth(now);
 
-    const handleMonthChange = (month: string) => {
-        setLessonMonth(month);
-        setSelectedDate(null); // Resetta la data quando cambia il mese
+        let targetYear = currentYear;
+        // La stagione sportiva inizia a Settembre (mese 8)
+        if (monthIndex < 8 && currentMonth >= 8) {
+            targetYear = currentYear + 1;
+        }
+
+        setSelectedMonth(new Date(targetYear, monthIndex, 1));
+        setSelectedDate(undefined);
     }
 
     const handleSubmit = () => {
         if (selectedGym && selectedDate) {
-            const lessonDate = parse(selectedDate, "yyyy-MM-dd", new Date());
-            onNext({ gym: selectedGym, lessonDate });
+            onNext({ gym: selectedGym, lessonDate: selectedDate });
         }
     }
+
+    const dayMatcher = (date: Date) => {
+        if (!selectedGym || !selectedGym.availableDays) return false;
+        
+        const today = startOfDay(new Date());
+        if (date < today) return false;
+
+        const dayOfWeek = date.getDay();
+        return selectedGym.availableDays.includes(dayOfWeek);
+    };
 
     if (loading) {
         return (
@@ -188,10 +157,6 @@ function GymSelectionStep({
         )
     }
 
-    const availableDaysSorted = selectedGym?.availableDays && Array.isArray(selectedGym.availableDays) 
-    ? [...selectedGym.availableDays].sort((a, b) => a - b) 
-    : [];
-
     return (
         <Card>
             <CardHeader>
@@ -201,85 +166,71 @@ function GymSelectionStep({
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="space-y-2">
-                    <Label htmlFor="gym-select">1. Palestra</Label>
-                    <Select onValueChange={handleGymChange}>
-                        <SelectTrigger id="gym-select">
-                            <SelectValue placeholder="Seleziona una palestra" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {gyms.map(gym => (
-                                <SelectItem key={gym.id} value={gym.id}>
-                                    {gym.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                     {selectedGym && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground animate-in fade-in-50">
-                            <Clock size={14}/>
-                            <span>Orario Lezioni: {selectedGym.time}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="gym-select">1. Palestra</Label>
+                            <Select onValueChange={handleGymChange}>
+                                <SelectTrigger id="gym-select">
+                                    <SelectValue placeholder="Seleziona una palestra" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {gyms.map(gym => (
+                                        <SelectItem key={gym.id} value={gym.id}>
+                                            {gym.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                             {selectedGym && (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground animate-in fade-in-50">
+                                    <Clock size={14}/>
+                                    <span>Orario Lezioni: {selectedGym.time}</span>
+                                </div>
+                            )}
+                        </div>
+                        
+                         {selectedGym && (
+                             <div className="space-y-2 animate-in fade-in-50">
+                                <Label htmlFor="month-select">2. Mese di Inizio</Label>
+                                <Select onValueChange={handleMonthChange} disabled={!selectedGym}>
+                                    <SelectTrigger id="month-select">
+                                        <SelectValue placeholder="Seleziona un mese" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {months.map(month => (
+                                            <SelectItem key={month.value} value={String(month.value)}>
+                                                {month.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                         )}
+                    </div>
+                     
+                    {selectedGym && selectedMonth && (
+                         <div className="space-y-2 animate-in fade-in-50">
+                            <Label>3. Scegli il giorno</Label>
+                            <div className="rounded-md border flex justify-center">
+                                <Calendar
+                                    mode="single"
+                                    month={selectedMonth}
+                                    onMonthChange={setSelectedMonth}
+                                    selected={selectedDate}
+                                    onSelect={setSelectedDate}
+                                    modifiers={{ available: dayMatcher }}
+                                    modifiersClassNames={{ available: 'bg-primary/20' }}
+                                    disabled={d => !dayMatcher(d)}
+                                    locale={it}
+                                    fromMonth={addMonths(new Date(), -1)}
+                                    toMonth={addMonths(new Date(), 9)}
+                                    className="p-0"
+                                />
+                            </div>
                         </div>
                     )}
                 </div>
-                
-                 {selectedGym && (
-                     <div className="space-y-2 animate-in fade-in-50">
-                        <Label htmlFor="day-select">2. Giorno della Lezione</Label>
-                        <Select onValueChange={handleDayOfWeekChange} value={lessonDayOfWeek || ''} disabled={!availableDaysSorted.length}>
-                            <SelectTrigger id="day-select">
-                                <SelectValue placeholder="Seleziona un giorno" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableDaysSorted.map(day => (
-                                    <SelectItem key={day} value={String(day)}>
-                                        {getDayName(day)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                         {!availableDaysSorted.length && (
-                            <p className="text-sm text-muted-foreground">Nessun giorno disponibile per questa palestra.</p>
-                         )}
-                    </div>
-                 )}
-                 
-                 {selectedGym && lessonDayOfWeek && (
-                     <div className="space-y-2 animate-in fade-in-50">
-                        <Label htmlFor="month-select">3. Mese di Inizio</Label>
-                        <Select onValueChange={handleMonthChange} value={lessonMonth || ''}>
-                            <SelectTrigger id="month-select">
-                                <SelectValue placeholder="Seleziona un mese" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {months.map(month => (
-                                    <SelectItem key={month} value={month}>
-                                        {month}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                 )}
-                 
-                {availableDates.length > 0 && (
-                     <div className="space-y-2 animate-in fade-in-50">
-                        <Label htmlFor="date-select">4. Scegli la data esatta</Label>
-                        <Select onValueChange={setSelectedDate} value={selectedDate || ''}>
-                            <SelectTrigger id="date-select">
-                                <SelectValue placeholder="Seleziona una data" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableDates.map(date => (
-                                    <SelectItem key={date.toISOString()} value={format(date, "yyyy-MM-dd")}>
-                                        {format(date, "EEEE d MMMM", { locale: it })}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                )}
-
 
             </CardContent>
             <CardFooter className="justify-between">
@@ -468,7 +419,7 @@ function ConfirmationStep({
                     <h3 className="font-semibold text-lg">Lezione di Prova</h3>
                     <dl className="space-y-3">
                         <DataRow label="Palestra" value={gymSelection.gym.name} icon={<Building size={16} />} />
-                        <DataRow label="Data Lezione" value={formattedLessonDate} icon={<CalendarIconMonth size={16} />} />
+                        <DataRow label="Data Lezione" value={formattedLessonDate} icon={<CalendarIconDay size={16} />} />
                         <DataRow label="Orario" value={gymSelection.gym.time} icon={<Clock size={16} />} />
                     </dl>
                 </div>
@@ -571,10 +522,8 @@ export default function ClassSelectionPage() {
         try {
             const userDocRef = doc(db, "users", user.uid);
             
-             // Create user document in Firestore with specific order
-            const dataToUpdate = {
-                uid: user.uid,
-                name: formData.name,
+            await updateDoc(userDocRef, {
+                name: `${formData.name} ${formData.surname}`.trim(),
                 surname: formData.surname,
                 birthPlace: formData.birthPlace,
                 birthDate: formData.birthDate,
@@ -584,7 +533,6 @@ export default function ClassSelectionPage() {
                 zipCode: formData.zipCode,
                 city: formData.city,
                 province: formData.province,
-                email: user.email,
                 phone: formData.phone,
                 parentData: formData.isMinor && formData.parentData ? formData.parentData : {},
                 applicationSubmitted: true,
@@ -602,9 +550,7 @@ export default function ClassSelectionPage() {
                     amount: feeData.price,
                     status: 'pending'
                 }
-            };
-
-            await updateDoc(userDocRef, dataToUpdate);
+            });
 
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
             router.push("/dashboard/medical-certificate")
@@ -698,9 +644,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
-
-    
-
-    
