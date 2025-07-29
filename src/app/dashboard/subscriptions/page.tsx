@@ -10,8 +10,12 @@ import { useToast } from "@/hooks/use-toast"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, CheckCircle, XCircle, ArrowLeft } from "lucide-react"
+import { Loader2, CheckCircle, XCircle, ArrowLeft, CreditCard, Landmark, University } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+
 
 interface Subscription {
     id: string;
@@ -21,6 +25,8 @@ interface Subscription {
     type: 'monthly' | 'seasonal';
     sumupLink: string;
 }
+
+type PaymentMethod = "in_person" | "online" | "bank_transfer"
 
 function isSeasonalWindowActive(): boolean {
     const today = new Date();
@@ -32,157 +38,8 @@ function isSeasonalWindowActive(): boolean {
     return today >= start && today <= end;
 }
 
-// Componente per lo Step di Pagamento Online (iFrame)
-function OnlinePaymentStep({ 
-    subscription,
-    onBack, 
-    onNext,
-    isSubmitting
-}: { 
-    subscription: Subscription,
-    onBack: () => void; 
-    onNext: () => void,
-    isSubmitting: boolean
-}) {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Pagamento Abbonamento</CardTitle>
-                <CardDescription>
-                    Stai per acquistare l'abbonamento <span className="font-semibold text-foreground">{subscription.name}</span>.
-                    Completa il pagamento di {subscription.price}€ tramite il portale sicuro di SumUp qui sotto.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="aspect-video w-full">
-                    <iframe
-                        src={subscription.sumupLink}
-                        className="h-full w-full rounded-md border"
-                        title={`Pagamento SumUp ${subscription.name}`}
-                    ></iframe>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href={subscription.sumupLink} target="_blank" rel="noopener noreferrer" className="underline">cliccando qui</a>.
-                </p>
-            </CardContent>
-            <CardFooter className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-                <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
-                    <ArrowLeft />
-                    Torna alla Scelta
-                </Button>
-                <Button onClick={onNext} disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="animate-spin" /> : <CheckCircle />}
-                    Ho effettuato il pagamento
-                </Button>
-            </CardFooter>
-        </Card>
-    );
-}
-
-export default function SubscriptionsPage() {
-    const [user] = useAuthState(auth);
-    const [step, setStep] = useState(1);
-    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-    const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const router = useRouter();
-    const { toast } = useToast();
-
-    useEffect(() => {
-        const fetchSubscriptions = async () => {
-            try {
-                const subsCollection = collection(db, 'subscriptions');
-                const subsSnapshot = await getDocs(subsCollection);
-                const subsList = subsSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                } as Subscription));
-                
-                const seasonalActive = isSeasonalWindowActive();
-
-                const availableSubs = subsList.filter(sub => {
-                    if (sub.type === 'seasonal') {
-                        return seasonalActive;
-                    }
-                    return true;
-                }).sort((a,b) => a.price - b.price); // Ordina per prezzo
-
-                setSubscriptions(availableSubs);
-            } catch (error) {
-                console.error("Error fetching subscriptions:", error);
-                toast({ title: "Errore", description: "Impossibile caricare gli abbonamenti.", variant: "destructive" });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSubscriptions();
-    }, [toast]);
-
-    const handleSelectSubscription = (sub: Subscription) => {
-        setSelectedSubscription(sub);
-        setStep(2);
-    };
-
-    const handleConfirmPayment = async () => {
-        if (!user || !selectedSubscription) {
-            toast({ title: "Errore", description: "Utente o abbonamento non valido.", variant: "destructive" });
-            return;
-        }
-
-        setIsSubmitting(true);
-        try {
-            const userDocRef = doc(db, "users", user.uid);
-            await updateDoc(userDocRef, {
-                subscription: {
-                    id: selectedSubscription.id,
-                    name: selectedSubscription.name,
-                    type: selectedSubscription.type,
-                    price: selectedSubscription.price,
-                    purchasedAt: serverTimestamp(),
-                    paymentStatus: 'pending_confirmation',
-                }
-            });
-
-            toast({
-                title: "Pagamento Inviato",
-                description: `La tua richiesta per l'abbonamento ${selectedSubscription.name} è in fase di verifica.`,
-            });
-            router.push('/dashboard');
-
-        } catch (error) {
-            console.error("Error confirming payment:", error);
-            toast({ title: "Errore", description: "Impossibile confermare il pagamento. Riprova.", variant: "destructive" });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-
-    if (loading) {
-        return (
-            <div className="flex h-full w-full items-center justify-center">
-                <Loader2 className="h-16 w-16 animate-spin text-primary" />
-            </div>
-        );
-    }
-    
-    if (step === 2 && selectedSubscription) {
-        return (
-             <div className="flex w-full flex-col items-center">
-                <div className="w-full max-w-3xl">
-                    <OnlinePaymentStep 
-                        subscription={selectedSubscription}
-                        onBack={() => setStep(1)}
-                        onNext={handleConfirmPayment}
-                        isSubmitting={isSubmitting}
-                    />
-                </div>
-            </div>
-        )
-    }
-
+// Componente per la selezione dell'abbonamento
+function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscriptions: Subscription[], onSelect: (sub: Subscription) => void, onBack: () => void }) {
     return (
         <div className="flex w-full flex-col items-center">
             <div className="mb-8 text-center">
@@ -201,7 +58,7 @@ export default function SubscriptionsPage() {
                         <p className="text-muted-foreground">Al momento non ci sono abbonamenti acquistabili. L'abbonamento stagionale è disponibile solo dal 1 Settembre al 31 Ottobre. Contatta la segreteria per maggiori informazioni.</p>
                     </CardContent>
                     <CardFooter>
-                        <Button onClick={() => router.push('/dashboard')} className="w-full">Torna alla Dashboard</Button>
+                        <Button onClick={onBack} className="w-full">Torna alla Dashboard</Button>
                     </CardFooter>
                  </Card>
             ) : (
@@ -243,7 +100,7 @@ export default function SubscriptionsPage() {
                             <CardFooter>
                                 <Button 
                                     className="w-full" 
-                                    onClick={() => handleSelectSubscription(sub)}
+                                    onClick={() => onSelect(sub)}
                                     variant={sub.type === 'seasonal' ? 'default' : 'secondary'}
                                     size="lg"
                                 >
@@ -255,5 +112,327 @@ export default function SubscriptionsPage() {
                 </div>
             )}
         </div>
+    )
+}
+
+// Componente per lo Step 2: Pagamento
+function PaymentStep({ subscription, onBack, onNext }: { subscription: Subscription, onBack: () => void, onNext: (method: PaymentMethod) => void }) {
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
+    const isSeasonal = subscription.type === 'seasonal';
+
+    return (
+        <Card className="w-full max-w-2xl">
+            <CardHeader>
+                <CardTitle>Passo 2: Metodo di Pagamento</CardTitle>
+                <CardDescription>
+                    Stai acquistando l'abbonamento <span className="font-semibold text-foreground">{subscription.name}</span>.
+                    Scegli come versare la quota di {subscription.price.toFixed(2)}€.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <RadioGroup
+                    value={paymentMethod || ""}
+                    onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
+                    className="space-y-4"
+                >
+                    <Label
+                        htmlFor="online"
+                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    >
+                        <RadioGroupItem value="online" id="online" className="mt-1" />
+                        <div className="flex-1 space-y-1">
+                            <h4 className="font-semibold">Online (Carta di Credito)</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Paga in modo sicuro e veloce con la tua carta tramite SumUp.
+                            </p>
+                        </div>
+                         <CreditCard className="h-6 w-6 text-muted-foreground" />
+                    </Label>
+
+                    <Label
+                        htmlFor="bank_transfer"
+                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                    >
+                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" />
+                        <div className="flex-1 space-y-1">
+                            <h4 className="font-semibold">Bonifico Bancario</h4>
+                            <p className="text-sm text-muted-foreground">
+                                Si aprirà un popup con gli estremi per effettuare il bonifico.
+                            </p>
+                        </div>
+                         <University className="h-6 w-6 text-muted-foreground" />
+                    </Label>
+
+                    {!isSeasonal && (
+                         <Label
+                            htmlFor="in_person"
+                            className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        >
+                            <RadioGroupItem value="in_person" id="in_person" className="mt-1" />
+                            <div className="flex-1 space-y-1">
+                                <h4 className="font-semibold">In Sede (Contanti o Bancomat)</h4>
+                                <p className="text-sm text-muted-foreground">
+                                    Potrai saldare la quota direttamente presso la nostra sede.
+                                </p>
+                            </div>
+                            <Landmark className="h-6 w-6 text-muted-foreground" />
+                        </Label>
+                    )}
+                </RadioGroup>
+            </CardContent>
+            <CardFooter className="justify-between">
+                <Button variant="outline" onClick={onBack}>Indietro</Button>
+                <Button onClick={() => onNext(paymentMethod!)} disabled={!paymentMethod}>Prosegui</Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
+// Componente per lo Step di Pagamento Online (iFrame)
+function OnlinePaymentStep({ 
+    subscription,
+    onBack, 
+    onNext,
+    isSubmitting
+}: { 
+    subscription: Subscription,
+    onBack: () => void; 
+    onNext: () => void,
+    isSubmitting: boolean
+}) {
+    return (
+        <Card className="w-full max-w-3xl">
+            <CardHeader>
+                <CardTitle>Passo 3: Pagamento Online</CardTitle>
+                <CardDescription>
+                    Completa il pagamento di {subscription.price}€ per l'abbonamento <span className="font-semibold text-foreground">{subscription.name}</span>.
+                    Una volta terminato, clicca sul pulsante per procedere.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="aspect-video w-full">
+                    <iframe
+                        src={subscription.sumupLink}
+                        className="h-full w-full rounded-md border"
+                        title={`Pagamento SumUp ${subscription.name}`}
+                    ></iframe>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href={subscription.sumupLink} target="_blank" rel="noopener noreferrer" className="underline">cliccando qui</a>.
+                </p>
+            </CardContent>
+            <CardFooter className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
+                <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
+                    <ArrowLeft />
+                    Torna alla Scelta
+                </Button>
+                <Button onClick={onNext} disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="animate-spin" /> : <CheckCircle />}
+                    Ho effettuato il pagamento
+                </Button>
+            </CardFooter>
+        </Card>
     );
 }
+
+// Componente per il Popup del Bonifico
+function BankTransferDialog({ open, onOpenChange, onConfirm, subscription }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, subscription: Subscription | null }) {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Dati per Bonifico Bancario</DialogTitle>
+                    <DialogDescription>
+                        Copia i dati seguenti per effettuare il bonifico.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4 text-sm">
+                    <div className="space-y-1">
+                        <p className="font-semibold text-foreground">Intestatario:</p>
+                        <p>ASD Libera Energia</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="font-semibold text-foreground">Banca:</p>
+                        <p>Banco BPM Verres</p>
+                    </div>
+                    <div className="space-y-1">
+                        <p className="font-semibold text-foreground">IBAN:</p>
+                        <p className="font-mono bg-muted p-2 rounded-md">IT66R0503431690000000025476</p>
+                    </div>
+                     <div className="space-y-1">
+                        <p className="font-semibold text-foreground">Importo:</p>
+                        <p>{subscription ? `${subscription.price.toFixed(2)} €` : <Loader2 className="h-4 w-4 animate-spin" />}</p>
+                    </div>
+                     <div className="space-y-1">
+                        <p className="font-semibold text-foreground">Causale:</p>
+                        <p className="font-mono bg-muted p-2 rounded-md">{`Abbonamento ${subscription?.name} [Nome Cognome Socio]`}</p>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button onClick={onConfirm}>Ho capito, confermo</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+export default function SubscriptionsPage() {
+    const [user] = useAuthState(auth);
+    const [step, setStep] = useState(1);
+    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+    const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+    const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const router = useRouter();
+    const { toast } = useToast();
+
+    useEffect(() => {
+        const fetchSubscriptions = async () => {
+            try {
+                const subsCollection = collection(db, 'subscriptions');
+                const subsSnapshot = await getDocs(subsCollection);
+                const subsList = subsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                } as Subscription));
+                
+                const seasonalActive = isSeasonalWindowActive();
+
+                const availableSubs = subsList.filter(sub => {
+                    if (sub.type === 'seasonal') {
+                        return seasonalActive;
+                    }
+                    return true;
+                }).sort((a,b) => a.price - b.price); // Ordina per prezzo
+
+                setSubscriptions(availableSubs);
+            } catch (error) {
+                console.error("Error fetching subscriptions:", error);
+                toast({ title: "Errore", description: "Impossibile caricare gli abbonamenti.", variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSubscriptions();
+    }, [toast]);
+
+    const handleSelectSubscription = (sub: Subscription) => {
+        setSelectedSubscription(sub);
+        setStep(2);
+    };
+    
+    const handlePaymentSubmit = (method: PaymentMethod) => {
+        setPaymentMethod(method);
+        switch (method) {
+            case 'online':
+                setStep(3); // Vai allo step dell'iframe SumUp
+                break;
+            case 'bank_transfer':
+                setIsBankTransferDialogOpen(true); // Apri il popup del bonifico
+                break;
+            case 'in_person':
+            default:
+                // Per il pagamento in sede, vai direttamente alla conferma finale
+                handleConfirmPayment();
+                break;
+        }
+    };
+    
+    const handleBankTransferConfirm = () => {
+        setIsBankTransferDialogOpen(false);
+        handleConfirmPayment();
+    }
+    
+    const handleBack = () => {
+        if (step > 1) {
+            setStep(prev => prev - 1);
+        } else {
+            router.push('/dashboard');
+        }
+    }
+
+
+    const handleConfirmPayment = async () => {
+        if (!user || !selectedSubscription || !paymentMethod) {
+            // Se il metodo di pagamento non è ancora stato impostato, esci (caso bonifico/online)
+            if(!paymentMethod) return;
+            toast({ title: "Errore", description: "Utente, abbonamento o metodo di pagamento non valido.", variant: "destructive" });
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, {
+                subscription: {
+                    id: selectedSubscription.id,
+                    name: selectedSubscription.name,
+                    type: selectedSubscription.type,
+                    price: selectedSubscription.price,
+                    purchasedAt: serverTimestamp(),
+                    paymentMethod: paymentMethod,
+                    paymentStatus: 'pending_confirmation',
+                },
+                updatedAt: serverTimestamp(),
+            });
+
+            toast({
+                title: "Richiesta Inviata",
+                description: `La tua richiesta per l'abbonamento ${selectedSubscription.name} è in fase di verifica.`,
+            });
+            router.push('/dashboard');
+
+        } catch (error) {
+            console.error("Error confirming payment:", error);
+            toast({ title: "Errore", description: "Impossibile confermare il pagamento. Riprova.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex h-full w-full items-center justify-center">
+                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex w-full flex-col items-center justify-center">
+            {step === 1 && (
+                <SubscriptionSelectionStep
+                    subscriptions={subscriptions}
+                    onSelect={handleSelectSubscription}
+                    onBack={() => router.push('/dashboard')}
+                />
+            )}
+            {step === 2 && selectedSubscription && (
+                <PaymentStep
+                    subscription={selectedSubscription}
+                    onBack={() => setStep(1)}
+                    onNext={handlePaymentSubmit}
+                />
+            )}
+            {step === 3 && selectedSubscription && paymentMethod === 'online' && (
+                <OnlinePaymentStep 
+                    subscription={selectedSubscription}
+                    onBack={() => setStep(2)}
+                    onNext={handleConfirmPayment}
+                    isSubmitting={isSubmitting}
+                />
+            )}
+            <BankTransferDialog
+                open={isBankTransferDialogOpen}
+                onOpenChange={setIsBankTransferDialogOpen}
+                onConfirm={handleBankTransferConfirm}
+                subscription={selectedSubscription}
+            />
+        </div>
+    );
+}
+
+    
