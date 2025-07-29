@@ -12,13 +12,15 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { format, getDay, addDays, startOfDay, nextDay } from "date-fns"
 import { it } from "date-fns/locale"
-import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck } from "lucide-react"
+import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
 
 interface FeeData {
     name: string;
@@ -70,6 +72,19 @@ const dayNameToJsGetDay: { [key: string]: number } = {
     'giovedì': 4, 'venerdì': 5, 'sabato': 6
 };
 
+// Funzione per verificare se siamo nel periodo di chiusura delle selezioni
+function areSelectionsClosed(): boolean {
+    const today = new Date();
+    const month = today.getMonth(); // 0 = Gennaio, 4 = Maggio, 8 = Settembre
+    const day = today.getDate();
+
+    // Dal 1 Maggio (incluso) al 10 Settembre (incluso)
+    if ((month === 4 && day >= 1) || (month > 4 && month < 8) || (month === 8 && day <= 10)) {
+        return true;
+    }
+
+    return false;
+}
 
 // Componente per lo Step 2: Selezione Palestra e Lezione
 function GymSelectionStep({ 
@@ -124,6 +139,14 @@ function GymSelectionStep({
                 const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
                 if (dayIndex !== undefined) {
                     let nextLessonDate = nextDay(today, dayIndex);
+                    // Se la prima lezione trovata è oggi ma l'ora è passata, parti dalla settimana successiva
+                    if(format(nextLessonDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
+                        const [lessonHour] = lesson.time.split(':').map(Number);
+                        if(new Date().getHours() >= lessonHour) {
+                           nextLessonDate = addDays(nextLessonDate, 7);
+                        }
+                    }
+
                     for (let i = 0; i < 4; i++) {
                         lessons.push({
                             date: nextLessonDate,
@@ -152,6 +175,31 @@ function GymSelectionStep({
                 time: selectedLesson.time 
             });
         }
+    }
+
+    if (areSelectionsClosed()) {
+        return (
+             <Card>
+                <CardHeader>
+                    <CardTitle>Lezioni di Prova Sospese</CardTitle>
+                    <CardDescription>
+                        Le iscrizioni per le lezioni di prova sono momentaneamente chiuse per la pausa estiva.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Alert>
+                      <Info className="h-4 w-4" />
+                      <AlertTitle>Ci vediamo a Settembre!</AlertTitle>
+                      <AlertDescription>
+                        Le selezioni riapriranno dopo il 10 Settembre. Torna a trovarci per scoprire i nuovi orari e iscriverti!
+                      </AlertDescription>
+                    </Alert>
+                </CardContent>
+                 <CardFooter>
+                    <Button variant="outline" onClick={onBack} className="w-full">Torna Indietro</Button>
+                 </CardFooter>
+             </Card>
+        )
     }
 
     if (loading) {
@@ -196,30 +244,35 @@ function GymSelectionStep({
                 {selectedGym && (
                     <div className="space-y-4 animate-in fade-in-50">
                         <Label>2. Scegli una lezione di prova</Label>
-                        <RadioGroup 
-                            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                            value={selectedLesson ? `${selectedLesson.date.toISOString()}-${selectedLesson.time}` : ""}
-                            onValueChange={(value) => {
-                                const [dateStr, time] = value.split('-');
-                                const lesson = upcomingLessons.find(l => l.date.toISOString() === dateStr && l.time === time);
-                                setSelectedLesson(lesson || null);
-                            }}
-                        >
-                            {upcomingLessons.map((lesson, index) => {
-                                const id = `lesson-${index}`;
-                                return (
-                                <div key={id}>
-                                    <RadioGroupItem value={`${lesson.date.toISOString()}-${lesson.time}`} id={id} className="peer sr-only" />
-                                    <Label 
-                                        htmlFor={id}
-                                        className="flex flex-col items-start cursor-pointer rounded-lg border p-4 transition-all hover:bg-accent/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
-                                    >
-                                        <p className="font-semibold capitalize">{format(lesson.date, 'EEEE d MMMM', { locale: it })}</p>
-                                        <p className="text-muted-foreground text-sm">{lesson.time}</p>
-                                    </Label>
-                                </div>
-                            )})}
-                        </RadioGroup>
+                        {upcomingLessons.length > 0 ? (
+                            <RadioGroup 
+                                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                                value={selectedLesson ? `${selectedLesson.date.toISOString()}-${selectedLesson.time}` : ""}
+                                onValueChange={(value) => {
+                                    const [dateStr, time] = value.split('-');
+                                    const lesson = upcomingLessons.find(l => l.date.toISOString() === dateStr && l.time === time);
+                                    setSelectedLesson(lesson || null);
+                                }}
+                            >
+                                {upcomingLessons.map((lesson, index) => {
+                                    const id = `lesson-${index}`;
+                                    const lessonValue = `${lesson.date.toISOString()}-${lesson.time}`;
+                                    return (
+                                    <div key={id}>
+                                        <RadioGroupItem value={lessonValue} id={id} className="peer sr-only" />
+                                        <Label 
+                                            htmlFor={id}
+                                            className="flex flex-col items-start cursor-pointer rounded-lg border p-4 transition-all hover:bg-accent/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
+                                        >
+                                            <p className="font-semibold capitalize">{format(lesson.date, 'EEEE d MMMM', { locale: it })}</p>
+                                            <p className="text-muted-foreground text-sm">{lesson.time}</p>
+                                        </Label>
+                                    </div>
+                                )})}
+                            </RadioGroup>
+                        ) : (
+                             <p className="text-sm text-muted-foreground p-4 border rounded-md bg-muted/50">Nessuna lezione imminente trovata per questa palestra.</p>
+                        )}
                     </div>
                 )}
             </CardContent>
@@ -645,3 +698,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
