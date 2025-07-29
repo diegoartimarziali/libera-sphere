@@ -162,6 +162,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             }
             
             form.reset(existingData);
+            await form.trigger(); // Aggiunto per forzare la validazione
         }
     };
   }, [form]);
