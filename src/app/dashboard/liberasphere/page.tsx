@@ -73,7 +73,7 @@ export default function LiberaSpherePage() {
             isFormerMember,
             discipline,
             lastGrade,
-            firstYear, // Note: not in the desired final structure but needed here
+            firstYear,
         };
         destination = "/dashboard/associates";
     } else { // isFormerMember === 'no'
@@ -122,7 +122,17 @@ export default function LiberaSpherePage() {
     setIsLoading(true);
     try {
       const userDocRef = doc(db, "users", user.uid);
-      await updateDoc(userDocRef, dataToUpdate);
+      const { isFormerMember, hasPracticedBefore, discipline, lastGrade, firstYear } = dataToUpdate;
+      
+      const finalUpdate = {
+        isFormerMember,
+        hasPracticedBefore,
+        discipline,
+        lastGrade,
+        ...(firstYear && { firstYear }),
+      };
+
+      await updateDoc(userDocRef, finalUpdate);
       
       router.push(destination);
 

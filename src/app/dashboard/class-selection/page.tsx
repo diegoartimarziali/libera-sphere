@@ -567,9 +567,7 @@ export default function ClassSelectionPage() {
         try {
             const userDocRef = doc(db, "users", user.uid);
             
-            const { isMinor, parentData, ...dataToSave } = formData;
-            
-            await updateDoc(userDocRef, {
+            const dataToUpdate: any = {
                 uid: user.uid,
                 name: `${formData.name} ${formData.surname}`.trim(),
                 surname: formData.surname,
@@ -583,17 +581,14 @@ export default function ClassSelectionPage() {
                 province: formData.province,
                 email: user.email,
                 phone: formData.phone,
-                isFormerMember: "no",
-                hasPracticedBefore: 'yes', // Defaulting for now, can be improved
-                discipline: "karate", // Defaulting for now, can be improved
-                lastGrade: "Cintura bianca", // Defaulting for now
+                // `parentData` is next
                 createdAt: serverTimestamp(),
-                regulationsAccepted: true, // Assuming this step is done
+                regulationsAccepted: true,
                 applicationSubmitted: true,
                 paymentMethod: paymentMethod,
                 associationStatus: "not_associated",
                 isInsured: true,
-                medicalCertificateSubmitted: false, // This will be the next step
+                medicalCertificateSubmitted: false,
                 trialLesson: {
                     gymId: gymSelection.gym.id,
                     gymName: gymSelection.gym.name,
@@ -605,8 +600,18 @@ export default function ClassSelectionPage() {
                     amount: feeData.price,
                     status: 'pending'
                 },
-                parentData: formData.isMinor && formData.parentData ? formData.parentData : {},
-            });
+            };
+
+            if (formData.isMinor && formData.parentData) {
+                dataToUpdate.parentData = formData.parentData;
+            }
+
+            // Aggiungi i campi esistenti per non sovrascriverli
+            const existingDataSnap = await getDoc(userDocRef);
+            const existingData = existingDataSnap.data();
+            const finalData = { ...existingData, ...dataToUpdate };
+
+            await updateDoc(userDocRef, finalData);
 
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
             router.push("/dashboard/medical-certificate")
@@ -700,7 +705,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
-
-    
