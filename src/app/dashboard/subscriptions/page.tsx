@@ -22,8 +22,9 @@ interface Subscription {
 function isSeasonalWindowActive(): boolean {
     const today = new Date();
     const currentYear = today.getFullYear();
-    const start = new Date(currentYear, 7, 31); // 31 Agosto
-    const end = new Date(currentYear, 9, 10);   // 10 Ottobre
+    // La finestra va dal 31 Agosto al 10 Ottobre
+    const start = new Date(currentYear, 7, 31); // Mese 7 è Agosto
+    const end = new Date(currentYear, 9, 10);   // Mese 9 è Ottobre
 
     return today >= start && today <= end;
 }
@@ -31,7 +32,6 @@ function isSeasonalWindowActive(): boolean {
 export default function SubscriptionsPage() {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
     const router = useRouter();
     const { toast } = useToast();
 
@@ -78,7 +78,7 @@ export default function SubscriptionsPage() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-full">
+            <div className="flex h-full w-full items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
             </div>
         );
@@ -94,46 +94,49 @@ export default function SubscriptionsPage() {
             </div>
             
             {subscriptions.length === 0 ? (
-                 <Card className="w-full max-w-md">
+                 <Card className="w-full max-w-md text-center">
                     <CardHeader>
                         <CardTitle>Nessun Abbonamento Disponibile</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">Al momento non ci sono abbonamenti acquistabili. Controlla più tardi o contatta la segreteria.</p>
+                        <p className="text-muted-foreground">Al momento non ci sono abbonamenti acquistabili. L'abbonamento stagionale è disponibile solo dal 31 Agosto al 10 Ottobre. Contatta la segreteria per maggiori informazioni.</p>
                     </CardContent>
+                    <CardFooter>
+                        <Button onClick={() => router.push('/dashboard')} className="w-full">Torna alla Dashboard</Button>
+                    </CardFooter>
                  </Card>
             ) : (
-                <div className="grid w-full max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
+                <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
                     {subscriptions.map((sub) => (
-                        <Card key={sub.id} className="flex flex-col">
+                        <Card key={sub.id} className="flex flex-col border-2 hover:border-primary transition-all">
                             {sub.type === 'seasonal' && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                             <CardHeader>
                                 <CardTitle className="text-2xl">{sub.name}</CardTitle>
                                 <CardDescription>{sub.description}</CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
-                                <div className="text-4xl font-bold">
+                                <div className="text-5xl font-bold">
                                     {sub.price}€
                                     <span className="text-lg font-normal text-muted-foreground">/{sub.type === 'monthly' ? 'mese' : 'stagione'}</span>
                                 </div>
                                 <ul className="space-y-2 text-sm text-muted-foreground">
                                     <li className="flex items-center">
-                                        <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                                        Accesso a tutte le lezioni
+                                        <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
+                                        <span>Accesso a tutte le lezioni della tua disciplina</span>
                                     </li>
                                     <li className="flex items-center">
-                                         <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                                        Copertura assicurativa inclusa
+                                         <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
+                                         <span>Copertura assicurativa sempre inclusa</span>
                                     </li>
                                     {sub.type === 'monthly' ? (
                                         <li className="flex items-center">
-                                            <XCircle className="h-4 w-4 mr-2 text-destructive" />
-                                            Nessun vincolo a lungo termine
+                                            <XCircle className="h-4 w-4 mr-2 text-destructive flex-shrink-0" />
+                                            <span>Nessun vincolo a lungo termine, massima flessibilità</span>
                                         </li>
                                     ) : (
                                          <li className="flex items-center">
-                                            <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                                            Massimo risparmio
+                                            <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
+                                            <span>Il modo più conveniente per vivere un anno di sport</span>
                                         </li>
                                     )}
                                 </ul>
@@ -143,6 +146,7 @@ export default function SubscriptionsPage() {
                                     className="w-full" 
                                     onClick={() => handleSelectSubscription(sub)}
                                     variant={sub.type === 'seasonal' ? 'default' : 'secondary'}
+                                    size="lg"
                                 >
                                     Scegli {sub.name}
                                 </Button>
