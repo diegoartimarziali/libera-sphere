@@ -120,6 +120,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
               form.setValue("parentData", undefined, { shouldValidate: true });
               form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
           }
+          form.trigger("birthDate"); // Force validation of birthDate field
       } else {
           setIsMinor(null);
       }
@@ -150,7 +151,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             parentData: userData.parentData || defaultParentData
         };
         
-        if (userData.birthDate?.toDate) {
+        if (userData.birthDate?.toDate()) {
             const age = differenceInYears(new Date(), userData.birthDate.toDate());
             existingData.isMinor = age < 18;
             if (age >= 18) {
