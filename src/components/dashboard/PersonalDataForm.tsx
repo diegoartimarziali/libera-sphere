@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -126,57 +126,58 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
       }
   }, [birthDate, form]);
 
+  const memoizedUserDataFetch = useMemo(() => {
+    return async (uid: string) => {
+        const userDocRef = doc(db, "users", uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            
+            const [firstName, ...lastNameParts] = (userData.name || "").split(" ");
+            
+            const existingData: Partial<PersonalDataSchemaType> = {
+                name: firstName || "",
+                surname: lastNameParts.join(" ") || "",
+                taxCode: userData.taxCode || "",
+                birthDate: userData.birthDate?.toDate() || undefined,
+                birthPlace: userData.birthPlace || "",
+                address: userData.address || "",
+                streetNumber: userData.streetNumber || "",
+                city: userData.city || "",
+                zipCode: userData.zipCode || "",
+                province: userData.province || "",
+                phone: userData.phone || "",
+                parentData: userData.parentData || { parentName: "", parentSurname: "", parentTaxCode: "" }
+            };
+            
+            if (userData.birthDate?.toDate) {
+                const age = differenceInYears(new Date(), userData.birthDate.toDate());
+                existingData.isMinor = age < 18;
+            } else {
+                existingData.isMinor = false;
+            }
+            
+            if (!existingData.parentData) {
+                existingData.parentData = { parentName: "", parentSurname: "", parentTaxCode: "" };
+            }
+            
+            form.reset(existingData);
+        }
+    };
+  }, [form]);
+
   useEffect(() => {
     if (user) {
         setIsLoading(true);
-        const fetchUserData = async () => {
-            const userDocRef = doc(db, "users", user.uid);
-            const userDocSnap = await getDoc(userDocRef);
-            if (userDocSnap.exists()) {
-                const userData = userDocSnap.data();
-                
-                const [firstName, ...lastNameParts] = (userData.name || "").split(" ");
-                
-                const existingData: Partial<PersonalDataSchemaType> = {
-                    name: firstName || "",
-                    surname: lastNameParts.join(" ") || "",
-                    taxCode: userData.taxCode || "",
-                    birthDate: userData.birthDate?.toDate() || undefined,
-                    birthPlace: userData.birthPlace || "",
-                    address: userData.address || "",
-                    streetNumber: userData.streetNumber || "",
-                    city: userData.city || "",
-                    zipCode: userData.zipCode || "",
-                    province: userData.province || "",
-                    phone: userData.phone || "",
-                    parentData: userData.parentData || { parentName: "", parentSurname: "", parentTaxCode: "" }
-                };
-                
-                if (userData.birthDate?.toDate) {
-                    const age = differenceInYears(new Date(), userData.birthDate.toDate());
-                    existingData.isMinor = age < 18;
-                } else {
-                    existingData.isMinor = false;
-                }
-                
-                // Assicura che parentData non sia mai undefined
-                if (!existingData.parentData) {
-                    existingData.parentData = { parentName: "", parentSurname: "", parentTaxCode: "" };
-                }
-                
-                form.reset(existingData);
-            }
-            setIsLoading(false);
-        };
-        fetchUserData();
+        memoizedUserDataFetch(user.uid).finally(() => setIsLoading(false));
     }
-  }, [user, form]);
+  }, [user, memoizedUserDataFetch]);
 
 
   const onSubmit = async (data: PersonalDataSchemaType) => {
     setIsLoading(true)
     
-    const formattedData = {
+    const formattedData: PersonalDataSchemaType = {
         ...data,
         name: capitalizeFirstLetter(data.name),
         surname: capitalizeWords(data.surname),
@@ -185,16 +186,15 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         address: capitalizeWords(data.address),
         city: capitalizeWords(data.city),
         province: data.province.toUpperCase(),
-        birthDate: Timestamp.fromDate(data.birthDate),
         parentData: data.isMinor && data.parentData ? {
             ...data.parentData,
             parentName: capitalizeWords(data.parentData.parentName),
             parentSurname: capitalizeWords(data.parentData.parentSurname),
             parentTaxCode: data.parentData.parentTaxCode.toUpperCase(),
-        } : {},
+        } : undefined,
     };
     
-    onFormSubmit(formattedData as PersonalDataSchemaType)
+    onFormSubmit(formattedData)
     setIsLoading(false)
   }
 
@@ -245,7 +245,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                   <FormItem>
                     <FormLabel>Codice Fiscale</FormLabel>
                     <FormControl>
-                      <Input placeholder="RSSMRA80A01H501U" {...field} />
+                      <Input placeholder="RSSMRA80A01H501U" {...field} value={field.value.toUpperCase()} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -358,7 +358,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                         render={({ field }) => (
                         <FormItem>
                             <FormControl>
-                            <Input placeholder="Provincia (Sigla)" {...field} />
+                            <Input placeholder="Provincia (Sigla)" {...field} value={field.value.toUpperCase()} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -403,7 +403,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Codice Fiscale Genitore</FormLabel>
-                                <FormControl><Input placeholder="Codice Fiscale" {...field} /></FormControl>
+                                <FormControl><Input placeholder="Codice Fiscale" {...field} value={field.value.toUpperCase()} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )}

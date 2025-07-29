@@ -58,17 +58,6 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
     ) : null
 );
 
-const dayNameToJsGetDay = {
-    'Domenica': 0,
-    'Lunedì': 1,
-    'Martedì': 2,
-    'Mercoledì': 3,
-    'Giovedì': 4,
-    'Venerdì': 5,
-    'Sabato': 6,
-};
-
-
 // Componente per lo Step 2: Selezione Palestra e Lezione
 function GymSelectionStep({ 
     onBack, 
@@ -93,16 +82,17 @@ function GymSelectionStep({
     ];
 
     const today = new Date();
-    const currentYear = getYear(today);
     const currentMonthIndex = getMonth(today);
-
-    // Se siamo tra settembre e dicembre, la stagione è anno corrente / anno prossimo.
-    // Se siamo tra gennaio e agosto, la stagione è anno precedente / anno corrente.
+    const currentYear = getYear(today);
+    
+    // Se siamo tra Settembre e Dicembre, la stagione di selezioni inizia nell'anno corrente.
+    // Se siamo tra Gennaio e Aprile, la stagione di selezioni è iniziata nell'anno precedente.
     const selectionStartYear = currentMonthIndex >= 8 ? currentYear : currentYear - 1;
     const selectionEndYear = selectionStartYear + 1;
     
     const fromMonth = new Date(selectionStartYear, 8, 1);
-    const toMonth = new Date(selectionEndYear, 4, 0); // Ultimo giorno di Aprile
+    const toMonth = new Date(selectionEndYear, 3, 30); // Ultimo giorno di Aprile
+    
 
     useEffect(() => {
         const fetchGyms = async () => {
@@ -145,8 +135,8 @@ function GymSelectionStep({
 
     const handleSubmit = () => {
         if (selectedGym && selectedDate) {
-            const dayOfWeek = selectedDate.getDay();
-            const lesson = selectedGym.lessons.find(l => dayNameToJsGetDay[l.dayOfWeek as keyof typeof dayNameToJsGetDay] === dayOfWeek);
+            const dayOfWeekName = format(selectedDate, "EEEE", { locale: it }); // Es. "Lunedì"
+            const lesson = selectedGym.lessons.find(l => l.dayOfWeek.toLowerCase() === dayOfWeekName.toLowerCase());
             if (lesson) {
                 onNext({ gym: selectedGym, lessonDate: selectedDate, time: lesson.time });
             }
@@ -159,10 +149,10 @@ function GymSelectionStep({
         const today = startOfDay(new Date());
         if (date < today) return false; 
 
-        const dayOfWeek = date.getDay(); // JS: 0 (Sun) to 6 (Sat)
-        const availableJsDays = selectedGym.lessons.map(l => dayNameToJsGetDay[l.dayOfWeek as keyof typeof dayNameToJsGetDay]);
+        const dayOfWeekName = format(date, "EEEE", { locale: it }); // Es. "Lunedì"
+        const availableDayNames = selectedGym.lessons.map(l => l.dayOfWeek.toLowerCase());
         
-        return availableJsDays.includes(dayOfWeek);
+        return availableDayNames.includes(dayOfWeekName.toLowerCase());
     };
 
     if (loading) {
