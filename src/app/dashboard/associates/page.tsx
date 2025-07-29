@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { PersonalDataForm, type PersonalDataSchemaType } from "@/components/dashboard/PersonalDataForm"
 import { useToast } from "@/hooks/use-toast"
@@ -16,9 +16,14 @@ import { it } from "date-fns/locale"
 import { Checkbox } from "@/components/ui/checkbox"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc } from "firebase/firestore"
+import { doc, updateDoc, getDoc } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 
+interface FeeData {
+    name: string;
+    price: number;
+    sumupLink: string;
+}
 
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
 
@@ -33,7 +38,7 @@ const DataRow = ({ label, value }: { label: string; value?: string | null }) => 
 );
 
 // Componente per il Popup del Bonifico
-function BankTransferDialog({ open, onOpenChange, onConfirm }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void }) {
+function BankTransferDialog({ open, onOpenChange, onConfirm, fee }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, fee: FeeData | null }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
@@ -58,7 +63,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm }: { open: boolean, 
                     </div>
                      <div className="space-y-1">
                         <p className="font-semibold text-foreground">Importo:</p>
-                        <p>120,00 €</p>
+                        <p>{fee ? `${fee.price.toFixed(2)} €` : <Loader2 className="h-4 w-4 animate-spin" />}</p>
                     </div>
                      <div className="space-y-1">
                         <p className="font-semibold text-foreground">Causale:</p>
@@ -74,25 +79,29 @@ function BankTransferDialog({ open, onOpenChange, onConfirm }: { open: boolean, 
 }
 
 // Componente per lo Step di Pagamento Online (iFrame)
-function OnlinePaymentStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+function OnlinePaymentStep({ onBack, onNext, fee }: { onBack: () => void; onNext: () => void, fee: FeeData | null }) {
+    if (!fee) {
+        return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
+    }
+    
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Passo 3: Pagamento Online</CardTitle>
                 <CardDescription>
-                    Completa il pagamento di 120€ tramite il portale sicuro di SumUp qui sotto. Una volta terminato, clicca sul pulsante per procedere.
+                    Completa il pagamento di {fee.price}€ tramite il portale sicuro di SumUp qui sotto. Una volta terminato, clicca sul pulsante per procedere.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="aspect-video w-full">
                     <iframe
-                        src="https://pay.sumup.com/b2c/Q9ZH35JE"
+                        src={fee.sumupLink}
                         className="h-full w-full rounded-md border"
                         title="Pagamento SumUp Quota Associativa"
                     ></iframe>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href="https://pay.sumup.com/b2c/Q9ZH35JE" target="_blank" rel="noopener noreferrer" className="underline">cliccando qui</a>.
+                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href={fee.sumupLink} target="_blank" rel="noopener noreferrer" className="underline">cliccando qui</a>.
                 </p>
             </CardContent>
             <CardFooter className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
@@ -111,7 +120,7 @@ function OnlinePaymentStep({ onBack, onNext }: { onBack: () => void; onNext: () 
 
 
 // Componente per lo Step 2: Pagamento
-function PaymentStep({ onBack, onNext }: { onBack: () => void, onNext: (method: PaymentMethod) => void }) {
+function PaymentStep({ onBack, onNext, fee }: { onBack: () => void, onNext: (method: PaymentMethod) => void, fee: FeeData | null }) {
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
 
     return (
@@ -119,7 +128,7 @@ function PaymentStep({ onBack, onNext }: { onBack: () => void, onNext: (method: 
             <CardHeader>
                 <CardTitle>Passo 2: Quota Associativa</CardTitle>
                 <CardDescription>
-                    Scegli come versare la quota associativa annuale di 120€.
+                    Scegli come versare la quota associativa annuale di {fee ? `${fee.price}€` : "..."}.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -136,7 +145,7 @@ function PaymentStep({ onBack, onNext }: { onBack: () => void, onNext: (method: 
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Online (Carta di Credito)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Paga in modo sicuro e veloce la quota di 120€ con la tua carta tramite SumUp.
+                                Paga in modo sicuro e veloce la quota di {fee ? `${fee.price}€` : "..."} con la tua carta tramite SumUp.
                             </p>
                         </div>
                          <CreditCard className="h-6 w-6 text-muted-foreground" />
@@ -150,7 +159,7 @@ function PaymentStep({ onBack, onNext }: { onBack: () => void, onNext: (method: 
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Bonifico Bancario</h4>
                             <p className="text-sm text-muted-foreground">
-                                Si aprirà un popup con gli estremi per effettuare il bonifico di 120€. La richiesta sarà valida dopo la verifica.
+                                Si aprirà un popup con gli estremi per effettuare il bonifico di {fee ? `${fee.price}€` : "..."}. La richiesta sarà valida dopo la verifica.
                             </p>
                         </div>
                          <University className="h-6 w-6 text-muted-foreground" />
@@ -164,7 +173,7 @@ function PaymentStep({ onBack, onNext }: { onBack: () => void, onNext: (method: 
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">In Sede (Contanti o Bancomat)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Potrai saldare la quota di 120€ direttamente presso la nostra sede.
+                                Potrai saldare la quota di {fee ? `${fee.price}€` : "..."} direttamente presso la nostra sede.
                             </p>
                         </div>
                         <Landmark className="h-6 w-6 text-muted-foreground" />
@@ -188,12 +197,12 @@ function getPaymentDescription(method: PaymentMethod | null) {
     }
 }
 
-function getPaymentStatus(method: PaymentMethod | null) {
+function getPaymentStatus(method: PaymentMethod | null, price: number) {
      switch (method) {
-        case 'online': return '120,00 € (In attesa di conferma)';
-        case 'bank_transfer': return '120,00 € (In attesa di accredito)';
-        case 'in_person': return '120,00 € (Da versare in sede)';
-        default: return '120,00 €';
+        case 'online': return `${price.toFixed(2)} € (In attesa di conferma)`;
+        case 'bank_transfer': return `${price.toFixed(2)} € (In attesa di accredito)`;
+        case 'in_person': return `${price.toFixed(2)} € (Da versare in sede)`;
+        default: return `${price.toFixed(2)} €`;
     }
 }
 
@@ -202,15 +211,21 @@ function ConfirmationStep({
     paymentMethod,
     onBack,
     onComplete,
-    isSubmitting
+    isSubmitting,
+    fee
 }: {
     formData: PersonalDataSchemaType,
     paymentMethod: PaymentMethod | null,
     onBack: () => void,
     onComplete: () => void,
-    isSubmitting: boolean
+    isSubmitting: boolean,
+    fee: FeeData | null
 }) {
     const [isConfirmed, setIsConfirmed] = useState(false);
+    
+    if (!fee) {
+        return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
+    }
 
     return (
         <Card>
@@ -248,7 +263,7 @@ function ConfirmationStep({
                     <h3 className="font-semibold text-lg">Quota Associativa</h3>
                     <dl className="space-y-2">
                        <DataRow label="Metodo Scelto" value={getPaymentDescription(paymentMethod)} />
-                       <DataRow label="Stato Pagamento" value={getPaymentStatus(paymentMethod)} />
+                       <DataRow label="Stato Pagamento" value={getPaymentStatus(paymentMethod, fee.price)} />
                     </dl>
                 </div>
 
@@ -277,10 +292,31 @@ export default function AssociatesPage() {
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
     const [user] = useAuthState(auth);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
+    const [feeData, setFeeData] = useState<FeeData | null>(null);
+    const [loadingFee, setLoadingFee] = useState(true);
 
     const { toast } = useToast()
     const router = useRouter()
+    
+    useEffect(() => {
+        const fetchFee = async () => {
+            try {
+                const feeDocRef = doc(db, "fees", "association");
+                const feeDocSnap = await getDoc(feeDocRef);
+                if (feeDocSnap.exists()) {
+                    setFeeData(feeDocSnap.data() as FeeData);
+                } else {
+                    toast({ title: "Errore", description: "Impossibile caricare i dati della quota. Contatta la segreteria.", variant: "destructive" });
+                }
+            } catch (error) {
+                console.error("Error fetching fee data:", error);
+                toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati della quota. Riprova.", variant: "destructive" });
+            } finally {
+                setLoadingFee(false);
+            }
+        };
+        fetchFee();
+    }, [toast]);
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data)
@@ -328,8 +364,8 @@ export default function AssociatesPage() {
 
 
     const submitApplication = async () => {
-         if (!user || !formData) {
-             toast({ title: "Errore", description: "Utente o dati del form non trovati.", variant: "destructive" });
+         if (!user || !formData || !feeData) {
+             toast({ title: "Errore", description: "Utente, dati del form o informazioni sulla quota non trovati.", variant: "destructive" });
              return;
          }
          setIsSubmitting(true);
@@ -351,6 +387,11 @@ export default function AssociatesPage() {
                 associationExpiryDate: getSeasonExpiryDate(),
                 paymentMethod: paymentMethod,
                 isInsured: false,
+                paymentDetails: {
+                    feeName: feeData.name,
+                    amount: feeData.price,
+                    status: 'pending'
+                }
             });
             toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo. Verrai reindirizzato al prossimo passo." });
             router.push("/dashboard/medical-certificate");
@@ -377,6 +418,14 @@ export default function AssociatesPage() {
     const handleBackFromOnlinePayment = () => {
         setStep(2);
     }
+    
+    if (loadingFee) {
+        return (
+             <div className="flex h-full w-full items-center justify-center">
+                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            </div>
+        )
+    }
 
     return (
         <div className="flex w-full flex-col items-center">
@@ -400,10 +449,11 @@ export default function AssociatesPage() {
                     <PaymentStep
                         onBack={() => setStep(1)}
                         onNext={handlePaymentSubmit}
+                        fee={feeData}
                     />
                 )}
                 {step === 3 && paymentMethod === 'online' && (
-                     <OnlinePaymentStep onBack={handleBackFromOnlinePayment} onNext={handleOnlinePaymentNext} />
+                     <OnlinePaymentStep onBack={handleBackFromOnlinePayment} onNext={handleOnlinePaymentNext} fee={feeData} />
                 )}
                 {step === 4 && formData && (
                     <ConfirmationStep
@@ -412,6 +462,7 @@ export default function AssociatesPage() {
                         onBack={handleBack}
                         onComplete={submitApplication}
                         isSubmitting={isSubmitting}
+                        fee={feeData}
                     />
                 )}
             </div>
@@ -420,9 +471,8 @@ export default function AssociatesPage() {
                 open={isBankTransferDialogOpen}
                 onOpenChange={setIsBankTransferDialogOpen}
                 onConfirm={handleBankTransferConfirm}
+                fee={feeData}
             />
         </div>
     )
 }
-
-    

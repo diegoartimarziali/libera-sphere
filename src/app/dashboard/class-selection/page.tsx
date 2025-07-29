@@ -15,10 +15,16 @@ import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconMonth } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, collection, getDocs, Timestamp } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs, getDoc } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+
+interface FeeData {
+    name: string;
+    price: number;
+    sumupLink: string;
+}
 
 // Tipi di dati
 type PaymentMethod = "in_person" | "online"
@@ -77,10 +83,25 @@ function GymSelectionStep({
             try {
                 const gymsCollection = collection(db, 'gyms');
                 const gymSnapshot = await getDocs(gymsCollection);
-                const gymsList = gymSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                } as Gym)).sort((a, b) => a.name.localeCompare(b.name));
+                const gymsList = gymSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    let availableDays = data.availableDays;
+                    // Robustness check: if availableDays is a stringified array, parse it
+                    if (typeof availableDays === 'string' && availableDays.startsWith('[') && availableDays.endsWith(']')) {
+                        try {
+                            availableDays = JSON.parse(availableDays);
+                        } catch (e) {
+                            console.error(`Could not parse availableDays for gym ${doc.id}`, e);
+                            availableDays = [];
+                        }
+                    }
+
+                    return {
+                        id: doc.id,
+                        ...data,
+                        availableDays,
+                    } as Gym;
+                }).sort((a, b) => a.name.localeCompare(b.name));
                 setGyms(gymsList);
             } catch (error) {
                 console.error("Error fetching gyms:", error);
@@ -96,7 +117,6 @@ function GymSelectionStep({
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
         setLessonDay(null);
-        setLessonMonth(null);
     }
 
     const handleSubmit = () => {
@@ -119,7 +139,9 @@ function GymSelectionStep({
         )
     }
 
-    const availableDaysSorted = selectedGym?.availableDays ? [...selectedGym.availableDays].sort((a, b) => a - b) : [];
+    const availableDaysSorted = selectedGym?.availableDays && Array.isArray(selectedGym.availableDays) 
+    ? [...selectedGym.availableDays].sort((a, b) => a - b) 
+    : [];
 
     return (
         <Card>
@@ -197,10 +219,12 @@ function GymSelectionStep({
 // Componente per lo Step di Pagamento
 function PaymentStep({ 
     onBack, 
-    onNext 
+    onNext,
+    fee
 }: { 
     onBack: () => void, 
-    onNext: (method: PaymentMethod) => void 
+    onNext: (method: PaymentMethod) => void,
+    fee: FeeData | null
 }) {
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
 
@@ -209,7 +233,7 @@ function PaymentStep({
             <CardHeader>
                 <CardTitle>Passo 3: Metodo di Pagamento</CardTitle>
                 <CardDescription>
-                    Scegli come preferisci pagare la quota di iscrizione di 30€.
+                    Scegli come preferisci pagare la quota di iscrizione di {fee ? `${fee.price}€` : "..."}.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -226,7 +250,7 @@ function PaymentStep({
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">In Palestra (Contanti o Bancomat)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Potrai saldare la quota di 30€ direttamente presso la nostra sede prima dell'inizio delle lezioni.
+                                Potrai saldare la quota di {fee ? `${fee.price}€` : "..."} direttamente presso la nostra sede prima dell'inizio delle lezioni.
                             </p>
                         </div>
                         <Landmark className="h-6 w-6 text-muted-foreground" />
@@ -240,7 +264,7 @@ function PaymentStep({
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Online (Carta di Credito)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Paga in modo sicuro e veloce la quota di 30€ con la tua carta tramite SumUp.
+                                Paga in modo sicuro e veloce la quota di {fee ? `${fee.price}€` : "..."} con la tua carta tramite SumUp.
                             </p>
                         </div>
                          <CreditCard className="h-6 w-6 text-muted-foreground" />
@@ -258,29 +282,35 @@ function PaymentStep({
 // Componente per lo Step di Pagamento Online con iFrame
 function OnlinePaymentStep({ 
     onBack, 
-    onNext 
+    onNext,
+    fee
 }: { 
     onBack: () => void, 
-    onNext: () => void 
+    onNext: () => void,
+    fee: FeeData | null
 }) {
+    if (!fee) {
+        return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
+    }
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Passo 4: Pagamento Online</CardTitle>
                 <CardDescription>
-                    Completa il pagamento di 30€ tramite il portale sicuro di SumUp qui sotto. Una volta terminato, clicca sul pulsante per procedere.
+                    Completa il pagamento di {fee.price}€ tramite il portale sicuro di SumUp qui sotto. Una volta terminato, clicca sul pulsante per procedere.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="aspect-video w-full">
                     <iframe 
-                        src="https://pay.sumup.com/b2c/Q25VI0NJ" 
+                        src={fee.sumupLink}
                         className="h-full w-full rounded-md border"
                         title="Pagamento SumUp"
                     ></iframe>
                 </div>
                  <p className="text-sm text-muted-foreground">
-                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href="https://pay.sumup.com/b2c/Q25VI0NJ" target="_blank" rel="noopener noreferrer" className="underline">cliccando qui</a>.
+                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href={fee.sumupLink} target="_blank" rel="noopener noreferrer" className="underline">cliccando qui</a>.
                 </p>
             </CardContent>
             <CardFooter className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
@@ -305,16 +335,22 @@ function ConfirmationStep({
     paymentMethod,
     onBack, 
     onComplete,
-    isSubmitting
+    isSubmitting,
+    fee
 }: { 
     formData: PersonalDataSchemaType,
     gymSelection: GymSelectionData,
     paymentMethod: PaymentMethod,
     onBack: () => void, 
     onComplete: () => void,
-    isSubmitting: boolean
+    isSubmitting: boolean,
+    fee: FeeData | null
 }) {
     const [isConfirmed, setIsConfirmed] = useState(false);
+    
+    if (!fee) {
+        return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
+    }
 
     return (
         <Card>
@@ -368,7 +404,7 @@ function ConfirmationStep({
                        />
                        <DataRow 
                           label={paymentMethod === 'in_person' ? "Importo da Pagare" : "Importo"}
-                          value={paymentMethod === 'in_person' ? "30,00 €" : "30,00 € (In attesa di conferma)"}
+                          value={paymentMethod === 'in_person' ? `${fee.price.toFixed(2)} €` : `${fee.price.toFixed(2)} € (In attesa di conferma)`}
                        />
                     </dl>
                 </div>
@@ -398,10 +434,32 @@ export default function ClassSelectionPage() {
     const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null)
     const [gymSelection, setGymSelection] = useState<GymSelectionData | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
+    const [feeData, setFeeData] = useState<FeeData | null>(null);
+    const [loadingFee, setLoadingFee] = useState(true);
     const { toast } = useToast()
     const router = useRouter()
     const [user] = useAuthState(auth);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        const fetchFee = async () => {
+            try {
+                const feeDocRef = doc(db, "fees", "trial");
+                const feeDocSnap = await getDoc(feeDocRef);
+                if (feeDocSnap.exists()) {
+                    setFeeData(feeDocSnap.data() as FeeData);
+                } else {
+                    toast({ title: "Errore", description: "Impossibile caricare i dati della quota. Contatta la segreteria.", variant: "destructive" });
+                }
+            } catch (error) {
+                console.error("Error fetching fee data:", error);
+                toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati della quota. Riprova.", variant: "destructive" });
+            } finally {
+                setLoadingFee(false);
+            }
+        };
+        fetchFee();
+    }, [toast]);
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data);
@@ -427,7 +485,7 @@ export default function ClassSelectionPage() {
     }
     
     const handleComplete = async () => {
-        if (!user || !paymentMethod || !formData || !gymSelection) {
+        if (!user || !paymentMethod || !formData || !gymSelection || !feeData) {
             toast({ title: "Errore", description: "Dati mancanti per completare l'iscrizione.", variant: "destructive" });
             return;
         }
@@ -455,6 +513,11 @@ export default function ClassSelectionPage() {
                     time: gymSelection.gym.time,
                 },
                 paymentMethod: paymentMethod,
+                paymentDetails: {
+                    feeName: feeData.name,
+                    amount: feeData.price,
+                    status: 'pending'
+                }
             });
 
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
@@ -486,6 +549,14 @@ export default function ClassSelectionPage() {
     const handleBackFromPayment = () => {
          setStep(3); // Torna sempre alla selezione metodo di pagamento
     }
+    
+     if (loadingFee) {
+        return (
+             <div className="flex h-full w-full items-center justify-center">
+                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            </div>
+        )
+    }
 
 
     return (
@@ -516,12 +587,14 @@ export default function ClassSelectionPage() {
                     <PaymentStep
                         onBack={() => setStep(2)}
                         onNext={handleNextStep3}
+                        fee={feeData}
                     />
                 )}
                 {step === 4 && paymentMethod === 'online' && (
                     <OnlinePaymentStep
                         onBack={handleBackFromPayment}
                         onNext={handleNextStep4}
+                        fee={feeData}
                     />
                 )}
                 {step === 5 && formData && paymentMethod && gymSelection && (
@@ -532,6 +605,7 @@ export default function ClassSelectionPage() {
                         onBack={handleBack} 
                         onComplete={handleComplete} 
                         isSubmitting={isSubmitting}
+                        fee={feeData}
                     />
                 )}
             </div>
