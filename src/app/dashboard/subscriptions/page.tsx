@@ -20,6 +20,11 @@ interface Subscription {
 }
 
 function isSeasonalWindowActive(): boolean {
+    // MODIFICA TEMPORANEA PER SVILUPPO: mostra sempre lo stagionale.
+    // In produzione, questa funzione controllerà la data.
+    return true; 
+    
+    /*
     const today = new Date();
     const currentYear = today.getFullYear();
     // La finestra va dal 31 Agosto al 10 Ottobre
@@ -27,6 +32,7 @@ function isSeasonalWindowActive(): boolean {
     const end = new Date(currentYear, 9, 10);   // Mese 9 è Ottobre
 
     return today >= start && today <= end;
+    */
 }
 
 export default function SubscriptionsPage() {
