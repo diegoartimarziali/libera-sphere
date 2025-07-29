@@ -20,6 +20,7 @@ import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { cn } from "@/lib/utils"
 
 
 interface FeeData {
@@ -251,31 +252,26 @@ function GymSelectionStep({
                     <div className="space-y-4 animate-in fade-in-50">
                         <Label>2. Scegli una lezione di prova</Label>
                         {upcomingLessons.length > 0 ? (
-                            <RadioGroup 
-                                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                                value={selectedLesson ? `${selectedLesson.date.toISOString()}-${selectedLesson.time}` : ""}
-                                onValueChange={(value) => {
-                                    const [dateStr, time] = value.split('-');
-                                    const lesson = upcomingLessons.find(l => l.date.toISOString() === dateStr && l.time === time);
-                                    setSelectedLesson(lesson || null);
-                                }}
-                            >
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {upcomingLessons.map((lesson, index) => {
-                                    const id = `lesson-${index}`;
-                                    const lessonValue = `${lesson.date.toISOString()}-${lesson.time}`;
+                                    const lessonId = `${lesson.date.toISOString()}-${lesson.time}`;
+                                    const isSelected = selectedLesson && `${selectedLesson.date.toISOString()}-${selectedLesson.time}` === lessonId;
+
                                     return (
-                                    <div key={id}>
-                                        <RadioGroupItem value={lessonValue} id={id} className="peer sr-only" />
-                                        <Label 
-                                            htmlFor={id}
-                                            className="flex flex-col items-start cursor-pointer rounded-lg border p-4 transition-all hover:bg-accent/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
+                                        <div
+                                            key={lessonId}
+                                            onClick={() => setSelectedLesson(lesson)}
+                                            className={cn(
+                                                "flex flex-col items-start cursor-pointer rounded-lg border p-4 transition-all hover:bg-accent/50",
+                                                isSelected && "border-primary bg-primary/5"
+                                            )}
                                         >
                                             <p className="font-semibold capitalize">{format(lesson.date, 'EEEE d MMMM', { locale: it })}</p>
                                             <p className="text-muted-foreground text-sm">{lesson.time}</p>
-                                        </Label>
-                                    </div>
-                                )})}
-                            </RadioGroup>
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         ) : (
                              <p className="text-sm text-muted-foreground p-4 border rounded-md bg-muted/50">Nessuna lezione imminente trovata per questa palestra.</p>
                         )}
@@ -704,5 +700,7 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
