@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { format } from "date-fns"
+import { format, getMonth, getYear, eachDayOfInterval, startOfMonth, endOfMonth, parse } from "date-fns"
 import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconMonth } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
@@ -36,13 +36,17 @@ interface Gym {
 }
 interface GymSelectionData {
     gym: Gym;
-    lessonMonth: string;
-    lessonDay: string;
+    lessonDate: Date;
 }
 
 const getDayName = (dayNumber: number): string => {
     const days = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
     return days[dayNumber] || '';
+};
+
+const monthNameToNumber: { [key: string]: number } = {
+    "gennaio": 0, "febbraio": 1, "marzo": 2, "aprile": 3, "maggio": 4, "giugno": 5,
+    "luglio": 6, "agosto": 7, "settembre": 8, "ottobre": 9, "novembre": 10, "dicembre": 11
 };
 
 // Componente per visualizzare i dati in modo pulito
@@ -70,7 +74,9 @@ function GymSelectionStep({
     const [loading, setLoading] = useState(true);
     const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
     const [lessonMonth, setLessonMonth] = useState<string | null>(null);
-    const [lessonDay, setLessonDay] = useState<string | null>(null);
+    const [lessonDayOfWeek, setLessonDayOfWeek] = useState<string | null>(null);
+    const [availableDates, setAvailableDates] = useState<Date[]>([]);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const { toast } = useToast();
 
     const months = [
@@ -101,15 +107,61 @@ function GymSelectionStep({
         fetchGyms();
     }, [toast]);
     
+    // Genera le date disponibili quando mese e giorno della settimana sono selezionati
+    useEffect(() => {
+        if (lessonMonth && lessonDayOfWeek) {
+            const monthIndex = monthNameToNumber[lessonMonth.toLowerCase()];
+            if (monthIndex === undefined) return;
+
+            const now = new Date();
+            const currentYear = getYear(now);
+            const currentMonth = getMonth(now);
+            
+            // L'anno della stagione sportiva inizia a settembre.
+            // Se il mese selezionato è prima di settembre (gen-ago), si riferisce all'anno successivo.
+            const targetYear = (monthIndex < 8 && currentMonth >=8) ? currentYear + 1 : currentYear;
+
+            const startDate = startOfMonth(new Date(targetYear, monthIndex, 1));
+            const endDate = endOfMonth(startDate);
+            
+            const dates = eachDayOfInterval({ start: startDate, end: endDate });
+            
+            const filteredDates = dates.filter(date => {
+                const dayOfWeek = date.getDay(); // Domenica = 0, Lunedì = 1, ...
+                return dayOfWeek === Number(lessonDayOfWeek) && date > now;
+            });
+            
+            setAvailableDates(filteredDates);
+            setSelectedDate(null); // Resetta la data selezionata quando cambiano mese o giorno
+        } else {
+            setAvailableDates([]);
+        }
+    }, [lessonMonth, lessonDayOfWeek]);
+
+
     const handleGymChange = (gymId: string) => {
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
-        setLessonDay(null);
+        setLessonDayOfWeek(null);
+        setLessonMonth(null);
+        setSelectedDate(null);
+    }
+    
+     const handleDayOfWeekChange = (day: string) => {
+        setLessonDayOfWeek(day);
+        setLessonMonth(null); // Resetta mese e data quando cambia il giorno
+        setSelectedDate(null);
+    }
+
+    const handleMonthChange = (month: string) => {
+        setLessonMonth(month);
+        setSelectedDate(null); // Resetta la data quando cambia il mese
     }
 
     const handleSubmit = () => {
-        if (selectedGym && lessonMonth && lessonDay) {
-            onNext({ gym: selectedGym, lessonMonth, lessonDay });
+        if (selectedGym && selectedDate) {
+            const lessonDate = parse(selectedDate, "yyyy-MM-dd", new Date());
+            onNext({ gym: selectedGym, lessonDate });
         }
     }
 
@@ -165,7 +217,7 @@ function GymSelectionStep({
                  {selectedGym && (
                      <div className="space-y-2 animate-in fade-in-50">
                         <Label htmlFor="day-select">2. Giorno della Lezione</Label>
-                        <Select onValueChange={setLessonDay} value={lessonDay || ''} disabled={!availableDaysSorted.length}>
+                        <Select onValueChange={handleDayOfWeekChange} value={lessonDayOfWeek || ''} disabled={!availableDaysSorted.length}>
                             <SelectTrigger id="day-select">
                                 <SelectValue placeholder="Seleziona un giorno" />
                             </SelectTrigger>
@@ -183,10 +235,10 @@ function GymSelectionStep({
                     </div>
                  )}
                  
-                 {selectedGym && lessonDay && (
+                 {selectedGym && lessonDayOfWeek && (
                      <div className="space-y-2 animate-in fade-in-50">
                         <Label htmlFor="month-select">3. Mese di Inizio</Label>
-                        <Select onValueChange={setLessonMonth} value={lessonMonth || ''}>
+                        <Select onValueChange={handleMonthChange} value={lessonMonth || ''}>
                             <SelectTrigger id="month-select">
                                 <SelectValue placeholder="Seleziona un mese" />
                             </SelectTrigger>
@@ -200,11 +252,30 @@ function GymSelectionStep({
                         </Select>
                     </div>
                  )}
+                 
+                {availableDates.length > 0 && (
+                     <div className="space-y-2 animate-in fade-in-50">
+                        <Label htmlFor="date-select">4. Scegli la data esatta</Label>
+                        <Select onValueChange={setSelectedDate} value={selectedDate || ''}>
+                            <SelectTrigger id="date-select">
+                                <SelectValue placeholder="Seleziona una data" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {availableDates.map(date => (
+                                    <SelectItem key={date.toISOString()} value={format(date, "yyyy-MM-dd")}>
+                                        {format(date, "EEEE d", { locale: it })}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
 
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack}>Indietro</Button>
-                 <Button onClick={handleSubmit} disabled={!selectedGym || !lessonMonth || !lessonDay}>Prosegui al Pagamento</Button>
+                 <Button onClick={handleSubmit} disabled={!selectedGym || !selectedDate}>Prosegui al Pagamento</Button>
             </CardFooter>
         </Card>
     )
@@ -345,6 +416,8 @@ function ConfirmationStep({
     if (!fee) {
         return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
     }
+    
+    const formattedLessonDate = format(gymSelection.lessonDate, "EEEE d MMMM yyyy", { locale: it });
 
     return (
         <Card>
@@ -383,8 +456,7 @@ function ConfirmationStep({
                     <h3 className="font-semibold text-lg">Lezione di Prova</h3>
                     <dl className="space-y-3">
                         <DataRow label="Palestra" value={gymSelection.gym.name} icon={<Building size={16} />} />
-                        <DataRow label="Mese Inizio" value={gymSelection.lessonMonth} icon={<CalendarIconMonth size={16} />} />
-                        <DataRow label="Giorno" value={getDayName(Number(gymSelection.lessonDay))} />
+                        <DataRow label="Data Lezione" value={formattedLessonDate} icon={<CalendarIconMonth size={16} />} />
                         <DataRow label="Orario" value={gymSelection.gym.time} icon={<Clock size={16} />} />
                     </dl>
                 </div>
@@ -491,23 +563,30 @@ export default function ClassSelectionPage() {
             
             const userData = {
                 ...dataToSave,
-                ...(isMinor && { parentData: parentData })
+                ...(isMinor && parentData ? { parentData: parentData } : { parentData: {} }),
+                 birthDate: dataToSave.birthDate ? dataToSave.birthDate : null
             };
             
             await updateDoc(userDocRef, {
+                // Dati anagrafici
                 ...userData,
                 name: `${formData.name} ${formData.surname}`.trim(),
+                
+                // Dati iscrizione
                 applicationSubmitted: true,
                 paymentMethod: paymentMethod,
                 associationStatus: "not_associated",
                 isInsured: true,
+                
+                // Lezione di prova
                 trialLesson: {
                     gymId: gymSelection.gym.id,
                     gymName: gymSelection.gym.name,
-                    lessonMonth: gymSelection.lessonMonth,
-                    lessonDay: getDayName(Number(gymSelection.lessonDay)),
+                    lessonDate: gymSelection.lessonDate, // Salva la data completa
                     time: gymSelection.gym.time,
                 },
+
+                // Dettagli pagamento
                 paymentDetails: {
                     feeName: feeData.name,
                     amount: feeData.price,
@@ -607,3 +686,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
