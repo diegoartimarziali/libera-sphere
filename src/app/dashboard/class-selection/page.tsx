@@ -117,9 +117,13 @@ function GymSelectionStep({
             const currentYear = getYear(now);
             const currentMonth = getMonth(now);
             
-            // L'anno della stagione sportiva inizia a settembre.
-            // Se il mese selezionato è prima di settembre (gen-ago), si riferisce all'anno successivo.
-            const targetYear = (monthIndex < 8 && currentMonth >=8) ? currentYear + 1 : currentYear;
+            // La stagione sportiva inizia a settembre (mese con indice 8).
+            // Se il mese corrente è da settembre a dicembre (>= 8), e il mese selezionato è da gennaio ad agosto (< 8),
+            // allora il mese selezionato si riferisce all'anno prossimo.
+            let targetYear = currentYear;
+            if (currentMonth >= 8 && monthIndex < 8) {
+                targetYear = currentYear + 1;
+            }
 
             const startDate = startOfMonth(new Date(targetYear, monthIndex, 1));
             const endDate = endOfMonth(startDate);
@@ -263,7 +267,7 @@ function GymSelectionStep({
                             <SelectContent>
                                 {availableDates.map(date => (
                                     <SelectItem key={date.toISOString()} value={format(date, "yyyy-MM-dd")}>
-                                        {format(date, "EEEE d", { locale: it })}
+                                        {format(date, "EEEE d MMMM", { locale: it })}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -432,12 +436,14 @@ function ConfirmationStep({
                 <div className="space-y-4 rounded-md border p-4">
                      <h3 className="font-semibold text-lg">Dati Anagrafici</h3>
                      <dl className="space-y-2">
-                        <DataRow label="Nome e Cognome" value={`${formData.name} ${formData.surname}`} />
+                        <DataRow label="Nome" value={formData.name} />
+                        <DataRow label="Cognome" value={formData.surname} />
                         <DataRow label="Codice Fiscale" value={formData.taxCode} />
                         <DataRow label="Data di Nascita" value={formData.birthDate ? format(formData.birthDate, "PPP", { locale: it }) : ''} />
                         <DataRow label="Luogo di Nascita" value={formData.birthPlace} />
                         <DataRow label="Indirizzo" value={`${formData.address}, ${formData.streetNumber}`} />
                         <DataRow label="Città" value={`${formData.city} (${formData.province}), ${formData.zipCode}`} />
+                        <DataRow label="Email" value={auth.currentUser?.email} />
                         <DataRow label="Telefono" value={formData.phone} />
                      </dl>
                 </div>
@@ -446,8 +452,9 @@ function ConfirmationStep({
                     <div className="space-y-4 rounded-md border p-4">
                         <h3 className="font-semibold text-lg">Dati Genitore/Tutore</h3>
                         <dl className="space-y-2">
-                           <DataRow label="Nome e Cognome" value={`${formData.parentData.parentName} ${formData.parentData.parentSurname}`} />
-                           <DataRow label="Codice Fiscale" value={`${formData.parentData.parentTaxCode}`} />
+                           <DataRow label="Nome" value={formData.parentData.parentName} />
+                           <DataRow label="Cognome" value={formData.parentData.parentSurname} />
+                           <DataRow label="Codice Fiscale" value={formData.parentData.parentTaxCode} />
                         </dl>
                     </div>
                 )}
@@ -559,34 +566,31 @@ export default function ClassSelectionPage() {
         try {
             const userDocRef = doc(db, "users", user.uid);
             
-            const { isMinor, parentData, ...dataToSave } = formData;
-            
-            const userData = {
-                ...dataToSave,
-                ...(isMinor && parentData ? { parentData: parentData } : { parentData: {} }),
-                 birthDate: dataToSave.birthDate ? dataToSave.birthDate : null
-            };
-            
             await updateDoc(userDocRef, {
-                // Dati anagrafici
-                ...userData,
-                name: `${formData.name} ${formData.surname}`.trim(),
-                
-                // Dati iscrizione
+                uid: user.uid,
+                name: formData.name,
+                surname: formData.surname,
+                birthPlace: formData.birthPlace,
+                birthDate: formData.birthDate,
+                taxCode: formData.taxCode,
+                address: formData.address,
+                streetNumber: formData.streetNumber,
+                zipCode: formData.zipCode,
+                city: formData.city,
+                province: formData.province,
+                email: user.email,
+                phone: formData.phone,
+                parentData: formData.isMinor && formData.parentData ? formData.parentData : {},
                 applicationSubmitted: true,
                 paymentMethod: paymentMethod,
                 associationStatus: "not_associated",
                 isInsured: true,
-                
-                // Lezione di prova
                 trialLesson: {
                     gymId: gymSelection.gym.id,
                     gymName: gymSelection.gym.name,
-                    lessonDate: gymSelection.lessonDate, // Salva la data completa
+                    lessonDate: gymSelection.lessonDate,
                     time: gymSelection.gym.time,
                 },
-
-                // Dettagli pagamento
                 paymentDetails: {
                     feeName: feeData.name,
                     amount: feeData.price,
