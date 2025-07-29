@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -126,45 +126,46 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
       }
   }, [birthDate, form]);
 
-  const memoizedUserDataFetch = useMemo(() => {
-    return async (uid: string) => {
-        const userDocRef = doc(db, "users", uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            
-            const [firstName, ...lastNameParts] = (userData.name || "").split(" ");
-            
-            const existingData: Partial<PersonalDataSchemaType> = {
-                name: firstName || "",
-                surname: lastNameParts.join(" ") || "",
-                taxCode: userData.taxCode || "",
-                birthDate: userData.birthDate?.toDate() || undefined,
-                birthPlace: userData.birthPlace || "",
-                address: userData.address || "",
-                streetNumber: userData.streetNumber || "",
-                city: userData.city || "",
-                zipCode: userData.zipCode || "",
-                province: userData.province || "",
-                phone: userData.phone || "",
-                parentData: userData.parentData || { parentName: "", parentSurname: "", parentTaxCode: "" }
-            };
-            
-            if (userData.birthDate?.toDate) {
-                const age = differenceInYears(new Date(), userData.birthDate.toDate());
-                existingData.isMinor = age < 18;
-            } else {
-                existingData.isMinor = false;
-            }
-            
-            if (!existingData.parentData) {
-                existingData.parentData = { parentName: "", parentSurname: "", parentTaxCode: "" };
-            }
-            
-            form.reset(existingData);
-            await form.trigger(); // Aggiunto per forzare la validazione
+  const memoizedUserDataFetch = useCallback(async (uid: string) => {
+    const userDocRef = doc(db, "users", uid);
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        
+        const [firstName, ...lastNameParts] = (userData.name || "").split(" ");
+        
+        const defaultParentData = { parentName: "", parentSurname: "", parentTaxCode: "" };
+
+        const existingData: Partial<PersonalDataSchemaType> = {
+            name: firstName || "",
+            surname: lastNameParts.join(" ") || "",
+            taxCode: userData.taxCode || "",
+            birthDate: userData.birthDate?.toDate() || undefined,
+            birthPlace: userData.birthPlace || "",
+            address: userData.address || "",
+            streetNumber: userData.streetNumber || "",
+            city: userData.city || "",
+            zipCode: userData.zipCode || "",
+            province: userData.province || "",
+            phone: userData.phone || "",
+            parentData: userData.parentData || defaultParentData
+        };
+        
+        if (userData.birthDate?.toDate) {
+            const age = differenceInYears(new Date(), userData.birthDate.toDate());
+            existingData.isMinor = age < 18;
+        } else {
+            existingData.isMinor = false;
         }
-    };
+        
+        if (!existingData.parentData || Object.keys(existingData.parentData).length === 0) {
+            existingData.parentData = defaultParentData;
+        }
+        
+        form.reset(existingData);
+        // We need to wait a tick for the form to update before triggering validation
+        setTimeout(() => form.trigger(), 0);
+    }
   }, [form]);
 
   useEffect(() => {

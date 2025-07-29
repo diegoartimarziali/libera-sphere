@@ -17,53 +17,29 @@ interface DateSelectorProps {
 }
 
 export function DateSelector({ value, onChange, disableFuture, disablePast }: DateSelectorProps) {
-    const [day, setDay] = React.useState<string>(value ? String(value.getDate()) : "");
-    const [month, setMonth] = React.useState<string>(value ? String(value.getMonth() + 1) : "");
-    const [year, setYear] = React.useState<string>(value ? String(value.getFullYear()) : "");
-
-    React.useEffect(() => {
-        if (value) {
-            const date = new Date(value);
-            setDay(String(date.getDate()));
-            setMonth(String(date.getMonth() + 1));
-            setYear(String(date.getFullYear()));
-        } else {
-            setDay("");
-            setMonth("");
-            setYear("");
-        }
-    }, [value]);
+    const day = value ? String(value.getDate()) : "";
+    const month = value ? String(value.getMonth() + 1) : "";
+    const year = value ? String(value.getFullYear()) : "";
 
     const handleDateChange = (part: 'day' | 'month' | 'year', val: string) => {
-        let newDay = part === 'day' ? val : day;
-        let newMonth = part === 'month' ? val : month;
-        let newYear = part === 'year' ? val : year;
-
-        if (part === 'day') {
-            const maxDays = new Date(Number(newYear) || 0, Number(newMonth) || 1, 0).getDate();
-            if (Number(val) > maxDays) {
-                newMonth = "";
-                newYear = "";
-            }
-        }
-        
-        if (part === 'month') {
-            const maxDays = new Date(Number(newYear) || 0, Number(val), 0).getDate();
-            if (Number(newDay) > maxDays) {
-                newDay = ""; 
-            }
-        }
-        
-        setDay(newDay);
-        setMonth(newMonth);
-        setYear(newYear);
+        const newDay = part === 'day' ? Number(val) : Number(day);
+        const newMonth = part === 'month' ? Number(val) : Number(month);
+        const newYear = part === 'year' ? Number(val) : Number(year);
 
         if (newDay && newMonth && newYear) {
-            const newDate = new Date(Number(newYear), Number(newMonth) - 1, Number(newDay));
+            // Check for valid date, e.g., 31 Feb
+            const daysInNewMonth = new Date(newYear, newMonth, 0).getDate();
+            if (newDay > daysInNewMonth) {
+                // Invalid date, maybe clear or handle it. For now we clear.
+                onChange(undefined);
+                return;
+            }
+            const newDate = new Date(newYear, newMonth - 1, newDay);
             if (!isNaN(newDate.getTime())) {
                 onChange(newDate);
             }
         } else {
+            // One of the parts is missing, so the date is incomplete/invalid
             onChange(undefined);
         }
     };
@@ -105,3 +81,4 @@ export function DateSelector({ value, onChange, disableFuture, disablePast }: Da
         </div>
     );
 }
+
