@@ -92,7 +92,7 @@ export default function MedicalCertificatePage() {
 
     try {
         const userDocRef = doc(db, "users", user.uid);
-        const medicalInfo: any = {
+        let medicalInfo: any = {
             type: data.submissionType,
             updatedAt: serverTimestamp()
         };
