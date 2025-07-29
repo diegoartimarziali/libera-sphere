@@ -96,6 +96,8 @@ function GymSelectionStep({
     const currentYear = getYear(today);
     const currentMonthIndex = getMonth(today);
 
+    // Se siamo tra settembre e dicembre, la stagione è anno corrente / anno prossimo.
+    // Se siamo tra gennaio e agosto, la stagione è anno precedente / anno corrente.
     const selectionStartYear = currentMonthIndex >= 8 ? currentYear : currentYear - 1;
     const selectionEndYear = selectionStartYear + 1;
     
@@ -684,5 +686,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
