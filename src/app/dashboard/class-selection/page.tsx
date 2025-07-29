@@ -69,7 +69,7 @@ function GymSelectionStep({
     const [gyms, setGyms] = useState<Gym[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<Date | undefined>(undefined);
+    const [selectedMonth, setSelectedMonth] = useState<Date | undefined>(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const { toast } = useToast();
 
@@ -80,19 +80,17 @@ function GymSelectionStep({
         { label: "Gennaio", value: 0 }, { label: "Febbraio", value: 1 },
         { label: "Marzo", value: 2 }, { label: "Aprile", value: 3 },
     ];
-
-    const today = new Date();
+    
+    const today = startOfDay(new Date());
     const currentMonthIndex = getMonth(today);
     const currentYear = getYear(today);
     
     // Se siamo tra Settembre e Dicembre, la stagione di selezioni inizia nell'anno corrente.
     // Se siamo tra Gennaio e Aprile, la stagione di selezioni è iniziata nell'anno precedente.
     const selectionStartYear = currentMonthIndex >= 8 ? currentYear : currentYear - 1;
-    const selectionEndYear = selectionStartYear + 1;
     
     const fromMonth = new Date(selectionStartYear, 8, 1);
-    const toMonth = new Date(selectionEndYear, 3, 30); // Ultimo giorno di Aprile
-    
+    const toMonth = new Date(selectionStartYear + 1, 3, 30); // Ultimo giorno di Aprile
 
     useEffect(() => {
         const fetchGyms = async () => {
@@ -121,15 +119,22 @@ function GymSelectionStep({
     const handleGymChange = (gymId: string) => {
         const gym = gyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
-        const initialMonth = today < fromMonth ? fromMonth : today;
+        setSelectedDate(undefined); // Reset date on gym change
+        // Set initial month to current month if in range, otherwise first month of season
+        const initialMonth = today >= fromMonth && today <= toMonth ? today : fromMonth;
         setSelectedMonth(new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1));
-        setSelectedDate(undefined);
     }
     
     const handleMonthChange = (monthValue: string) => {
         const monthIndex = Number(monthValue);
-        const targetYear = monthIndex >= 8 ? selectionStartYear : selectionEndYear;
-        setSelectedMonth(new Date(targetYear, monthIndex, 1));
+        // Determine the correct year for the selected month
+        const targetYear = (monthIndex >= 8 && currentMonthIndex <= 11) || (monthIndex < 8 && currentMonthIndex < 8)
+            ? currentYear
+            : monthIndex >= 8 ? currentYear - 1 : currentYear + 1;
+        
+        const yearForSelection = monthIndex >= 8 ? selectionStartYear : selectionStartYear + 1;
+
+        setSelectedMonth(new Date(yearForSelection, monthIndex, 1));
         setSelectedDate(undefined);
     }
 
@@ -143,13 +148,14 @@ function GymSelectionStep({
         }
     }
 
-    const dayMatcher = (date: Date) => {
+    const dayMatcher = (date: Date): boolean => {
         if (!selectedGym || !selectedGym.lessons || selectedGym.lessons.length === 0) return false;
         
         const today = startOfDay(new Date());
         if (date < today) return false; 
 
-        const dayOfWeekName = format(date, "EEEE", { locale: it }); // Es. "Lunedì"
+        // format(date, "EEEE", { locale: it }) returns "Lunedì", "Martedì" etc. capitalized.
+        const dayOfWeekName = format(date, "EEEE", { locale: it });
         const availableDayNames = selectedGym.lessons.map(l => l.dayOfWeek.toLowerCase());
         
         return availableDayNames.includes(dayOfWeekName.toLowerCase());
@@ -241,8 +247,8 @@ function GymSelectionStep({
                                     selected={selectedDate}
                                     onSelect={setSelectedDate}
                                     modifiers={{ available: dayMatcher }}
-                                    modifiersClassNames={{ available: 'bg-primary/20' }}
-                                    disabled={d => !dayMatcher(d)}
+                                    modifiersClassNames={{ available: 'bg-primary/20 text-primary-foreground' }}
+                                    disabled={(date) => date < today || !dayMatcher(date)}
                                     locale={it}
                                     fromMonth={fromMonth}
                                     toMonth={toMonth}
