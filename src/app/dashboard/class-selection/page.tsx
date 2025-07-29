@@ -85,21 +85,9 @@ function GymSelectionStep({
                 const gymSnapshot = await getDocs(gymsCollection);
                 const gymsList = gymSnapshot.docs.map(doc => {
                     const data = doc.data();
-                    let availableDays = data.availableDays;
-                    // Robustness check: if availableDays is a stringified array, parse it
-                    if (typeof availableDays === 'string' && availableDays.startsWith('[') && availableDays.endsWith(']')) {
-                        try {
-                            availableDays = JSON.parse(availableDays);
-                        } catch (e) {
-                            console.error(`Could not parse availableDays for gym ${doc.id}`, e);
-                            availableDays = [];
-                        }
-                    }
-
                     return {
                         id: doc.id,
                         ...data,
-                        availableDays,
                     } as Gym;
                 }).sort((a, b) => a.name.localeCompare(b.name));
                 setGyms(gymsList);
@@ -166,6 +154,12 @@ function GymSelectionStep({
                             ))}
                         </SelectContent>
                     </Select>
+                     {selectedGym && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground animate-in fade-in-50">
+                            <Clock size={14}/>
+                            <span>Orario Lezioni: {selectedGym.time}</span>
+                        </div>
+                    )}
                 </div>
                 
                  {selectedGym && (
