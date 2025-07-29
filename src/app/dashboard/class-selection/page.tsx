@@ -72,19 +72,40 @@ const dayNameToJsGetDay: { [key: string]: number } = {
     'giovedì': 4, 'venerdì': 5, 'sabato': 6
 };
 
-// Funzione per verificare se siamo nel periodo di chiusura delle selezioni
-function areSelectionsClosed(): boolean {
-    const today = new Date();
-    const month = today.getMonth(); // 0 = Gennaio, 4 = Maggio, 8 = Settembre
+// Determina il punto di partenza per la ricerca delle lezioni
+function getLessonSearchStartDate(): Date {
+    const today = startOfDay(new Date());
+    const month = today.getMonth(); // 0 = Gen, 4 = Mag, 8 = Set
     const day = today.getDate();
+    const year = today.getFullYear();
 
-    // Dal 1 Maggio (incluso) al 10 Settembre (incluso)
-    if ((month === 4 && day >= 1) || (month > 4 && month < 8) || (month === 8 && day <= 10)) {
-        return true;
+    // Periodo di pre-iscrizione: 1 Maggio - 9 Settembre.
+    // In questo periodo, le lezioni partono dal 10 Settembre.
+    const isPreRegistration = 
+        (month === 4 && day >= 1) || // Dal 1 Maggio in poi
+        (month > 4 && month < 8) ||  // Giugno, Luglio, Agosto
+        (month === 8 && day < 10);   // Dal 1 al 9 Settembre
+
+    if (isPreRegistration) {
+        return new Date(year, 8, 10); // 10 Settembre
     }
 
-    return false;
+    // Altrimenti, parti da oggi
+    return today;
 }
+
+// Verifica se siamo nel periodo di pre-iscrizione per mostrare l'avviso
+function isPreRegistrationPeriod(): boolean {
+    const today = startOfDay(new Date());
+    const month = today.getMonth();
+    const day = today.getDate();
+     const isPreRegistration = 
+        (month === 4 && day >= 1) || // Dal 1 Maggio in poi
+        (month > 4 && month < 8) ||  // Giugno, Luglio, Agosto
+        (month === 8 && day < 10);   // Dal 1 al 9 Settembre
+    return isPreRegistration;
+}
+
 
 // Componente per lo Step 2: Selezione Palestra e Lezione
 function GymSelectionStep({ 
@@ -131,22 +152,23 @@ function GymSelectionStep({
         setSelectedLesson(null);
 
         if (gym) {
-            const today = startOfDay(new Date());
+            const searchStartDate = getLessonSearchStartDate();
             const lessons: UpcomingLesson[] = [];
             
-            // Genera le prossime 4 lezioni disponibili per ogni giorno di corso
+            // Genera le prossime lezioni disponibili
             gym.lessons.forEach(lesson => {
                 const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
                 if (dayIndex !== undefined) {
-                    let nextLessonDate = nextDay(today, dayIndex);
-                    // Se la prima lezione trovata è oggi ma l'ora è passata, parti dalla settimana successiva
-                    if(format(nextLessonDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
-                        const [lessonHour] = lesson.time.split(':').map(Number);
-                        if(new Date().getHours() >= lessonHour) {
-                           nextLessonDate = addDays(nextLessonDate, 7);
-                        }
+                    
+                    let nextLessonDate = nextDay(searchStartDate, dayIndex);
+                    
+                    // Se la data di partenza è essa stessa un giorno di lezione, includila se non è passata.
+                    if (getDay(searchStartDate) === dayIndex && searchStartDate >= startOfDay(new Date())) {
+                       nextLessonDate = searchStartDate;
+                    } else {
+                       nextLessonDate = nextDay(searchStartDate, dayIndex);
                     }
-
+                    
                     for (let i = 0; i < 4; i++) {
                         lessons.push({
                             date: nextLessonDate,
@@ -158,10 +180,9 @@ function GymSelectionStep({
                 }
             });
             
-            // Ordina le lezioni per data e ora
             lessons.sort((a, b) => a.date.getTime() - b.date.getTime());
             
-            setUpcomingLessons(lessons.slice(0, 8)); // Mostra solo le prossime 8
+            setUpcomingLessons(lessons.slice(0, 8));
         } else {
             setUpcomingLessons([]);
         }
@@ -175,31 +196,6 @@ function GymSelectionStep({
                 time: selectedLesson.time 
             });
         }
-    }
-
-    if (areSelectionsClosed()) {
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Lezioni di Prova Sospese</CardTitle>
-                    <CardDescription>
-                        Le iscrizioni per le lezioni di prova sono momentaneamente chiuse per la pausa estiva.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Alert>
-                      <Info className="h-4 w-4" />
-                      <AlertTitle>Ci vediamo a Settembre!</AlertTitle>
-                      <AlertDescription>
-                        Le selezioni riapriranno dopo il 10 Settembre. Torna a trovarci per scoprire i nuovi orari e iscriverti!
-                      </AlertDescription>
-                    </Alert>
-                </CardContent>
-                 <CardFooter>
-                    <Button variant="outline" onClick={onBack} className="w-full">Torna Indietro</Button>
-                 </CardFooter>
-             </Card>
-        )
     }
 
     if (loading) {
@@ -225,6 +221,16 @@ function GymSelectionStep({
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+                 {isPreRegistrationPeriod() && (
+                    <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Pre-iscrizioni Aperte!</AlertTitle>
+                        <AlertDescription>
+                           Stai prenotando la tua lezione di prova per la nuova stagione sportiva che inizierà il 10 Settembre.
+                        </AlertDescription>
+                    </Alert>
+                 )}
+
                 <div className="space-y-2">
                     <Label htmlFor="gym-select">1. Seleziona la palestra</Label>
                     <Select onValueChange={handleGymChange}>
