@@ -216,11 +216,11 @@ export default function AuthPage() {
                     )}
                   />
                   <FormField
-                    control={loginForm.control}
+                    control={registerForm.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Email (questa sarà l'email di contatto)</FormLabel>
                         <FormControl>
                           <Input placeholder="tua@email.com" {...field} />
                         </FormControl>
