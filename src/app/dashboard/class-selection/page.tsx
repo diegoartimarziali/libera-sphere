@@ -118,120 +118,8 @@ function GymSelectionStep({
     onBack: () => void, 
     onNext: (data: GymSelectionData) => void 
 }) {
-    const [allGyms, setAllGyms] = useState<Gym[]>([]);
-    const [filteredGyms, setFilteredGyms] = useState<Gym[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>(null);
-    const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-    const [upcomingLessons, setUpcomingLessons] = useState<UpcomingLesson[]>([]);
-    const [selectedLesson, setSelectedLesson] = useState<UpcomingLesson | null>(null);
-    const { toast } = useToast();
-
-    useEffect(() => {
-        const fetchGyms = async () => {
-            setLoading(true);
-            try {
-                const gymsCollection = collection(db, 'gyms');
-                const gymSnapshot = await getDocs(gymsCollection);
-                const gymsList = gymSnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    return {
-                        id: doc.id,
-                        name: data.name,
-                        lessons: data.lessons || [],
-                        disciplines: data.disciplines || [],
-                    } as Gym;
-                }).sort((a, b) => a.name.localeCompare(b.name));
-                setAllGyms(gymsList);
-            } catch (error) {
-                console.error("Error fetching gyms:", error);
-                toast({ title: "Errore", description: "Impossibile caricare le palestre.", variant: "destructive" });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchGyms();
-    }, [toast]);
-    
-    const handleDisciplineChange = (discipline: string) => {
-        setSelectedDiscipline(discipline);
-        const filtered = allGyms.filter(gym => 
-            Array.isArray(gym.disciplines) && gym.disciplines.includes(discipline)
-        );
-        setFilteredGyms(filtered);
-        // Reset selections
-        setSelectedGym(null);
-        setUpcomingLessons([]);
-        setSelectedLesson(null);
-    }
-    
-    const handleGymChange = (gymId: string) => {
-        const gym = allGyms.find(g => g.id === gymId) || null;
-        setSelectedGym(gym);
-        setSelectedLesson(null);
-
-        if (gym) {
-            const searchStartDate = getLessonSearchStartDate();
-            const lessons: UpcomingLesson[] = [];
-            
-            // Genera le prossime lezioni disponibili
-            gym.lessons.forEach(lesson => {
-                const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
-                if (dayIndex !== undefined) {
-                    
-                    let nextLessonDate = nextDay(searchStartDate, dayIndex);
-                    
-                    // Se la data di partenza è essa stessa un giorno di lezione, includila se non è passata.
-                    if (getDay(searchStartDate) === dayIndex && searchStartDate >= startOfDay(new Date())) {
-                       nextLessonDate = searchStartDate;
-                    } else {
-                       nextLessonDate = nextDay(searchStartDate, dayIndex);
-                    }
-                    
-                    for (let i = 0; i < 4; i++) {
-                        lessons.push({
-                            date: nextLessonDate,
-                            time: lesson.time,
-                            gym: gym
-                        });
-                        nextLessonDate = addDays(nextLessonDate, 7);
-                    }
-                }
-            });
-            
-            lessons.sort((a, b) => a.date.getTime() - b.date.getTime());
-            
-            setUpcomingLessons(lessons.slice(0, 8));
-        } else {
-            setUpcomingLessons([]);
-        }
-    }
-
-    const handleSubmit = () => {
-        if (selectedLesson && selectedDiscipline) {
-            onNext({ 
-                gym: selectedLesson.gym, 
-                lessonDate: selectedLesson.date, 
-                time: selectedLesson.time,
-                discipline: selectedDiscipline
-            });
-        }
-    }
-
-    if (loading) {
-        return (
-             <Card>
-                <CardHeader>
-                    <CardTitle>Passo 2: Scegli la Palestra</CardTitle>
-                    <CardDescription>Caricamento delle opzioni disponibili...</CardDescription>
-                </CardHeader>
-                <CardContent className="h-48 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                </CardContent>
-             </Card>
-        )
-    }
-
+    // Svuotato come richiesto.
+    // Qui reintrodurremo la logica passo dopo passo.
     return (
         <Card>
             <CardHeader>
@@ -241,87 +129,11 @@ function GymSelectionStep({
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                 {isPreRegistrationPeriod() && (
-                    <Alert>
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>Pre-iscrizioni Aperte!</AlertTitle>
-                        <AlertDescription>
-                           Stai prenotando la tua lezione di prova per la nuova stagione sportiva che inizierà il 10 Settembre.
-                        </AlertDescription>
-                    </Alert>
-                 )}
-                 
-                 <div className="space-y-2">
-                    <Label>1. Scegli la disciplina</Label>
-                     <RadioGroup
-                        value={selectedDiscipline || ""}
-                        onValueChange={handleDisciplineChange}
-                        className="grid grid-cols-2 gap-4"
-                     >
-                         <Label htmlFor="karate" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                             <RadioGroupItem value="karate" id="karate" className="sr-only" />
-                             <span className="text-lg font-semibold">Karate</span>
-                         </Label>
-                         <Label htmlFor="aikido" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-                             <RadioGroupItem value="aikido" id="aikido" className="sr-only" />
-                             <span className="text-lg font-semibold">Aikido</span>
-                         </Label>
-                     </RadioGroup>
-                 </div>
-
-                <div className={cn("space-y-2", !selectedDiscipline && "opacity-50 pointer-events-none")}>
-                    <Label htmlFor="gym-select">2. Seleziona la palestra</Label>
-                    <Select onValueChange={handleGymChange} disabled={!selectedDiscipline} value={selectedGym?.id || ""}>
-                        <SelectTrigger id="gym-select">
-                            <SelectValue placeholder="Seleziona una palestra" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {filteredGyms.length > 0 ? (
-                                filteredGyms.map(gym => (
-                                    <SelectItem key={gym.id} value={gym.id}>
-                                        {gym.name}
-                                    </SelectItem>
-                                ))
-                            ) : (
-                                <SelectItem value="no-gym" disabled>Nessuna palestra per questa disciplina</SelectItem>
-                            )}
-                        </SelectContent>
-                    </Select>
-                </div>
-                     
-                {selectedGym && (
-                    <div className="space-y-4 animate-in fade-in-50">
-                        <Label>3. Scegli la Data della Prima Lezione</Label>
-                        {upcomingLessons.length > 0 ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {upcomingLessons.map((lesson, index) => {
-                                    const lessonId = `${lesson.date.toISOString()}-${lesson.time}`;
-                                    const isSelected = selectedLesson && `${selectedLesson.date.toISOString()}-${selectedLesson.time}` === lessonId;
-
-                                    return (
-                                        <div
-                                            key={lessonId}
-                                            onClick={() => setSelectedLesson(lesson)}
-                                            className={cn(
-                                                "flex flex-col items-start cursor-pointer rounded-lg border p-4 transition-all hover:bg-accent/50",
-                                                isSelected && "border-primary bg-primary/5"
-                                            )}
-                                        >
-                                            <p className="font-semibold capitalize">{format(lesson.date, 'EEEE d MMMM', { locale: it })}</p>
-                                            <p className="text-muted-foreground text-sm">{lesson.time}</p>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        ) : (
-                             <p className="text-sm text-muted-foreground p-4 border rounded-md bg-muted/50">Nessuna lezione imminente trovata per questa palestra.</p>
-                        )}
-                    </div>
-                )}
+                {/* Il contenuto verrà aggiunto qui */}
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack}>Indietro</Button>
-                 <Button onClick={handleSubmit} disabled={!selectedLesson}>Scegli il Pagamento</Button>
+                 <Button onClick={() => { /* La logica di onNext verrà definita */ }} disabled={true}>Scegli il Pagamento</Button>
             </CardFooter>
         </Card>
     )
@@ -786,5 +598,7 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
