@@ -5,7 +5,7 @@ import { useEffect, useState } from "react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, Timestamp } from "firebase/firestore"
-import { differenceInDays, isPast, format } from "date-fns"
+import { differenceInDays, isPast, format, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -102,19 +102,20 @@ export default function DashboardPage() {
             });
 
             if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
-              const expiryDate = data.medicalInfo.expiryDate.toDate();
-              const today = new Date();
+              const expiryDate = startOfDay(data.medicalInfo.expiryDate.toDate());
+              const today = startOfDay(new Date());
               const daysDiff = differenceInDays(expiryDate, today);
 
               setDaysToExpire(daysDiff);
-
+              
               if (isPast(expiryDate)) {
-                setCertificateStatus('expired');
+                  setCertificateStatus('expired');
               } else if (daysDiff <= 20) {
-                setCertificateStatus('expiring');
+                  setCertificateStatus('expiring');
               } else {
-                setCertificateStatus('valid');
+                  setCertificateStatus('valid');
               }
+
             } else if (data.medicalInfo?.type === 'booking') {
                 setCertificateStatus('booked');
             }
@@ -149,13 +150,13 @@ export default function DashboardPage() {
       );
     }
     
-    if (certificateStatus === 'expiring' && daysToExpire !== null) {
+    if (certificateStatus === 'expiring' && daysToExpire !== null && daysToExpire >= 0) {
       return (
         <Alert className="mb-6 border-yellow-500 text-yellow-700 [&>svg]:text-yellow-500">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Certificato Medico in Scadenza</AlertTitle>
           <AlertDescription>
-            Attenzione, il tuo certificato medico scadrà tra {daysToExpire} giorni. Ricordati di rinnovarlo e caricare la nuova versione.
+            {daysToExpire > 0 ? `Attenzione, il tuo certificato medico scadrà tra ${daysToExpire} giorni.` : "Attenzione, il tuo certificato medico scade oggi."} Ricordati di rinnovarlo e caricare la nuova versione.
           </AlertDescription>
         </Alert>
       );
