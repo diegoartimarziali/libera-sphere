@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { format, getDay, addDays, startOfDay, nextDay } from "date-fns"
 import { it } from "date-fns/locale"
-import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info } from "lucide-react"
+import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp } from "firebase/firestore"
@@ -40,6 +40,7 @@ interface Gym {
     id: string;
     name: string;
     lessons: Lesson[];
+    disciplines: string[];
 }
 
 interface UpcomingLesson {
@@ -52,6 +53,7 @@ interface GymSelectionData {
     gym: Gym;
     lessonDate: Date;
     time: string;
+    discipline: string;
 }
 
 // Componente per visualizzare i dati in modo pulito
@@ -116,8 +118,10 @@ function GymSelectionStep({
     onBack: () => void, 
     onNext: (data: GymSelectionData) => void 
 }) {
-    const [gyms, setGyms] = useState<Gym[]>([]);
+    const [allGyms, setAllGyms] = useState<Gym[]>([]);
+    const [filteredGyms, setFilteredGyms] = useState<Gym[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedDiscipline, setSelectedDiscipline] = useState<string | null>(null);
     const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
     const [upcomingLessons, setUpcomingLessons] = useState<UpcomingLesson[]>([]);
     const [selectedLesson, setSelectedLesson] = useState<UpcomingLesson | null>(null);
@@ -134,9 +138,10 @@ function GymSelectionStep({
                         id: doc.id,
                         name: data.name,
                         lessons: data.lessons || [],
+                        disciplines: data.disciplines || [],
                     } as Gym;
                 }).sort((a, b) => a.name.localeCompare(b.name));
-                setGyms(gymsList);
+                setAllGyms(gymsList);
             } catch (error) {
                 console.error("Error fetching gyms:", error);
                 toast({ title: "Errore", description: "Impossibile caricare le palestre.", variant: "destructive" });
@@ -147,8 +152,18 @@ function GymSelectionStep({
         fetchGyms();
     }, [toast]);
     
+    const handleDisciplineChange = (discipline: string) => {
+        setSelectedDiscipline(discipline);
+        const filtered = allGyms.filter(gym => gym.disciplines.includes(discipline));
+        setFilteredGyms(filtered);
+        // Reset selections
+        setSelectedGym(null);
+        setUpcomingLessons([]);
+        setSelectedLesson(null);
+    }
+    
     const handleGymChange = (gymId: string) => {
-        const gym = gyms.find(g => g.id === gymId) || null;
+        const gym = allGyms.find(g => g.id === gymId) || null;
         setSelectedGym(gym);
         setSelectedLesson(null);
 
@@ -190,11 +205,12 @@ function GymSelectionStep({
     }
 
     const handleSubmit = () => {
-        if (selectedLesson) {
+        if (selectedLesson && selectedDiscipline) {
             onNext({ 
                 gym: selectedLesson.gym, 
                 lessonDate: selectedLesson.date, 
-                time: selectedLesson.time 
+                time: selectedLesson.time,
+                discipline: selectedDiscipline
             });
         }
     }
@@ -204,7 +220,7 @@ function GymSelectionStep({
              <Card>
                 <CardHeader>
                     <CardTitle>Passo 2: Scegli la Palestra</CardTitle>
-                    <CardDescription>Caricamento delle palestre disponibili...</CardDescription>
+                    <CardDescription>Caricamento delle opzioni disponibili...</CardDescription>
                 </CardHeader>
                 <CardContent className="h-48 flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin" />
@@ -216,9 +232,9 @@ function GymSelectionStep({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 2: Scegli Palestra e Prima Lezione</CardTitle>
+                <CardTitle>Passo 2: Scegli Corso, Palestra e Prima Lezione</CardTitle>
                 <CardDescription>
-                    Seleziona dove e quando vuoi fare la prima lezione.
+                    Seleziona la disciplina che ti interessa e prenota la tua lezione di prova.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -231,26 +247,48 @@ function GymSelectionStep({
                         </AlertDescription>
                     </Alert>
                  )}
+                 
+                 <div className="space-y-2">
+                    <Label>1. Scegli la disciplina</Label>
+                     <RadioGroup
+                        value={selectedDiscipline || ""}
+                        onValueChange={handleDisciplineChange}
+                        className="grid grid-cols-2 gap-4"
+                     >
+                         <Label htmlFor="karate" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                             <RadioGroupItem value="karate" id="karate" className="sr-only" />
+                             <span className="text-lg font-semibold">Karate</span>
+                         </Label>
+                         <Label htmlFor="aikido" className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                             <RadioGroupItem value="aikido" id="aikido" className="sr-only" />
+                             <span className="text-lg font-semibold">Aikido</span>
+                         </Label>
+                     </RadioGroup>
+                 </div>
 
-                <div className="space-y-2">
-                    <Label htmlFor="gym-select">Seleziona la palestra</Label>
-                    <Select onValueChange={handleGymChange}>
+                <div className={cn("space-y-2", !selectedDiscipline && "opacity-50 pointer-events-none")}>
+                    <Label htmlFor="gym-select">2. Seleziona la palestra</Label>
+                    <Select onValueChange={handleGymChange} disabled={!selectedDiscipline}>
                         <SelectTrigger id="gym-select">
                             <SelectValue placeholder="Seleziona una palestra" />
                         </SelectTrigger>
                         <SelectContent>
-                            {gyms.map(gym => (
-                                <SelectItem key={gym.id} value={gym.id}>
-                                    {gym.name}
-                                </SelectItem>
-                            ))}
+                            {filteredGyms.length > 0 ? (
+                                filteredGyms.map(gym => (
+                                    <SelectItem key={gym.id} value={gym.id}>
+                                        {gym.name}
+                                    </SelectItem>
+                                ))
+                            ) : (
+                                <SelectItem value="no-gym" disabled>Nessuna palestra per questa disciplina</SelectItem>
+                            )}
                         </SelectContent>
                     </Select>
                 </div>
                      
                 {selectedGym && (
                     <div className="space-y-4 animate-in fade-in-50">
-                        <Label>Scegli la Data della Prima Lezione</Label>
+                        <Label>3. Scegli la Data della Prima Lezione</Label>
                         {upcomingLessons.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {upcomingLessons.map((lesson, index) => {
@@ -463,6 +501,7 @@ function ConfirmationStep({
                 <div className="space-y-4 rounded-md border p-4">
                     <h3 className="font-semibold text-lg">Lezione di Prova</h3>
                     <dl className="space-y-3">
+                        <DataRow label="Disciplina" value={gymSelection.discipline} icon={<Sparkles size={16} />} />
                         <DataRow label="Palestra" value={gymSelection.gym.name} icon={<Building size={16} />} />
                         <DataRow label="Data Lezione" value={formattedLessonDate} icon={<CalendarIconDay size={16} />} />
                         <DataRow label="Orario" value={gymSelection.time} icon={<Clock size={16} />} />
@@ -581,6 +620,7 @@ export default function ClassSelectionPage() {
                 province: formData.province,
                 email: user.email,
                 phone: formData.phone,
+                discipline: gymSelection.discipline,
                 // `parentData` is next
                 createdAt: serverTimestamp(),
                 regulationsAccepted: true,
@@ -705,7 +745,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
 
     
