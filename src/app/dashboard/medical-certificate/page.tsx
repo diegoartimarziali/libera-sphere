@@ -137,9 +137,9 @@ export default function MedicalCertificatePage() {
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Certificato Medico</CardTitle>
-          <CardDescription>
+          <p className="text-sm font-medium text-foreground pt-1.5">
             Per completare la tua iscrizione, fornisci i dati relativi al tuo certificato medico per attività sportiva non agonistica, sono validi i certificati non agonistici in corso di validità rilasciati per qualsiasi sport o attività scolastiche.
-          </CardDescription>
+          </p>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
