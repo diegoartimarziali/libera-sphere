@@ -207,7 +207,7 @@ export default function AuthPage() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nome e Cognome</FormLabel>
+                        <FormLabel>Nome e Cognome Socio</FormLabel>
                         <FormControl>
                           <Input placeholder="Mario Rossi" {...field} />
                         </FormControl>
@@ -216,7 +216,7 @@ export default function AuthPage() {
                     )}
                   />
                   <FormField
-                    control={registerForm.control}
+                    control={loginForm.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
