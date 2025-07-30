@@ -216,9 +216,9 @@ function GymSelectionStep({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 2: Scegli Palestra e Lezione</CardTitle>
+                <CardTitle>Passo 2: Scegli Palestra e Prima Lezione</CardTitle>
                 <CardDescription>
-                    Seleziona dove e quando vuoi iniziare la tua prova.
+                    Seleziona dove e quando vuoi fare la prima lezione.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -233,7 +233,7 @@ function GymSelectionStep({
                  )}
 
                 <div className="space-y-2">
-                    <Label htmlFor="gym-select">1. Seleziona la palestra</Label>
+                    <Label htmlFor="gym-select">Seleziona la palestra</Label>
                     <Select onValueChange={handleGymChange}>
                         <SelectTrigger id="gym-select">
                             <SelectValue placeholder="Seleziona una palestra" />
@@ -250,7 +250,7 @@ function GymSelectionStep({
                      
                 {selectedGym && (
                     <div className="space-y-4 animate-in fade-in-50">
-                        <Label>2. Scegli una lezione di prova</Label>
+                        <Label>Scegli la Data della Prima Lezione</Label>
                         {upcomingLessons.length > 0 ? (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {upcomingLessons.map((lesson, index) => {
@@ -705,5 +705,7 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
