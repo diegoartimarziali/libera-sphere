@@ -86,7 +86,6 @@ export default function LiberaSpherePage() {
     const userDocRef = doc(db, "users", user.uid);
     let dataToUpdate: any = { isFormerMember };
     let destination = "";
-    let finalGrade = "";
 
     try {
         if (!discipline) {
@@ -99,7 +98,7 @@ export default function LiberaSpherePage() {
         
         if (isFormerMember === 'yes') {
             if (!firstYear || !lastGrade) {
-                toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi: anno e grado." });
+                toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi richiesti." });
                 setIsLoading(false);
                 return;
             }
@@ -116,17 +115,18 @@ export default function LiberaSpherePage() {
             dataToUpdate.hasPracticedBefore = hasPracticedBefore;
 
             if (hasPracticedBefore === 'yes') {
-                 finalGrade = discipline === 'karate' ? lastGrade : aikidoGrade.trim();
+                 const finalGrade = discipline === 'karate' ? lastGrade : aikidoGrade.trim();
                  if (!finalGrade) {
                       toast({ variant: "destructive", title: "Attenzione", description: "Inserisci o seleziona il tuo grado." });
                       setIsLoading(false);
                       return;
                  }
                  dataToUpdate.lastGrade = finalGrade;
-                 // Salviamo l'esperienza passata per coerenza
+                 // Salviamo l'esperienza passata per coerenza e per poterla usare dopo
                  dataToUpdate.pastExperience = { discipline, grade: finalGrade };
             } else { // hasPracticedBefore === 'no'
                 dataToUpdate.lastGrade = "Cintura bianca";
+                 dataToUpdate.pastExperience = { discipline, grade: "Cintura bianca" };
             }
             destination = "/dashboard/class-selection";
         }
