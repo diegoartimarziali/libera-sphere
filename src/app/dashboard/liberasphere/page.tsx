@@ -61,16 +61,18 @@ export default function LiberaSpherePage() {
       return
     }
     
-    let dataToUpdate: any = {};
+    setIsLoading(true);
     let destination = "";
+    let dataToUpdate: any = { isFormerMember };
 
     if (isFormerMember === 'yes') {
         if (!firstYear || !lastGrade || !discipline) {
             toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi: disciplina, anno e grado." })
+            setIsLoading(false);
             return
         }
         dataToUpdate = {
-            isFormerMember,
+            ...dataToUpdate,
             discipline,
             lastGrade,
             firstYear,
@@ -79,63 +81,40 @@ export default function LiberaSpherePage() {
     } else { // isFormerMember === 'no'
         if (!hasPracticedBefore) {
              toast({ variant: "destructive", title: "Attenzione", description: "Per favore, specifica se hai già praticato." })
+             setIsLoading(false);
             return
         }
         
-        let finalDiscipline = "";
-        let finalGrade = "";
+        dataToUpdate.hasPracticedBefore = hasPracticedBefore;
 
-        if (hasPracticedBefore === 'no') {
-            finalGrade = 'Cintura bianca';
-        } else { // hasPracticedBefore === 'yes'
-            if (!discipline) {
+        if (hasPracticedBefore === 'yes') {
+             if (!discipline) {
                  toast({ variant: "destructive", title: "Attenzione", description: "Seleziona la disciplina che hai praticato." });
+                 setIsLoading(false);
                 return;
             }
-            finalDiscipline = discipline;
-            
-            if (discipline === 'karate') {
-                if (!lastGrade) {
-                    toast({ variant: "destructive", title: "Attenzione", description: "Seleziona il tuo grado di Karate." });
-                    return;
-                }
-                finalGrade = lastGrade;
-            } else { // discipline === 'aikido'
-                if (!aikidoGrade.trim()) {
-                     toast({ variant: "destructive", title: "Attenzione", description: "Inserisci il tuo grado di Aikido." });
-                    return;
-                }
-                finalGrade = aikidoGrade.trim();
-            }
+             const finalGrade = discipline === 'karate' ? lastGrade : aikidoGrade.trim();
+             if (!finalGrade) {
+                  toast({ variant: "destructive", title: "Attenzione", description: "Inserisci o seleziona il tuo grado." });
+                  setIsLoading(false);
+                  return;
+             }
+            // Salviamo l'esperienza passata in un oggetto separato per non confonderla con l'iscrizione attuale
+            dataToUpdate.pastExperience = {
+                discipline,
+                grade: finalGrade
+            };
         }
-        
-        dataToUpdate = {
-            isFormerMember,
-            hasPracticedBefore,
-            discipline: finalDiscipline,
-            lastGrade: finalGrade,
-        };
+        // Per i nuovi soci, la disciplina e il grado verranno impostati nella schermata successiva
+        dataToUpdate.discipline = "";
+        dataToUpdate.lastGrade = "";
         destination = "/dashboard/class-selection";
     }
 
-
-    setIsLoading(true);
     try {
       const userDocRef = doc(db, "users", user.uid);
-      const { isFormerMember, hasPracticedBefore, discipline, lastGrade, firstYear } = dataToUpdate;
-      
-      const finalUpdate = {
-        isFormerMember,
-        hasPracticedBefore,
-        discipline,
-        lastGrade,
-        ...(firstYear && { firstYear }),
-      };
-
-      await updateDoc(userDocRef, finalUpdate);
-      
+      await updateDoc(userDocRef, dataToUpdate);
       router.push(destination);
-
     } catch (error) {
       console.error("Error updating user choice:", error);
       toast({
@@ -149,7 +128,6 @@ export default function LiberaSpherePage() {
 
   const handleIsFormerMemberChange = (value: 'yes' | 'no') => {
       setIsFormerMember(value);
-      // Reset other states to avoid carrying over data between choices
       setHasPracticedBefore(null);
       setDiscipline(null);
       setLastGrade('');
@@ -261,12 +239,12 @@ export default function LiberaSpherePage() {
                     className="space-y-2"
                 >
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="karate" id="former_karate" />
-                        <Label htmlFor="former_karate">Karate</Label>
+                        <RadioGroupItem value="karate" id="karate" />
+                        <Label htmlFor="karate">Karate</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="aikido" id="former_aikido" />
-                        <Label htmlFor="former_aikido">Aikido</Label>
+                        <RadioGroupItem value="aikido" id="aikido" />
+                        <Label htmlFor="aikido">Aikido</Label>
                     </div>
                 </RadioGroup>
                 
@@ -312,7 +290,3 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
-
-    
-
-    

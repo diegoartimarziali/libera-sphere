@@ -444,7 +444,8 @@ function ConfirmationStep({
     onBack, 
     onComplete,
     isSubmitting,
-    fee
+    fee,
+    lastGrade
 }: { 
     formData: PersonalDataSchemaType,
     gymSelection: GymSelectionData,
@@ -452,7 +453,8 @@ function ConfirmationStep({
     onBack: () => void, 
     onComplete: () => void,
     isSubmitting: boolean,
-    fee: FeeData | null
+    fee: FeeData | null,
+    lastGrade: string
 }) {
     const [isConfirmed, setIsConfirmed] = useState(false);
     
@@ -502,6 +504,7 @@ function ConfirmationStep({
                     <h3 className="font-semibold text-lg">Lezione di Prova</h3>
                     <dl className="space-y-3">
                         <DataRow label="Disciplina" value={gymSelection.discipline} icon={<Sparkles size={16} />} />
+                        <DataRow label="Grado" value={lastGrade} icon={<Sparkles size={16} />} />
                         <DataRow label="Palestra" value={gymSelection.gym.name} icon={<Building size={16} />} />
                         <DataRow label="Data Lezione" value={formattedLessonDate} icon={<CalendarIconDay size={16} />} />
                         <DataRow label="Orario" value={gymSelection.time} icon={<Clock size={16} />} />
@@ -553,26 +556,37 @@ export default function ClassSelectionPage() {
     const router = useRouter()
     const [user] = useAuthState(auth);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [userData, setUserData] = useState<any>(null);
 
     useEffect(() => {
-        const fetchFee = async () => {
-            try {
-                const feeDocRef = doc(db, "fees", "trial");
-                const feeDocSnap = await getDoc(feeDocRef);
-                if (feeDocSnap.exists()) {
-                    setFeeData(feeDocSnap.data() as FeeData);
-                } else {
-                    toast({ title: "Errore", description: "Impossibile caricare i dati della quota. Contatta la segreteria.", variant: "destructive" });
+        const fetchInitialData = async () => {
+            if (user) {
+                try {
+                    const feeDocRef = doc(db, "fees", "trial");
+                    const userDocRef = doc(db, "users", user.uid);
+                    
+                    const [feeDocSnap, userDocSnap] = await Promise.all([getDoc(feeDocRef), getDoc(userDocRef)]);
+                    
+                    if (feeDocSnap.exists()) {
+                        setFeeData(feeDocSnap.data() as FeeData);
+                    } else {
+                        toast({ title: "Errore", description: "Impossibile caricare i dati della quota. Contatta la segreteria.", variant: "destructive" });
+                    }
+
+                    if (userDocSnap.exists()) {
+                        setUserData(userDocSnap.data());
+                    }
+
+                } catch (error) {
+                    console.error("Error fetching initial data:", error);
+                    toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati. Riprova.", variant: "destructive" });
+                } finally {
+                    setLoadingFee(false);
                 }
-            } catch (error) {
-                console.error("Error fetching fee data:", error);
-                toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati della quota. Riprova.", variant: "destructive" });
-            } finally {
-                setLoadingFee(false);
             }
         };
-        fetchFee();
-    }, [toast]);
+        fetchInitialData();
+    }, [user, toast]);
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data);
@@ -603,6 +617,14 @@ export default function ClassSelectionPage() {
             return;
         }
         setIsSubmitting(true);
+
+        // Logica per determinare il grado finale
+        let finalGrade = "Cintura bianca"; // Default per tutti i nuovi
+        if (userData?.hasPracticedBefore === 'yes' && userData?.pastExperience?.discipline === gymSelection.discipline) {
+            // Se ha già praticato la stessa disciplina, usa il suo grado passato
+            finalGrade = userData.pastExperience.grade;
+        }
+
         try {
             const userDocRef = doc(db, "users", user.uid);
             
@@ -621,6 +643,7 @@ export default function ClassSelectionPage() {
                 email: user.email,
                 phone: formData.phone,
                 discipline: gymSelection.discipline,
+                lastGrade: finalGrade,
                 // `parentData` is next
                 createdAt: serverTimestamp(),
                 regulationsAccepted: true,
@@ -646,12 +669,7 @@ export default function ClassSelectionPage() {
                 dataToUpdate.parentData = formData.parentData;
             }
 
-            // Aggiungi i campi esistenti per non sovrascriverli
-            const existingDataSnap = await getDoc(userDocRef);
-            const existingData = existingDataSnap.data();
-            const finalData = { ...existingData, ...dataToUpdate };
-
-            await updateDoc(userDocRef, finalData);
+            await updateDoc(userDocRef, dataToUpdate);
 
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
             router.push("/dashboard/medical-certificate")
@@ -689,6 +707,15 @@ export default function ClassSelectionPage() {
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
             </div>
         )
+    }
+
+    const getFinalGrade = () => {
+         if (!gymSelection) return "";
+         let finalGrade = "Cintura bianca";
+         if (userData?.hasPracticedBefore === 'yes' && userData?.pastExperience?.discipline === gymSelection.discipline) {
+             finalGrade = userData.pastExperience.grade;
+         }
+         return finalGrade;
     }
 
 
@@ -739,13 +766,10 @@ export default function ClassSelectionPage() {
                         onComplete={handleComplete} 
                         isSubmitting={isSubmitting}
                         fee={feeData}
+                        lastGrade={getFinalGrade()}
                     />
                 )}
             </div>
         </div>
     )
 }
-
-    
-
-    
