@@ -65,55 +65,54 @@ export default function LiberaSpherePage() {
     let destination = "";
     let dataToUpdate: any = { isFormerMember };
 
-    if (isFormerMember === 'yes') {
-        if (!firstYear || !lastGrade || !discipline) {
-            toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi: disciplina, anno e grado." })
-            setIsLoading(false);
-            return
-        }
-        dataToUpdate = {
-            ...dataToUpdate,
-            discipline,
-            lastGrade,
-            firstYear,
-        };
-        destination = "/dashboard/associates";
-    } else { // isFormerMember === 'no'
-        if (!hasPracticedBefore) {
-             toast({ variant: "destructive", title: "Attenzione", description: "Per favore, specifica se hai già praticato." })
-             setIsLoading(false);
-            return
-        }
-        
-        dataToUpdate.hasPracticedBefore = hasPracticedBefore;
-
-        if (hasPracticedBefore === 'yes') {
-             if (!discipline) {
-                 toast({ variant: "destructive", title: "Attenzione", description: "Seleziona la disciplina che hai praticato." });
-                 setIsLoading(false);
-                return;
-            }
-             const finalGrade = discipline === 'karate' ? lastGrade : aikidoGrade.trim();
-             if (!finalGrade) {
-                  toast({ variant: "destructive", title: "Attenzione", description: "Inserisci o seleziona il tuo grado." });
-                  setIsLoading(false);
-                  return;
-             }
-            // Salviamo l'esperienza passata in un oggetto separato per non confonderla con l'iscrizione attuale
-            dataToUpdate.pastExperience = {
-                discipline,
-                grade: finalGrade
-            };
-        }
-        // Per i nuovi soci, la disciplina e il grado verranno impostati nella schermata successiva
-        // Non impostiamo discipline e lastGrade qui
-        destination = "/dashboard/class-selection";
-    }
-
     try {
-      const userDocRef = doc(db, "users", user.uid);
-      await updateDoc(userDocRef, dataToUpdate);
-      router.push(destination);
+        const userDocRef = doc(db, "users", user.uid);
+
+        if (isFormerMember === 'yes') {
+            if (!firstYear || !lastGrade || !discipline) {
+                toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi: disciplina, anno e grado." })
+                setIsLoading(false);
+                return
+            }
+            dataToUpdate = {
+                ...dataToUpdate,
+                discipline,
+                lastGrade,
+                firstYear,
+            };
+            destination = "/dashboard/associates";
+        } else { // isFormerMember === 'no'
+            if (!hasPracticedBefore) {
+                 toast({ variant: "destructive", title: "Attenzione", description: "Per favore, specifica se hai già praticato." })
+                 setIsLoading(false);
+                return
+            }
+            
+            dataToUpdate.hasPracticedBefore = hasPracticedBefore;
+
+            if (hasPracticedBefore === 'yes') {
+                 if (!discipline) {
+                     toast({ variant: "destructive", title: "Attenzione", description: "Seleziona la disciplina che hai praticato." });
+                     setIsLoading(false);
+                    return;
+                }
+                 const finalGrade = discipline === 'karate' ? lastGrade : aikidoGrade.trim();
+                 if (!finalGrade) {
+                      toast({ variant: "destructive", title: "Attenzione", description: "Inserisci o seleziona il tuo grado." });
+                      setIsLoading(false);
+                      return;
+                 }
+                dataToUpdate.pastExperience = {
+                    discipline,
+                    grade: finalGrade
+                };
+            }
+            destination = "/dashboard/class-selection";
+        }
+
+        await updateDoc(userDocRef, dataToUpdate);
+        router.push(destination);
+
     } catch (error) {
       console.error("Error updating user choice:", error);
       toast({
@@ -289,3 +288,5 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
+
+    
