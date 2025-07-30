@@ -100,11 +100,6 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         province: "",
         phone: "",
         isMinor: false,
-        parentData: {
-            parentName: "",
-            parentSurname: "",
-            parentTaxCode: "",
-        }
     }
   })
 
@@ -134,8 +129,11 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         
         const [firstName, ...lastNameParts] = (userData.name || "").split(" ");
         
-        const defaultParentData = { parentName: "", parentSurname: "", parentTaxCode: "" };
-        const fetchedParentData = userData.parentData || {};
+        let existingIsMinor = false;
+        if(userData.birthDate?.toDate()){
+             const age = differenceInYears(new Date(), userData.birthDate.toDate());
+             existingIsMinor = age < 18;
+        }
 
         const existingData: Partial<PersonalDataSchemaType> = {
             name: firstName || "",
@@ -149,28 +147,15 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             zipCode: userData.zipCode || "",
             province: userData.province || "",
             phone: userData.phone || "",
-            parentData: {
-                parentName: fetchedParentData.parentName || "",
-                parentSurname: fetchedParentData.parentSurname || "",
-                parentTaxCode: fetchedParentData.parentTaxCode || "",
-            }
+            isMinor: existingIsMinor,
+            parentData: existingIsMinor 
+                ? {
+                    parentName: userData.parentData?.parentName || "",
+                    parentSurname: userData.parentData?.parentSurname || "",
+                    parentTaxCode: userData.parentData?.parentTaxCode || "",
+                  }
+                : undefined
         };
-        
-        if (userData.birthDate?.toDate()) {
-            const age = differenceInYears(new Date(), userData.birthDate.toDate());
-            existingData.isMinor = age < 18;
-            if (age >= 18) {
-                existingData.parentData = undefined;
-            }
-        } else {
-            existingData.isMinor = false;
-        }
-        
-        if (!existingData.isMinor) {
-             existingData.parentData = undefined;
-        } else if (!existingData.parentData || Object.keys(existingData.parentData).length === 0) {
-            existingData.parentData = defaultParentData;
-        }
         
         form.reset(existingData);
         await form.trigger();
@@ -289,7 +274,10 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                       <FormControl>
                          <DatePicker 
                             value={field.value} 
-                            onChange={field.onChange} 
+                            onChange={(date) => {
+                                field.onChange(date);
+                                form.trigger("birthDate");
+                            }}
                             disableFuture
                           />
                       </FormControl>
@@ -436,5 +424,3 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
-
-    
