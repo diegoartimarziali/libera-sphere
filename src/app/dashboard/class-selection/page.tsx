@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -128,6 +129,7 @@ function GymSelectionStep({
 
     useEffect(() => {
         const fetchGyms = async () => {
+            setLoading(true);
             try {
                 const gymsCollection = collection(db, 'gyms');
                 const gymSnapshot = await getDocs(gymsCollection);
@@ -153,7 +155,9 @@ function GymSelectionStep({
     
     const handleDisciplineChange = (discipline: string) => {
         setSelectedDiscipline(discipline);
-        const filtered = allGyms.filter(gym => gym.disciplines.includes(discipline));
+        const filtered = allGyms.filter(gym => 
+            Array.isArray(gym.disciplines) && gym.disciplines.includes(discipline)
+        );
         setFilteredGyms(filtered);
         // Reset selections
         setSelectedGym(null);
@@ -675,6 +679,12 @@ export default function ClassSelectionPage() {
                     status: 'pending'
                 },
             };
+            
+             // Aggiungiamo anche i dati dell'esperienza passata se esistono
+            if (userData?.hasPracticedBefore === 'yes' && userData?.pastExperience) {
+                dataToUpdate.pastExperience = userData.pastExperience;
+            }
+
 
             if (formData.isMinor && formData.parentData) {
                 dataToUpdate.parentData = formData.parentData;
@@ -776,3 +786,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    

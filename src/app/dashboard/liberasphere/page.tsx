@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -61,12 +62,11 @@ export default function LiberaSpherePage() {
     }
     
     setIsLoading(true);
-    let destination = "";
+    const userDocRef = doc(db, "users", user.uid);
     let dataToUpdate: any = { isFormerMember };
+    let destination = "";
 
     try {
-        const userDocRef = doc(db, "users", user.uid);
-
         if (isFormerMember === 'yes') {
             if (!firstYear || !lastGrade || !discipline) {
                 toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi: disciplina, anno e grado." })
@@ -75,11 +75,11 @@ export default function LiberaSpherePage() {
             }
             dataToUpdate = {
                 ...dataToUpdate,
-                discipline,
-                lastGrade,
+                discipline, // Disciplina praticata con noi
+                lastGrade, // Ultimo grado raggiunto con noi
                 firstYear,
             };
-            destination = "/dashboard/associates";
+            destination = "/dashboard/associates"; // Gli ex soci vanno al rinnovo
         } else { // isFormerMember === 'no'
             if (!hasPracticedBefore) {
                  toast({ variant: "destructive", title: "Attenzione", description: "Per favore, specifica se hai già praticato." })
@@ -101,12 +101,13 @@ export default function LiberaSpherePage() {
                       setIsLoading(false);
                       return;
                  }
+                // Salviamo l'esperienza passata in un oggetto separato
                 dataToUpdate.pastExperience = {
                     discipline,
                     grade: finalGrade
                 };
             }
-            destination = "/dashboard/class-selection";
+            destination = "/dashboard/class-selection"; // I nuovi soci vanno alla selezione
         }
 
         // SALVA I DATI SU FIRESTORE
@@ -127,6 +128,7 @@ export default function LiberaSpherePage() {
 
   const handleIsFormerMemberChange = (value: 'yes' | 'no') => {
       setIsFormerMember(value);
+      // Resetta tutti gli altri stati per evitare dati sporchi tra le selezioni
       setHasPracticedBefore(null);
       setDiscipline(null);
       setLastGrade('');
@@ -263,7 +265,7 @@ export default function LiberaSpherePage() {
                         </Select>
                      </div>
                      <div>
-                        <Label htmlFor="lastGrade">Il tuo grado attuale</Label>
+                        <Label htmlFor="lastGrade">Il tuo grado con noi</Label>
                         <Select value={lastGrade} onValueChange={setLastGrade}>
                             <SelectTrigger id="lastGrade">
                                 <SelectValue placeholder="Seleziona il grado" />
@@ -289,3 +291,5 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
+
+    
