@@ -106,8 +106,7 @@ export default function LiberaSpherePage() {
             };
         }
         // Per i nuovi soci, la disciplina e il grado verranno impostati nella schermata successiva
-        dataToUpdate.discipline = "";
-        dataToUpdate.lastGrade = "";
+        // Non impostiamo discipline e lastGrade qui
         destination = "/dashboard/class-selection";
     }
 
@@ -239,12 +238,12 @@ export default function LiberaSpherePage() {
                     className="space-y-2"
                 >
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="karate" id="karate" />
-                        <Label htmlFor="karate">Karate</Label>
+                        <RadioGroupItem value="karate" id="karate_former" />
+                        <Label htmlFor="karate_former">Karate</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="aikido" id="aikido" />
-                        <Label htmlFor="aikido">Aikido</Label>
+                        <RadioGroupItem value="aikido" id="aikido_former" />
+                        <Label htmlFor="aikido_former">Aikido</Label>
                     </div>
                 </RadioGroup>
                 

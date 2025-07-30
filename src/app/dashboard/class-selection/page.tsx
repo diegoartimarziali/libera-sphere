@@ -610,6 +610,23 @@ export default function ClassSelectionPage() {
     const handleNextStep4 = () => {
         setStep(5); // Dal pagamento online, vai al riepilogo
     }
+
+    const getFinalGrade = () => {
+        if (!gymSelection) return "Cintura bianca"; // Default
+        
+        const hasPracticed = userData?.hasPracticedBefore === 'yes';
+        const pastDiscipline = userData?.pastExperience?.discipline;
+        const pastGrade = userData?.pastExperience?.grade;
+        const currentDiscipline = gymSelection.discipline;
+
+        // Se l'utente ha già praticato la stessa disciplina, usa il suo grado passato.
+        // Altrimenti, è una cintura bianca.
+        if (hasPracticed && pastDiscipline === currentDiscipline && pastGrade) {
+            return pastGrade;
+        }
+        
+        return "Cintura bianca";
+    }
     
     const handleComplete = async () => {
         if (!user || !paymentMethod || !formData || !gymSelection || !feeData) {
@@ -618,12 +635,7 @@ export default function ClassSelectionPage() {
         }
         setIsSubmitting(true);
 
-        // Logica per determinare il grado finale
-        let finalGrade = "Cintura bianca"; // Default per tutti i nuovi
-        if (userData?.hasPracticedBefore === 'yes' && userData?.pastExperience?.discipline === gymSelection.discipline) {
-            // Se ha già praticato la stessa disciplina, usa il suo grado passato
-            finalGrade = userData.pastExperience.grade;
-        }
+        const finalGrade = getFinalGrade();
 
         try {
             const userDocRef = doc(db, "users", user.uid);
@@ -708,16 +720,6 @@ export default function ClassSelectionPage() {
             </div>
         )
     }
-
-    const getFinalGrade = () => {
-         if (!gymSelection) return "";
-         let finalGrade = "Cintura bianca";
-         if (userData?.hasPracticedBefore === 'yes' && userData?.pastExperience?.discipline === gymSelection.discipline) {
-             finalGrade = userData.pastExperience.grade;
-         }
-         return finalGrade;
-    }
-
 
     return (
         <div className="flex w-full flex-col items-center">
