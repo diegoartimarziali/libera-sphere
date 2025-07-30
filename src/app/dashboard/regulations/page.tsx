@@ -87,12 +87,12 @@ export default function RegulationsPage() {
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="icon" asChild>
-                  <a href={statutoUrl} target="_blank" aria-label="Visualizza Statuto">
+                  <a href={statutoUrl} target="_blank" rel="noopener noreferrer" aria-label="Visualizza Statuto">
                     <Eye className="h-4 w-4" />
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                   <a href={statutoUrl} download aria-label="Scarica Statuto">
+                   <a href={statutoUrl} target="_blank" rel="noopener noreferrer" aria-label="Scarica Statuto">
                     <Download className="h-4 w-4" />
                    </a>
                 </Button>
@@ -105,12 +105,12 @@ export default function RegulationsPage() {
               </div>
                <div className="flex gap-2">
                 <Button variant="outline" size="icon" asChild>
-                  <a href={regolamentoUrl} target="_blank" aria-label="Visualizza Regolamento">
+                  <a href={regolamentoUrl} target="_blank" rel="noopener noreferrer" aria-label="Visualizza Regolamento">
                     <Eye className="h-4 w-4" />
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                   <a href={regolamentoUrl} download aria-label="Scarica Regolamento">
+                   <a href={regolamentoUrl} target="_blank" rel="noopener noreferrer" aria-label="Scarica Regolamento">
                     <Download className="h-4 w-4" />
                    </a>
                 </Button>
@@ -123,12 +123,12 @@ export default function RegulationsPage() {
               </div>
                <div className="flex gap-2">
                 <Button variant="outline" size="icon" asChild>
-                  <a href={privacyUrl} target="_blank" aria-label="Visualizza Informativa Privacy">
+                  <a href={privacyUrl} target="_blank" rel="noopener noreferrer" aria-label="Visualizza Informativa Privacy">
                     <Eye className="h-4 w-4" />
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                   <a href={privacyUrl} download aria-label="Scarica Informativa Privacy">
+                   <a href={privacyUrl} target="_blank" rel="noopener noreferrer" aria-label="Scarica Informativa Privacy">
                     <Download className="h-4 w-4" />
                    </a>
                 </Button>
