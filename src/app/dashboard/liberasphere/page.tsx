@@ -94,7 +94,7 @@ export default function LiberaSpherePage() {
     }
 
     if (isFormerMember === 'no') {
-        if (!discipline) return true;
+        if (!discipline || !gym) return true;
         if (!hasPracticedBefore) return true;
         if (hasPracticedBefore === 'yes') {
             const finalGrade = discipline === 'karate' ? lastGrade : aikidoGrade.trim();
@@ -124,11 +124,11 @@ export default function LiberaSpherePage() {
 
     try {
         dataToUpdate.discipline = discipline;
+        dataToUpdate.gym = gym;
         
         if (isFormerMember === 'yes') {
             dataToUpdate.firstYear = firstYear;
             dataToUpdate.lastGrade = lastGrade;
-            dataToUpdate.gym = gym; // Aggiungiamo la palestra
             destination = "/dashboard/associates";
         } else { // isFormerMember === 'no'
             dataToUpdate.hasPracticedBefore = hasPracticedBefore;
@@ -205,8 +205,26 @@ export default function LiberaSpherePage() {
                     </Label>
                 </RadioGroup>
               </div>
+
+               {discipline && (
+                    <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
+                         <div>
+                            <Label htmlFor="gym_new">In quale palestra vuoi fare le tue selezioni?</Label>
+                            <Select value={gym} onValueChange={setGym}>
+                                <SelectTrigger id="gym_new">
+                                    <SelectValue placeholder="Seleziona la palestra" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {(discipline === 'karate' ? gymOptions.karate : gymOptions.aikido).map(g => (
+                                        <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                         </div>
+                    </div>
+                )}
               
-              {discipline && (
+              {gym && (
                 <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
                     <h4 className="font-semibold text-foreground">3. Hai già praticato {discipline === 'karate' ? 'Karate' : 'Aikido'} in altre associazioni?</h4>
                     <RadioGroup
@@ -338,4 +356,3 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
-
