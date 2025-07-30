@@ -261,11 +261,11 @@ export default function LiberaSpherePage() {
                     className="space-y-2"
                 >
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="former_karate" id="former_karate" />
+                        <RadioGroupItem value="karate" id="former_karate" />
                         <Label htmlFor="former_karate">Karate</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="former_aikido" id="former_aikido" />
+                        <RadioGroupItem value="aikido" id="former_aikido" />
                         <Label htmlFor="former_aikido">Aikido</Label>
                     </div>
                 </RadioGroup>
@@ -312,3 +312,5 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
+
+    
