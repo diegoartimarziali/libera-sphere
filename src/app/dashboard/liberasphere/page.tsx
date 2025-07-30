@@ -252,7 +252,7 @@ export default function LiberaSpherePage() {
                 <h4 className="font-semibold text-foreground mt-4 pt-4 border-t">Completa i tuoi dati</h4>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                      <div>
-                        <Label htmlFor="firstYear">Primo Anno di Iscrizione</Label>
+                        <Label htmlFor="firstYear">Primo Anno di Associazione</Label>
                         <Select value={firstYear} onValueChange={setFirstYear}>
                             <SelectTrigger id="firstYear">
                                 <SelectValue placeholder="Seleziona l'anno" />
@@ -265,7 +265,7 @@ export default function LiberaSpherePage() {
                         </Select>
                      </div>
                      <div>
-                        <Label htmlFor="lastGrade">Il tuo grado con noi</Label>
+                        <Label htmlFor="lastGrade">Il Tuo Grado Attuale</Label>
                         <Select value={lastGrade} onValueChange={setLastGrade}>
                             <SelectTrigger id="lastGrade">
                                 <SelectValue placeholder="Seleziona il grado" />
@@ -291,5 +291,6 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
+
 
     
