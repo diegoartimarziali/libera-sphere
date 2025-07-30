@@ -92,6 +92,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         name: "",
         surname: "",
         taxCode: "",
+        birthDate: undefined,
         birthPlace: "",
         address: "",
         streetNumber: "",
@@ -100,6 +101,11 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         province: "",
         phone: "",
         isMinor: false,
+        parentData: {
+            parentName: "",
+            parentSurname: "",
+            parentTaxCode: "",
+        }
     }
   })
 
@@ -112,10 +118,10 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
           setIsMinor(minor);
           form.setValue("isMinor", minor, { shouldValidate: true });
           if (!minor) {
-              form.setValue("parentData", undefined, { shouldValidate: true });
+              form.setValue("parentData", { parentName: "", parentSurname: "", parentTaxCode: "" });
               form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
           }
-          form.trigger("birthDate");
+          form.trigger("isMinor");
       } else {
           setIsMinor(null);
       }
@@ -135,11 +141,11 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
              existingIsMinor = age < 18;
         }
 
-        const existingData: Partial<PersonalDataSchemaType> = {
+        const existingData = {
             name: firstName || "",
             surname: lastNameParts.join(" ") || "",
             taxCode: userData.taxCode || "",
-            birthDate: userData.birthDate?.toDate() || undefined,
+            birthDate: userData.birthDate?.toDate(),
             birthPlace: userData.birthPlace || "",
             address: userData.address || "",
             streetNumber: userData.streetNumber || "",
@@ -148,13 +154,11 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             province: userData.province || "",
             phone: userData.phone || "",
             isMinor: existingIsMinor,
-            parentData: existingIsMinor 
-                ? {
-                    parentName: userData.parentData?.parentName || "",
-                    parentSurname: userData.parentData?.parentSurname || "",
-                    parentTaxCode: userData.parentData?.parentTaxCode || "",
-                  }
-                : undefined
+            parentData: {
+                parentName: userData.parentData?.parentName || "",
+                parentSurname: userData.parentData?.parentSurname || "",
+                parentTaxCode: userData.parentData?.parentTaxCode || "",
+            }
         };
         
         form.reset(existingData);
@@ -194,6 +198,20 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     
     onFormSubmit(formattedData)
     setIsLoading(false)
+  }
+
+  if (isLoading) {
+      return (
+          <Card>
+              <CardHeader>
+                  <CardTitle>{title}</CardTitle>
+                  <CardDescription>{description}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex h-64 items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+              </CardContent>
+          </Card>
+      );
   }
 
   return (
