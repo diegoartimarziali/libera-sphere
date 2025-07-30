@@ -120,7 +120,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
               form.setValue("parentData", undefined, { shouldValidate: true });
               form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
           }
-          form.trigger("birthDate"); // Force validation of birthDate field
+          form.trigger("birthDate");
       } else {
           setIsMinor(null);
       }
@@ -135,6 +135,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         const [firstName, ...lastNameParts] = (userData.name || "").split(" ");
         
         const defaultParentData = { parentName: "", parentSurname: "", parentTaxCode: "" };
+        const fetchedParentData = userData.parentData || {};
 
         const existingData: Partial<PersonalDataSchemaType> = {
             name: firstName || "",
@@ -149,9 +150,9 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             province: userData.province || "",
             phone: userData.phone || "",
             parentData: {
-                parentName: userData.parentData?.parentName || "",
-                parentSurname: userData.parentData?.parentSurname || "",
-                parentTaxCode: userData.parentData?.parentTaxCode || "",
+                parentName: fetchedParentData.parentName || "",
+                parentSurname: fetchedParentData.parentSurname || "",
+                parentTaxCode: fetchedParentData.parentTaxCode || "",
             }
         };
         
@@ -435,3 +436,5 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
+
+    
