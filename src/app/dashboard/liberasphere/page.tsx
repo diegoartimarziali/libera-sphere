@@ -1,11 +1,11 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 
@@ -17,20 +17,46 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
+interface Gym {
+    id: string;
+    name: string;
+}
+
 export default function LiberaSpherePage() {
   const [user] = useAuthState(auth)
   const router = useRouter()
   const { toast } = useToast()
 
-  const [isFormerMember, setIsFormerMember] = useState<'yes' | 'no' | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [dataLoading, setDataLoading] = useState(true);
 
   // Stati per il flusso unificato
+  const [gyms, setGyms] = useState<Gym[]>([]);
+  const [selectedGym, setSelectedGym] = useState<string | null>(null);
+  const [isFormerMember, setIsFormerMember] = useState<'yes' | 'no' | null>(null)
   const [discipline, setDiscipline] = useState<'karate' | 'aikido' | null>(null);
   const [hasPracticedBefore, setHasPracticedBefore] = useState<'yes' | 'no' | null>(null);
   const [lastGrade, setLastGrade] = useState('');
   const [aikidoGrade, setAikidoGrade] = useState('');
   const [firstYear, setFirstYear] = useState('');
+
+
+  useEffect(() => {
+    const fetchGyms = async () => {
+        try {
+            const gymsCollection = collection(db, 'gyms');
+            const gymsSnapshot = await getDocs(gymsCollection);
+            const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
+            setGyms(gymsList);
+        } catch (error) {
+            console.error("Error fetching gyms:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare le palestre." });
+        } finally {
+            setDataLoading(false);
+        }
+    };
+    fetchGyms();
+  }, [toast]);
 
 
   const currentYear = new Date().getFullYear();
@@ -71,62 +97,64 @@ export default function LiberaSpherePage() {
       setAikidoGrade('');
   }
 
+  const isContinueDisabled = () => {
+    if (!selectedGym || !isFormerMember) return true;
+
+    if (isFormerMember === 'yes') {
+        return !discipline || !firstYear || !lastGrade;
+    }
+
+    if (isFormerMember === 'no') {
+        if (!discipline) return true;
+        if (!hasPracticedBefore) return true;
+        if (hasPracticedBefore === 'yes') {
+            const finalGrade = discipline === 'karate' ? lastGrade : aikidoGrade.trim();
+            return !finalGrade;
+        }
+    }
+
+    return false;
+  }
+
   const handleContinue = async () => {
     if (!user) {
       toast({ variant: "destructive", title: "Errore", description: "Utente non autenticato." });
       return;
     }
 
-    if (!isFormerMember) {
-      toast({ variant: "destructive", title: "Attenzione", description: "Devi selezionare un'opzione." });
-      return;
+    if (isContinueDisabled()) {
+       toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi richiesti." });
+       return;
     }
 
     setIsLoading(true);
     const userDocRef = doc(db, "users", user.uid);
-    let dataToUpdate: any = { isFormerMember };
+    const selectedGymData = gyms.find(g => g.id === selectedGym);
+
+    let dataToUpdate: any = { 
+        isFormerMember,
+        gymId: selectedGym,
+        gymName: selectedGymData?.name || '',
+    };
     let destination = "";
 
     try {
-        if (!discipline) {
-            toast({ variant: "destructive", title: "Attenzione", description: "Per favore, seleziona una disciplina." });
-            setIsLoading(false);
-            return;
-        }
-
         dataToUpdate.discipline = discipline;
         
         if (isFormerMember === 'yes') {
-            if (!firstYear || !lastGrade) {
-                toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi richiesti." });
-                setIsLoading(false);
-                return;
-            }
             dataToUpdate.firstYear = firstYear;
             dataToUpdate.lastGrade = lastGrade;
             destination = "/dashboard/associates";
         } else { // isFormerMember === 'no'
-            if (!hasPracticedBefore) {
-                 toast({ variant: "destructive", title: "Attenzione", description: "Per favore, specifica se hai già praticato." });
-                 setIsLoading(false);
-                 return;
-            }
-
             dataToUpdate.hasPracticedBefore = hasPracticedBefore;
 
             if (hasPracticedBefore === 'yes') {
                  const finalGrade = discipline === 'karate' ? lastGrade : aikidoGrade.trim();
-                 if (!finalGrade) {
-                      toast({ variant: "destructive", title: "Attenzione", description: "Inserisci o seleziona il tuo grado." });
-                      setIsLoading(false);
-                      return;
-                 }
-                 dataToUpdate.lastGrade = finalGrade;
-                 // Salviamo l'esperienza passata per coerenza e per poterla usare dopo
                  dataToUpdate.pastExperience = { discipline, grade: finalGrade };
+                 dataToUpdate.lastGrade = finalGrade;
             } else { // hasPracticedBefore === 'no'
+                dataToUpdate.pastExperience = { discipline, grade: "Cintura bianca" };
                 dataToUpdate.lastGrade = "Cintura bianca";
-                 dataToUpdate.pastExperience = { discipline, grade: "Cintura bianca" };
             }
             destination = "/dashboard/class-selection";
         }
@@ -146,160 +174,190 @@ export default function LiberaSpherePage() {
   };
 
 
+  if (dataLoading) {
+      return (
+          <div className="flex h-full w-full items-center justify-center">
+             <Loader2 className="h-16 w-16 animate-spin text-primary" />
+          </div>
+      )
+  }
+
   return (
     <div className="flex h-full items-center justify-center">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-2xl">Benvenuto!</CardTitle>
           <CardDescription>
-            Iniziamo il tuo percorso. Sei già stato dei nostri?
+            Iniziamo il tuo percorso. Seleziona la palestra e raccontaci di te.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <RadioGroup 
-            value={isFormerMember || ''} 
-            onValueChange={(value) => handleIsFormerMemberChange(value as 'yes' | 'no')}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-          >
-            <Label htmlFor="no" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground", isFormerMember === 'no' && 'border-primary')}>
-              <RadioGroupItem value="no" id="no" className="sr-only" />
-              <span className="text-lg font-semibold">No, è la mia prima volta</span>
-            </Label>
-            <Label htmlFor="yes" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground", isFormerMember === 'yes' && 'border-primary')}>
-              <RadioGroupItem value="yes" id="yes" className="sr-only" />
-              <span className="text-lg font-semibold">Sì, sono già stato socio</span>
-            </Label>
-          </RadioGroup>
+
+          {/* Step 1: Scelta Palestra */}
+          <div className="space-y-2">
+            <Label htmlFor="gym-selection" className="font-semibold text-foreground">1. Seleziona la tua palestra di riferimento</Label>
+            <Select value={selectedGym || ''} onValueChange={setSelectedGym}>
+                <SelectTrigger id="gym-selection">
+                    <SelectValue placeholder="Scegli una palestra..." />
+                </SelectTrigger>
+                <SelectContent>
+                    {gyms.map(gym => (
+                        <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
           
-          {isFormerMember === 'no' && (
-            <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
-              {/* Step 1: Scegli disciplina */}
-              <div className="space-y-2">
-                <h4 className="font-semibold text-foreground">1. Quale disciplina vuoi praticare?</h4>
-                <RadioGroup
-                    value={discipline || ''}
-                    onValueChange={(value) => handleDisciplineChange(value as 'karate' | 'aikido')}
-                    className="grid grid-cols-2 gap-4"
-                >
-                    <Label htmlFor="karate_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'karate' && "border-primary")}>
-                        <RadioGroupItem value="karate" id="karate_new" className="sr-only" />
-                        <span>Karate</span>
+          {selectedGym && (
+            <div className="space-y-6 pt-6 border-t animate-in fade-in-50">
+              {/* Step 2: Sei già stato dei nostri? */}
+              <div className="space-y-3">
+                 <h4 className="font-semibold text-foreground">2. Sei già stato dei nostri?</h4>
+                 <RadioGroup 
+                    value={isFormerMember || ''} 
+                    onValueChange={(value) => handleIsFormerMemberChange(value as 'yes' | 'no')}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                  >
+                    <Label htmlFor="no" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground", isFormerMember === 'no' && 'border-primary')}>
+                      <RadioGroupItem value="no" id="no" className="sr-only" />
+                      <span className="text-center font-semibold">No, è la mia prima volta</span>
                     </Label>
-                    <Label htmlFor="aikido_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'aikido' && "border-primary")}>
-                        <RadioGroupItem value="aikido" id="aikido_new" className="sr-only" />
-                        <span>Aikido</span>
+                    <Label htmlFor="yes" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground", isFormerMember === 'yes' && 'border-primary')}>
+                      <RadioGroupItem value="yes" id="yes" className="sr-only" />
+                      <span className="text-center font-semibold">Sì, sono già stato socio</span>
                     </Label>
-                </RadioGroup>
+                  </RadioGroup>
               </div>
-              
-              {/* Step 2: Hai già praticato? */}
-              {discipline && (
-                <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                    <h4 className="font-semibold text-foreground">2. Hai già praticato {discipline === 'karate' ? 'Karate' : 'Aikido'} in altre associazioni?</h4>
-                    <RadioGroup
-                        value={hasPracticedBefore || ''}
-                        onValueChange={(value) => setHasPracticedBefore(value as 'yes' | 'no')}
-                        className="flex gap-4"
-                    >
-                        <Label htmlFor="practiced_no" className={cn("flex items-center space-x-2 p-2 border rounded-md cursor-pointer flex-1 justify-center", hasPracticedBefore === 'no' && 'border-primary')}>
-                            <RadioGroupItem value="no" id="practiced_no" />
-                            <span>No, mai</span>
-                        </Label>
-                         <Label htmlFor="practiced_yes" className={cn("flex items-center space-x-2 p-2 border rounded-md cursor-pointer flex-1 justify-center", hasPracticedBefore === 'yes' && 'border-primary')}>
-                            <RadioGroupItem value="yes" id="practiced_yes" />
-                            <span>Sì, ho già praticato</span>
-                        </Label>
-                    </RadioGroup>
-                </div>
-              )}
-
-              {/* Step 3: Se sì, qual è il grado? */}
-              {hasPracticedBefore === 'yes' && (
-                  <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                      <h4 className="font-semibold text-foreground">3. Qual è il tuo grado attuale?</h4>
-                      {discipline === 'karate' && (
-                          <div className="space-y-2">
-                               <Select value={lastGrade} onValueChange={setLastGrade}>
-                                  <SelectTrigger>
-                                      <SelectValue placeholder="Seleziona il grado" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                      {grades.map(grade => (
-                                          <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-                                      ))}
-                                  </SelectContent>
-                              </Select>
-                          </div>
-                      )}
-                      {discipline === 'aikido' && (
-                          <div className="space-y-2">
-                              <Input 
-                                value={aikidoGrade}
-                                onChange={(e) => setAikidoGrade(e.target.value)}
-                                placeholder="Es. 1° Kyu, Shodan, ecc."
-                              />
-                          </div>
-                      )}
-                  </div>
-              )}
-            </div>
-          )}
-
-          {isFormerMember === 'yes' && (
-            <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
-                <div className="space-y-2">
-                    <h4 className="font-semibold text-foreground">Quale disciplina hai praticato con noi?</h4>
+             
+              {/* Step 3: Dettagli in base alla scelta */}
+              {isFormerMember === 'no' && (
+                <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-foreground">3. Quale disciplina vuoi praticare?</h4>
                     <RadioGroup
                         value={discipline || ''}
-                        onValueChange={(value) => setDiscipline(value as 'karate' | 'aikido')}
+                        onValueChange={(value) => handleDisciplineChange(value as 'karate' | 'aikido')}
                         className="grid grid-cols-2 gap-4"
                     >
-                       <Label htmlFor="karate_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'karate' && "border-primary")}>
-                            <RadioGroupItem value="karate" id="karate_former" className="sr-only" />
+                        <Label htmlFor="karate_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'karate' && "border-primary")}>
+                            <RadioGroupItem value="karate" id="karate_new" className="sr-only" />
                             <span>Karate</span>
                         </Label>
-                        <Label htmlFor="aikido_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'aikido' && "border-primary")}>
-                            <RadioGroupItem value="aikido" id="aikido_former" className="sr-only" />
+                        <Label htmlFor="aikido_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'aikido' && "border-primary")}>
+                            <RadioGroupItem value="aikido" id="aikido_new" className="sr-only" />
                             <span>Aikido</span>
                         </Label>
                     </RadioGroup>
-                </div>
-                
-                {discipline && (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-4 border-t mt-4 animate-in fade-in-50">
-                         <div>
-                            <Label htmlFor="firstYear">Primo Anno di Associazione</Label>
-                            <Select value={firstYear} onValueChange={setFirstYear}>
-                                <SelectTrigger id="firstYear">
-                                    <SelectValue placeholder="Seleziona l'anno" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {years.map(year => (
-                                        <SelectItem key={year} value={year}>{year}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                         </div>
-                         <div>
-                            <Label htmlFor="lastGrade">Il Tuo Grado Attuale</Label>
-                            <Select value={lastGrade} onValueChange={setLastGrade}>
-                                <SelectTrigger id="lastGrade">
-                                    <SelectValue placeholder="Seleziona il grado" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {grades.map(grade => (
-                                        <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                         </div>
+                  </div>
+                  
+                  {discipline && (
+                    <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
+                        <h4 className="font-semibold text-foreground">4. Hai già praticato {discipline === 'karate' ? 'Karate' : 'Aikido'} in altre associazioni?</h4>
+                        <RadioGroup
+                            value={hasPracticedBefore || ''}
+                            onValueChange={(value) => setHasPracticedBefore(value as 'yes' | 'no')}
+                            className="flex gap-4"
+                        >
+                            <Label htmlFor="practiced_no" className={cn("flex items-center space-x-2 p-2 border rounded-md cursor-pointer flex-1 justify-center bg-background", hasPracticedBefore === 'no' && 'border-primary')}>
+                                <RadioGroupItem value="no" id="practiced_no" />
+                                <span>No, mai</span>
+                            </Label>
+                             <Label htmlFor="practiced_yes" className={cn("flex items-center space-x-2 p-2 border rounded-md cursor-pointer flex-1 justify-center bg-background", hasPracticedBefore === 'yes' && 'border-primary')}>
+                                <RadioGroupItem value="yes" id="practiced_yes" />
+                                <span>Sì, ho già praticato</span>
+                            </Label>
+                        </RadioGroup>
                     </div>
-                )}
+                  )}
+
+                  {hasPracticedBefore === 'yes' && (
+                      <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
+                          <h4 className="font-semibold text-foreground">5. Qual è il tuo grado attuale?</h4>
+                          {discipline === 'karate' && (
+                              <div className="space-y-2">
+                                   <Select value={lastGrade} onValueChange={setLastGrade}>
+                                      <SelectTrigger>
+                                          <SelectValue placeholder="Seleziona il grado" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                          {grades.map(grade => (
+                                              <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                                          ))}
+                                      </SelectContent>
+                                  </Select>
+                              </div>
+                          )}
+                          {discipline === 'aikido' && (
+                              <div className="space-y-2">
+                                  <Input 
+                                    value={aikidoGrade}
+                                    onChange={(e) => setAikidoGrade(e.target.value)}
+                                    placeholder="Es. 1° Kyu, Shodan, ecc."
+                                  />
+                              </div>
+                          )}
+                      </div>
+                  )}
+                </div>
+              )}
+
+              {isFormerMember === 'yes' && (
+                <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
+                    <div className="space-y-2">
+                        <h4 className="font-semibold text-foreground">3. Quale disciplina hai praticato con noi?</h4>
+                        <RadioGroup
+                            value={discipline || ''}
+                            onValueChange={(value) => setDiscipline(value as 'karate' | 'aikido')}
+                            className="grid grid-cols-2 gap-4"
+                        >
+                           <Label htmlFor="karate_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'karate' && "border-primary")}>
+                                <RadioGroupItem value="karate" id="karate_former" className="sr-only" />
+                                <span>Karate</span>
+                            </Label>
+                            <Label htmlFor="aikido_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'aikido' && "border-primary")}>
+                                <RadioGroupItem value="aikido" id="aikido_former" className="sr-only" />
+                                <span>Aikido</span>
+                            </Label>
+                        </RadioGroup>
+                    </div>
+                    
+                    {discipline && (
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-4 border-t mt-4 animate-in fade-in-50">
+                             <div>
+                                <Label htmlFor="firstYear">Primo Anno di Associazione</Label>
+                                <Select value={firstYear} onValueChange={setFirstYear}>
+                                    <SelectTrigger id="firstYear">
+                                        <SelectValue placeholder="Seleziona l'anno" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {years.map(year => (
+                                            <SelectItem key={year} value={year}>{year}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                             </div>
+                             <div>
+                                <Label htmlFor="lastGrade">Il Tuo Grado Attuale</Label>
+                                <Select value={lastGrade} onValueChange={setLastGrade}>
+                                    <SelectTrigger id="lastGrade">
+                                        <SelectValue placeholder="Seleziona il grado" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {grades.map(grade => (
+                                            <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                             </div>
+                        </div>
+                    )}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
         <CardFooter>
-          <Button onClick={handleContinue} disabled={!isFormerMember || isLoading} className="w-full">
+          <Button onClick={handleContinue} disabled={isContinueDisabled() || isLoading} className="w-full">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Prosegui
           </Button>
@@ -308,5 +366,3 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
-
-    
