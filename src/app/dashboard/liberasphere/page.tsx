@@ -17,6 +17,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
+// Definiamo i dati statici per le palestre
+const gymOptions = {
+    karate: [
+        { id: "aosta", name: "Aosta" },
+        { id: "villeneuve", name: "Villeneuve" },
+        { id: "verres", name: "Verres" }
+    ],
+    aikido: [
+        { id: "aosta", name: "Aosta" }
+    ]
+};
+
 export default function LiberaSpherePage() {
   const [user] = useAuthState(auth)
   const router = useRouter()
@@ -27,6 +39,7 @@ export default function LiberaSpherePage() {
   // Stati per il flusso unificato
   const [isFormerMember, setIsFormerMember] = useState<'yes' | 'no' | null>(null)
   const [discipline, setDiscipline] = useState<'karate' | 'aikido' | null>(null);
+  const [gym, setGym] = useState('');
   const [hasPracticedBefore, setHasPracticedBefore] = useState<'yes' | 'no' | null>(null);
   const [lastGrade, setLastGrade] = useState('');
   const [aikidoGrade, setAikidoGrade] = useState('');
@@ -57,6 +70,7 @@ export default function LiberaSpherePage() {
       setIsFormerMember(value);
       // Resetta tutti gli altri stati per evitare dati sporchi tra le selezioni
       setDiscipline(null);
+      setGym('');
       setHasPracticedBefore(null);
       setLastGrade('');
       setAikidoGrade('');
@@ -66,6 +80,7 @@ export default function LiberaSpherePage() {
   const handleDisciplineChange = (value: 'karate' | 'aikido') => {
       setDiscipline(value);
       // Resetta gli stati dipendenti quando cambia la disciplina
+      setGym('');
       setHasPracticedBefore(null);
       setLastGrade('');
       setAikidoGrade('');
@@ -75,7 +90,7 @@ export default function LiberaSpherePage() {
     if (!isFormerMember) return true;
 
     if (isFormerMember === 'yes') {
-        return !discipline || !firstYear || !lastGrade;
+        return !discipline || !gym || !firstYear || !lastGrade;
     }
 
     if (isFormerMember === 'no') {
@@ -113,6 +128,7 @@ export default function LiberaSpherePage() {
         if (isFormerMember === 'yes') {
             dataToUpdate.firstYear = firstYear;
             dataToUpdate.lastGrade = lastGrade;
+            dataToUpdate.gym = gym; // Aggiungiamo la palestra
             destination = "/dashboard/associates";
         } else { // isFormerMember === 'no'
             dataToUpdate.hasPracticedBefore = hasPracticedBefore;
@@ -247,7 +263,7 @@ export default function LiberaSpherePage() {
                     <h4 className="font-semibold text-foreground">2. Quale disciplina hai praticato con noi?</h4>
                     <RadioGroup
                         value={discipline || ''}
-                        onValueChange={(value) => setDiscipline(value as 'karate' | 'aikido')}
+                        onValueChange={(value) => handleDisciplineChange(value as 'karate' | 'aikido')}
                         className="grid grid-cols-2 gap-4"
                     >
                        <Label htmlFor="karate_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'karate' && "border-primary")}>
@@ -262,6 +278,24 @@ export default function LiberaSpherePage() {
                 </div>
                 
                 {discipline && (
+                    <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
+                         <div>
+                            <Label htmlFor="gym">In quale palestra?</Label>
+                            <Select value={gym} onValueChange={setGym}>
+                                <SelectTrigger id="gym">
+                                    <SelectValue placeholder="Seleziona la palestra" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {(discipline === 'karate' ? gymOptions.karate : gymOptions.aikido).map(g => (
+                                        <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                         </div>
+                    </div>
+                )}
+                
+                {gym && (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-4 border-t mt-4 animate-in fade-in-50">
                          <div>
                             <Label htmlFor="firstYear">Primo Anno di Associazione</Label>
@@ -304,3 +338,4 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
+
