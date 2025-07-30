@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -110,7 +109,9 @@ export default function LiberaSpherePage() {
             destination = "/dashboard/class-selection";
         }
 
+        // SALVA I DATI SU FIRESTORE
         await updateDoc(userDocRef, dataToUpdate);
+        
         router.push(destination);
 
     } catch (error) {
@@ -288,5 +289,3 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
-
-    

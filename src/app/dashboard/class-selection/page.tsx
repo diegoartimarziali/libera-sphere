@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -268,7 +267,7 @@ function GymSelectionStep({
 
                 <div className={cn("space-y-2", !selectedDiscipline && "opacity-50 pointer-events-none")}>
                     <Label htmlFor="gym-select">2. Seleziona la palestra</Label>
-                    <Select onValueChange={handleGymChange} disabled={!selectedDiscipline}>
+                    <Select onValueChange={handleGymChange} disabled={!selectedDiscipline} value={selectedGym?.id || ""}>
                         <SelectTrigger id="gym-select">
                             <SelectValue placeholder="Seleziona una palestra" />
                         </SelectTrigger>
@@ -704,8 +703,10 @@ export default function ClassSelectionPage() {
             setStep(3); // Torna alla scelta pagamento
         } else if (step === 3) { // Scelta pagamento
             setStep(2); // Torna alla scelta palestra
+        } else if (step === 2) { // Scelta palestra
+             setStep(1); // Torna ai dati anagrafici
         } else {
-            setStep(prev => prev - 1);
+            router.push('/dashboard/liberasphere');
         }
     }
     
@@ -741,11 +742,11 @@ export default function ClassSelectionPage() {
                 )}
                 {step === 2 && (
                     <GymSelectionStep 
-                        onBack={() => setStep(1)}
+                        onBack={handleBack}
                         onNext={handleNextStep2}
                     />
                 )}
-                {step === 3 && (
+                {step === 3 && gymSelection &&(
                     <PaymentStep
                         onBack={() => setStep(2)}
                         onNext={handleNextStep3}
