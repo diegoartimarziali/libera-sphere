@@ -82,6 +82,7 @@ const capitalizeWords = (str: string) => {
 
 export function PersonalDataForm({ title, description, buttonText, onFormSubmit }: PersonalDataFormProps) {
   const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMinor, setIsMinor] = useState<boolean | null>(null)
   const [user] = useAuthState(auth)
   
@@ -116,12 +117,13 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
           const age = differenceInYears(new Date(), birthDate);
           const minor = age < 18;
           setIsMinor(minor);
-          form.setValue("isMinor", minor, { shouldValidate: true });
-          if (!minor) {
-              form.setValue("parentData", { parentName: "", parentSurname: "", parentTaxCode: "" });
-              form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
+          if (form.getValues("isMinor") !== minor) {
+            form.setValue("isMinor", minor, { shouldValidate: true });
           }
-          form.trigger("isMinor");
+          if (!minor) {
+            form.setValue("parentData", { parentName: "", parentSurname: "", parentTaxCode: "" });
+            form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
+          }
       } else {
           setIsMinor(null);
       }
@@ -135,9 +137,10 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         
         const [firstName, ...lastNameParts] = (userData.name || "").split(" ");
         
+        const birthDateValue = userData.birthDate?.toDate() || undefined;
         let existingIsMinor = false;
-        if(userData.birthDate?.toDate()){
-             const age = differenceInYears(new Date(), userData.birthDate.toDate());
+        if(birthDateValue){
+             const age = differenceInYears(new Date(), birthDateValue);
              existingIsMinor = age < 18;
         }
 
@@ -145,7 +148,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             name: firstName || "",
             surname: lastNameParts.join(" ") || "",
             taxCode: userData.taxCode || "",
-            birthDate: userData.birthDate?.toDate(),
+            birthDate: birthDateValue,
             birthPlace: userData.birthPlace || "",
             address: userData.address || "",
             streetNumber: userData.streetNumber || "",
@@ -162,7 +165,9 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
         };
         
         form.reset(existingData);
-        await form.trigger();
+        if(birthDateValue) {
+           setIsMinor(existingIsMinor);
+        }
     }
   }, [form]);
 
@@ -177,7 +182,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
 
 
   const onSubmit = async (data: PersonalDataSchemaType) => {
-    setIsLoading(true)
+    setIsSubmitting(true);
     
     const formattedData: PersonalDataSchemaType = {
         ...data,
@@ -197,7 +202,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     };
     
     onFormSubmit(formattedData)
-    setIsLoading(false)
+    // Non impostare setIsSubmitting a false qui, perché la navigazione è gestita dal genitore
   }
 
   if (isLoading) {
@@ -294,7 +299,6 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
                             value={field.value} 
                             onChange={(date) => {
                                 field.onChange(date);
-                                form.trigger("birthDate");
                             }}
                             disableFuture
                           />
@@ -432,8 +436,8 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
 
           </CardContent>
           <CardFooter>
-            <Button type="submit" className="w-full" disabled={isLoading || !form.formState.isValid}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" className="w-full" disabled={isSubmitting || !form.formState.isValid}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {buttonText}
             </Button>
           </CardFooter>

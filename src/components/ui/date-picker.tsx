@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/popover"
 
 interface DatePickerProps {
-    value?: Date;
+    value?: Date | null;
     onChange: (date?: Date) => void;
     disableFuture?: boolean;
     disablePast?: boolean;
@@ -25,6 +25,8 @@ interface DatePickerProps {
 
 export function DatePicker({ value, onChange, disableFuture, disablePast, placeholder = "Seleziona una data" }: DatePickerProps) {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
+
     const currentYear = today.getFullYear();
 
     // Gestione del range di anni selezionabili
@@ -37,7 +39,10 @@ export function DatePicker({ value, onChange, disableFuture, disablePast, placeh
             return date > today;
         }
         if (disablePast) {
-            return date < today;
+            // Check if the date is before today (ignoring time)
+            const dateWithoutTime = new Date(date);
+            dateWithoutTime.setHours(0,0,0,0);
+            return dateWithoutTime < today;
         }
         return false;
     };
@@ -59,8 +64,9 @@ export function DatePicker({ value, onChange, disableFuture, disablePast, placeh
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
         <Calendar
+          key={value?.toString()} // Force re-render on value change
           mode="single"
-          selected={value}
+          selected={value || undefined}
           onSelect={onChange}
           initialFocus
           locale={it}
