@@ -164,7 +164,7 @@ export default function LiberaSpherePage() {
         <CardHeader>
           <CardTitle className="text-2xl">Benvenuto!</CardTitle>
           <CardDescription>
-            Aiutaci a capire il tuo percorso. Sei già stato dei nostri in passato?
+            Sei già stato Socio di Libera Energia Arti Marziali ?
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
