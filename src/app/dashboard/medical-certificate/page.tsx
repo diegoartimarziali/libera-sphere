@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -138,7 +138,7 @@ export default function MedicalCertificatePage() {
         <CardHeader>
           <CardTitle>Certificato Medico</CardTitle>
           <CardDescription>
-            Per completare la tua iscrizione, fornisci i dati relativi al tuo certificato medico per attività sportiva non agonistica.
+            Per completare la tua iscrizione, fornisci i dati relativi al tuo certificato medico per attività sportiva non agonistica, sono validi i certificati non agonistici in corso di validità rilasciati per qualsiasi sport o attività scolastiche.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
