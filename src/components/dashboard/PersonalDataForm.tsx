@@ -148,7 +148,11 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             zipCode: userData.zipCode || "",
             province: userData.province || "",
             phone: userData.phone || "",
-            parentData: userData.parentData || defaultParentData
+            parentData: {
+                parentName: userData.parentData?.parentName || "",
+                parentSurname: userData.parentData?.parentSurname || "",
+                parentTaxCode: userData.parentData?.parentTaxCode || "",
+            }
         };
         
         if (userData.birthDate?.toDate()) {
