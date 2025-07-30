@@ -108,7 +108,7 @@ export default function DashboardPage() {
 
               setDaysToExpire(daysDiff);
               
-              if (isPast(expiryDate)) {
+              if (daysDiff < 0) {
                   setCertificateStatus('expired');
               } else if (daysDiff <= 20) {
                   setCertificateStatus('expiring');
@@ -150,7 +150,7 @@ export default function DashboardPage() {
       );
     }
     
-    if (certificateStatus === 'expiring' && daysToExpire !== null && daysToExpire >= 0) {
+    if (certificateStatus === 'expiring' && daysToExpire !== null) {
       return (
         <Alert className="mb-6 border-yellow-500 text-yellow-700 [&>svg]:text-yellow-500">
           <AlertTriangle className="h-4 w-4" />
