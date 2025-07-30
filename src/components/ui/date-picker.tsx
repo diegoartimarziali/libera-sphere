@@ -64,7 +64,6 @@ export function DatePicker({ value, onChange, disableFuture, disablePast, placeh
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
         <Calendar
-          key={value?.toString()} // Force re-render on value change
           mode="single"
           selected={value || undefined}
           onSelect={onChange}
