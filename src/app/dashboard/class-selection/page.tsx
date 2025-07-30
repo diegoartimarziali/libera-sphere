@@ -280,7 +280,7 @@ function GymSelectionStep({
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack}>Indietro</Button>
-                 <Button onClick={handleSubmit} disabled={!selectedLesson}>Prosegui al Pagamento</Button>
+                 <Button onClick={handleSubmit} disabled={!selectedLesson}>Scegli il Pagamento</Button>
             </CardFooter>
         </Card>
     )
