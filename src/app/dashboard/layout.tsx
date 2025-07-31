@@ -66,6 +66,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
 
     const fetchUserData = async () => {
+      setLoadingData(true); // Inizia a caricare
       try {
         const userDocRef = doc(db, "users", user.uid)
         const userDocSnap = await getDoc(userDocRef)
@@ -74,58 +75,64 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           const fetchedUserData = userDocSnap.data() as UserData;
           setUserData(fetchedUserData);
 
-          // === ONBOARDING CHECKS ===
-          const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-          
-          // 1. Check if regulations are accepted
+          // === LOGICA DI ONBOARDING E REINDIRIZZAMENTO ===
+
+          // 1. Accettazione Regolamento (Primo passo assoluto)
           if (!fetchedUserData.regulationsAccepted) {
-              if (pathname !== "/dashboard/regulations") redirect("/dashboard/regulations");
+              if (pathname !== "/dashboard/regulations") {
+                  redirect("/dashboard/regulations");
+              }
+              return; // Blocca l'esecuzione se i regolamenti non sono accettati
+          }
+          
+          // 2. Certificato Medico (Secondo passo)
+          const isCertificateExpired = fetchedUserData.medicalInfo?.expiryDate && isPast(fetchedUserData.medicalInfo.expiryDate.toDate());
+          const isCertificateMissing = !fetchedUserData.medicalCertificateSubmitted || isCertificateExpired;
+
+          // Per utenti che hanno completato l'iscrizione, li forza a rinnovare il certificato
+          if (fetchedUserData.applicationSubmitted && isCertificateMissing) {
+               if (pathname !== '/dashboard/medical-certificate') {
+                  redirect("/dashboard/medical-certificate");
+               }
+               return;
+          }
+
+          // Per nuovi utenti, li porta alla pagina del certificato dopo i regolamenti
+          if (!fetchedUserData.applicationSubmitted && isCertificateMissing) {
+              if (pathname !== "/dashboard/medical-certificate") {
+                  redirect("/dashboard/medical-certificate");
+              }
               return;
           }
 
-          // 2. Check for medical certificate
-          const isCertificateExpired = fetchedUserData.medicalInfo?.expiryDate && isPast(fetchedUserData.medicalInfo.expiryDate.toDate());
+          // 3. Scelta percorso (socio o nuovo) e iscrizione
           if (!fetchedUserData.applicationSubmitted) {
-             if ((!fetchedUserData.medicalCertificateSubmitted || isCertificateExpired) && pathname !== '/dashboard/medical-certificate') {
-                  redirect("/dashboard/medical-certificate");
-                  return;
-             }
-          } else {
-              if (isCertificateExpired && pathname !== '/dashboard/medical-certificate') {
-                 redirect("/dashboard/medical-certificate");
-                 return;
-              }
-          }
-
-          // 3. Check if application is submitted
-          if (!fetchedUserData.applicationSubmitted) {
-              const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
-              if (!allowedPaths.some(p => pathname.startsWith(p))) {
-                  if (fetchedUserData.isFormerMember === 'yes') {
-                      redirect("/dashboard/associates");
-                  } else if (fetchedUserData.isFormerMember === 'no') {
-                      redirect("/dashboard/class-selection");
-                  } else {
-                      redirect("/dashboard/liberasphere");
-                  }
+              const allowedPathsDuringOnboarding = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
+              if (!allowedPathsDuringOnboarding.some(p => pathname.startsWith(p))) {
+                  // Se l'utente ha già superato la pagina del certificato, ma non ha ancora scelto,
+                  // lo mandiamo a liberasphere.
+                  redirect("/dashboard/liberasphere");
               }
               return;
           }
           
-          // 4. If onboarding is complete, prevent access to onboarding pages (except medical cert)
-          if (pathname !== '/dashboard/medical-certificate') {
-            const isStillOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
-            if (isStillOnboardingPage) {
-                redirect('/dashboard');
-            }
+          // 4. Utente ha completato l'onboarding. Prevenire l'accesso alle pagine di iscrizione.
+          const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+          const isStillOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
+          
+          if (isStillOnboardingPage) {
+              redirect('/dashboard');
           }
 
         } else {
-          console.error("User document not found in Firestore!")
+          console.error("User document not found in Firestore! Logging out.");
+          await signOut(auth);
           redirect("/") 
         }
       } catch (error) {
         console.error("Error fetching user data:", error)
+        toast({ title: "Errore", description: "Impossibile caricare i dati utente.", variant: "destructive" });
+        await signOut(auth);
         redirect("/")
       } finally {
         setLoadingData(false)
@@ -133,7 +140,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
 
     fetchUserData()
-  }, [user, loadingAuth, pathname, router])
+  }, [user, loadingAuth, pathname, router, toast])
 
   const handleLogout = async () => {
       try {
@@ -154,19 +161,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     )
   }
   
-  // Specific handling for onboarding pages that don't need the full layout
-  const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-  // Allow medical certificate page to use the full layout, unless it's part of the initial onboarding
-  if (pathname === '/dashboard/medical-certificate' && !userData?.applicationSubmitted) {
+  // Gestione layout semplificato per le pagine di onboarding
+  const simplifiedLayoutPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
+  const needsSimplifiedLayout = simplifiedLayoutPages.some(p => pathname.startsWith(p)) && !userData?.applicationSubmitted;
+
+  if (needsSimplifiedLayout) {
      return (
-        <div className="flex h-screen w-full bg-background">
-          <main className="flex-1 p-4 md:p-8">{children}</main>
-        </div>
-      )
-  }
-  if (onboardingPages.some(p => pathname.startsWith(p)) && pathname !== '/dashboard/medical-certificate') {
-      return (
-        <div className="flex h-screen w-full bg-background">
+        <div className="flex min-h-screen w-full bg-background">
           <main className="flex-1 p-4 md:p-8">{children}</main>
         </div>
       )
