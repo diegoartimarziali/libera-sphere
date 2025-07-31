@@ -53,10 +53,8 @@ export default function RegulationsPage() {
         regulationsAccepted: true,
       })
       
-      // Non usiamo router.push() perché il layout guardiano gestirà il reindirizzamento
-      // dopo aver ricaricato i dati utente aggiornati. Forziamo un reload per
-      // essere sicuri che il layout riparta con i dati freschi.
-      window.location.reload()
+      // Reindirizza al prossimo passo, il layout si occuperà del resto
+      router.push("/dashboard/medical-certificate")
 
     } catch (error) {
       console.error("Error updating regulations:", error)
