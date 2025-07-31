@@ -215,7 +215,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Passo 2: Scegli la Lezione di Prova</CardTitle>
+                    <CardTitle>Scegli la Prima lezione</CardTitle>
                 </CardHeader>
                 <CardContent className="flex h-64 items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin" />
@@ -237,7 +237,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 2: Scegli Corso, Palestra e Prima Lezione</CardTitle>
+                <CardTitle>Scegli la Prima lezione</CardTitle>
                 <CardDescription>
                     Seleziona la disciplina che ti interessa e prenota la tua lezione di prova.
                 </CardDescription>
@@ -408,7 +408,7 @@ function OnlinePaymentStep({
                     ></iframe>
                 </div>
                  <p className="text-sm text-muted-foreground">
-                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href={fee.sumupLink} target="_blank" rel="noopener noreferrer" className="underline">cliccando qui</a>.
+                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href={fee.sumupLink} target="_blank" rel="noopener noreferrer" className="underline">clicca qui</a>.
                 </p>
             </CardContent>
             <CardFooter className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
@@ -774,5 +774,7 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
