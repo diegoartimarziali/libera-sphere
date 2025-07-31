@@ -47,16 +47,26 @@ const personalDataSchema = z.object({
             path: ["parentData.parentName"],
             message: "Dati del genitore richiesti per i minorenni.",
         });
-        ctx.addIssue({
+         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["parentData.parentSurname"],
             message: "Dati del genitore richiesti per i minorenni.",
         });
-        ctx.addIssue({
+         ctx.addIssue({
             code: z.ZodIssueCode.custom,
             path: ["parentData.parentTaxCode"],
             message: "Dati del genitore richiesti per i minorenni.",
         });
+    } else if (data.isMinor && data.parentData) {
+        if (!data.parentData.parentName) {
+            ctx.addIssue({ code: "custom", path: ["parentData.parentName"], message: "Il nome del genitore è obbligatorio." });
+        }
+        if (!data.parentData.parentSurname) {
+            ctx.addIssue({ code: "custom", path: ["parentData.parentSurname"], message: "Il cognome del genitore è obbligatorio." });
+        }
+        if (!data.parentData.parentTaxCode || data.parentData.parentTaxCode.length !== 16) {
+            ctx.addIssue({ code: "custom", path: ["parentData.parentTaxCode"], message: "Il codice fiscale del genitore deve essere di 16 caratteri." });
+        }
     }
 });
 
@@ -121,7 +131,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             form.setValue("isMinor", minor, { shouldValidate: true });
           }
           if (!minor) {
-            form.setValue("parentData", { parentName: "", parentSurname: "", parentTaxCode: "" });
+            form.setValue("parentData", undefined);
             form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
           }
       } else {
@@ -144,7 +154,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
              existingIsMinor = age < 18;
         }
 
-        const existingData = {
+        const existingData: PersonalDataSchemaType = {
             name: firstName || "",
             surname: lastNameParts.join(" ") || "",
             taxCode: userData.taxCode || "",
@@ -157,13 +167,16 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             province: userData.province || "",
             phone: userData.phone || "",
             isMinor: existingIsMinor,
-            parentData: {
+        };
+        
+        if (existingIsMinor && userData.parentData) {
+            existingData.parentData = {
                 parentName: userData.parentData?.parentName || "",
                 parentSurname: userData.parentData?.parentSurname || "",
                 parentTaxCode: userData.parentData?.parentTaxCode || "",
-            }
-        };
-        
+            };
+        }
+
         form.reset(existingData);
         if(birthDateValue) {
            setIsMinor(existingIsMinor);
@@ -446,3 +459,5 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
+
+    
