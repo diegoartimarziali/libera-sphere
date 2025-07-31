@@ -122,9 +122,8 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
     const [userDiscipline, setUserDiscipline] = useState<string | null>(null);
     const [availableLessons, setAvailableLessons] = useState<Lesson[]>([]);
     const [upcomingLessonDates, setUpcomingLessonDates] = useState<{ [lessonKey: string]: Date[] }>({});
+    const [selectedLessonValue, setSelectedLessonValue] = useState<string | null>(null);
 
-    const [selectedLessonKey, setSelectedLessonKey] = useState<string | null>(null);
-    const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchGymData = async () => {
@@ -150,6 +149,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                             // Verifica che la disciplina sia offerta dalla palestra
                             if (gymData.disciplines.includes(discipline)) {
                                 setGym({ id: gymId, ...gymData });
+                                // Le lezioni in 'lessons' sono già quelle per la palestra
                                 setAvailableLessons(gymData.lessons);
                             } else {
                                 toast({ title: "Errore Disciplina", description: `La disciplina ${discipline} non è disponibile presso la palestra selezionata.`, variant: "destructive" });
@@ -197,22 +197,18 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
             setUpcomingLessonDates(lessonDates);
         }
     }, [availableLessons]);
-
-    const handleLessonSelect = (lessonKey: string) => {
-        setSelectedLessonKey(lessonKey);
-        setSelectedDate(null); // Resetta la data quando si cambia lezione
-    };
     
     const handleConfirm = () => {
-        if (!selectedLessonKey || !selectedDate || !userDiscipline || !gym) return;
+        if (!selectedLessonValue || !userDiscipline || !gym) return;
 
-        const [dayOfWeek, time] = selectedLessonKey.split('-');
+        const [time, dateString] = selectedLessonValue.split('|');
+        const lessonDate = new Date(dateString);
         
         onNext({
             gymId: gym.id,
             gymName: gym.name,
             discipline: userDiscipline,
-            lessonDate: new Date(selectedDate),
+            lessonDate: lessonDate,
             time: time,
         });
     }
@@ -267,12 +263,47 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                      </dl>
                 </div>
                 
-                {/* PARTE DA RICOSTRUIRE */}
+                 <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">2. Scegli la tua prima lezione</h3>
+                    <RadioGroup 
+                        value={selectedLessonValue || ""} 
+                        onValueChange={setSelectedLessonValue}
+                        className="space-y-4"
+                    >
+                        {availableLessons.map((lesson) => {
+                            const lessonKey = `${lesson.dayOfWeek}-${lesson.time}`;
+                            const dates = upcomingLessonDates[lessonKey] || [];
+                            return (
+                                <div key={lessonKey} className="space-y-3 rounded-md border p-4">
+                                     <h4 className="font-medium">{lesson.dayOfWeek} ore {lesson.time}</h4>
+                                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                                        {dates.map((date) => {
+                                            const value = `${lesson.time}|${date.toISOString()}`;
+                                            return (
+                                                <Label 
+                                                    key={date.toISOString()} 
+                                                    htmlFor={value}
+                                                    className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 cursor-pointer hover:bg-accent/80 transition-colors",
+                                                    selectedLessonValue === value && "border-primary bg-primary/5"
+                                                    )}
+                                                >
+                                                    <RadioGroupItem value={value} id={value} className="sr-only" />
+                                                    <span className="font-semibold capitalize">{format(date, "EEEE", { locale: it })}</span>
+                                                    <span className="text-sm">{format(date, "dd/MM/yyyy", { locale: it })}</span>
+                                                </Label>
+                                            )
+                                        })}
+                                     </div>
+                                </div>
+                            )
+                        })}
+                    </RadioGroup>
+                </div>
                 
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack}>Indietro</Button>
-                 <Button onClick={handleConfirm} disabled={!selectedDate}>Scegli il Pagamento</Button>
+                 <Button onClick={handleConfirm} disabled={!selectedLessonValue}>Scegli il Pagamento</Button>
             </CardFooter>
         </Card>
     )
@@ -738,11 +769,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
-
-    
-
-    
 
     
