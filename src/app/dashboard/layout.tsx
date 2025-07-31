@@ -66,7 +66,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
 
     const fetchUserData = async () => {
-      setLoadingData(true); // Inizia a caricare
+      setLoadingData(true);
       try {
         const userDocRef = doc(db, "users", user.uid)
         const userDocSnap = await getDoc(userDocRef)
@@ -99,7 +99,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
           // Per nuovi utenti, li porta alla pagina del certificato dopo i regolamenti
           if (!fetchedUserData.applicationSubmitted && isCertificateMissing) {
-              // Consentiamo l'accesso solo alla pagina del certificato o quelle che la precedono
               const allowedPathsForNewUser = ["/dashboard/regulations", "/dashboard/medical-certificate"];
               if (!allowedPathsForNewUser.includes(pathname)) {
                   redirect("/dashboard/medical-certificate");
@@ -111,8 +110,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           if (!fetchedUserData.applicationSubmitted) {
               const allowedPathsDuringOnboarding = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate", "/dashboard/regulations"];
               if (!allowedPathsDuringOnboarding.some(p => pathname.startsWith(p))) {
-                  // Se l'utente ha già superato la pagina del certificato, ma non ha ancora scelto,
-                  // lo mandiamo a liberasphere.
                   redirect("/dashboard/liberasphere");
               }
               return;
@@ -163,7 +160,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     )
   }
   
-  // Gestione layout semplificato per le pagine di onboarding
   const simplifiedLayoutPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
   const needsSimplifiedLayout = simplifiedLayoutPages.some(p => pathname.startsWith(p));
 
