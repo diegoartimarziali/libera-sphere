@@ -70,7 +70,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   if (userData) {
-    const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
+    const onboardingPages = ["/dashboard/regulations", "/dashboard/medical-certificate", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
 
     // Step 1: Regulations check.
     if (!userData.regulationsAccepted) {
@@ -84,10 +84,26 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
     }
 
-    // Step 2: Main application flow (demographic, payment, etc.).
+    // Step 2: Medical certificate submission & validation.
+    const isBookingDatePast = userData.medicalInfo?.bookingDate && isPast(userData.medicalInfo.bookingDate.toDate()) && !userData.medicalInfo.fileUrl;
+    const isCertificateExpired = userData.medicalInfo?.expiryDate && isPast(userData.medicalInfo.expiryDate.toDate());
+    
+    if (!userData.medicalCertificateSubmitted || isBookingDatePast || isCertificateExpired) {
+        if (pathname !== "/dashboard/medical-certificate") {
+            redirect("/dashboard/medical-certificate");
+        }
+        return (
+          <div className="flex h-screen w-full bg-background">
+            <main className="flex-1 p-8">{children}</main>
+          </div>
+        )
+    }
+
+    // Step 3: Main application flow (demographic, payment, etc.).
     if (!userData.applicationSubmitted) {
        const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
        if (!allowedPaths.some(p => pathname.startsWith(p))) {
+           // If user has chosen a path in liberasphere, direct them, otherwise to liberasphere.
            if (userData.isFormerMember === 'yes') {
                redirect("/dashboard/associates");
            } else if (userData.isFormerMember === 'no') {
@@ -101,21 +117,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <main className="flex-1 p-8">{children}</main>
           </div>
        )
-    }
-    
-    // Step 3: Medical certificate submission & validation.
-    const isBookingDatePast = userData.medicalInfo?.bookingDate && isPast(userData.medicalInfo.bookingDate.toDate()) && !userData.medicalInfo.fileUrl;
-    const isCertificateExpired = userData.medicalInfo?.expiryDate && isPast(userData.medicalInfo.expiryDate.toDate());
-    
-    if (!userData.medicalCertificateSubmitted || isBookingDatePast || isCertificateExpired) {
-        if (pathname !== "/dashboard/medical-certificate") {
-            redirect("/dashboard/medical-certificate");
-        }
-        return (
-          <div className="flex h-screen w-full bg-background">
-            <main className="flex-1 p-8">{children}</main>
-          </div>
-        )
     }
     
     // Step 4: Onboarding is complete. Redirect away from onboarding pages to main dashboard.

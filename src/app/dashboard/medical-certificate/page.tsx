@@ -198,7 +198,7 @@ export default function MedicalCertificatePage() {
             description: "Le tue informazioni mediche sono state aggiornate.",
         });
         
-        router.push("/dashboard");
+        router.push("/dashboard/liberasphere");
 
     } catch (error) {
         console.error("Errore durante l'invio dei dati medici:", error);
@@ -354,7 +354,7 @@ export default function MedicalCertificatePage() {
             <CardFooter>
               <Button type="submit" className="w-full" disabled={isSubmitting || !submissionType}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {existingMedicalInfo ? 'Aggiorna e vai alla Dashboard' : 'Completa e vai alla Dashboard'}
+                {existingMedicalInfo ? 'Aggiorna e prosegui' : 'Salva e prosegui'}
               </Button>
             </CardFooter>
           </form>
