@@ -168,13 +168,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+       <h1 className="text-3xl font-bold">
+         {dataLoading ? <Skeleton className="h-9 w-64" /> : `Benvenuto, ${userData?.name?.split(' ')[0] || ''}!`}
+      </h1>
+
       {renderCertificateAlert()}
-      
-      <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">
-            {dataLoading ? <Skeleton className="h-9 w-64" /> : `Benvenuto, ${userData?.name?.split(' ')[0] || ''}!`}
-          </h1>
-      </div>
       
        <div className="flex justify-center">
         <div className="w-full max-w-2xl">

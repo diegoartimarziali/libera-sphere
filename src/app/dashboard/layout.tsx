@@ -2,12 +2,18 @@
 "use client"
 
 import { useEffect, useState, ReactNode } from "react"
+import Link from "next/link"
 import { usePathname, redirect } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
 import { doc, getDoc, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { Loader2 } from "lucide-react"
 import { isPast } from "date-fns"
+
+import { Loader2, Home, HeartPulse, CreditCard, LogOut } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
+import { signOut } from "firebase/auth"
+import { cn } from "@/lib/utils"
 
 interface MedicalInfo {
     type: 'certificate';
@@ -25,10 +31,31 @@ interface UserData {
   medicalInfo?: MedicalInfo;
 }
 
+function NavLink({ href, children, icon: Icon }: { href: string; children: React.ReactNode; icon: React.ElementType }) {
+    const pathname = usePathname();
+    const isActive = pathname === href;
+
+    return (
+        <Link
+            href={href}
+            className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                isActive && "bg-muted text-primary"
+            )}
+        >
+            <Icon className="h-4 w-4" />
+            {children}
+        </Link>
+    );
+}
+
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [user, loadingAuth] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loadingData, setLoadingData] = useState(true)
+  const { toast } = useToast()
+  const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
@@ -44,7 +71,41 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         const userDocSnap = await getDoc(userDocRef)
 
         if (userDocSnap.exists()) {
-          setUserData(userDocSnap.data() as UserData)
+          const fetchedUserData = userDocSnap.data() as UserData;
+          setUserData(fetchedUserData);
+
+          // Onboarding checks
+          const onboardingPages = ["/dashboard/regulations", "/dashboard/medical-certificate", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+          
+          if (!fetchedUserData.regulationsAccepted) {
+              if (pathname !== "/dashboard/regulations") redirect("/dashboard/regulations");
+              return;
+          }
+
+          const isCertificateExpired = fetchedUserData.medicalInfo?.expiryDate && isPast(fetchedUserData.medicalInfo.expiryDate.toDate());
+          if (!fetchedUserData.medicalCertificateSubmitted || isCertificateExpired) {
+              if (pathname !== "/dashboard/medical-certificate") redirect("/dashboard/medical-certificate");
+              return;
+          }
+
+          if (!fetchedUserData.applicationSubmitted) {
+              const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+              if (!allowedPaths.some(p => pathname.startsWith(p))) {
+                  if (fetchedUserData.isFormerMember === 'yes') {
+                      redirect("/dashboard/associates");
+                  } else if (fetchedUserData.isFormerMember === 'no') {
+                      redirect("/dashboard/class-selection");
+                  } else {
+                      redirect("/dashboard/liberasphere");
+                  }
+              }
+              return;
+          }
+          
+          if (onboardingPages.some(p => pathname.startsWith(p))) {
+              redirect('/dashboard');
+          }
+
         } else {
           console.error("User document not found in Firestore!")
           redirect("/") 
@@ -58,7 +119,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
 
     fetchUserData()
-  }, [user, loadingAuth])
+  }, [user, loadingAuth, pathname])
+
+  const handleLogout = async () => {
+      try {
+          await signOut(auth);
+          router.push('/');
+          toast({ title: "Logout effettuato", description: "Sei stato disconnesso con successo." });
+      } catch (error) {
+          console.error("Error during logout:", error);
+          toast({ variant: "destructive", title: "Errore di logout", description: "Impossibile disconnettersi. Riprova." });
+      }
+  }
 
   if (loadingAuth || loadingData) {
     return (
@@ -67,73 +139,67 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </div>
     )
   }
-
-  if (userData) {
-    const onboardingPages = ["/dashboard/regulations", "/dashboard/medical-certificate", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-
-    // Step 1: Regulations check.
-    if (!userData.regulationsAccepted) {
-      if (pathname !== "/dashboard/regulations") {
-        redirect("/dashboard/regulations")
-      }
+  
+  // Specific handling for onboarding pages that don't need the full layout
+  const onboardingPages = ["/dashboard/regulations", "/dashboard/medical-certificate", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+  if (onboardingPages.some(p => pathname.startsWith(p))) {
       return (
         <div className="flex h-screen w-full bg-background">
-          <main className="flex-1 p-8">{children}</main>
+          <main className="flex-1 p-4 md:p-8">{children}</main>
         </div>
       )
-    }
-
-    // Step 2: Medical certificate submission & validation.
-    const isCertificateExpired = userData.medicalInfo?.expiryDate && isPast(userData.medicalInfo.expiryDate.toDate());
-    
-    if (!userData.medicalCertificateSubmitted || isCertificateExpired) {
-        if (pathname !== "/dashboard/medical-certificate") {
-            redirect("/dashboard/medical-certificate");
-        }
-        return (
-          <div className="flex h-screen w-full bg-background">
-            <main className="flex-1 p-8">{children}</main>
-          </div>
-        )
-    }
-
-    // Step 3: Main application flow (demographic, payment, etc.).
-    if (!userData.applicationSubmitted) {
-       const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-       if (!allowedPaths.some(p => pathname.startsWith(p))) {
-           // If user has chosen a path in liberasphere, direct them, otherwise to liberasphere.
-           if (userData.isFormerMember === 'yes') {
-               redirect("/dashboard/associates");
-           } else if (userData.isFormerMember === 'no') {
-               redirect("/dashboard/class-selection");
-           } else {
-               redirect("/dashboard/liberasphere");
-           }
-       }
-       return (
-          <div className="flex h-screen w-full bg-background">
-            <main className="flex-1 p-8">{children}</main>
-          </div>
-       )
-    }
-    
-    // Step 4: Onboarding is complete. Redirect away from onboarding pages to main dashboard.
-    if (onboardingPages.some(p => pathname.startsWith(p))) {
-      redirect('/dashboard');
-      return (
-        <div className="flex h-screen w-full items-center justify-center bg-background">
-          <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-      );
-    }
   }
 
-  // User is fully onboarded, render the main dashboard layout.
   return (
-      <div className="flex h-screen w-full bg-background">
-        <main className="flex-1 p-8">
-            {children}
-        </main>
-      </div>
+    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+        <aside className="hidden border-r bg-muted/40 md:block">
+            <div className="flex h-full max-h-screen flex-col gap-2">
+                <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                         <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-6 w-6"
+                        >
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                          <path d="M12 12L16 8"></path>
+                          <path d="M12 6v6l4 2"></path>
+                        </svg>
+                        <span className="">LiberaSphere</span>
+                    </Link>
+                </div>
+                <nav className="grid items-start px-2 text-sm font-medium lg:px-4 flex-1">
+                    <NavLink href="/dashboard" icon={Home}>Dashboard</NavLink>
+                    <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
+                    <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
+                </nav>
+            </div>
+        </aside>
+        <div className="flex flex-col">
+            <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+                 {/* Qui potrebbe andare un menu mobile in futuro */}
+                <div className="w-full flex-1">
+                   {/* Spazio per breadcrumbs o titolo pagina */}
+                </div>
+                 <div className="flex items-center gap-4 ml-auto">
+                    <span className="text-sm text-muted-foreground hidden sm:inline">
+                        {userData?.name}
+                    </span>
+                    <Button variant="outline" size="icon" onClick={handleLogout}>
+                        <LogOut className="h-4 w-4" />
+                        <span className="sr-only">Logout</span>
+                    </Button>
+                 </div>
+            </header>
+            <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+                {children}
+            </main>
+        </div>
+    </div>
   )
 }
