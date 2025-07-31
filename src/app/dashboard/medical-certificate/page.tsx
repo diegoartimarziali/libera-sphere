@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { auth, db, storage } from "@/lib/firebase"
+import { signOut } from "firebase/auth"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
@@ -18,7 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, UploadCloud, CheckCircle, Eye } from "lucide-react"
+import { Loader2, UploadCloud, CheckCircle, Eye, LogOut } from "lucide-react"
 import { DatePicker } from "@/components/ui/date-picker"
 
 interface ExistingMedicalInfo {
@@ -160,6 +161,20 @@ export default function MedicalCertificatePage() {
         setIsSubmitting(false);
     }
   };
+
+  const handleLogout = async () => {
+      setIsSubmitting(true);
+      try {
+          await signOut(auth);
+          router.push('/');
+          toast({ title: "Logout effettuato", description: "Sei stato disconnesso con successo." });
+      } catch (error) {
+          console.error("Error during logout:", error);
+          toast({ variant: "destructive", title: "Errore di logout", description: "Impossibile disconnettersi. Riprova." });
+      } finally {
+          setIsSubmitting(false);
+      }
+  }
   
     if (isLoading) {
       return (
@@ -256,10 +271,18 @@ export default function MedicalCertificatePage() {
                   />
                 </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col items-stretch space-y-4">
               <Button type="submit" className="w-full" disabled={isSubmitting || !form.formState.isValid}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {existingMedicalInfo ? 'Aggiorna e prosegui' : 'Salva e prosegui'}
+              </Button>
+              <div className="text-center text-sm text-muted-foreground pt-2">
+                 <p>Non hai il certificato a portata di mano?</p>
+                 <p>Puoi uscire e tornare più tardi. I tuoi dati sono salvi.</p>
+              </div>
+              <Button type="button" variant="outline" onClick={handleLogout} disabled={isSubmitting}>
+                <LogOut className="mr-2 h-4 w-4" />
+                 Esci e completa più tardi
               </Button>
             </CardFooter>
           </form>
