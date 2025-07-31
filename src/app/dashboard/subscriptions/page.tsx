@@ -28,16 +28,6 @@ interface Subscription {
 
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
 
-function isSeasonalWindowActive(): boolean {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    // La finestra va dal 1 Settembre al 31 Ottobre
-    const start = new Date(currentYear, 8, 1); // Mese 8 è Settembre
-    const end = new Date(currentYear, 9, 31);   // Mese 9 è Ottobre
-
-    return today >= start && today <= end;
-}
-
 // Componente per la selezione dell'abbonamento
 function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscriptions: Subscription[], onSelect: (sub: Subscription) => void, onBack: () => void }) {
     return (
@@ -55,7 +45,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                         <CardTitle>Nessun Abbonamento Disponibile</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-muted-foreground">Al momento non ci sono abbonamenti acquistabili. L'abbonamento stagionale è disponibile solo dal 1 Settembre al 31 Ottobre. Contatta la segreteria per maggiori informazioni.</p>
+                        <p className="text-muted-foreground">Al momento non ci sono abbonamenti acquistabili. Contatta la segreteria per maggiori informazioni.</p>
                     </CardContent>
                     <CardFooter>
                         <Button onClick={onBack} className="w-full">Torna alla Dashboard</Button>
@@ -298,14 +288,7 @@ export default function SubscriptionsPage() {
                     ...doc.data()
                 } as Subscription));
                 
-                const seasonalActive = isSeasonalWindowActive();
-
-                const availableSubs = subsList.filter(sub => {
-                    if (sub.type === 'seasonal') {
-                        return seasonalActive;
-                    }
-                    return true;
-                }).sort((a,b) => a.price - b.price); // Ordina per prezzo
+                const availableSubs = subsList.sort((a,b) => a.price - b.price); // Ordina per prezzo
 
                 setSubscriptions(availableSubs);
             } catch (error) {
