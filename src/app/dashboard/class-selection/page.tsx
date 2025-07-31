@@ -103,9 +103,8 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
     // Funzioni che usano i settings
     const isPreRegistrationPeriod = (): boolean => {
         const today = startOfDay(new Date());
-        const openDate = settings.enrollment.trialClassesOpenDate.toDate();
         const activityStartDate = settings.activity.startDate.toDate();
-        return today >= openDate && today < activityStartDate;
+        return today < activityStartDate;
     }
 
     const getLessonSearchStartDate = (): Date => {
@@ -152,8 +151,8 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
                                     if (dayIndex !== undefined) {
                                         let firstDate = nextDay(startDate, dayIndex);
                                         // Se nextDay restituisce una data passata (caso raro in cui startDate è quel giorno), aggiungi 7 giorni
-                                        if (getDay(firstDate) !== dayIndex || firstDate < startDate) {
-                                           firstDate = addDays(nextDay(addDays(startDate, -7), dayIndex), 7);
+                                        if (firstDate < startDate) {
+                                           firstDate = addDays(firstDate, 7);
                                         }
                                         for (let i = 0; i < 4; i++) {
                                             allDates.push(addDays(firstDate, i * 7));
@@ -559,14 +558,6 @@ export default function ClassSelectionPage() {
         fetchInitialData();
     }, [user, toast]);
     
-    const areEnrollmentsOpen = () => {
-        if (!settings) return false;
-        const today = startOfDay(new Date());
-        const openDate = settings.enrollment.trialClassesOpenDate.toDate();
-        const closeDate = settings.enrollment.trialClassesCloseDate.toDate();
-        return today >= openDate && today <= closeDate;
-    };
-
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data);
         setStep(2);
@@ -703,34 +694,6 @@ export default function ClassSelectionPage() {
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
             </div>
         )
-    }
-    
-     if (!areEnrollmentsOpen()) {
-        return (
-            <div className="flex w-full flex-col items-center justify-center text-center">
-                <Card className="w-full max-w-lg">
-                    <CardHeader>
-                        <CardTitle>Iscrizioni Chiuse</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground">
-                            Le iscrizioni per le lezioni di prova non sono al momento disponibili.
-                            {settings && (
-                                <>
-                                    <br />
-                                    Saranno di nuovo aperte dal {format(settings.enrollment.trialClassesOpenDate.toDate(), "d MMMM yyyy", { locale: it })}.
-                                </>
-                            )}
-                        </p>
-                    </CardContent>
-                     <CardFooter>
-                        <Button onClick={() => router.push('/dashboard')} className="w-full">
-                            Torna alla Dashboard
-                        </Button>
-                    </CardFooter>
-                </Card>
-            </div>
-        );
     }
 
     return (
