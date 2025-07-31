@@ -58,6 +58,7 @@ interface GymSelectionData {
 interface Settings {
     activity: {
         startDate: Timestamp;
+        endDate: Timestamp;
     };
     enrollment: {
         trialClassesOpenDate: Timestamp;
@@ -96,6 +97,7 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
     const [lessonTime, setLessonTime] = useState<string | null>(null);
     const [sortedUpcomingLessons, setSortedUpcomingLessons] = useState<Date[]>([]);
     const [selectedLessonValue, setSelectedLessonValue] = useState<string | null>(null);
+    const [highlightedLessons, setHighlightedLessons] = useState<Date[]>([]);
     
     // Funzioni che usano i settings
     const isPreRegistrationPeriod = (): boolean => {
@@ -146,10 +148,7 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
                                     const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
                                     if (dayIndex !== undefined) {
                                         let firstDate = nextDay(startDate, dayIndex);
-                                        if (firstDate < startDate) {
-                                           firstDate = addDays(firstDate, 7);
-                                        }
-                                        // Generiamo più date per assicurarci di averne abbastanza per le 3 lezioni
+                                        // Generiamo più date per assicurarci di averne abbastanza
                                         for (let i = 0; i < 8; i++) {
                                             allDates.push(addDays(firstDate, i * 7));
                                         }
@@ -177,28 +176,34 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
 
         fetchGymData();
     }, [user, toast, settings]); // Aggiunto settings alle dipendenze
+
+    useEffect(() => {
+        if (selectedLessonValue) {
+            const selectedDate = new Date(selectedLessonValue);
+            const selectedIndex = sortedUpcomingLessons.findIndex(d => d.getTime() === selectedDate.getTime());
+
+            if (selectedIndex !== -1 && sortedUpcomingLessons.length >= selectedIndex + 3) {
+                const threeLessons = sortedUpcomingLessons.slice(selectedIndex, selectedIndex + 3);
+                setHighlightedLessons(threeLessons);
+            } else {
+                 setHighlightedLessons([]);
+            }
+        } else {
+            setHighlightedLessons([]);
+        }
+    }, [selectedLessonValue, sortedUpcomingLessons]);
     
     const handleConfirm = () => {
-        if (!selectedLessonValue || !userDiscipline || !gym || !lessonTime) return;
-
-        const selectedDate = new Date(selectedLessonValue);
-        const selectedIndex = sortedUpcomingLessons.findIndex(d => d.getTime() === selectedDate.getTime());
-
-        if (selectedIndex === -1 || sortedUpcomingLessons.length < selectedIndex + 3) {
-            toast({ title: "Errore", description: "Non ci sono abbastanza lezioni disponibili per la selezione. Contatta la segreteria.", variant: "destructive" });
-            return;
-        }
-
-        const threeLessons: TrialLesson[] = sortedUpcomingLessons.slice(selectedIndex, selectedIndex + 3).map(date => ({
-            lessonDate: date,
-            time: lessonTime
-        }));
+        if (!userDiscipline || !gym || !lessonTime || highlightedLessons.length < 3) return;
         
         onNext({
             gymId: gym.id,
             gymName: gym.name,
             discipline: userDiscipline,
-            trialLessons: threeLessons,
+            trialLessons: highlightedLessons.map(date => ({
+                lessonDate: date,
+                time: lessonTime
+            })),
         });
     }
 
@@ -262,12 +267,16 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
                     >
                         {sortedUpcomingLessons.slice(0, -2).map((date) => { // slice per non permettere di scegliere date per cui non ce ne sono 2 successive
                             const value = date.toISOString();
+                            const isHighlighted = highlightedLessons.some(h => h.getTime() === date.getTime());
+                            const isSelected = selectedLessonValue === value;
+                            
                             return (
                                 <Label 
                                     key={value} 
                                     htmlFor={value}
-                                    className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 cursor-pointer hover:bg-accent/80 transition-colors",
-                                    selectedLessonValue === value && "border-primary bg-primary/5"
+                                    className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 cursor-pointer hover:bg-accent/80 transition-all",
+                                      isSelected && "border-primary bg-primary/5",
+                                      !isSelected && isHighlighted && "border-primary/50 bg-primary/5"
                                     )}
                                 >
                                     <RadioGroupItem value={value} id={value} className="sr-only" />
@@ -550,10 +559,17 @@ export default function ClassSelectionPage() {
                     if (userDocSnap.exists()) setUserData(userDocSnap.data());
                     
                     if (activityDocSnap.exists() && enrollmentDocSnap.exists()) {
-                        setSettings({
-                            activity: activityDocSnap.data() as Settings['activity'],
-                            enrollment: enrollmentDocSnap.data() as Settings['enrollment']
-                        });
+                         const activityData = activityDocSnap.data();
+                         const enrollmentData = enrollmentDocSnap.data();
+
+                         if (activityData && enrollmentData) {
+                            setSettings({
+                                activity: activityData as Settings['activity'],
+                                enrollment: enrollmentData as Settings['enrollment']
+                            });
+                         } else {
+                             toast({ title: "Errore di configurazione", description: "Dati di configurazione mancanti.", variant: "destructive" });
+                         }
                     } else {
                         toast({ title: "Errore di configurazione", description: "Impostazioni per le attività o le iscrizioni non trovate.", variant: "destructive" });
                     }
@@ -570,6 +586,7 @@ export default function ClassSelectionPage() {
         };
         fetchInitialData();
     }, [user, toast]);
+
     
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data);
@@ -763,5 +780,7 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
