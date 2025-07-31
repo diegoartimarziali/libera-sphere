@@ -101,8 +101,7 @@ export default function AuthPage() {
         lastGrade: "",
       })
       
-      // Forza un ricaricamento completo per risolvere problemi di sincronizzazione
-      window.location.href = "/dashboard";
+      router.push("/dashboard");
       
     } catch (error: any) {
       let description = "Si è verificato un errore durante la registrazione."

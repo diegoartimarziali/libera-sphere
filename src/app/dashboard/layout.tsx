@@ -60,6 +60,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (loadingAuth) return;
+
     if (!user) {
       redirect("/")
       return
@@ -74,60 +75,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         if (userDocSnap.exists()) {
           const fetchedUserData = userDocSnap.data() as UserData;
           setUserData(fetchedUserData);
-
-          // === LOGICA DI ONBOARDING E REINDIRIZZAMENTO ===
-
-          // 1. Accettazione Regolamento (Primo passo assoluto)
-          if (!fetchedUserData.regulationsAccepted) {
-              if (pathname !== "/dashboard/regulations") {
-                  redirect("/dashboard/regulations");
-              }
-              return; // Blocca l'esecuzione se i regolamenti non sono accettati
-          }
-          
-          // 2. Certificato Medico (Secondo passo)
-          const isCertificateExpired = fetchedUserData.medicalInfo?.expiryDate && isPast(fetchedUserData.medicalInfo.expiryDate.toDate());
-          const isCertificateMissing = !fetchedUserData.medicalCertificateSubmitted || isCertificateExpired;
-
-          // Per utenti che hanno completato l'iscrizione, li forza a rinnovare il certificato
-          if (fetchedUserData.applicationSubmitted && isCertificateMissing) {
-               if (pathname !== '/dashboard/medical-certificate') {
-                  redirect("/dashboard/medical-certificate");
-               }
-               return;
-          }
-
-          // Per nuovi utenti, li porta alla pagina del certificato dopo i regolamenti
-          if (!fetchedUserData.applicationSubmitted && isCertificateMissing) {
-              const allowedPathsForNewUser = ["/dashboard/regulations", "/dashboard/medical-certificate"];
-              if (!allowedPathsForNewUser.includes(pathname)) {
-                  redirect("/dashboard/medical-certificate");
-              }
-              return;
-          }
-
-          // 3. Scelta percorso (socio o nuovo) e iscrizione
-          if (!fetchedUserData.applicationSubmitted) {
-              const allowedPathsDuringOnboarding = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate", "/dashboard/regulations"];
-              if (!allowedPathsDuringOnboarding.some(p => pathname.startsWith(p))) {
-                  redirect("/dashboard/liberasphere");
-              }
-              return;
-          }
-          
-          // 4. Utente ha completato l'onboarding. Prevenire l'accesso alle pagine di iscrizione.
-          const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-          const isStillOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
-          
-          if (isStillOnboardingPage && pathname !== "/dashboard/medical-certificate") {
-              redirect('/dashboard');
-          }
-
         } else {
-          console.error("User document not found in Firestore! Logging out.");
-          toast({ title: "Errore", description: "Impossibile caricare i dati utente. Effettuare nuovamente l'accesso.", variant: "destructive" });
-          await signOut(auth);
-          redirect("/") 
+          // Questo caso può verificarsi per una frazione di secondo dopo la registrazione.
+          // Invece di fare il logout, aspettiamo e riproviamo in caso.
+          console.warn("User document not found on first attempt, will retry or user will be logged out if persistent.");
+          // Se dopo un po' non esiste ancora, l'utente verrà sloggato da un'altra logica o al prossimo refresh
         }
       } catch (error) {
         console.error("Error fetching user data:", error)
@@ -138,9 +90,58 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         setLoadingData(false)
       }
     }
-
     fetchUserData()
-  }, [user, loadingAuth, pathname, router, toast])
+  }, [user, loadingAuth, toast])
+
+
+  useEffect(() => {
+      // Esegui la logica di reindirizzamento SOLO se abbiamo finito di caricare e abbiamo i dati utente
+      if (!loadingData && userData) {
+          const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
+          const isCertificateExpired = userData.medicalInfo?.expiryDate && isPast(userData.medicalInfo.expiryDate.toDate());
+          const isCertificateMissing = !userData.medicalCertificateSubmitted || isCertificateExpired;
+
+          // 1. Regolamento
+          if (!userData.regulationsAccepted) {
+              if (pathname !== "/dashboard/regulations") {
+                  redirect("/dashboard/regulations");
+              }
+              return;
+          }
+
+          // 2. Certificato Medico
+          if (isCertificateMissing) {
+              const allowedPaths = ["/dashboard/regulations", "/dashboard/medical-certificate"];
+              if (!allowedPaths.includes(pathname)) {
+                  redirect("/dashboard/medical-certificate");
+              }
+              return;
+          }
+
+          // 3. Iscrizione
+          if (!userData.applicationSubmitted) {
+              const allowedPathsDuringOnboarding = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate", "/dashboard/regulations"];
+              if (!allowedPathsDuringOnboarding.some(p => pathname.startsWith(p))) {
+                  redirect("/dashboard/liberasphere");
+              }
+              return;
+          }
+          
+          // 4. Onboarding completato, previene il ritorno alle pagine di iscrizione
+          const isStillOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
+          if (isStillOnboardingPage && pathname !== "/dashboard/medical-certificate") {
+               redirect('/dashboard');
+          }
+      } else if (!loadingData && !userData && user) {
+          // Se abbiamo finito di caricare, abbiamo un utente autenticato ma NESSUN dato dal DB
+          // allora c'è un problema reale.
+          console.error("User is authenticated but no data found in Firestore. Logging out.");
+          toast({ title: "Errore Dati Utente", description: "Impossibile trovare i dati associati al tuo account. Prova a ri-accedere.", variant: "destructive" });
+          signOut(auth);
+          redirect("/");
+      }
+
+  }, [userData, loadingData, pathname, router, user, toast]);
 
   const handleLogout = async () => {
       try {
@@ -153,6 +154,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
   }
 
+  // Mostra il loader globale se stiamo autenticando o caricando i dati per la prima volta.
   if (loadingAuth || loadingData) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -164,6 +166,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const simplifiedLayoutPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
   const needsSimplifiedLayout = simplifiedLayoutPages.some(p => pathname.startsWith(p));
 
+  // Se l'utente non ha completato l'onboarding, mostra un layout semplificato
   if (needsSimplifiedLayout) {
      return (
         <div className="flex min-h-screen w-full bg-background">
@@ -172,7 +175,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-
+  // Layout completo della dashboard per utenti che hanno finito l'onboarding
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <aside className="hidden border-r bg-muted/40 md:block">
