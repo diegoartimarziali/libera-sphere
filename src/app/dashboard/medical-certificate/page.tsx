@@ -50,6 +50,14 @@ export default function MedicalCertificatePage() {
   const [existingMedicalInfo, setExistingMedicalInfo] = useState<ExistingMedicalInfo | null>(null);
   const [isOnboarding, setIsOnboarding] = useState(true);
 
+  const form = useForm<MedicalCertificateSchema>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+        certificateFile: undefined,
+        expiryDate: undefined,
+    }
+  });
+
   const memoizedUserDataFetch = useCallback(async (uid: string) => {
     const userDocRef = doc(db, "users", uid);
     const userDocSnap = await getDoc(userDocRef);
@@ -84,16 +92,6 @@ export default function MedicalCertificatePage() {
         setIsLoading(false);
     }
   }, [user, authLoading, memoizedUserDataFetch]);
-
-
-  const form = useForm<MedicalCertificateSchema>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-        certificateFile: undefined,
-        expiryDate: undefined,
-    }
-  });
-
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
