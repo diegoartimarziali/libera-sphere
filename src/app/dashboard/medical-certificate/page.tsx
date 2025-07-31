@@ -174,10 +174,21 @@ export default function MedicalCertificatePage() {
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Certificato Medico</CardTitle>
-          <p className="text-sm font-medium text-foreground pt-1.5">
-            Per proseguire con la tua iscrizione, carica il tuo certificato medico per attività sportiva non agonistica in corso di validità.
-            Sono validi anche i certificati non agonistici rilasciati per qualsiasi altro sport o per attività scolastiche.
-          </p>
+          <CardDescription className="space-y-2 text-muted-foreground pt-1.5">
+             <p>
+                La certificazione medica per la pratica dell’attività sportiva non agonistica è regolato dal Decreto Ministeriale del 24 aprile 2013 e integrato dalle Linee-Guida emanate dal Ministro della Salute con Decreto dell’8 agosto 2014, nonché dalle successive circolari ministeriali (Nota Esplicativa del 17 giugno 2015 e nota integrativa del 28 ottobre 2015).
+            </p>
+             <p>
+                Sono soggetti al certificato non agonistico tutti gli associati ad una ASD e tesserati presso un ente, che svolgano attività.
+                La certificazione è rilasciata dal proprio medico di medicina generale o pediatra o dal medico specialista in medicina dello sport, 
+                Il certificato ha validità annuale dalla data di rilascio. 
+                Può essere sostituito da un certificato agonistico, di qualsiasi sport, come da Circolare del Ministero della Salute del 01/02/2018.
+                Senza il certificato medico viene a mancare la copertura assicurativa.
+            </p>
+            <p className="font-bold text-foreground">
+                Sono accettati i certificati medici in corso di validità rilasciati per qualsiasi attività sportiva, e quelli rilasciati per attività parascolastiche.
+            </p>
+          </CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
