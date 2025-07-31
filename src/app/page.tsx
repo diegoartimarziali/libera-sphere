@@ -213,7 +213,7 @@ export default function AuthPage() {
                             name="name"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Nome</FormLabel>
+                                <FormLabel>Nome Allievo</FormLabel>
                                 <FormControl>
                                 <Input placeholder="Mario" {...field} />
                                 </FormControl>
@@ -226,7 +226,7 @@ export default function AuthPage() {
                             name="surname"
                             render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Cognome</FormLabel>
+                                <FormLabel>Cognome Allievo</FormLabel>
                                 <FormControl>
                                 <Input placeholder="Rossi" {...field} />
                                 </FormControl>
