@@ -189,8 +189,8 @@ export default function MedicalCertificatePage() {
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Certificato Medico</CardTitle>
-          <CardDescription className="space-y-2 text-muted-foreground pt-1.5">
-             <div>
+          <div className="text-sm text-muted-foreground pt-2 space-y-2">
+            <div>
                 La certificazione medica per la pratica dell’attività sportiva non agonistica è regolato dal Decreto Ministeriale del 24 aprile 2013 e integrato dalle Linee-Guida emanate dal Ministro della Salute con Decreto dell’8 agosto 2014, nonché dalle successive circolari ministeriali (Nota Esplicativa del 17 giugno 2015 e nota integrativa del 28 ottobre 2015).
             </div>
              <div>
@@ -203,7 +203,7 @@ export default function MedicalCertificatePage() {
             <div className="font-bold text-foreground">
                 Sono accettati i certificati medici in corso di validità rilasciati per qualsiasi attività sportiva, e quelli rilasciati per attività parascolastiche.
             </div>
-          </CardDescription>
+          </div>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
