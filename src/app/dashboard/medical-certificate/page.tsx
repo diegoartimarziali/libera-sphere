@@ -158,10 +158,8 @@ export default function MedicalCertificatePage() {
             description: "Le tue informazioni mediche sono state aggiornate.",
         });
         
-        // La logica di reindirizzamento è ora gestita dal layout,
-        // che ha la visione completa dello stato dell'utente.
-        // Forziamo un ricaricamento per triggerare i controlli del layout.
-        window.location.reload();
+        // Reindirizza alla dashboard. Il layout gestirà il passo successivo.
+        router.push('/dashboard');
 
     } catch (error) {
         console.error("Errore durante l'invio dei dati medici:", error);
