@@ -3,7 +3,7 @@
 
 import { useEffect, useState, ReactNode } from "react"
 import Link from "next/link"
-import { usePathname, redirect } from "next/navigation"
+import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
 import { doc, getDoc, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
