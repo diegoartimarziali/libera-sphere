@@ -120,8 +120,8 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
     const [loading, setLoading] = useState(true);
     const [gym, setGym] = useState<Gym | null>(null);
     const [userDiscipline, setUserDiscipline] = useState<string | null>(null);
-    const [availableLessons, setAvailableLessons] = useState<Lesson[]>([]);
-    const [upcomingLessonDates, setUpcomingLessonDates] = useState<{ [lessonKey: string]: Date[] }>({});
+    const [lessonTime, setLessonTime] = useState<string | null>(null);
+    const [sortedUpcomingLessons, setSortedUpcomingLessons] = useState<Date[]>([]);
     const [selectedLessonValue, setSelectedLessonValue] = useState<string | null>(null);
 
 
@@ -136,7 +136,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
                     const discipline = userData.discipline;
-                    const gymId = userData.gym; // gymId è l'ID del documento (es. "villeneuve")
+                    const gymId = userData.gym;
                     setUserDiscipline(discipline);
 
                     if (discipline && gymId) {
@@ -146,11 +146,34 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                         if (gymDocSnap.exists()) {
                             const gymData = gymDocSnap.data() as Omit<Gym, 'id'>;
                             
-                            // Verifica che la disciplina sia offerta dalla palestra
                             if (gymData.disciplines.includes(discipline)) {
                                 setGym({ id: gymId, ...gymData });
-                                // Le lezioni in 'lessons' sono già quelle per la palestra
-                                setAvailableLessons(gymData.lessons);
+
+                                // Estrai l'orario (assumiamo sia lo stesso per tutte le lezioni)
+                                if (gymData.lessons && gymData.lessons.length > 0) {
+                                    setLessonTime(gymData.lessons[0].time);
+                                }
+                                
+                                // Calcola e ordina tutte le date disponibili
+                                const allDates: Date[] = [];
+                                const startDate = getLessonSearchStartDate();
+
+                                gymData.lessons.forEach(lesson => {
+                                    const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
+                                    if (dayIndex !== undefined) {
+                                        let firstDate = nextDay(startDate, dayIndex);
+                                        if (firstDate < startDate) {
+                                            firstDate = addDays(firstDate, 7);
+                                        }
+                                        for (let i = 0; i < 4; i++) {
+                                            allDates.push(addDays(firstDate, i * 7));
+                                        }
+                                    }
+                                });
+
+                                allDates.sort((a, b) => a.getTime() - b.getTime());
+                                setSortedUpcomingLessons(allDates);
+
                             } else {
                                 toast({ title: "Errore Disciplina", description: `La disciplina ${discipline} non è disponibile presso la palestra selezionata.`, variant: "destructive" });
                             }
@@ -169,47 +192,18 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
 
         fetchGymData();
     }, [user, toast]);
-
-    useEffect(() => {
-        if (availableLessons.length > 0) {
-            const lessonDates: { [lessonKey: string]: Date[] } = {};
-            const startDate = getLessonSearchStartDate();
-
-            availableLessons.forEach(lesson => {
-                const lessonKey = `${lesson.dayOfWeek}-${lesson.time}`;
-                const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
-
-                if (dayIndex !== undefined) {
-                    let firstDate = nextDay(startDate, dayIndex);
-                    // Se il giorno calcolato è prima della startDate (succede se oggi è lo stesso giorno della settimana)
-                    // partiamo dalla settimana successiva.
-                    if (firstDate < startDate) {
-                        firstDate = addDays(firstDate, 7);
-                    }
-                    
-                    const dates = [];
-                    for (let i = 0; i < 4; i++) { // Calcola le prossime 4 occorrenze
-                        dates.push(addDays(firstDate, i * 7));
-                    }
-                    lessonDates[lessonKey] = dates;
-                }
-            });
-            setUpcomingLessonDates(lessonDates);
-        }
-    }, [availableLessons]);
     
     const handleConfirm = () => {
-        if (!selectedLessonValue || !userDiscipline || !gym) return;
+        if (!selectedLessonValue || !userDiscipline || !gym || !lessonTime) return;
 
-        const [time, dateString] = selectedLessonValue.split('|');
-        const lessonDate = new Date(dateString);
+        const lessonDate = new Date(selectedLessonValue);
         
         onNext({
             gymId: gym.id,
             gymName: gym.name,
             discipline: userDiscipline,
             lessonDate: lessonDate,
-            time: time,
+            time: lessonTime,
         });
     }
 
@@ -241,7 +235,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
             <CardHeader>
                 <CardTitle>Scegli la Prima lezione</CardTitle>
                 <CardDescription>
-                    Seleziona la disciplina che ti interessa e prenota la tua lezione di prova.
+                    Seleziona la data che preferisci per la tua lezione di prova.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -260,41 +254,31 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                      <dl className="space-y-2">
                         <DataRow label="Disciplina" value={userDiscipline} icon={<Sparkles size={16} />} />
                         <DataRow label="Palestra" value={gym.name} icon={<Building size={16} />} />
+                        <DataRow label="Orario" value={lessonTime} icon={<Clock size={16} />} />
                      </dl>
                 </div>
                 
                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">2. Scegli la tua prima lezione</h3>
+                    <h3 className="text-lg font-semibold">2. Scegli il giorno della tua prima lezione</h3>
                     <RadioGroup 
                         value={selectedLessonValue || ""} 
                         onValueChange={setSelectedLessonValue}
-                        className="space-y-4"
+                        className="grid grid-cols-2 gap-3 sm:grid-cols-4"
                     >
-                        {availableLessons.map((lesson) => {
-                            const lessonKey = `${lesson.dayOfWeek}-${lesson.time}`;
-                            const dates = upcomingLessonDates[lessonKey] || [];
+                        {sortedUpcomingLessons.map((date) => {
+                            const value = date.toISOString();
                             return (
-                                <div key={lessonKey} className="space-y-3 rounded-md border p-4">
-                                     <h4 className="font-medium">{lesson.dayOfWeek} ore {lesson.time}</h4>
-                                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                                        {dates.map((date) => {
-                                            const value = `${lesson.time}|${date.toISOString()}`;
-                                            return (
-                                                <Label 
-                                                    key={date.toISOString()} 
-                                                    htmlFor={value}
-                                                    className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 cursor-pointer hover:bg-accent/80 transition-colors",
-                                                    selectedLessonValue === value && "border-primary bg-primary/5"
-                                                    )}
-                                                >
-                                                    <RadioGroupItem value={value} id={value} className="sr-only" />
-                                                    <span className="font-semibold capitalize">{format(date, "EEEE", { locale: it })}</span>
-                                                    <span className="text-sm">{format(date, "dd MMMM yyyy", { locale: it })}</span>
-                                                </Label>
-                                            )
-                                        })}
-                                     </div>
-                                </div>
+                                <Label 
+                                    key={value} 
+                                    htmlFor={value}
+                                    className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 cursor-pointer hover:bg-accent/80 transition-colors",
+                                    selectedLessonValue === value && "border-primary bg-primary/5"
+                                    )}
+                                >
+                                    <RadioGroupItem value={value} id={value} className="sr-only" />
+                                    <span className="font-semibold capitalize">{format(date, "EEEE", { locale: it })}</span>
+                                    <span className="text-sm">{format(date, "dd MMMM yyyy", { locale: it })}</span>
+                                </Label>
                             )
                         })}
                     </RadioGroup>
@@ -769,7 +753,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
-
-    
