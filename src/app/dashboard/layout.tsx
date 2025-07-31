@@ -125,6 +125,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         } else {
           console.error("User document not found in Firestore! Logging out.");
+          toast({ title: "Errore", description: "Impossibile caricare i dati utente. Effettuare nuovamente l'accesso.", variant: "destructive" });
           await signOut(auth);
           redirect("/") 
         }
