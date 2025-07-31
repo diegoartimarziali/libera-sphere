@@ -15,7 +15,7 @@ import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp, addDoc } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -640,7 +640,7 @@ export default function ClassSelectionPage() {
             
             const dataToUpdate: any = {
                 uid: user.uid,
-                name: `${formData.name} ${formData.surname}`.trim(),
+                name: formData.name,
                 surname: formData.surname,
                 birthPlace: formData.birthPlace,
                 birthDate: formData.birthDate,
@@ -654,11 +654,9 @@ export default function ClassSelectionPage() {
                 phone: formData.phone,
                 discipline: gymSelection.discipline,
                 lastGrade: finalGrade,
-                // `parentData` is next
                 createdAt: serverTimestamp(),
                 regulationsAccepted: true,
                 applicationSubmitted: true,
-                paymentMethod: paymentMethod,
                 associationStatus: "not_associated",
                 isInsured: true,
                 medicalCertificateSubmitted: false,
@@ -666,11 +664,6 @@ export default function ClassSelectionPage() {
                     ...lesson,
                     lessonDate: Timestamp.fromDate(lesson.lessonDate)
                 })),
-                paymentDetails: {
-                    feeName: feeData.name,
-                    amount: feeData.price,
-                    status: 'pending'
-                },
             };
             
              if (userData?.hasPracticedBefore === 'yes' && userData?.pastExperience) {
@@ -683,6 +676,18 @@ export default function ClassSelectionPage() {
             }
 
             await updateDoc(userDocRef, dataToUpdate);
+
+             // Create payment record
+            const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
+            await addDoc(paymentsCollectionRef, {
+                userId: user.uid,
+                createdAt: serverTimestamp(),
+                amount: feeData.price,
+                description: feeData.name,
+                type: 'trial',
+                status: 'pending',
+                paymentMethod: paymentMethod,
+            });
 
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
             router.push("/dashboard/medical-certificate")

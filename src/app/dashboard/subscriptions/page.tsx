@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { collection, doc, getDocs, serverTimestamp, updateDoc } from "firebase/firestore"
+import { collection, doc, getDocs, serverTimestamp, updateDoc, addDoc } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
@@ -356,25 +356,38 @@ export default function SubscriptionsPage() {
 
 
     const handleConfirmPayment = async () => {
-        if (!user || !selectedSubscription || !paymentMethod) {
-            // Se il metodo di pagamento non è ancora stato impostato, esci (caso bonifico/online)
-            if(!paymentMethod) return;
-            toast({ title: "Errore", description: "Utente, abbonamento o metodo di pagamento non valido.", variant: "destructive" });
+        if (!user || !selectedSubscription) {
+            toast({ title: "Errore", description: "Utente o abbonamento non valido.", variant: "destructive" });
             return;
         }
+        
+        // Questo è il caso per il pagamento in sede. Per gli altri, il metodo è già impostato.
+        const finalPaymentMethod = paymentMethod || 'in_person';
 
         setIsSubmitting(true);
         try {
+            // Create payment record in the subcollection
+            const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
+            const paymentDocRef = await addDoc(paymentsCollectionRef, {
+                userId: user.uid,
+                createdAt: serverTimestamp(),
+                amount: selectedSubscription.price,
+                description: `Abbonamento ${selectedSubscription.name}`,
+                type: 'subscription',
+                status: 'pending',
+                paymentMethod: finalPaymentMethod,
+                relatedId: selectedSubscription.id,
+            });
+
+            // Update user document with subscription details (referencing the payment)
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, {
-                subscription: {
-                    id: selectedSubscription.id,
+                activeSubscription: {
+                    subscriptionId: selectedSubscription.id,
                     name: selectedSubscription.name,
                     type: selectedSubscription.type,
-                    price: selectedSubscription.price,
                     purchasedAt: serverTimestamp(),
-                    paymentMethod: paymentMethod,
-                    paymentStatus: 'pending_confirmation',
+                    paymentId: paymentDocRef.id, // Riferimento al documento di pagamento
                 },
                 updatedAt: serverTimestamp(),
             });

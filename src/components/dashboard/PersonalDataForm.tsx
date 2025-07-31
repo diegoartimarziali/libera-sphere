@@ -146,8 +146,6 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         
-        const [firstName, ...lastNameParts] = (userData.name || "").split(" ");
-        
         const birthDateValue = userData.birthDate?.toDate() || undefined;
         let existingIsMinor = false;
         if(birthDateValue){
@@ -155,9 +153,9 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
              existingIsMinor = age < 18;
         }
 
-        const existingData: PersonalDataSchemaType = {
-            name: firstName || "",
-            surname: lastNameParts.join(" ") || "",
+        const existingData: Partial<PersonalDataSchemaType> = {
+            name: userData.name || "",
+            surname: userData.surname || "",
             taxCode: userData.taxCode || "",
             birthDate: birthDateValue,
             birthPlace: userData.birthPlace || "",
@@ -200,7 +198,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     
     const formattedData: PersonalDataSchemaType = {
         ...data,
-        name: capitalizeFirstLetter(data.name),
+        name: capitalizeWords(data.name),
         surname: capitalizeWords(data.surname),
         taxCode: data.taxCode.toUpperCase(),
         birthPlace: capitalizeWords(data.birthPlace),

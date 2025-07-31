@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { auth, db } from "@/lib/firebase"
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
-import { doc, setDoc, serverTimestamp } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp, collection, addDoc } from "firebase/firestore"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +25,7 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Il nome è richiesto." }),
+  surname: z.string().min(2, { message: "Il cognome è richiesto." }),
   email: z.string().email({ message: "Indirizzo email non valido." }),
   password: z.string().min(6, { message: "La password deve contenere almeno 6 caratteri." }),
 })
@@ -48,6 +49,7 @@ export default function AuthPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       name: "",
+      surname: "",
       email: "",
       password: "",
     },
@@ -61,7 +63,7 @@ export default function AuthPage() {
     } catch (error: any) {
         let description = "Email o password non corretti. Riprova."
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-            description = "Utente non trovato. Prova a registrarti."
+            description = "Nessun account trovato con queste credenziali. Prova a registrarti."
         }
       toast({
         variant: "destructive",
@@ -82,8 +84,8 @@ export default function AuthPage() {
       // Create user document in Firestore with specific order
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
-        name: values.name,
-        surname: "",
+        name: values.name.trim(),
+        surname: values.surname.trim(),
         birthPlace: "",
         birthDate: null,
         taxCode: "",
@@ -101,7 +103,6 @@ export default function AuthPage() {
         createdAt: serverTimestamp(),
         regulationsAccepted: false,
         applicationSubmitted: false,
-        paymentMethod: "",
         associationStatus: null,
         isInsured: false,
         medicalCertificateSubmitted: false,
@@ -109,10 +110,14 @@ export default function AuthPage() {
       
       router.push("/dashboard")
     } catch (error: any) {
+      let description = "Si è verificato un errore durante la registrazione."
+      if (error.code === 'auth/email-already-in-use') {
+          description = "Questa email è già stata utilizzata. Prova ad accedere."
+      }
       toast({
         variant: "destructive",
         title: "Errore di registrazione",
-        description: error.message,
+        description: description,
       })
     } finally {
         setIsLoading(false)
@@ -202,25 +207,40 @@ export default function AuthPage() {
             <CardContent>
               <Form {...registerForm}>
                 <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
-                   <FormField
-                    control={registerForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nome e Cognome Socio</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Mario Rossi" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <FormField
+                            control={registerForm.control}
+                            name="name"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Nome</FormLabel>
+                                <FormControl>
+                                <Input placeholder="Mario" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={registerForm.control}
+                            name="surname"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Cognome</FormLabel>
+                                <FormControl>
+                                <Input placeholder="Rossi" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                   </div>
                   <FormField
                     control={registerForm.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email (questa sarà l'email di contatto)</FormLabel>
+                        <FormLabel>Email (sarà l'email di contatto)</FormLabel>
                         <FormControl>
                           <Input placeholder="tua@email.com" {...field} />
                         </FormControl>

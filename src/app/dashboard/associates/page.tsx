@@ -16,7 +16,7 @@ import { it } from "date-fns/locale"
 import { Checkbox } from "@/components/ui/checkbox"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, getDoc, Timestamp } from "firebase/firestore"
+import { doc, updateDoc, getDoc, Timestamp, collection, addDoc, serverTimestamp } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 
 interface FeeData {
@@ -243,7 +243,8 @@ function ConfirmationStep({
                  <div className="space-y-4 rounded-md border p-4">
                      <h3 className="font-semibold text-lg">Dati Anagrafici</h3>
                      <dl className="space-y-2">
-                        <DataRow label="Nome e Cognome" value={`${formData.name} ${formData.surname}`} />
+                        <DataRow label="Nome" value={formData.name} />
+                        <DataRow label="Cognome" value={formData.surname} />
                         <DataRow label="Codice Fiscale" value={formData.taxCode} />
                         <DataRow label="Data di Nascita" value={formData.birthDate ? format(formData.birthDate, "PPP", { locale: it }) : ''} />
                         <DataRow label="Luogo di Nascita" value={formData.birthPlace} />
@@ -257,7 +258,8 @@ function ConfirmationStep({
                     <div className="space-y-4 rounded-md border p-4">
                         <h3 className="font-semibold text-lg">Dati Genitore/Tutore</h3>
                         <dl className="space-y-2">
-                           <DataRow label="Nome e Cognome" value={`${formData.parentData.parentName} ${formData.parentData.parentSurname}`} />
+                           <DataRow label="Nome" value={formData.parentData.parentName} />
+                           <DataRow label="Cognome" value={formData.parentData.parentSurname} />
                            <DataRow label="Codice Fiscale" value={formData.parentData.parentTaxCode} />
                         </dl>
                     </div>
@@ -368,7 +370,7 @@ export default function AssociatesPage() {
     }
 
     const submitApplication = async () => {
-         if (!user || !formData || !feeData || !seasonSettings) {
+         if (!user || !formData || !feeData || !seasonSettings || !paymentMethod) {
              toast({ title: "Errore", description: "Dati mancanti per completare la richiesta.", variant: "destructive" });
              return;
          }
@@ -377,7 +379,7 @@ export default function AssociatesPage() {
             const userDocRef = doc(db, "users", user.uid);
             
             const dataToUpdate: any = {
-                name: `${formData.name} ${formData.surname}`.trim(),
+                name: formData.name,
                 surname: formData.surname,
                 birthPlace: formData.birthPlace,
                 birthDate: formData.birthDate,
@@ -390,22 +392,27 @@ export default function AssociatesPage() {
                 phone: formData.phone,
                 // `parentData` is next
                 applicationSubmitted: true,
-                paymentMethod: paymentMethod,
                 associationStatus: "pending",
                 associationExpiryDate: seasonSettings.endDate,
-                paymentDetails: {
-                    feeName: feeData.name,
-                    amount: feeData.price,
-                    status: 'pending'
-                }
             };
 
             if (formData.isMinor && formData.parentData) {
                 dataToUpdate.parentData = formData.parentData;
             }
 
-
             await updateDoc(userDocRef, dataToUpdate);
+            
+            // Create payment record
+            const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
+            await addDoc(paymentsCollectionRef, {
+                userId: user.uid,
+                createdAt: serverTimestamp(),
+                amount: feeData.price,
+                description: feeData.name,
+                type: 'association',
+                status: 'pending',
+                paymentMethod: paymentMethod,
+            });
 
             toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo. Verrai reindirizzato al prossimo passo." });
             router.push("/dashboard/medical-certificate");
