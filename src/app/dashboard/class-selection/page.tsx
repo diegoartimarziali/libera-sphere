@@ -547,9 +547,9 @@ export default function ClassSelectionPage() {
     return (
         <div className="flex w-full flex-col items-center">
             <div className="mb-8 text-center">
-                <h1 className="text-3xl font-bold">Iscrizione al Passaporto Selezioni</h1>
+                <h1 className="text-3xl font-bold">Iscrizione alle Lezioni di Selezione</h1>
                 <p className="mt-2 text-muted-foreground">
-                    Completa la procedura per accedere alle lezioni di selezione.
+                    Completa la procedura per iscriverti.
                 </p>
             </div>
             
