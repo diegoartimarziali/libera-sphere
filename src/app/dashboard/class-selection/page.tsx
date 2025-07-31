@@ -180,10 +180,16 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                 const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
 
                 if (dayIndex !== undefined) {
-                    let nextLessonDate = nextDay(startDate, dayIndex);
+                    let firstDate = nextDay(startDate, dayIndex);
+                    // Se il giorno calcolato è prima della startDate (succede se oggi è lo stesso giorno della settimana)
+                    // partiamo dalla settimana successiva.
+                    if (firstDate < startDate) {
+                        firstDate = addDays(firstDate, 7);
+                    }
+                    
                     const dates = [];
                     for (let i = 0; i < 4; i++) { // Calcola le prossime 4 occorrenze
-                        dates.push(addDays(nextLessonDate, i * 7));
+                        dates.push(addDays(firstDate, i * 7));
                     }
                     lessonDates[lessonKey] = dates;
                 }
@@ -289,16 +295,14 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                         <RadioGroup
                             value={selectedDate || ""}
                             onValueChange={setSelectedDate}
-                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+                            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                         >
                             {upcomingLessonDates[selectedLessonKey].map(date => {
                                 const dateString = date.toISOString();
                                 return (
-                                    <Label key={dateString} htmlFor={dateString} className="flex flex-col items-center justify-center space-y-1 rounded-md border p-3 cursor-pointer text-center hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                    <Label key={dateString} htmlFor={dateString} className="flex items-center justify-center rounded-md border p-3 cursor-pointer text-center hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                                         <RadioGroupItem value={dateString} id={dateString} className="sr-only" />
-                                        <span className="font-semibold capitalize">{format(date, 'EEEE', { locale: it })}</span>
-                                        <span className="text-2xl font-bold">{format(date, 'd')}</span>
-                                        <span className="text-sm text-muted-foreground">{format(date, 'MMMM yyyy', { locale: it })}</span>
+                                        <span className="font-semibold capitalize text-sm">{format(date, 'EEEE dd/MM/yyyy', { locale: it })}</span>
                                     </Label>
                                 )
                             })}
@@ -774,6 +778,8 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
 
