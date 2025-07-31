@@ -39,7 +39,7 @@ export default function LiberaSpherePage() {
   // Stati per il flusso unificato
   const [isFormerMember, setIsFormerMember] = useState<'yes' | 'no' | null>(null)
   const [discipline, setDiscipline] = useState<'karate' | 'aikido' | null>(null);
-  const [gym, setGym] = useState('');
+  const [gym, setGym] = useState(''); // Ora conterrà l'ID
   const [hasPracticedBefore, setHasPracticedBefore] = useState<'yes' | 'no' | null>(null);
   const [lastGrade, setLastGrade] = useState('');
   const [aikidoGrade, setAikidoGrade] = useState('');
@@ -85,7 +85,7 @@ export default function LiberaSpherePage() {
       setLastGrade('');
       setAikidoGrade('');
       if (value === 'aikido') {
-          setGym('Aosta'); // Se aikido, imposta automaticamente la palestra
+          setGym('aosta'); // Se aikido, imposta automaticamente l'ID della palestra
       }
   }
 
@@ -127,7 +127,7 @@ export default function LiberaSpherePage() {
 
     try {
         dataToUpdate.discipline = discipline;
-        dataToUpdate.gym = gym;
+        dataToUpdate.gym = gym; // Salviamo l'ID
         
         if (isFormerMember === 'yes') {
             dataToUpdate.firstYear = firstYear;
@@ -221,7 +221,7 @@ export default function LiberaSpherePage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {gymOptions.karate.map(g => (
-                                            <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
+                                            <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -314,7 +314,7 @@ export default function LiberaSpherePage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {gymOptions.karate.map(g => (
-                                            <SelectItem key={g.id} value={g.name}>{g.name}</SelectItem>
+                                            <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
@@ -368,5 +368,3 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
-
-    
