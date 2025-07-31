@@ -76,35 +76,38 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           const fetchedUserData = userDocSnap.data() as UserData;
           setUserData(fetchedUserData);
           
+          // --- Logica di reindirizzamento Onboarding ---
           const isStillOnboarding = !fetchedUserData.regulationsAccepted || !fetchedUserData.medicalCertificateSubmitted || !fetchedUserData.applicationSubmitted;
-          const currentOnboardingPage = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"].find(p => pathname.startsWith(p));
-
-          // Se l'utente ha completato l'onboarding e sta cercando di accedere a una pagina di onboarding (escluso certificato medico)
-          if (!isStillOnboarding && currentOnboardingPage && pathname !== '/dashboard/medical-certificate') {
+          const isOnboardingPage = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"].some(p => pathname.startsWith(p));
+          
+          // Se l'utente ha completato l'onboarding e sta cercando di accedere a una pagina di onboarding (escluso certificato medico che è anche pagina di gestione)
+          if (!isStillOnboarding && isOnboardingPage && pathname !== '/dashboard/medical-certificate') {
               redirect('/dashboard');
               return;
           }
           
           // Se l'utente è nel mezzo dell'onboarding, reindirizzalo al passo corretto
           if (isStillOnboarding) {
-              if (!fetchedUserData.regulationsAccepted && pathname !== "/dashboard/regulations") {
-                  redirect("/dashboard/regulations");
+              if (!fetchedUserData.regulationsAccepted) {
+                  if (pathname !== "/dashboard/regulations") redirect("/dashboard/regulations");
                   return;
               }
-              if (fetchedUserData.regulationsAccepted && !fetchedUserData.medicalCertificateSubmitted && pathname !== "/dashboard/medical-certificate") {
-                  redirect("/dashboard/medical-certificate");
-                  return;
+              if (!fetchedUserData.medicalCertificateSubmitted) {
+                   if (pathname !== "/dashboard/medical-certificate") redirect("/dashboard/medical-certificate");
+                   return;
               }
-               if (fetchedUserData.regulationsAccepted && fetchedUserData.medicalCertificateSubmitted && !fetchedUserData.applicationSubmitted && !pathname.startsWith('/dashboard/liberasphere') && !pathname.startsWith('/dashboard/associates') && !pathname.startsWith('/dashboard/class-selection')) {
-                  redirect("/dashboard/liberasphere");
-                  return;
+              if (!fetchedUserData.applicationSubmitted) {
+                 const selectionPath = ['/dashboard/liberasphere', '/dashboard/associates', '/dashboard/class-selection'];
+                 if (!selectionPath.some(p => pathname.startsWith(p))) {
+                    redirect("/dashboard/liberasphere");
+                 }
+                 return;
               }
           }
 
         } else {
-          // Documento non trovato, potrebbe essere una race condition subito dopo la registrazione.
-          // Invece di sloggare, aspettiamo un po' e il prossimo cambio di path/reload risolverà.
-          console.warn("User document not found for UID:", user.uid, "Might be a race condition.");
+           console.warn("User document not found for UID:", user.uid, "Might be a race condition or user just registered.");
+           // Non fare nulla, attendi il prossimo re-render
         }
       } catch (error) {
         console.error("Error fetching user data in layout:", error)
@@ -213,3 +216,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
