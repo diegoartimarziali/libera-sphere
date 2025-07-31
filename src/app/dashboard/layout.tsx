@@ -124,7 +124,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
 
     fetchUserData()
-  }, [user, loadingAuth, pathname])
+  }, [user, loadingAuth, pathname, router])
 
   const handleLogout = async () => {
       try {
@@ -147,23 +147,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   
   // Specific handling for onboarding pages that don't need the full layout
   const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-  if (onboardingPages.some(p => pathname.startsWith(p))) {
-      return (
+  // Allow medical certificate page to use the full layout, unless it's part of the initial onboarding
+  if (pathname === '/dashboard/medical-certificate' && !userData?.applicationSubmitted) {
+     return (
         <div className="flex h-screen w-full bg-background">
           <main className="flex-1 p-4 md:p-8">{children}</main>
         </div>
       )
   }
-
-  // Allow medical certificate page to use the full layout
-  if (pathname === '/dashboard/medical-certificate' && userData?.applicationSubmitted) {
-     // Don't wrap it in the simple layout, let it fall through to the full layout
-  } else if (onboardingPages.some(p => pathname.startsWith(p))) {
+  if (onboardingPages.some(p => pathname.startsWith(p)) && pathname !== '/dashboard/medical-certificate') {
       return (
-          <div className="flex h-screen w-full bg-background">
-              <main className="flex-1 p-4 md:p-8">{children}</main>
-          </div>
-      );
+        <div className="flex h-screen w-full bg-background">
+          <main className="flex-1 p-4 md:p-8">{children}</main>
+        </div>
+      )
   }
 
 
@@ -191,7 +188,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </Link>
                 </div>
                 <nav className="grid items-start px-2 text-sm font-medium lg:px-4 flex-1">
-                    <NavLink href="/dashboard" icon={Home}>Dashboard</NavLink>
+                    <NavLink href="/dashboard" icon={Home}>Scheda Personale</NavLink>
                     <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
                 </nav>
