@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { auth, db } from "@/lib/firebase"
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
-import { doc, setDoc, serverTimestamp, collection, addDoc } from "firebase/firestore"
+import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,11 +18,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 
+// Schema di validazione per il login
 const loginSchema = z.object({
   email: z.string().email({ message: "Indirizzo email non valido." }),
   password: z.string().min(1, { message: "La password è richiesta." }),
 })
 
+// Schema di validazione per la registrazione
 const registerSchema = z.object({
   name: z.string().min(2, { message: "Il nome è richiesto." }),
   surname: z.string().min(2, { message: "Il cognome è richiesto." }),
@@ -34,25 +36,16 @@ export default function AuthPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("login");
-
+  const [activeTab, setActiveTab] = useState("login")
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   })
 
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      name: "",
-      surname: "",
-      email: "",
-      password: "",
-    },
+    defaultValues: { name: "", surname: "", email: "", password: "" },
   })
 
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
@@ -70,8 +63,7 @@ export default function AuthPage() {
         title: "Errore di accesso",
         description: description,
       })
-    } finally {
-        setIsLoading(false)
+      setIsLoading(false)
     }
   }
 
@@ -81,11 +73,20 @@ export default function AuthPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password)
       const user = userCredential.user
 
-      // Create user document in Firestore and wait for it to complete
+      // Crea il documento utente in Firestore con l'UID corretto
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         name: values.name.trim(),
         surname: values.surname.trim(),
+        email: values.email,
+        createdAt: serverTimestamp(),
+        // Valori di default per l'onboarding
+        regulationsAccepted: false,
+        medicalCertificateSubmitted: false,
+        applicationSubmitted: false,
+        associationStatus: 'not_associated',
+        isInsured: false,
+        // Altri campi inizializzati a valori sicuri
         birthPlace: "",
         birthDate: null,
         taxCode: "",
@@ -94,21 +95,13 @@ export default function AuthPage() {
         zipCode: "",
         city: "",
         province: "",
-        email: values.email,
         phone: "",
         isFormerMember: "",
         hasPracticedBefore: "",
         discipline: "",
         lastGrade: "",
-        createdAt: serverTimestamp(),
-        regulationsAccepted: false,
-        applicationSubmitted: false,
-        associationStatus: 'not_associated',
-        isInsured: false,
-        medicalCertificateSubmitted: false,
       })
       
-      // Only redirect after the user document is created
       router.push("/dashboard")
       
     } catch (error: any) {
@@ -121,14 +114,13 @@ export default function AuthPage() {
         title: "Errore di registrazione",
         description: description,
       })
-    } finally {
-        setIsLoading(false)
+      setIsLoading(false)
     }
   }
 
   const onTabChange = (value: string) => {
-    setIsLoading(false); // Reset loading state when switching tabs
-    setActiveTab(value);
+    setIsLoading(false)
+    setActiveTab(value)
   }
 
   return (
