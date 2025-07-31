@@ -59,16 +59,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
   useEffect(() => {
-    // Non fare nulla se l'autenticazione è in corso
     if (loadingAuth) return;
 
-    // Se non c'è utente, reindirizza alla home
     if (!user) {
       redirect("/")
       return
     }
 
-    // Funzione per recuperare i dati utente
     const fetchUserData = async () => {
       setLoadingData(true);
       try {
@@ -79,65 +76,46 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           const fetchedUserData = userDocSnap.data() as UserData;
           setUserData(fetchedUserData);
           
-          // --- LOGICA DI REINDIRIZZAMENTO SPOSTATA QUI ---
-          // Questa logica viene eseguita solo DOPO aver recuperato i dati freschi.
-          const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
-          const isCertificateExpired = fetchedUserData.medicalInfo?.expiryDate && isPast(fetchedUserData.medicalInfo.expiryDate.toDate());
-          const isCertificateMissing = !fetchedUserData.medicalCertificateSubmitted || isCertificateExpired;
+          const isStillOnboarding = !fetchedUserData.regulationsAccepted || !fetchedUserData.medicalCertificateSubmitted || !fetchedUserData.applicationSubmitted;
+          const currentOnboardingPage = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"].find(p => pathname.startsWith(p));
 
-          // 1. Regolamento non accettato
-          if (!fetchedUserData.regulationsAccepted) {
-              if (pathname !== "/dashboard/regulations") {
+          // Se l'utente ha completato l'onboarding e sta cercando di accedere a una pagina di onboarding (escluso certificato medico)
+          if (!isStillOnboarding && currentOnboardingPage && pathname !== '/dashboard/medical-certificate') {
+              redirect('/dashboard');
+              return;
+          }
+          
+          // Se l'utente è nel mezzo dell'onboarding, reindirizzalo al passo corretto
+          if (isStillOnboarding) {
+              if (!fetchedUserData.regulationsAccepted && pathname !== "/dashboard/regulations") {
                   redirect("/dashboard/regulations");
+                  return;
               }
-              return; // Esce per evitare altri controlli
-          }
-          
-          // 2. Certificato medico mancante o scaduto
-          if (isCertificateMissing) {
-              const allowedPaths = ["/dashboard/regulations", "/dashboard/medical-certificate"];
-              if (!allowedPaths.includes(pathname)) {
+              if (fetchedUserData.regulationsAccepted && !fetchedUserData.medicalCertificateSubmitted && pathname !== "/dashboard/medical-certificate") {
                   redirect("/dashboard/medical-certificate");
+                  return;
               }
-              return;
-          }
-
-          // 3. Iscrizione non completata
-          if (!fetchedUserData.applicationSubmitted) {
-              const allowedPathsDuringOnboarding = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate", "/dashboard/regulations"];
-              if (!allowedPathsDuringOnboarding.some(p => pathname.startsWith(p))) {
+               if (fetchedUserData.regulationsAccepted && fetchedUserData.medicalCertificateSubmitted && !fetchedUserData.applicationSubmitted && !pathname.startsWith('/dashboard/liberasphere') && !pathname.startsWith('/dashboard/associates') && !pathname.startsWith('/dashboard/class-selection')) {
                   redirect("/dashboard/liberasphere");
+                  return;
               }
-              return;
-          }
-          
-          // 4. Onboarding completato, previene il ritorno alle pagine di iscrizione
-          const isStillOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
-          // Permette di accedere a medical-certificate anche dopo, per aggiornamenti
-          if (isStillOnboardingPage && pathname !== "/dashboard/medical-certificate") {
-               redirect('/dashboard');
           }
 
         } else {
-          // L'utente è autenticato ma non c'è documento nel DB.
-          console.error("User document not found in Firestore for UID:", user.uid);
-          toast({ title: "Errore Dati Utente", description: "Impossibile trovare i dati associati al tuo account. Prova a ri-accedere.", variant: "destructive" });
-          await signOut(auth); // Disconnette l'utente
+          // Documento non trovato, potrebbe essere una race condition subito dopo la registrazione.
+          // Invece di sloggare, aspettiamo un po' e il prossimo cambio di path/reload risolverà.
+          console.warn("User document not found for UID:", user.uid, "Might be a race condition.");
         }
       } catch (error) {
         console.error("Error fetching user data in layout:", error)
         toast({ title: "Errore", description: "Impossibile caricare i dati utente.", variant: "destructive" });
-        await signOut(auth);
       } finally {
         setLoadingData(false)
       }
     }
     
-    // Esegui il fetch dei dati. Questo useEffect viene rieseguito ad ogni cambio di pagina (pathname)
-    // garantendo che i dati siano sempre aggiornati prima di prendere decisioni.
     fetchUserData()
     
-  // La dipendenza da `pathname` è cruciale: forza la ri-esecuzione e la ri-lettura dei dati
   }, [user, loadingAuth, pathname, toast, router]);
 
 
@@ -152,7 +130,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
   }
 
-  // Mostra il loader globale se stiamo autenticando o caricando i dati.
   if (loadingAuth || loadingData) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -161,17 +138,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     )
   }
   
-  // Se non ci sono dati utente, non renderizzare nulla (verrà reindirizzato)
   if (!userData) {
       return (
          <div className="flex h-screen w-full items-center justify-center bg-background">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            <p className="ml-4">Caricamento dati utente...</p>
          </div>
       )
   }
 
   const simplifiedLayoutPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-  // La pagina del certificato medico usa il layout semplificato solo se l'utente non ha ancora sottomesso l'iscrizione
   const needsSimplifiedLayout = simplifiedLayoutPages.some(p => pathname.startsWith(p)) || (pathname.startsWith("/dashboard/medical-certificate") && !userData.applicationSubmitted);
 
   if (needsSimplifiedLayout) {
