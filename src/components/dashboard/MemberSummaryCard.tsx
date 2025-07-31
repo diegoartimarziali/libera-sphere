@@ -5,9 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, CreditCard } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, CreditCard, CalendarCheck2 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "../ui/button"
+import { format } from "date-fns"
+import { it } from "date-fns/locale"
+
+export interface TrialLesson {
+    date: Date;
+    time: string;
+}
 
 export interface MemberSummaryProps {
     name: string;
@@ -19,6 +26,7 @@ export interface MemberSummaryProps {
     avatarUrl?: string;
     sportingSeason?: string;
     isInsured?: boolean;
+    trialLessons?: TrialLesson[];
 }
 
 const getInitials = (name: string) => {
@@ -75,6 +83,27 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <InfoRow icon={<Sparkles size={16} />} label="Disciplina" value={props.discipline} />
                     <InfoRow icon={<Award size={16} />} label="Grado" value={props.grade} />
                  </div>
+                 
+                {props.trialLessons && props.trialLessons.length > 0 && (
+                    <>
+                        <Separator />
+                        <div className="space-y-3">
+                             <h4 className="text-sm font-medium flex items-center">
+                                <CalendarCheck2 size={16} className="mr-3 w-5 text-muted-foreground" />
+                                Lezioni di Prova
+                            </h4>
+                            {props.trialLessons.map((lesson, index) => (
+                                <div key={index} className="flex items-center text-sm ml-8">
+                                    <span className="font-medium">{index + 1}ª Lezione:</span>
+                                    <span className="ml-auto text-muted-foreground text-right capitalize">
+                                        {format(lesson.date, "EEEE dd/MM", { locale: it })}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+
             </CardContent>
             <CardFooter>
                  <Button asChild className="w-full">
@@ -86,3 +115,5 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         </Card>
     )
 }
+
+    

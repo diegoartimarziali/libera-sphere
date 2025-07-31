@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, AlertTriangle, HeartPulse } from "lucide-react"
-import { MemberSummaryCard, type MemberSummaryProps } from "@/components/dashboard/MemberSummaryCard"
+import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
 
 interface UserData {
   name: string
@@ -28,6 +28,7 @@ interface UserData {
     expiryDate?: Timestamp;
     bookingDate?: Timestamp;
   };
+  trialLessons?: { lessonDate: Timestamp, time: string }[];
 }
 
 interface SeasonSettings {
@@ -90,6 +91,11 @@ export default function DashboardPage() {
                     medicalStatusLabel = `Visita il ${format(data.medicalInfo.bookingDate.toDate(), 'dd/MM/yyyy')}`;
                 }
             }
+            
+            const trialLessons: TrialLesson[] | undefined = data.trialLessons?.map(l => ({
+                date: l.lessonDate.toDate(),
+                time: l.time
+            }));
 
 
             setMemberCardProps({
@@ -101,6 +107,7 @@ export default function DashboardPage() {
                 grade: data.lastGrade,
                 sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
                 isInsured: data.isInsured,
+                trialLessons: trialLessons
             });
 
             if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
@@ -221,3 +228,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+    
