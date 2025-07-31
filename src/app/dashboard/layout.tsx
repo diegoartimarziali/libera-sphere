@@ -74,22 +74,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           const fetchedUserData = userDocSnap.data() as UserData;
           setUserData(fetchedUserData);
 
-          // Onboarding checks
+          // === ONBOARDING CHECKS ===
           const onboardingPages = ["/dashboard/regulations", "/dashboard/medical-certificate", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
           
+          // 1. Check if regulations are accepted
           if (!fetchedUserData.regulationsAccepted) {
               if (pathname !== "/dashboard/regulations") redirect("/dashboard/regulations");
               return;
           }
 
+          // 2. Check for medical certificate
           const isCertificateExpired = fetchedUserData.medicalInfo?.expiryDate && isPast(fetchedUserData.medicalInfo.expiryDate.toDate());
-          if (!fetchedUserData.medicalCertificateSubmitted || isCertificateExpired) {
+          if ((!fetchedUserData.medicalCertificateSubmitted || isCertificateExpired) && pathname !== '/dashboard/medical-certificate') {
               if (pathname !== "/dashboard/medical-certificate") redirect("/dashboard/medical-certificate");
               return;
           }
 
+          // 3. Check if application is submitted
           if (!fetchedUserData.applicationSubmitted) {
-              const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+              const allowedPaths = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
               if (!allowedPaths.some(p => pathname.startsWith(p))) {
                   if (fetchedUserData.isFormerMember === 'yes') {
                       redirect("/dashboard/associates");
@@ -102,7 +105,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               return;
           }
           
-          if (onboardingPages.some(p => pathname.startsWith(p))) {
+          // 4. If onboarding is complete, prevent access to onboarding pages (except medical cert)
+          const isStillOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
+          if (isStillOnboardingPage && pathname !== '/dashboard/medical-certificate') {
               redirect('/dashboard');
           }
 
@@ -141,7 +146,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
   
   // Specific handling for onboarding pages that don't need the full layout
-  const onboardingPages = ["/dashboard/regulations", "/dashboard/medical-certificate", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+  const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
   if (onboardingPages.some(p => pathname.startsWith(p))) {
       return (
         <div className="flex h-screen w-full bg-background">
@@ -149,6 +154,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
       )
   }
+
+  // Allow medical certificate page to use the full layout
+  if (pathname === '/dashboard/medical-certificate' && userData?.applicationSubmitted) {
+     // Don't wrap it in the simple layout, let it fall through to the full layout
+  } else if (onboardingPages.some(p => pathname.startsWith(p))) {
+      return (
+          <div className="flex h-screen w-full bg-background">
+              <main className="flex-1 p-4 md:p-8">{children}</main>
+          </div>
+      );
+  }
+
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">

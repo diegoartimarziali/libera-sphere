@@ -29,6 +29,10 @@ interface ExistingMedicalInfo {
     expiryDate?: Date;
 }
 
+interface UserData {
+    applicationSubmitted: boolean;
+}
+
 const schema = z.object({
     certificateFile: z.instanceof(File).optional(),
     expiryDate: z.date({ required_error: "La data di scadenza è obbligatoria." }),
@@ -44,20 +48,15 @@ export default function MedicalCertificatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [existingMedicalInfo, setExistingMedicalInfo] = useState<ExistingMedicalInfo | null>(null);
-
-  const form = useForm<MedicalCertificateSchema>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-        certificateFile: undefined,
-        expiryDate: undefined,
-    }
-  });
+  const [isOnboarding, setIsOnboarding] = useState(true);
 
   const memoizedUserDataFetch = useCallback(async (uid: string) => {
     const userDocRef = doc(db, "users", uid);
     const userDocSnap = await getDoc(userDocRef);
     if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
+        setIsOnboarding(!userData.applicationSubmitted);
+
         if (userData.medicalInfo) {
             const info: ExistingMedicalInfo = {
                 type: userData.medicalInfo.type,
@@ -85,6 +84,15 @@ export default function MedicalCertificatePage() {
         setIsLoading(false);
     }
   }, [user, authLoading, memoizedUserDataFetch]);
+
+
+  const form = useForm<MedicalCertificateSchema>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+        certificateFile: undefined,
+        expiryDate: undefined,
+    }
+  });
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -152,7 +160,11 @@ export default function MedicalCertificatePage() {
             description: "Le tue informazioni mediche sono state aggiornate.",
         });
         
-        router.push("/dashboard/liberasphere");
+        if (isOnboarding) {
+             router.push("/dashboard/liberasphere");
+        } else {
+             router.push("/dashboard");
+        }
 
     } catch (error) {
         console.error("Errore durante l'invio dei dati medici:", error);
@@ -184,26 +196,30 @@ export default function MedicalCertificatePage() {
       )
     }
 
+  const containerClass = isOnboarding ? "flex h-full w-full items-center justify-center" : "";
+
   return (
-    <div className="flex h-full w-full items-center justify-center">
+    <div className={containerClass}>
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Certificato Medico</CardTitle>
-          <div className="text-sm text-muted-foreground pt-2 space-y-2">
-            <div>
-                La certificazione medica per la pratica dell’attività sportiva non agonistica è regolato dal Decreto Ministeriale del 24 aprile 2013 e integrato dalle Linee-Guida emanate dal Ministro della Salute con Decreto dell’8 agosto 2014, nonché dalle successive circolari ministeriali (Nota Esplicativa del 17 giugno 2015 e nota integrativa del 28 ottobre 2015).
+          <CardDescription>
+            <div className="text-sm text-muted-foreground pt-2 space-y-2">
+                <div>
+                    La certificazione medica per la pratica dell’attività sportiva non agonistica è regolato dal Decreto Ministeriale del 24 aprile 2013 e integrato dalle Linee-Guida emanate dal Ministro della Salute con Decreto dell’8 agosto 2014, nonché dalle successive circolari ministeriali (Nota Esplicativa del 17 giugno 2015 e nota integrativa del 28 ottobre 2015).
+                </div>
+                 <div>
+                    Sono soggetti al certificato non agonistico tutti gli associati ad una ASD e tesserati presso un ente, che svolgano attività.
+                    La certificazione è rilasciata dal proprio medico di medicina generale o pediatra o dal medico specialista in medicina dello sport, 
+                    Il certificato ha validità annuale dalla data di rilascio. 
+                    Può essere sostituito da un certificato agonistico, di qualsiasi sport, come da Circolare del Ministero della Salute del 01/02/2018.
+                    Senza il certificato medico viene a mancare la copertura assicurativa.
+                </div>
+                <div className="font-bold text-foreground">
+                    Sono accettati i certificati medici in corso di validità rilasciati per qualsiasi attività sportiva, e quelli rilasciati per attività parascolastiche.
+                </div>
             </div>
-             <div>
-                Sono soggetti al certificato non agonistico tutti gli associati ad una ASD e tesserati presso un ente, che svolgano attività.
-                La certificazione è rilasciata dal proprio medico di medicina generale o pediatra o dal medico specialista in medicina dello sport, 
-                Il certificato ha validità annuale dalla data di rilascio. 
-                Può essere sostituito da un certificato agonistico, di qualsiasi sport, come da Circolare del Ministero della Salute del 01/02/2018.
-                Senza il certificato medico viene a mancare la copertura assicurativa.
-            </div>
-            <div className="font-bold text-foreground">
-                Sono accettati i certificati medici in corso di validità rilasciati per qualsiasi attività sportiva, e quelli rilasciati per attività parascolastiche.
-            </div>
-          </div>
+          </CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -274,16 +290,20 @@ export default function MedicalCertificatePage() {
             <CardFooter className="flex-col items-stretch space-y-4">
               <Button type="submit" className="w-full" disabled={isSubmitting || !form.formState.isValid}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {existingMedicalInfo ? 'Aggiorna e prosegui' : 'Salva e prosegui'}
+                {isOnboarding ? 'Salva e prosegui' : 'Aggiorna certificato'}
               </Button>
-              <div className="text-center text-sm text-muted-foreground pt-2">
-                 <p>Non hai il certificato a portata di mano?</p>
-                 <p>Puoi uscire e tornare più tardi. I tuoi dati sono salvi.</p>
-              </div>
-              <Button type="button" variant="outline" onClick={handleLogout} disabled={isSubmitting}>
-                <LogOut className="mr-2 h-4 w-4" />
-                 Esci e completa più tardi
-              </Button>
+              {isOnboarding && (
+                <>
+                    <div className="text-center text-sm text-muted-foreground pt-2">
+                        <p>Non hai il certificato a portata di mano?</p>
+                        <p>Puoi uscire e tornare più tardi. I tuoi dati sono salvi.</p>
+                    </div>
+                    <Button type="button" variant="outline" onClick={handleLogout} disabled={isSubmitting}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Esci e completa più tardi
+                    </Button>
+                </>
+              )}
             </CardFooter>
           </form>
         </Form>
