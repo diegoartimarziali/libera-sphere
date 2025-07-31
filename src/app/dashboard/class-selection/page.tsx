@@ -137,21 +137,25 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
                     const discipline = userData.discipline;
-                    const gymName = userData.gym;
+                    const gymId = userData.gym; // gymId è l'ID del documento (es. "villeneuve")
                     setUserDiscipline(discipline);
 
-                    if (discipline && gymName) {
-                        const gymsRef = collection(db, "gyms");
-                        const q = query(gymsRef, where("name", "==", gymName), where("disciplines", "array-contains", discipline));
-                        const gymSnapshot = await getDocs(q);
+                    if (discipline && gymId) {
+                        const gymDocRef = doc(db, "gyms", gymId);
+                        const gymDocSnap = await getDoc(gymDocRef);
 
-                        if (!gymSnapshot.empty) {
-                            const gymData = gymSnapshot.docs[0].data() as Omit<Gym, 'id'>;
-                            const gymId = gymSnapshot.docs[0].id;
-                            setGym({ id: gymId, ...gymData });
-                            setAvailableLessons(gymData.lessons);
+                        if (gymDocSnap.exists()) {
+                            const gymData = gymDocSnap.data() as Omit<Gym, 'id'>;
+                            
+                            // Verifica che la disciplina sia offerta dalla palestra
+                            if (gymData.disciplines.includes(discipline)) {
+                                setGym({ id: gymId, ...gymData });
+                                setAvailableLessons(gymData.lessons);
+                            } else {
+                                toast({ title: "Errore Disciplina", description: `La disciplina ${discipline} non è disponibile presso la palestra selezionata.`, variant: "destructive" });
+                            }
                         } else {
-                            toast({ title: "Errore", description: `Nessuna palestra trovata per ${discipline} a ${gymName}.`, variant: "destructive" });
+                            toast({ title: "Errore Palestra", description: `Nessuna palestra trovata con l'ID fornito.`, variant: "destructive" });
                         }
                     }
                 }
@@ -769,3 +773,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
