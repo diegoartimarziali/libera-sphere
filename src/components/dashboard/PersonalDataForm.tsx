@@ -78,6 +78,7 @@ interface PersonalDataFormProps {
     description: string;
     buttonText: string;
     onFormSubmit: (data: PersonalDataSchemaType) => void;
+    onBack?: () => void;
 }
 
 // Funzioni di utilità per la formattazione
@@ -90,7 +91,7 @@ const capitalizeWords = (str: string) => {
     return str.split(' ').map(word => capitalizeFirstLetter(word)).join(' ');
 };
 
-export function PersonalDataForm({ title, description, buttonText, onFormSubmit }: PersonalDataFormProps) {
+export function PersonalDataForm({ title, description, buttonText, onFormSubmit, onBack }: PersonalDataFormProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMinor, setIsMinor] = useState<boolean | null>(null)
@@ -448,8 +449,17 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             )}
 
           </CardContent>
-          <CardFooter>
-            <Button type="submit" className="w-full" disabled={isSubmitting || !form.formState.isValid}>
+          <CardFooter className="flex justify-between">
+            {onBack && (
+              <Button type="button" variant="outline" onClick={onBack}>
+                Indietro
+              </Button>
+            )}
+            <Button
+              type="submit"
+              className={!onBack ? "w-full" : ""}
+              disabled={isSubmitting || !form.formState.isValid}
+            >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {buttonText}
             </Button>
@@ -459,5 +469,3 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
-
-    

@@ -453,6 +453,7 @@ export default function AssociatesPage() {
                         description="Assicurati che tutte le informazioni siano corrette prima di inviare la tua domanda di associazione."
                         buttonText="Prosegui alla Scelta del Pagamento"
                         onFormSubmit={handleNextStep1}
+                        onBack={() => router.push('/dashboard/liberasphere')}
                     />
                 )}
                 {step === 2 && (

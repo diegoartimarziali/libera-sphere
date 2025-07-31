@@ -735,6 +735,7 @@ export default function ClassSelectionPage() {
                         description="Completa le tue informazioni personali per procedere con l'iscrizione. Questi dati verranno salvati per future iscrizioni."
                         buttonText="Prosegui alla Scelta della Palestra"
                         onFormSubmit={handleNextStep1}
+                        onBack={() => router.push('/dashboard/liberasphere')}
                     />
                 )}
                 {step === 2 && (
@@ -773,5 +774,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
