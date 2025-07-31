@@ -81,7 +81,7 @@ export default function AuthPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password)
       const user = userCredential.user
 
-      // Create user document in Firestore with specific order
+      // Create user document in Firestore and wait for it to complete
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         name: values.name.trim(),
@@ -108,7 +108,9 @@ export default function AuthPage() {
         medicalCertificateSubmitted: false,
       })
       
+      // Only redirect after the user document is created
       router.push("/dashboard")
+      
     } catch (error: any) {
       let description = "Si è verificato un errore durante la registrazione."
       if (error.code === 'auth/email-already-in-use') {
