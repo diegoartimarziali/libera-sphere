@@ -10,8 +10,7 @@ import { Loader2 } from "lucide-react"
 import { isPast } from "date-fns"
 
 interface MedicalInfo {
-    type: 'certificate' | 'booking';
-    bookingDate?: Timestamp;
+    type: 'certificate';
     expiryDate?: Timestamp;
     fileUrl?: string;
 }
@@ -85,10 +84,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
 
     // Step 2: Medical certificate submission & validation.
-    const isBookingDatePast = userData.medicalInfo?.bookingDate && isPast(userData.medicalInfo.bookingDate.toDate()) && !userData.medicalInfo.fileUrl;
     const isCertificateExpired = userData.medicalInfo?.expiryDate && isPast(userData.medicalInfo.expiryDate.toDate());
     
-    if (!userData.medicalCertificateSubmitted || isBookingDatePast || isCertificateExpired) {
+    if (!userData.medicalCertificateSubmitted || isCertificateExpired) {
         if (pathname !== "/dashboard/medical-certificate") {
             redirect("/dashboard/medical-certificate");
         }

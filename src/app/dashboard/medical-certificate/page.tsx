@@ -17,53 +17,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, UploadCloud, CheckCircle, Eye } from "lucide-react"
 import { DatePicker } from "@/components/ui/date-picker"
 
 interface ExistingMedicalInfo {
-    type?: 'certificate' | 'booking';
+    type?: 'certificate';
     fileUrl?: string;
     fileName?: string;
     expiryDate?: Date;
-    bookingDate?: Date;
 }
 
 const schema = z.object({
-    submissionType: z.enum(["certificate", "booking"], {
-        required_error: "Devi selezionare un'opzione.",
-    }),
     certificateFile: z.instanceof(File).optional(),
-    expiryDate: z.date({ required_error: "La data di scadenza è obbligatoria." }).optional(),
-    bookingDate: z.date({ required_error: "La data della prenotazione è obbligatoria." }).optional(),
-}).superRefine((data, ctx) => {
-    if (data.submissionType === "certificate") {
-        if (!data.certificateFile) {
-             // Non è un errore se un file esiste già, lo rendiamo opzionale solo se ne carica uno nuovo
-            // ctx.addIssue({
-            //     code: z.ZodIssueCode.custom,
-            //     path: ["certificateFile"],
-            //     message: "Il file del certificato è obbligatorio.",
-            // });
-        }
-        if (!data.expiryDate) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ["expiryDate"],
-                message: "La data di scadenza è obbligatoria.",
-            });
-        }
-    }
-    if (data.submissionType === "booking") {
-        if (!data.bookingDate) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ["bookingDate"],
-                message: "La data della prenotazione è obbligatoria.",
-            });
-        }
-    }
+    expiryDate: z.date({ required_error: "La data di scadenza è obbligatoria." }),
 });
 
 type MedicalCertificateSchema = z.infer<typeof schema>;
@@ -80,14 +47,10 @@ export default function MedicalCertificatePage() {
   const form = useForm<MedicalCertificateSchema>({
     resolver: zodResolver(schema),
     defaultValues: {
-        submissionType: undefined,
         certificateFile: undefined,
         expiryDate: undefined,
-        bookingDate: undefined,
     }
   });
-
-  const submissionType = form.watch("submissionType");
 
   const memoizedUserDataFetch = useCallback(async (uid: string) => {
     const userDocRef = doc(db, "users", uid);
@@ -100,14 +63,11 @@ export default function MedicalCertificatePage() {
                 fileUrl: userData.medicalInfo.fileUrl,
                 fileName: userData.medicalInfo.fileName,
                 expiryDate: userData.medicalInfo.expiryDate?.toDate(),
-                bookingDate: userData.medicalInfo.bookingDate?.toDate(),
             };
             setExistingMedicalInfo(info);
             // Pre-fill form
             form.reset({
-                submissionType: info.type,
                 expiryDate: info.expiryDate,
-                bookingDate: info.bookingDate,
             });
             if(info.fileName) {
                 setFileName(info.fileName);
@@ -151,7 +111,7 @@ export default function MedicalCertificatePage() {
         return;
     }
     
-    if (data.submissionType === "certificate" && !data.certificateFile && !existingMedicalInfo?.fileUrl) {
+    if (!data.certificateFile && !existingMedicalInfo?.fileUrl) {
          toast({ variant: "destructive", title: "File Mancante", description: "Per favore, carica il file del certificato." });
          return;
     }
@@ -162,11 +122,11 @@ export default function MedicalCertificatePage() {
         const userDocRef = doc(db, "users", user.uid);
         let medicalInfo: any = {
             ...existingMedicalInfo,
-            type: data.submissionType,
+            type: 'certificate',
             updatedAt: serverTimestamp()
         };
 
-        if (data.submissionType === "certificate" && data.expiryDate) {
+        if (data.expiryDate) {
             // Se un nuovo file è stato caricato, esegui l'upload
             if (data.certificateFile) {
                 const fileRef = ref(storage, `medical-certificates/${user.uid}/${data.certificateFile.name}`);
@@ -176,14 +136,7 @@ export default function MedicalCertificatePage() {
                 medicalInfo.fileName = data.certificateFile.name;
             }
             medicalInfo.expiryDate = Timestamp.fromDate(data.expiryDate);
-            medicalInfo.bookingDate = null; // Rimuovi la data di prenotazione se si carica il certificato
-        } else if (data.submissionType === "booking" && data.bookingDate) {
-            medicalInfo.bookingDate = Timestamp.fromDate(data.bookingDate);
-            // Non cancelliamo i dati del vecchio certificato, potrebbero servire
-            // medicalInfo.fileUrl = null;
-            // medicalInfo.fileName = null;
-            // medicalInfo.expiryDate = null;
-        }
+        } 
         
         const dataToUpdate = {
              medicalCertificateSubmitted: true,
@@ -222,49 +175,14 @@ export default function MedicalCertificatePage() {
         <CardHeader>
           <CardTitle>Certificato Medico</CardTitle>
           <p className="text-sm font-medium text-foreground pt-1.5">
-            Per completare la tua iscrizione, fornisci i dati relativi al tuo certificato medico per attività sportiva non agonistica, sono validi i certificati non agonistici in corso di validità rilasciati per qualsiasi sport o attività scolastiche.
+            Per proseguire con la tua iscrizione, carica il tuo certificato medico per attività sportiva non agonistica in corso di validità.
+            Sono validi anche i certificati non agonistici rilasciati per qualsiasi altro sport o per attività scolastiche.
           </p>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="submissionType"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Scegli la tua situazione attuale:</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        className="flex flex-col space-y-2"
-                      >
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="certificate" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Ho già un certificato medico valido
-                          </FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="booking" />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            Ho prenotato la visita medica
-                          </FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {submissionType === 'certificate' && (
-                <div className="space-y-4 rounded-md border p-4 animate-in fade-in-50">
+               <div className="space-y-4 rounded-md border p-4 animate-in fade-in-50">
                    <h4 className="font-semibold text-foreground">Carica o aggiorna il tuo certificato</h4>
                     <FormField
                         control={form.control}
@@ -326,33 +244,9 @@ export default function MedicalCertificatePage() {
                     )}
                   />
                 </div>
-              )}
-
-              {submissionType === 'booking' && (
-                <div className="space-y-4 rounded-md border p-4 animate-in fade-in-50">
-                   <h4 className="font-semibold text-foreground">Inserisci la data della visita</h4>
-                  <FormField
-                    control={form.control}
-                    name="bookingDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Data della visita prenotata</FormLabel>
-                        <FormControl>
-                           <DatePicker
-                                value={field.value}
-                                onChange={field.onChange}
-                                disablePast
-                            />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={isSubmitting || !submissionType}>
+              <Button type="submit" className="w-full" disabled={isSubmitting || !form.formState.isValid}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {existingMedicalInfo ? 'Aggiorna e prosegui' : 'Salva e prosegui'}
               </Button>

@@ -24,9 +24,8 @@ interface UserData {
   associationExpiryDate?: Timestamp;
   isInsured?: boolean;
   medicalInfo?: {
-    type: 'certificate' | 'booking';
+    type: 'certificate';
     expiryDate?: Timestamp;
-    bookingDate?: Timestamp;
   };
   trialLessons?: { lessonDate: Timestamp, time: string }[];
 }
@@ -40,7 +39,7 @@ export default function DashboardPage() {
   const [userData, setUserData] = useState<UserData | null>(null)
   const [seasonSettings, setSeasonSettings] = useState<SeasonSettings | null>(null);
   const [dataLoading, setDataLoading] = useState(true)
-  const [certificateStatus, setCertificateStatus] = useState<'valid' | 'expiring' | 'expired' | 'booked' | null>(null);
+  const [certificateStatus, setCertificateStatus] = useState<'valid' | 'expiring' | 'expired' | null>(null);
   const [daysToExpire, setDaysToExpire] = useState<number | null>(null);
   const [memberCardProps, setMemberCardProps] = useState<MemberSummaryProps | null>(null);
 
@@ -84,12 +83,8 @@ export default function DashboardPage() {
             }
             
             let medicalStatusLabel = "Non Presente";
-            if (data.medicalInfo) {
-                if (data.medicalInfo.type === 'certificate' && data.medicalInfo.expiryDate) {
-                    medicalStatusLabel = `Scade il ${format(data.medicalInfo.expiryDate.toDate(), 'dd/MM/yyyy')}`;
-                } else if (data.medicalInfo.type === 'booking' && data.medicalInfo.bookingDate) {
-                    medicalStatusLabel = `Visita il ${format(data.medicalInfo.bookingDate.toDate(), 'dd/MM/yyyy')}`;
-                }
+            if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
+                medicalStatusLabel = `Scade il ${format(data.medicalInfo.expiryDate.toDate(), 'dd/MM/yyyy')}`;
             }
             
             const trialLessons: TrialLesson[] | undefined = data.trialLessons?.map(l => ({
@@ -124,9 +119,6 @@ export default function DashboardPage() {
               } else {
                   setCertificateStatus('valid');
               }
-
-            } else if (data.medicalInfo?.type === 'booking') {
-                setCertificateStatus('booked');
             }
 
           }
@@ -166,18 +158,6 @@ export default function DashboardPage() {
           <AlertTitle>Certificato Medico in Scadenza</AlertTitle>
           <AlertDescription>
             {daysToExpire > 0 ? `Attenzione, il tuo certificato medico scadrà tra ${daysToExpire} giorni.` : "Attenzione, il tuo certificato medico scade oggi."} Ricordati di rinnovarlo e caricare la nuova versione.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    
-    if (certificateStatus === 'booked') {
-        return (
-        <Alert className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Visita Medica Prenotata</AlertTitle>
-          <AlertDescription>
-            Ricorda di caricare il certificato medico non appena sarà disponibile per completare la tua iscrizione.
           </AlertDescription>
         </Alert>
       );
@@ -228,5 +208,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-    
