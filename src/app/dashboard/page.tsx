@@ -30,22 +30,14 @@ interface UserData {
   };
 }
 
-const getCurrentSportingSeason = (): string => {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth(); // 0-11 (Gennaio è 0)
-
-    // La stagione inizia a Settembre (mese 8)
-    if (currentMonth >= 8) {
-        return `${currentYear}/${currentYear + 1}`;
-    } else {
-        return `${currentYear - 1}/${currentYear}`;
-    }
-};
+interface SeasonSettings {
+    label: string;
+}
 
 export default function DashboardPage() {
   const [user, authLoading] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
+  const [seasonSettings, setSeasonSettings] = useState<SeasonSettings | null>(null);
   const [dataLoading, setDataLoading] = useState(true)
   const [certificateStatus, setCertificateStatus] = useState<'valid' | 'expiring' | 'expired' | 'booked' | null>(null);
   const [daysToExpire, setDaysToExpire] = useState<number | null>(null);
@@ -58,10 +50,20 @@ export default function DashboardPage() {
       const fetchUserData = async () => {
         try {
           const userDocRef = doc(db, "users", user.uid)
-          const userDocSnap = await getDoc(userDocRef)
+          const seasonSettingsRef = doc(db, "settings", "season");
+          
+          const [userDocSnap, seasonDocSnap] = await Promise.all([
+              getDoc(userDocRef),
+              getDoc(seasonSettingsRef)
+          ]);
+
           if (userDocSnap.exists()) {
             const data = userDocSnap.data() as UserData;
             setUserData(data)
+            
+            if (seasonDocSnap.exists()) {
+                setSeasonSettings(seasonDocSnap.data() as SeasonSettings);
+            }
             
             let statusLabel = "Non Associato";
             switch (data.associationStatus) {
@@ -97,7 +99,7 @@ export default function DashboardPage() {
                 medicalStatus: medicalStatusLabel,
                 discipline: data.discipline,
                 grade: data.lastGrade,
-                sportingSeason: getCurrentSportingSeason(),
+                sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
                 isInsured: data.isInsured,
             });
 

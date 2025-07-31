@@ -16,13 +16,17 @@ import { it } from "date-fns/locale"
 import { Checkbox } from "@/components/ui/checkbox"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, getDoc } from "firebase/firestore"
+import { doc, updateDoc, getDoc, Timestamp } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 
 interface FeeData {
     name: string;
     price: number;
     sumupLink: string;
+}
+
+interface SeasonSettings {
+    endDate: Timestamp;
 }
 
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
@@ -293,29 +297,42 @@ export default function AssociatesPage() {
     const [user] = useAuthState(auth);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [feeData, setFeeData] = useState<FeeData | null>(null);
-    const [loadingFee, setLoadingFee] = useState(true);
+    const [seasonSettings, setSeasonSettings] = useState<SeasonSettings | null>(null);
+    const [loading, setLoading] = useState(true);
 
     const { toast } = useToast()
     const router = useRouter()
     
     useEffect(() => {
-        const fetchFee = async () => {
+        const fetchInitialData = async () => {
             try {
                 const feeDocRef = doc(db, "fees", "association");
-                const feeDocSnap = await getDoc(feeDocRef);
+                const seasonSettingsRef = doc(db, "settings", "season");
+                
+                const [feeDocSnap, seasonDocSnap] = await Promise.all([
+                    getDoc(feeDocRef),
+                    getDoc(seasonSettingsRef)
+                ]);
+
                 if (feeDocSnap.exists()) {
                     setFeeData(feeDocSnap.data() as FeeData);
                 } else {
                     toast({ title: "Errore", description: "Impossibile caricare i dati della quota. Contatta la segreteria.", variant: "destructive" });
                 }
+                
+                if (seasonDocSnap.exists()) {
+                    setSeasonSettings(seasonDocSnap.data() as SeasonSettings);
+                } else {
+                     toast({ title: "Errore", description: "Impossibile caricare le impostazioni della stagione.", variant: "destructive" });
+                }
             } catch (error) {
-                console.error("Error fetching fee data:", error);
-                toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati della quota. Riprova.", variant: "destructive" });
+                console.error("Error fetching initial data:", error);
+                toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati iniziali. Riprova.", variant: "destructive" });
             } finally {
-                setLoadingFee(false);
+                setLoading(false);
             }
         };
-        fetchFee();
+        fetchInitialData();
     }, [toast]);
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
@@ -350,22 +367,9 @@ export default function AssociatesPage() {
         setStep(4);
     }
 
-    const getSeasonExpiryDate = () => {
-        const today = new Date();
-        const currentYear = today.getFullYear();
-        const currentMonth = today.getMonth(); // 0-11
-
-        // Se siamo già dopo agosto (settembre-dicembre), la stagione termina il 31 agosto dell'anno prossimo.
-        // Altrimenti (gennaio-agosto), termina il 31 agosto dell'anno corrente.
-        const expiryYear = currentMonth >= 8 ? currentYear + 1 : currentYear;
-
-        return new Date(expiryYear, 7, 31); // Mese 7 è agosto (0-indicizzato)
-    };
-
-
     const submitApplication = async () => {
-         if (!user || !formData || !feeData) {
-             toast({ title: "Errore", description: "Utente, dati del form o informazioni sulla quota non trovati.", variant: "destructive" });
+         if (!user || !formData || !feeData || !seasonSettings) {
+             toast({ title: "Errore", description: "Dati mancanti per completare la richiesta.", variant: "destructive" });
              return;
          }
          setIsSubmitting(true);
@@ -388,7 +392,7 @@ export default function AssociatesPage() {
                 applicationSubmitted: true,
                 paymentMethod: paymentMethod,
                 associationStatus: "pending",
-                associationExpiryDate: getSeasonExpiryDate(),
+                associationExpiryDate: seasonSettings.endDate,
                 paymentDetails: {
                     feeName: feeData.name,
                     amount: feeData.price,
@@ -429,7 +433,7 @@ export default function AssociatesPage() {
         setStep(2);
     }
     
-    if (loadingFee) {
+    if (loading) {
         return (
              <div className="flex h-full w-full items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />

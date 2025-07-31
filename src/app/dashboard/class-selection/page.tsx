@@ -15,7 +15,7 @@ import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -58,6 +58,17 @@ interface GymSelectionData {
     discipline: string;
 }
 
+interface Settings {
+    activity: {
+        startDate: Timestamp;
+    };
+    enrollment: {
+        trialClassesOpenDate: Timestamp;
+        trialClassesCloseDate: Timestamp;
+    };
+}
+
+
 // Componente per visualizzare i dati in modo pulito
 const DataRow = ({ label, value, icon }: { label: string; value?: string | null, icon?: React.ReactNode }) => (
     value ? (
@@ -77,43 +88,8 @@ const dayNameToJsGetDay: { [key: string]: number } = {
     'giovedì': 4, 'venerdì': 5, 'sabato': 6
 };
 
-// Determina il punto di partenza per la ricerca delle lezioni
-function getLessonSearchStartDate(): Date {
-    const today = startOfDay(new Date());
-    const month = today.getMonth(); // 0 = Gen, 4 = Mag, 8 = Set
-    const day = today.getDate();
-    const year = today.getFullYear();
 
-    // Periodo di pre-iscrizione: 1 Maggio - 9 Settembre.
-    // In questo periodo, le lezioni partono dal 10 Settembre.
-    const isPreRegistration = 
-        (month === 4 && day >= 1) || // Dal 1 Maggio in poi
-        (month > 4 && month < 8) ||  // Giugno, Luglio, Agosto
-        (month === 8 && day < 10);   // Dal 1 al 9 Settembre
-
-    if (isPreRegistration) {
-        return new Date(year, 8, 10); // 10 Settembre
-    }
-
-    // Altrimenti, parti da oggi
-    return today;
-}
-
-// Verifica se siamo nel periodo di pre-iscrizione per mostrare l'avviso
-function isPreRegistrationPeriod(): boolean {
-    const today = startOfDay(new Date());
-    const month = today.getMonth();
-    const day = today.getDate();
-     const isPreRegistration = 
-        (month === 4 && day >= 1) || // Dal 1 Maggio in poi
-        (month > 4 && month < 8) ||  // Giugno, Luglio, Agosto
-        (month === 8 && day < 10);   // Dal 1 al 9 Settembre
-    return isPreRegistration;
-}
-
-
-// Componente per lo Step 2: Selezione Palestra e Lezione
-function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (data: GymSelectionData) => void }) {
+function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; onNext: (data: GymSelectionData) => void, settings: Settings }) {
     const [user] = useAuthState(auth);
     const { toast } = useToast();
 
@@ -123,6 +99,21 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
     const [lessonTime, setLessonTime] = useState<string | null>(null);
     const [sortedUpcomingLessons, setSortedUpcomingLessons] = useState<Date[]>([]);
     const [selectedLessonValue, setSelectedLessonValue] = useState<string | null>(null);
+    
+    // Funzioni che usano i settings
+    const isPreRegistrationPeriod = (): boolean => {
+        const today = startOfDay(new Date());
+        const openDate = settings.enrollment.trialClassesOpenDate.toDate();
+        const activityStartDate = settings.activity.startDate.toDate();
+        return today >= openDate && today < activityStartDate;
+    }
+
+    const getLessonSearchStartDate = (): Date => {
+        if (isPreRegistrationPeriod()) {
+            return settings.activity.startDate.toDate();
+        }
+        return startOfDay(new Date());
+    }
 
 
     useEffect(() => {
@@ -149,12 +140,10 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                             if (gymData.disciplines.includes(discipline)) {
                                 setGym({ id: gymId, ...gymData });
 
-                                // Estrai l'orario (assumiamo sia lo stesso per tutte le lezioni)
                                 if (gymData.lessons && gymData.lessons.length > 0) {
                                     setLessonTime(gymData.lessons[0].time);
                                 }
                                 
-                                // Calcola e ordina tutte le date disponibili
                                 const allDates: Date[] = [];
                                 const startDate = getLessonSearchStartDate();
 
@@ -162,8 +151,9 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                                     const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
                                     if (dayIndex !== undefined) {
                                         let firstDate = nextDay(startDate, dayIndex);
-                                        if (firstDate < startDate) {
-                                            firstDate = addDays(firstDate, 7);
+                                        // Se nextDay restituisce una data passata (caso raro in cui startDate è quel giorno), aggiungi 7 giorni
+                                        if (getDay(firstDate) !== dayIndex || firstDate < startDate) {
+                                           firstDate = addDays(nextDay(addDays(startDate, -7), dayIndex), 7);
                                         }
                                         for (let i = 0; i < 4; i++) {
                                             allDates.push(addDays(firstDate, i * 7));
@@ -191,7 +181,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
         };
 
         fetchGymData();
-    }, [user, toast]);
+    }, [user, toast, settings]); // Aggiunto settings alle dipendenze
     
     const handleConfirm = () => {
         if (!selectedLessonValue || !userDiscipline || !gym || !lessonTime) return;
@@ -244,7 +234,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                         <Info className="h-4 w-4" />
                         <AlertTitle>Periodo di Pre-iscrizione Attivo!</AlertTitle>
                         <AlertDescription>
-                            Le lezioni inizieranno il 10 Settembre. Le date disponibili sono calcolate a partire da quel giorno.
+                            Le lezioni inizieranno il {format(settings.activity.startDate.toDate(), "d MMMM", { locale: it })}. Le date disponibili sono calcolate a partire da quel giorno.
                         </AlertDescription>
                     </Alert>
                 )}
@@ -520,7 +510,8 @@ export default function ClassSelectionPage() {
     const [gymSelection, setGymSelection] = useState<GymSelectionData | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
     const [feeData, setFeeData] = useState<FeeData | null>(null);
-    const [loadingFee, setLoadingFee] = useState(true);
+    const [settings, setSettings] = useState<Settings | null>(null);
+    const [loading, setLoading] = useState(true);
     const { toast } = useToast()
     const router = useRouter()
     const [user] = useAuthState(auth);
@@ -533,29 +524,48 @@ export default function ClassSelectionPage() {
                 try {
                     const feeDocRef = doc(db, "fees", "trial");
                     const userDocRef = doc(db, "users", user.uid);
+                    const activitySettingsRef = doc(db, "settings", "activity");
+                    const enrollmentSettingsRef = doc(db, "settings", "enrollment");
                     
-                    const [feeDocSnap, userDocSnap] = await Promise.all([getDoc(feeDocRef), getDoc(userDocRef)]);
+                    const [feeDocSnap, userDocSnap, activityDocSnap, enrollmentDocSnap] = await Promise.all([
+                        getDoc(feeDocRef), 
+                        getDoc(userDocRef),
+                        getDoc(activitySettingsRef),
+                        getDoc(enrollmentSettingsRef),
+                    ]);
                     
-                    if (feeDocSnap.exists()) {
-                        setFeeData(feeDocSnap.data() as FeeData);
-                    } else {
-                        toast({ title: "Errore", description: "Impossibile caricare i dati della quota. Contatta la segreteria.", variant: "destructive" });
-                    }
+                    if (feeDocSnap.exists()) setFeeData(feeDocSnap.data() as FeeData);
+                    else toast({ title: "Errore", description: "Impossibile caricare i dati della quota.", variant: "destructive" });
 
-                    if (userDocSnap.exists()) {
-                        setUserData(userDocSnap.data());
+                    if (userDocSnap.exists()) setUserData(userDocSnap.data());
+                    
+                    if (activityDocSnap.exists() && enrollmentDocSnap.exists()) {
+                        setSettings({
+                            activity: activityDocSnap.data() as Settings['activity'],
+                            enrollment: enrollmentDocSnap.data() as Settings['enrollment']
+                        });
+                    } else {
+                        toast({ title: "Errore di configurazione", description: "Impostazioni per le attività o le iscrizioni non trovate.", variant: "destructive" });
                     }
 
                 } catch (error) {
                     console.error("Error fetching initial data:", error);
                     toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati. Riprova.", variant: "destructive" });
                 } finally {
-                    setLoadingFee(false);
+                    setLoading(false);
                 }
             }
         };
         fetchInitialData();
     }, [user, toast]);
+    
+    const areEnrollmentsOpen = () => {
+        if (!settings) return false;
+        const today = startOfDay(new Date());
+        const openDate = settings.enrollment.trialClassesOpenDate.toDate();
+        const closeDate = settings.enrollment.trialClassesCloseDate.toDate();
+        return today >= openDate && today <= closeDate;
+    };
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data);
@@ -588,8 +598,6 @@ export default function ClassSelectionPage() {
         const pastGrade = userData?.pastExperience?.grade;
         const currentDiscipline = gymSelection.discipline;
 
-        // Se l'utente ha già praticato la stessa disciplina, usa il suo grado passato.
-        // Altrimenti, è una cintura bianca.
         if (hasPracticed && pastDiscipline === currentDiscipline && pastGrade) {
             return pastGrade;
         }
@@ -646,8 +654,7 @@ export default function ClassSelectionPage() {
                 },
             };
             
-             // Aggiungiamo anche i dati dell'esperienza passata se esistono
-            if (userData?.hasPracticedBefore === 'yes' && userData?.pastExperience) {
+             if (userData?.hasPracticedBefore === 'yes' && userData?.pastExperience) {
                 dataToUpdate.pastExperience = userData.pastExperience;
             }
 
@@ -690,12 +697,40 @@ export default function ClassSelectionPage() {
          setStep(3); // Torna sempre alla selezione metodo di pagamento
     }
     
-     if (loadingFee) {
+     if (loading) {
         return (
              <div className="flex h-full w-full items-center justify-center">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
             </div>
         )
+    }
+    
+     if (!areEnrollmentsOpen()) {
+        return (
+            <div className="flex w-full flex-col items-center justify-center text-center">
+                <Card className="w-full max-w-lg">
+                    <CardHeader>
+                        <CardTitle>Iscrizioni Chiuse</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">
+                            Le iscrizioni per le lezioni di prova non sono al momento disponibili.
+                            {settings && (
+                                <>
+                                    <br />
+                                    Saranno di nuovo aperte dal {format(settings.enrollment.trialClassesOpenDate.toDate(), "d MMMM yyyy", { locale: it })}.
+                                </>
+                            )}
+                        </p>
+                    </CardContent>
+                     <CardFooter>
+                        <Button onClick={() => router.push('/dashboard')} className="w-full">
+                            Torna alla Dashboard
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        );
     }
 
     return (
@@ -717,10 +752,11 @@ export default function ClassSelectionPage() {
                         onBack={() => router.push('/dashboard/liberasphere')}
                     />
                 )}
-                {step === 2 && (
+                {step === 2 && settings && (
                     <GymSelectionStep 
                         onBack={handleBack}
                         onNext={handleNextStep2}
+                        settings={settings}
                     />
                 )}
                 {step === 3 && gymSelection &&(
