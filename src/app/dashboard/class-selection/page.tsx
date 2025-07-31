@@ -267,48 +267,8 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                      </dl>
                 </div>
                 
-                <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">1. Scegli il Giorno e l'Orario</h3>
-                    <RadioGroup
-                        value={selectedLessonKey || ""}
-                        onValueChange={handleLessonSelect}
-                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                    >
-                        {availableLessons.map(lesson => {
-                            const key = `${lesson.dayOfWeek}-${lesson.time}`;
-                            return (
-                                <Label key={key} htmlFor={key} className="flex items-center space-x-3 rounded-md border p-3 cursor-pointer hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                                    <RadioGroupItem value={key} id={key} />
-                                    <div className="flex justify-between w-full items-center">
-                                        <span className="font-semibold capitalize">{lesson.dayOfWeek}</span>
-                                        <span className="text-muted-foreground">{lesson.time}</span>
-                                    </div>
-                                </Label>
-                            )
-                        })}
-                    </RadioGroup>
-                </div>
+                {/* PARTE DA RICOSTRUIRE */}
                 
-                {selectedLessonKey && upcomingLessonDates[selectedLessonKey] && (
-                    <div className="space-y-4 pt-4 border-t animate-in fade-in-50">
-                        <h3 className="text-lg font-semibold">2. Scegli la Data</h3>
-                        <RadioGroup
-                            value={selectedDate || ""}
-                            onValueChange={setSelectedDate}
-                            className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                        >
-                            {upcomingLessonDates[selectedLessonKey].map(date => {
-                                const dateString = date.toISOString();
-                                return (
-                                    <Label key={dateString} htmlFor={dateString} className="flex items-center justify-center rounded-md border p-3 cursor-pointer text-center hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                                        <RadioGroupItem value={dateString} id={dateString} className="sr-only" />
-                                        <span className="font-semibold capitalize text-sm">{format(date, 'EEEE dd/MM/yyyy', { locale: it })}</span>
-                                    </Label>
-                                )
-                            })}
-                        </RadioGroup>
-                    </div>
-                )}
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack}>Indietro</Button>
@@ -778,6 +738,8 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
 
