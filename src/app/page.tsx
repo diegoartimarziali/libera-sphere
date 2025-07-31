@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -102,7 +101,8 @@ export default function AuthPage() {
         lastGrade: "",
       })
       
-      router.push("/dashboard")
+      // Forza un ricaricamento completo per risolvere problemi di sincronizzazione
+      window.location.href = "/dashboard";
       
     } catch (error: any) {
       let description = "Si è verificato un errore durante la registrazione."
