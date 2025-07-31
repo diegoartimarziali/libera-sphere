@@ -182,7 +182,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                 if (dayIndex !== undefined) {
                     let nextLessonDate = nextDay(startDate, dayIndex);
                     const dates = [];
-                    for (let i = 0; i < 3; i++) { // Calcola le prossime 3 occorrenze
+                    for (let i = 0; i < 4; i++) { // Calcola le prossime 4 occorrenze
                         dates.push(addDays(nextLessonDate, i * 7));
                     }
                     lessonDates[lessonKey] = dates;
@@ -289,7 +289,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                         <RadioGroup
                             value={selectedDate || ""}
                             onValueChange={setSelectedDate}
-                            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
                         >
                             {upcomingLessonDates[selectedLessonKey].map(date => {
                                 const dateString = date.toISOString();
@@ -298,7 +298,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                                         <RadioGroupItem value={dateString} id={dateString} className="sr-only" />
                                         <span className="font-semibold capitalize">{format(date, 'EEEE', { locale: it })}</span>
                                         <span className="text-2xl font-bold">{format(date, 'd')}</span>
-                                        <span className="text-sm text-muted-foreground">{format(date, 'MMMM', { locale: it })}</span>
+                                        <span className="text-sm text-muted-foreground">{format(date, 'MMMM yyyy', { locale: it })}</span>
                                     </Label>
                                 )
                             })}
@@ -774,3 +774,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
