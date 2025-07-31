@@ -176,33 +176,35 @@ export default function DashboardPage() {
           </h1>
       </div>
       
-       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {dataLoading || !memberCardProps ? (
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-4">
-                <Skeleton className="h-16 w-16 rounded-full" />
-                <div className="flex-1 space-y-2">
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <Skeleton className="h-px w-full" />
-                <div className="space-y-3">
-                   <Skeleton className="h-5 w-full" />
-                   <Skeleton className="h-5 w-full" />
-                   <Skeleton className="h-5 w-full" />
-                   <Skeleton className="h-5 w-full" />
-                   <Skeleton className="h-5 w-full" />
-                </div>
-            </CardContent>
-            <CardFooter>
-                 <Skeleton className="h-6 w-full" />
-            </CardFooter>
-          </Card>
-        ) : (
-            <MemberSummaryCard {...memberCardProps} />
-        )}
+       <div className="flex justify-center">
+        <div className="w-full max-w-2xl">
+          {dataLoading || !memberCardProps ? (
+            <Card>
+              <CardHeader className="flex flex-row items-center gap-4">
+                  <Skeleton className="h-16 w-16 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                      <Skeleton className="h-6 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                  </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <Skeleton className="h-px w-full" />
+                  <div className="space-y-3">
+                     <Skeleton className="h-5 w-full" />
+                     <Skeleton className="h-5 w-full" />
+                     <Skeleton className="h-5 w-full" />
+                     <Skeleton className="h-5 w-full" />
+                     <Skeleton className="h-5 w-full" />
+                  </div>
+              </CardContent>
+              <CardFooter>
+                   <Skeleton className="h-10 w-full" />
+              </CardFooter>
+            </Card>
+          ) : (
+              <MemberSummaryCard {...memberCardProps} />
+          )}
+        </div>
       </div>
 
     </div>
