@@ -9,7 +9,7 @@ import { doc, getDoc, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast } from "date-fns"
 
-import { Loader2, Home, HeartPulse, CreditCard, LogOut } from "lucide-react"
+import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
@@ -75,7 +75,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           setUserData(fetchedUserData);
 
           // === ONBOARDING CHECKS ===
-          const onboardingPages = ["/dashboard/regulations", "/dashboard/medical-certificate", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
+          const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
           
           // 1. Check if regulations are accepted
           if (!fetchedUserData.regulationsAccepted) {
@@ -85,9 +85,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
           // 2. Check for medical certificate
           const isCertificateExpired = fetchedUserData.medicalInfo?.expiryDate && isPast(fetchedUserData.medicalInfo.expiryDate.toDate());
-          if ((!fetchedUserData.medicalCertificateSubmitted || isCertificateExpired) && pathname !== '/dashboard/medical-certificate') {
-              if (pathname !== "/dashboard/medical-certificate") redirect("/dashboard/medical-certificate");
-              return;
+          if (!fetchedUserData.applicationSubmitted) {
+             if ((!fetchedUserData.medicalCertificateSubmitted || isCertificateExpired) && pathname !== '/dashboard/medical-certificate') {
+                  redirect("/dashboard/medical-certificate");
+                  return;
+             }
+          } else {
+              if (isCertificateExpired && pathname !== '/dashboard/medical-certificate') {
+                 redirect("/dashboard/medical-certificate");
+                 return;
+              }
           }
 
           // 3. Check if application is submitted
@@ -106,9 +113,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           }
           
           // 4. If onboarding is complete, prevent access to onboarding pages (except medical cert)
-          const isStillOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
-          if (isStillOnboardingPage && pathname !== '/dashboard/medical-certificate') {
-              redirect('/dashboard');
+          if (pathname !== '/dashboard/medical-certificate') {
+            const isStillOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
+            if (isStillOnboardingPage) {
+                redirect('/dashboard');
+            }
           }
 
         } else {
@@ -191,6 +200,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <NavLink href="/dashboard" icon={Home}>Scheda Personale</NavLink>
                     <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
+                    <NavLink href="/dashboard/stages" icon={CalendarHeart}>Stages</NavLink>
                 </nav>
             </div>
         </aside>
