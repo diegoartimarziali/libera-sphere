@@ -7,7 +7,6 @@ import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
 import { doc, getDoc, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { isPast } from "date-fns"
 
 import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -59,67 +58,79 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
 
   useEffect(() => {
-    if (loadingAuth) return;
-
-    if (!user) {
-      redirect("/")
-      return
-    }
-
     const fetchUserData = async () => {
+      if (!user) {
+        // Se non c'è utente e l'autenticazione è finita, reindirizza
+        if (!loadingAuth) {
+          redirect("/");
+        }
+        return;
+      }
+
+      // Evita di ricaricare i dati se sono già presenti e non siamo in una pagina critica di onboarding
+      const isOnboardingPage = ["/dashboard/regulations", "/dashboard/medical-certificate"].includes(pathname);
+      if (userData && !isOnboardingPage) {
+          setLoadingData(false);
+          return;
+      }
+      
       setLoadingData(true);
       try {
-        const userDocRef = doc(db, "users", user.uid)
-        const userDocSnap = await getDoc(userDocRef)
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists()) {
           const fetchedUserData = userDocSnap.data() as UserData;
           setUserData(fetchedUserData);
           
-          // --- Logica di reindirizzamento Onboarding ---
-          const isStillOnboarding = !fetchedUserData.regulationsAccepted || !fetchedUserData.medicalCertificateSubmitted || !fetchedUserData.applicationSubmitted;
-          const isOnboardingPage = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"].some(p => pathname.startsWith(p));
-          
-          // Se l'utente ha completato l'onboarding e sta cercando di accedere a una pagina di onboarding (escluso certificato medico che è anche pagina di gestione)
-          if (!isStillOnboarding && isOnboardingPage && pathname !== '/dashboard/medical-certificate') {
-              redirect('/dashboard');
-              return;
-          }
-          
-          // Se l'utente è nel mezzo dell'onboarding, reindirizzalo al passo corretto
-          if (isStillOnboarding) {
-              if (!fetchedUserData.regulationsAccepted) {
-                  if (pathname !== "/dashboard/regulations") redirect("/dashboard/regulations");
-                  return;
-              }
-              if (!fetchedUserData.medicalCertificateSubmitted) {
-                   if (pathname !== "/dashboard/medical-certificate") redirect("/dashboard/medical-certificate");
-                   return;
-              }
-              if (!fetchedUserData.applicationSubmitted) {
-                 const selectionPath = ['/dashboard/liberasphere', '/dashboard/associates', '/dashboard/class-selection'];
-                 if (!selectionPath.some(p => pathname.startsWith(p))) {
-                    redirect("/dashboard/liberasphere");
-                 }
-                 return;
-              }
+          // Logica di reindirizzamento ONBOARDING
+          const onboardingPages = [
+            "/dashboard/regulations", 
+            "/dashboard/medical-certificate", 
+            "/dashboard/liberasphere", 
+            "/dashboard/associates", 
+            "/dashboard/class-selection"
+          ];
+          const isOnOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
+
+          if (!fetchedUserData.regulationsAccepted) {
+            if (pathname !== "/dashboard/regulations") redirect("/dashboard/regulations");
+          } else if (!fetchedUserData.medicalCertificateSubmitted) {
+            if (pathname !== "/dashboard/medical-certificate") redirect("/dashboard/medical-certificate");
+          } else if (!fetchedUserData.applicationSubmitted) {
+            const selectionPath = ['/dashboard/liberasphere', '/dashboard/associates', '/dashboard/class-selection'];
+            if (!selectionPath.some(p => pathname.startsWith(p))) {
+              redirect("/dashboard/liberasphere");
+            }
+          } else {
+             // Se l'utente ha completato tutto e si trova su una pagina di onboarding, lo mandiamo alla dashboard
+             if (isOnOnboardingPage && pathname !== '/dashboard/medical-certificate') {
+                 redirect('/dashboard');
+             }
           }
 
         } else {
-           console.warn("User document not found for UID:", user.uid, "Might be a race condition or user just registered.");
-           // Non fare nulla, attendi il prossimo re-render
+          // Questo caso si verifica se l'utente è autenticato ma il documento non esiste ancora.
+          // Può accadere per una frazione di secondo dopo la registrazione. Diamo tempo e non facciamo nulla.
+          // Il useEffect si riattiverà. Se il problema persiste, l'utente vedrà il loader.
+           console.warn("User document not found for UID:", user.uid);
+           toast({
+              variant: "destructive",
+              title: "Errore di caricamento",
+              description: "Impossibile caricare i dati utente. Riprova più tardi.",
+          });
         }
       } catch (error) {
-        console.error("Error fetching user data in layout:", error)
+        console.error("Error fetching user data in layout:", error);
         toast({ title: "Errore", description: "Impossibile caricare i dati utente.", variant: "destructive" });
       } finally {
-        setLoadingData(false)
+        setLoadingData(false);
       }
-    }
+    };
     
-    fetchUserData()
+    fetchUserData();
     
-  }, [user, loadingAuth, pathname, toast, router]);
+  }, [user, loadingAuth, pathname, router, toast]); // Aggiunto router e toast
 
 
   const handleLogout = async () => {
@@ -142,18 +153,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
   
   if (!userData) {
+      // Questo stato viene mostrato se loadingData è false ma userData è ancora null
+      // (es. il toast di errore è stato mostrato)
       return (
-         <div className="flex h-screen w-full items-center justify-center bg-background">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-            <p className="ml-4">Caricamento dati utente...</p>
+         <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
+            <p className="text-destructive">Impossibile caricare i dati utente.</p>
+            <Button onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Torna al Login
+            </Button>
          </div>
       )
   }
 
-  const simplifiedLayoutPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
-  const needsSimplifiedLayout = simplifiedLayoutPages.some(p => pathname.startsWith(p)) || (pathname.startsWith("/dashboard/medical-certificate") && !userData.applicationSubmitted);
+  const onboardingInCorso = !userData.regulationsAccepted || !userData.medicalCertificateSubmitted || !userData.applicationSubmitted;
 
-  if (needsSimplifiedLayout) {
+  // Layout semplificato per l'onboarding
+  if (onboardingInCorso) {
      return (
         <div className="flex min-h-screen w-full bg-background">
           <main className="flex-1 p-4 md:p-8">{children}</main>
@@ -216,5 +232,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
