@@ -53,7 +53,7 @@ export default function RegulationsPage() {
         regulationsAccepted: true,
       })
       
-      // Reindirizza al prossimo passo, il layout si occuperà del resto
+      // Il layout si occuperà del reindirizzamento al passo successivo
       router.push("/dashboard/medical-certificate")
 
     } catch (error) {
@@ -150,3 +150,5 @@ export default function RegulationsPage() {
     </div>
   )
 }
+
+    

@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState, ReactNode } from "react"
+import { useEffect, useState, ReactNode, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
@@ -14,12 +14,6 @@ import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
 import { cn } from "@/lib/utils"
 
-interface MedicalInfo {
-    type: 'certificate';
-    expiryDate?: Timestamp;
-    fileUrl?: string;
-}
-
 interface UserData {
   name: string
   email: string
@@ -27,7 +21,11 @@ interface UserData {
   isFormerMember: 'yes' | 'no' | null
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
-  medicalInfo?: MedicalInfo;
+  medicalInfo?: {
+    type: 'certificate';
+    expiryDate?: Timestamp;
+    fileUrl?: string;
+  };
 }
 
 function NavLink({ href, children, icon: Icon }: { href: string; children: React.ReactNode; icon: React.ElementType }) {
@@ -57,83 +55,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user) {
-        // Se non c'è utente e l'autenticazione è finita, reindirizza
-        if (!loadingAuth) {
-          redirect("/");
-        }
-        return;
-      }
-
-      // Evita di ricaricare i dati se sono già presenti e non siamo in una pagina critica di onboarding
-      const isOnboardingPage = ["/dashboard/regulations", "/dashboard/medical-certificate"].includes(pathname);
-      if (userData && !isOnboardingPage) {
-          setLoadingData(false);
-          return;
-      }
-      
-      setLoadingData(true);
-      try {
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists()) {
-          const fetchedUserData = userDocSnap.data() as UserData;
-          setUserData(fetchedUserData);
-          
-          // Logica di reindirizzamento ONBOARDING
-          const onboardingPages = [
-            "/dashboard/regulations", 
-            "/dashboard/medical-certificate", 
-            "/dashboard/liberasphere", 
-            "/dashboard/associates", 
-            "/dashboard/class-selection"
-          ];
-          const isOnOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
-
-          if (!fetchedUserData.regulationsAccepted) {
-            if (pathname !== "/dashboard/regulations") redirect("/dashboard/regulations");
-          } else if (!fetchedUserData.medicalCertificateSubmitted) {
-            if (pathname !== "/dashboard/medical-certificate") redirect("/dashboard/medical-certificate");
-          } else if (!fetchedUserData.applicationSubmitted) {
-            const selectionPath = ['/dashboard/liberasphere', '/dashboard/associates', '/dashboard/class-selection'];
-            if (!selectionPath.some(p => pathname.startsWith(p))) {
-              redirect("/dashboard/liberasphere");
-            }
-          } else {
-             // Se l'utente ha completato tutto e si trova su una pagina di onboarding, lo mandiamo alla dashboard
-             if (isOnOnboardingPage && pathname !== '/dashboard/medical-certificate') {
-                 redirect('/dashboard');
-             }
-          }
-
-        } else {
-          // Questo caso si verifica se l'utente è autenticato ma il documento non esiste ancora.
-          // Può accadere per una frazione di secondo dopo la registrazione. Diamo tempo e non facciamo nulla.
-          // Il useEffect si riattiverà. Se il problema persiste, l'utente vedrà il loader.
-           console.warn("User document not found for UID:", user.uid);
-           toast({
-              variant: "destructive",
-              title: "Errore di caricamento",
-              description: "Impossibile caricare i dati utente. Riprova più tardi.",
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching user data in layout:", error);
-        toast({ title: "Errore", description: "Impossibile caricare i dati utente.", variant: "destructive" });
-      } finally {
-        setLoadingData(false);
-      }
-    };
-    
-    fetchUserData();
-    
-  }, [user, loadingAuth, pathname, router, toast]); // Aggiunto router e toast
-
-
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
       try {
           await signOut(auth);
           router.push('/');
@@ -142,7 +64,75 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           console.error("Error during logout:", error);
           toast({ variant: "destructive", title: "Errore di logout", description: "Impossibile disconnettersi. Riprova." });
       }
-  }
+  }, [router, toast]);
+
+  useEffect(() => {
+    // Se l'autenticazione è in corso, non fare nulla
+    if (loadingAuth) {
+      setLoadingData(true);
+      return;
+    }
+
+    // Se non c'è utente alla fine del caricamento auth, reindirizza al login
+    if (!user) {
+      redirect("/");
+      return;
+    }
+
+    // C'è un utente, procedi a caricare i dati da Firestore
+    const userDocRef = doc(db, "users", user.uid);
+    getDoc(userDocRef).then(userDocSnap => {
+      if (userDocSnap.exists()) {
+        const fetchedUserData = userDocSnap.data() as UserData;
+        setUserData(fetchedUserData);
+        
+        // Logica di reindirizzamento ONBOARDING
+        // Viene eseguita solo dopo aver caricato i dati
+        const isOnboardingPage = [
+          "/dashboard/regulations", 
+          "/dashboard/medical-certificate", 
+          "/dashboard/liberasphere", 
+          "/dashboard/associates", 
+          "/dashboard/class-selection"
+        ].some(p => pathname.startsWith(p));
+
+        if (!fetchedUserData.regulationsAccepted) {
+          if (pathname !== "/dashboard/regulations") redirect("/dashboard/regulations");
+        } else if (!fetchedUserData.medicalCertificateSubmitted) {
+          if (pathname !== "/dashboard/medical-certificate") redirect("/dashboard/medical-certificate");
+        } else if (!fetchedUserData.applicationSubmitted) {
+          const selectionPath = ['/dashboard/liberasphere', '/dashboard/associates', '/dashboard/class-selection'];
+          if (!selectionPath.some(p => pathname.startsWith(p))) {
+            redirect("/dashboard/liberasphere");
+          }
+        } else {
+           // Se l'utente ha completato tutto e si trova su una pagina di onboarding, lo mandiamo alla dashboard
+           if (isOnboardingPage) {
+               redirect('/dashboard');
+           }
+        }
+
+      } else {
+        // Documento non trovato. Questo è un errore grave.
+        console.error("User document not found for UID:", user.uid);
+        toast({
+            variant: "destructive",
+            title: "Errore Critico",
+            description: "Impossibile trovare il tuo profilo utente. Eseguo il logout.",
+        });
+        // Disconnetti l'utente per evitare che rimanga bloccato
+        handleLogout();
+      }
+    }).catch(error => {
+      console.error("Error fetching user data in layout:", error);
+      toast({ title: "Errore di Connessione", description: "Impossibile caricare i dati utente. Eseguo il logout.", variant: "destructive" });
+      handleLogout();
+    }).finally(() => {
+      setLoadingData(false);
+    });
+    
+  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
+
 
   if (loadingAuth || loadingData) {
     return (
@@ -153,15 +143,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
   
   if (!userData) {
-      // Questo stato viene mostrato se loadingData è false ma userData è ancora null
-      // (es. il toast di errore è stato mostrato)
+      // Questo stato viene mostrato se loadingData è false ma userData è ancora null (logout in corso)
       return (
          <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
-            <p className="text-destructive">Impossibile caricare i dati utente.</p>
-            <Button onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Torna al Login
-            </Button>
+            <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            <p className="text-muted-foreground">Reindirizzamento in corso...</p>
          </div>
       )
   }
@@ -232,3 +218,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
