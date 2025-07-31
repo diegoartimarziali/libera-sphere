@@ -598,7 +598,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
-
-    
