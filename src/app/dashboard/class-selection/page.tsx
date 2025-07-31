@@ -15,7 +15,7 @@ import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -46,11 +46,13 @@ interface Gym {
 interface UpcomingLesson {
     date: Date;
     time: string;
-    gym: Gym;
+    gymId: string;
+    gymName: string;
 }
 
 interface GymSelectionData {
-    gym: Gym;
+    gymId: string;
+    gymName: string;
     lessonDate: Date;
     time: string;
     discipline: string;
@@ -111,15 +113,123 @@ function isPreRegistrationPeriod(): boolean {
 
 
 // Componente per lo Step 2: Selezione Palestra e Lezione
-function GymSelectionStep({ 
-    onBack, 
-    onNext 
-}: { 
-    onBack: () => void, 
-    onNext: (data: GymSelectionData) => void 
-}) {
-    // Svuotato come richiesto.
-    // Qui reintrodurremo la logica passo dopo passo.
+function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (data: GymSelectionData) => void }) {
+    const [user] = useAuthState(auth);
+    const { toast } = useToast();
+
+    const [loading, setLoading] = useState(true);
+    const [gym, setGym] = useState<Gym | null>(null);
+    const [userDiscipline, setUserDiscipline] = useState<string | null>(null);
+    const [availableLessons, setAvailableLessons] = useState<Lesson[]>([]);
+    const [upcomingLessonDates, setUpcomingLessonDates] = useState<{ [lessonKey: string]: Date[] }>({});
+
+    const [selectedLessonKey, setSelectedLessonKey] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchGymData = async () => {
+            if (!user) return;
+            setLoading(true);
+            try {
+                const userDocRef = doc(db, "users", user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    const discipline = userData.discipline;
+                    const gymName = userData.gym;
+                    setUserDiscipline(discipline);
+
+                    if (discipline && gymName) {
+                        const gymsRef = collection(db, "gyms");
+                        const q = query(gymsRef, where("name", "==", gymName), where("disciplines", "array-contains", discipline));
+                        const gymSnapshot = await getDocs(q);
+
+                        if (!gymSnapshot.empty) {
+                            const gymData = gymSnapshot.docs[0].data() as Omit<Gym, 'id'>;
+                            const gymId = gymSnapshot.docs[0].id;
+                            setGym({ id: gymId, ...gymData });
+                            setAvailableLessons(gymData.lessons);
+                        } else {
+                            toast({ title: "Errore", description: `Nessuna palestra trovata per ${discipline} a ${gymName}.`, variant: "destructive" });
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching gym data:", error);
+                toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati della palestra.", variant: "destructive" });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchGymData();
+    }, [user, toast]);
+
+    useEffect(() => {
+        if (availableLessons.length > 0) {
+            const lessonDates: { [lessonKey: string]: Date[] } = {};
+            const startDate = getLessonSearchStartDate();
+
+            availableLessons.forEach(lesson => {
+                const lessonKey = `${lesson.dayOfWeek}-${lesson.time}`;
+                const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
+
+                if (dayIndex !== undefined) {
+                    let nextLessonDate = nextDay(startDate, dayIndex);
+                    const dates = [];
+                    for (let i = 0; i < 3; i++) { // Calcola le prossime 3 occorrenze
+                        dates.push(addDays(nextLessonDate, i * 7));
+                    }
+                    lessonDates[lessonKey] = dates;
+                }
+            });
+            setUpcomingLessonDates(lessonDates);
+        }
+    }, [availableLessons]);
+
+    const handleLessonSelect = (lessonKey: string) => {
+        setSelectedLessonKey(lessonKey);
+        setSelectedDate(null); // Resetta la data quando si cambia lezione
+    };
+    
+    const handleConfirm = () => {
+        if (!selectedLessonKey || !selectedDate || !userDiscipline || !gym) return;
+
+        const [dayOfWeek, time] = selectedLessonKey.split('-');
+        
+        onNext({
+            gymId: gym.id,
+            gymName: gym.name,
+            discipline: userDiscipline,
+            lessonDate: new Date(selectedDate),
+            time: time,
+        });
+    }
+
+    if (loading) {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Passo 2: Scegli la Lezione di Prova</CardTitle>
+                </CardHeader>
+                <CardContent className="flex h-64 items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                </CardContent>
+            </Card>
+        );
+    }
+    
+     if (!gym) {
+        return (
+            <Card>
+                <CardHeader><CardTitle>Dati non trovati</CardTitle></CardHeader>
+                <CardContent><p>Non è stato possibile caricare le informazioni sulla palestra. Torna indietro e riprova.</p></CardContent>
+                <CardFooter><Button variant="outline" onClick={onBack}>Indietro</Button></CardFooter>
+            </Card>
+        );
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -129,11 +239,72 @@ function GymSelectionStep({
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-                {/* Il contenuto verrà aggiunto qui */}
+                {isPreRegistrationPeriod() && (
+                    <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertTitle>Periodo di Pre-iscrizione Attivo!</AlertTitle>
+                        <AlertDescription>
+                            Le lezioni inizieranno il 10 Settembre. Le date disponibili sono calcolate a partire da quel giorno.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                <div className="space-y-4 rounded-md border p-4">
+                    <h3 className="text-lg font-semibold">La tua scelta</h3>
+                     <dl className="space-y-2">
+                        <DataRow label="Disciplina" value={userDiscipline} icon={<Sparkles size={16} />} />
+                        <DataRow label="Palestra" value={gym.name} icon={<Building size={16} />} />
+                     </dl>
+                </div>
+                
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">1. Scegli il Giorno e l'Orario</h3>
+                    <RadioGroup
+                        value={selectedLessonKey || ""}
+                        onValueChange={handleLessonSelect}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    >
+                        {availableLessons.map(lesson => {
+                            const key = `${lesson.dayOfWeek}-${lesson.time}`;
+                            return (
+                                <Label key={key} htmlFor={key} className="flex items-center space-x-3 rounded-md border p-3 cursor-pointer hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                    <RadioGroupItem value={key} id={key} />
+                                    <div className="flex justify-between w-full items-center">
+                                        <span className="font-semibold capitalize">{lesson.dayOfWeek}</span>
+                                        <span className="text-muted-foreground">{lesson.time}</span>
+                                    </div>
+                                </Label>
+                            )
+                        })}
+                    </RadioGroup>
+                </div>
+                
+                {selectedLessonKey && upcomingLessonDates[selectedLessonKey] && (
+                    <div className="space-y-4 pt-4 border-t animate-in fade-in-50">
+                        <h3 className="text-lg font-semibold">2. Scegli la Data</h3>
+                        <RadioGroup
+                            value={selectedDate || ""}
+                            onValueChange={setSelectedDate}
+                            className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                        >
+                            {upcomingLessonDates[selectedLessonKey].map(date => {
+                                const dateString = date.toISOString();
+                                return (
+                                    <Label key={dateString} htmlFor={dateString} className="flex flex-col items-center justify-center space-y-1 rounded-md border p-3 cursor-pointer text-center hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                        <RadioGroupItem value={dateString} id={dateString} className="sr-only" />
+                                        <span className="font-semibold capitalize">{format(date, 'EEEE', { locale: it })}</span>
+                                        <span className="text-2xl font-bold">{format(date, 'd')}</span>
+                                        <span className="text-sm text-muted-foreground">{format(date, 'MMMM', { locale: it })}</span>
+                                    </Label>
+                                )
+                            })}
+                        </RadioGroup>
+                    </div>
+                )}
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack}>Indietro</Button>
-                 <Button onClick={() => { /* La logica di onNext verrà definita */ }} disabled={true}>Scegli il Pagamento</Button>
+                 <Button onClick={handleConfirm} disabled={!selectedDate}>Scegli il Pagamento</Button>
             </CardFooter>
         </Card>
     )
@@ -320,7 +491,7 @@ function ConfirmationStep({
                     <dl className="space-y-3">
                         <DataRow label="Disciplina" value={gymSelection.discipline} icon={<Sparkles size={16} />} />
                         <DataRow label="Grado" value={lastGrade} icon={<Sparkles size={16} />} />
-                        <DataRow label="Palestra" value={gymSelection.gym.name} icon={<Building size={16} />} />
+                        <DataRow label="Palestra" value={gymSelection.gymName} icon={<Building size={16} />} />
                         <DataRow label="Data Lezione" value={formattedLessonDate} icon={<CalendarIconDay size={16} />} />
                         <DataRow label="Orario" value={gymSelection.time} icon={<Clock size={16} />} />
                     </dl>
@@ -480,8 +651,8 @@ export default function ClassSelectionPage() {
                 isInsured: true,
                 medicalCertificateSubmitted: false,
                 trialLesson: {
-                    gymId: gymSelection.gym.id,
-                    gymName: gymSelection.gym.name,
+                    gymId: gymSelection.gymId,
+                    gymName: gymSelection.gymName,
                     lessonDate: gymSelection.lessonDate,
                     time: gymSelection.time,
                 },
