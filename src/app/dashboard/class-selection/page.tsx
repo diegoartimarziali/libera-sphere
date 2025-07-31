@@ -289,7 +289,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                                                 >
                                                     <RadioGroupItem value={value} id={value} className="sr-only" />
                                                     <span className="font-semibold capitalize">{format(date, "EEEE", { locale: it })}</span>
-                                                    <span className="text-sm">{format(date, "dd/MM/yyyy", { locale: it })}</span>
+                                                    <span className="text-sm">{format(date, "dd MMMM yyyy", { locale: it })}</span>
                                                 </Label>
                                             )
                                         })}
@@ -769,5 +769,7 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
