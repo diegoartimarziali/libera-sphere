@@ -29,13 +29,14 @@ interface Subscription {
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
 
 function isSeasonalWindowActive(): boolean {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    // La finestra va dal 1 Settembre al 31 Ottobre
-    const start = new Date(currentYear, 8, 1); // Mese 8 è Settembre
-    const end = new Date(currentYear, 9, 31);   // Mese 9 è Ottobre
+    // const today = new Date();
+    // const currentYear = today.getFullYear();
+    // // La finestra va dal 1 Settembre al 31 Ottobre
+    // const start = new Date(currentYear, 8, 1); // Mese 8 è Settembre
+    // const end = new Date(currentYear, 9, 31);   // Mese 9 è Ottobre
 
-    return today >= start && today <= end;
+    // return today >= start && today <= end;
+    return true; // Abilitato per visibilità costante
 }
 
 // Componente per la selezione dell'abbonamento
@@ -447,5 +448,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
-    
