@@ -99,7 +99,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
           // Per nuovi utenti, li porta alla pagina del certificato dopo i regolamenti
           if (!fetchedUserData.applicationSubmitted && isCertificateMissing) {
-              if (pathname !== "/dashboard/medical-certificate") {
+              // Consentiamo l'accesso solo alla pagina del certificato o quelle che la precedono
+              const allowedPathsForNewUser = ["/dashboard/regulations", "/dashboard/medical-certificate"];
+              if (!allowedPathsForNewUser.includes(pathname)) {
                   redirect("/dashboard/medical-certificate");
               }
               return;
@@ -107,7 +109,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
           // 3. Scelta percorso (socio o nuovo) e iscrizione
           if (!fetchedUserData.applicationSubmitted) {
-              const allowedPathsDuringOnboarding = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
+              const allowedPathsDuringOnboarding = ["/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate", "/dashboard/regulations"];
               if (!allowedPathsDuringOnboarding.some(p => pathname.startsWith(p))) {
                   // Se l'utente ha già superato la pagina del certificato, ma non ha ancora scelto,
                   // lo mandiamo a liberasphere.
@@ -120,7 +122,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           const onboardingPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection"];
           const isStillOnboardingPage = onboardingPages.some(p => pathname.startsWith(p));
           
-          if (isStillOnboardingPage) {
+          if (isStillOnboardingPage && pathname !== "/dashboard/medical-certificate") {
               redirect('/dashboard');
           }
 
@@ -163,7 +165,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   
   // Gestione layout semplificato per le pagine di onboarding
   const simplifiedLayoutPages = ["/dashboard/regulations", "/dashboard/liberasphere", "/dashboard/associates", "/dashboard/class-selection", "/dashboard/medical-certificate"];
-  const needsSimplifiedLayout = simplifiedLayoutPages.some(p => pathname.startsWith(p)) && !userData?.applicationSubmitted;
+  const needsSimplifiedLayout = simplifiedLayoutPages.some(p => pathname.startsWith(p));
 
   if (needsSimplifiedLayout) {
      return (
