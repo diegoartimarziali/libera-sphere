@@ -87,7 +87,7 @@ export default function AuthPage() {
         name: values.name.trim(),
         surname: values.surname.trim(),
         birthPlace: "",
-        birthDate: null, // this is ok
+        birthDate: null,
         taxCode: "",
         address: "",
         streetNumber: "",
@@ -96,14 +96,14 @@ export default function AuthPage() {
         province: "",
         email: values.email,
         phone: "",
-        isFormerMember: '', // Not null
-        hasPracticedBefore: '', // Not null
+        isFormerMember: "",
+        hasPracticedBefore: "",
         discipline: "",
         lastGrade: "",
         createdAt: serverTimestamp(),
         regulationsAccepted: false,
         applicationSubmitted: false,
-        associationStatus: 'not_associated', // not null
+        associationStatus: 'not_associated',
         isInsured: false,
         medicalCertificateSubmitted: false,
       })
@@ -276,5 +276,3 @@ export default function AuthPage() {
     </main>
   )
 }
-
-    
