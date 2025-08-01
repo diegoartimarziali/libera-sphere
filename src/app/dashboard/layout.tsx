@@ -102,15 +102,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 // === LOGICA DI REINDIRIZZAMENTO ===
                 if (fetchedUserData.applicationSubmitted) {
                     // STATO OPERATIVO: L'utente ha finito l'onboarding.
-                    // Applichiamo solo reindirizzamenti specifici per stati operativi.
-
-                    // 1. Controlla se il periodo di prova è terminato e reindirizza ad associarsi
                     if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates') {
                         router.push('/dashboard/associates');
-                        return; // Termina l'esecuzione per evitare altri controlli
+                        return; 
                     }
-
-                    // Nessun altro reindirizzamento forzato, l'utente è libero di navigare.
+                    // Nessun altro reindirizzamento forzato.
 
                 } else {
                     // STATO ONBOARDING: Guida l'utente passo-passo.
@@ -120,11 +116,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         targetPage = "/dashboard/regulations";
                     } else if (!fetchedUserData.medicalCertificateSubmitted) {
                         targetPage = "/dashboard/medical-certificate";
-                    } else { // Ha accettato regolamenti e caricato certificato
+                    } else if (fetchedUserData.isFormerMember === 'yes') {
+                        // Se è un ex socio che ha fatto la scelta, va ad associarsi
+                        targetPage = "/dashboard/associates";
+                    } else { 
+                        // Altrimenti (nuovo utente), va alla scelta iniziale
                         targetPage = "/dashboard/liberasphere";
                     }
                     
-                    if (targetPage && pathname !== targetPage) {
+                    if (pathname !== targetPage) {
                          router.push(targetPage);
                     }
                 }
@@ -147,7 +147,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         }
     };
     
-    // Esegui la logica di fetch e redirect
     fetchAndRedirect();
 
   }, [user, loadingAuth, pathname, router, toast, handleLogout]);
@@ -162,7 +161,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
   
   if (!user || !userData) {
-      // Questo stato viene mostrato se il caricamento è finito ma i dati non ci sono (es. durante il logout)
       return (
          <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -174,8 +172,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const isOnboarding = !userData.applicationSubmitted;
   const isPostTrial = userData.trialStatus === 'completed';
 
-  // Se l'utente è in onboarding o deve associarsi, mostriamo un layout semplificato
-  // Questo previene la visualizzazione della sidebar con link che verrebbero comunque bloccati
   if (isOnboarding || isPostTrial) {
      return (
         <div className="flex min-h-screen w-full bg-background">
