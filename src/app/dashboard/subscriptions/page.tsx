@@ -114,7 +114,14 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                             {sub.type === 'seasonal' && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                             <CardHeader>
                                 <CardTitle className="text-2xl">{sub.name}</CardTitle>
-                                <CardDescription>{sub.description}</CardDescription>
+                                <CardDescription>
+                                    {sub.description}
+                                    {sub.purchaseStartDate && sub.purchaseEndDate && (
+                                        <span className="mt-1 block text-xs text-muted-foreground">
+                                            Acquistabile dal {format(sub.purchaseStartDate.toDate(), "d MMM", { locale: it })} al {format(sub.purchaseEndDate.toDate(), "d MMM yyyy", { locale: it })}.
+                                        </span>
+                                    )}
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
                                 <div className="text-5xl font-bold">
@@ -376,7 +383,7 @@ export default function SubscriptionsPage() {
                         return now >= startDate && now <= endDate;
                     }
                     return true; // Se non ha date, è sempre disponibile
-                }).sort((a,b) => a.price - b.price);
+                }).sort((a,b) => b.price - a.price); // Ordina dal più costoso al meno
 
                 setSubscriptions(availableSubs);
 
