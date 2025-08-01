@@ -116,14 +116,14 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                                 <CardTitle className="text-2xl">{sub.name}</CardTitle>
                                 <CardDescription>
                                     {sub.description}
-                                    {sub.purchaseStartDate && sub.purchaseEndDate && (
-                                        <span className="mt-1 block text-xs text-muted-foreground">
-                                            Acquistabile dal {format(sub.purchaseStartDate.toDate(), "d MMM", { locale: it })} al {format(sub.purchaseEndDate.toDate(), "d MMM yyyy", { locale: it })}.
-                                        </span>
-                                    )}
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
+                                 {sub.purchaseStartDate && sub.purchaseEndDate && (
+                                    <div className="text-sm font-semibold text-primary">
+                                        Acquistabile dal {format(sub.purchaseStartDate.toDate(), "d MMM", { locale: it })} al {format(sub.purchaseEndDate.toDate(), "d MMM yyyy", { locale: it })}.
+                                    </div>
+                                )}
                                 <div className="text-5xl font-bold">
                                     {sub.price}€
                                     <span className="text-lg font-normal text-muted-foreground">/{sub.type === 'monthly' ? 'mese' : 'stagione'}</span>
@@ -529,3 +529,5 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
+
+    
