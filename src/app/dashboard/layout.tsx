@@ -85,11 +85,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 let fetchedUserData = userDocSnap.data() as UserData;
 
                 // === LOGICA DI TRANSIZIONE STATO PROVA (SOLO PER UTENTI OPERATIVI) ===
+                let isTrialExpired = isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()));
+                // isTrialExpired = true; // DEBUG: Decommenta questa riga per forzare la scadenza della prova per i test
+                
                 if (
                     fetchedUserData.applicationSubmitted &&
                     fetchedUserData.trialStatus === 'active' &&
                     fetchedUserData.trialExpiryDate &&
-                    isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()))
+                    isTrialExpired
                 ) {
                     await updateDoc(userDocRef, { trialStatus: 'completed' });
                     // Rileggi i dati dopo l'aggiornamento per avere lo stato più recente
