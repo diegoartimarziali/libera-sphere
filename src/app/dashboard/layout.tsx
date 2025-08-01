@@ -85,11 +85,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 let fetchedUserData = userDocSnap.data() as UserData;
 
                 // === LOGICA DI TRANSIZIONE STATO PROVA (SOLO PER UTENTI OPERATIVI) ===
+                const isTrialExpired = true; // RIGA DI CODICE PER IL TEST
                 if (
                     fetchedUserData.applicationSubmitted &&
                     fetchedUserData.trialStatus === 'active' &&
                     fetchedUserData.trialExpiryDate &&
-                    isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()))
+                    (isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate())) || isTrialExpired)
                 ) {
                     await updateDoc(userDocRef, { trialStatus: 'completed' });
                     // Rileggi i dati dopo l'aggiornamento per avere lo stato più recente
@@ -104,7 +105,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     // STATO OPERATIVO: L'utente ha finito l'onboarding.
                     // Applichiamo solo reindirizzamenti specifici per stati operativi.
 
-                    // 1. Controlla se il periodo di prova è terminato
+                    // 1. Controlla se il periodo di prova è terminato e reindirizza ad associarsi
                     if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates') {
                         router.push('/dashboard/associates');
                         return; // Termina l'esecuzione per evitare altri controlli
@@ -147,15 +148,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         }
     };
     
-    // Evita di rieseguire se abbiamo già i dati e non siamo in una pagina di onboarding
-    // Questo previene loop di re-fetch inutili
-    if (!userData || pathname.startsWith('/dashboard/regulations') || pathname.startsWith('/dashboard/medical-certificate') || pathname.startsWith('/dashboard/liberasphere')) {
-      fetchAndRedirect();
-    } else {
-      setLoadingData(false);
-    }
+    // Esegui la logica di fetch e redirect
+    fetchAndRedirect();
 
-  }, [user, loadingAuth, pathname, router, toast, handleLogout, userData]);
+  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
 
 
   if (loadingAuth || loadingData) {
@@ -242,3 +238,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
