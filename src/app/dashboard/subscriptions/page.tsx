@@ -3,18 +3,21 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { collection, doc, getDocs, serverTimestamp, updateDoc, addDoc } from "firebase/firestore"
+import { collection, doc, getDocs, serverTimestamp, updateDoc, addDoc, getDoc, Timestamp } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
+import { format } from "date-fns"
+import { it } from "date-fns/locale"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, CheckCircle, XCircle, ArrowLeft, CreditCard, Landmark, University } from "lucide-react"
+import { Loader2, CheckCircle, XCircle, ArrowLeft, CreditCard, Landmark, University, CalendarClock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 
 interface Subscription {
@@ -26,7 +29,63 @@ interface Subscription {
     sumupLink: string;
 }
 
+interface SubscriptionSettings {
+    seasonalPurchaseStartDate: Timestamp;
+    seasonalPurchaseEndDate: Timestamp;
+}
+
+interface UserSubscription {
+    name: string;
+    type: 'monthly' | 'seasonal';
+    purchasedAt: Timestamp;
+    status: 'active' | 'pending';
+}
+
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
+
+// Componente Card per lo stato dell'abbonamento
+function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSubscription }) {
+    const router = useRouter();
+
+    return (
+        <Card className="w-full max-w-lg">
+            <CardHeader>
+                <CardTitle>Il Tuo Abbonamento</CardTitle>
+                <CardDescription>Riepilogo del tuo piano di abbonamento attuale.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                 <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Piano</span>
+                    <span className="font-semibold">{userSubscription.name}</span>
+                </div>
+                 <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Acquistato il</span>
+                    <span className="font-semibold">{format(userSubscription.purchasedAt.toDate(), "dd MMMM yyyy", { locale: it })}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Stato</span>
+                    <Badge variant={userSubscription.status === 'active' ? "default" : "secondary"}>
+                        {userSubscription.status === 'active' ? "Attivo" : "In attesa di approvazione"}
+                    </Badge>
+                </div>
+            </CardContent>
+            <CardFooter className="flex-col gap-4">
+                {userSubscription.status === 'pending' && (
+                     <Alert>
+                        <CalendarClock className="h-4 w-4" />
+                        <AlertTitle>Pagamento in Verifica</AlertTitle>
+                        <AlertDescription>
+                          Il tuo abbonamento sarà attivato non appena il pagamento verrà confermato dalla segreteria.
+                        </AlertDescription>
+                    </Alert>
+                )}
+                 <Button className="w-full" onClick={() => router.push('/dashboard/payments')}>
+                    Visualizza i Miei Pagamenti
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
 
 // Componente per la selezione dell'abbonamento
 function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscriptions: Subscription[], onSelect: (sub: Subscription) => void, onBack: () => void }) {
@@ -270,6 +329,7 @@ export default function SubscriptionsPage() {
     const [user] = useAuthState(auth);
     const [step, setStep] = useState(1);
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+    const [userSubscription, setUserSubscription] = useState<UserSubscription | null>(null);
     const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
@@ -279,28 +339,75 @@ export default function SubscriptionsPage() {
     const { toast } = useToast();
 
     useEffect(() => {
-        const fetchSubscriptions = async () => {
+        const fetchData = async () => {
+            if (!user) {
+                setLoading(false);
+                return;
+            }
+
             try {
+                // Fetch user data to check for existing subscription
+                const userDocRef = doc(db, "users", user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    if (userData.activeSubscription) {
+                        const subStatus: UserSubscription = {
+                            name: userData.activeSubscription.name,
+                            type: userData.activeSubscription.type,
+                            purchasedAt: userData.activeSubscription.purchasedAt,
+                            status: userData.associationStatus === 'active' ? 'active' : 'pending'
+                        };
+                        setUserSubscription(subStatus);
+                        setLoading(false);
+                        return; // Stop here, show status card
+                    }
+                }
+                
+                // If no active sub, fetch available subscriptions and settings
                 const subsCollection = collection(db, 'subscriptions');
-                const subsSnapshot = await getDocs(subsCollection);
+                const settingsDocRef = doc(db, 'settings', 'subscriptions');
+                
+                const [subsSnapshot, settingsSnapshot] = await Promise.all([
+                    getDocs(subsCollection),
+                    getDoc(settingsDocRef)
+                ]);
+
                 const subsList = subsSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
+                    id: doc.id, ...doc.data()
                 } as Subscription));
                 
-                const availableSubs = subsList.sort((a,b) => a.price - b.price); // Ordina per prezzo
+                let availableSubs = subsList.sort((a,b) => a.price - b.price);
+
+                // Filter seasonal subscription based on date range
+                if (settingsSnapshot.exists()) {
+                    const settings = settingsSnapshot.data() as SubscriptionSettings;
+                    const now = new Date();
+                    const startDate = settings.seasonalPurchaseStartDate.toDate();
+                    const endDate = settings.seasonalPurchaseEndDate.toDate();
+
+                    if (now < startDate || now > endDate) {
+                        availableSubs = availableSubs.filter(sub => sub.type !== 'seasonal');
+                    }
+                } else {
+                    // If settings don't exist, maybe hide seasonal as a fallback
+                    availableSubs = availableSubs.filter(sub => sub.type !== 'seasonal');
+                    console.warn("Subscription settings not found. Seasonal subscription is hidden.");
+                }
 
                 setSubscriptions(availableSubs);
+
             } catch (error) {
-                console.error("Error fetching subscriptions:", error);
-                toast({ title: "Errore", description: "Impossibile caricare gli abbonamenti.", variant: "destructive" });
+                console.error("Error fetching subscriptions data:", error);
+                toast({ title: "Errore", description: "Impossibile caricare i dati degli abbonamenti.", variant: "destructive" });
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchSubscriptions();
-    }, [toast]);
+        fetchData();
+    }, [user, toast]);
 
     const handleSelectSubscription = (sub: Subscription) => {
         setSelectedSubscription(sub);
@@ -311,14 +418,13 @@ export default function SubscriptionsPage() {
         setPaymentMethod(method);
         switch (method) {
             case 'online':
-                setStep(3); // Vai allo step dell'iframe SumUp
+                setStep(3);
                 break;
             case 'bank_transfer':
-                setIsBankTransferDialogOpen(true); // Apri il popup del bonifico
+                setIsBankTransferDialogOpen(true);
                 break;
             case 'in_person':
             default:
-                // Per il pagamento in sede, vai direttamente alla conferma finale
                 handleConfirmPayment();
                 break;
         }
@@ -337,19 +443,16 @@ export default function SubscriptionsPage() {
         }
     }
 
-
     const handleConfirmPayment = async () => {
         if (!user || !selectedSubscription) {
             toast({ title: "Errore", description: "Utente o abbonamento non valido.", variant: "destructive" });
             return;
         }
         
-        // Questo è il caso per il pagamento in sede. Per gli altri, il metodo è già impostato.
         const finalPaymentMethod = paymentMethod || 'in_person';
 
         setIsSubmitting(true);
         try {
-            // Create payment record in the subcollection
             const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
             const paymentDocRef = await addDoc(paymentsCollectionRef, {
                 userId: user.uid,
@@ -362,7 +465,6 @@ export default function SubscriptionsPage() {
                 relatedId: selectedSubscription.id,
             });
 
-            // Update user document with subscription details (referencing the payment)
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, {
                 activeSubscription: {
@@ -370,7 +472,7 @@ export default function SubscriptionsPage() {
                     name: selectedSubscription.name,
                     type: selectedSubscription.type,
                     purchasedAt: serverTimestamp(),
-                    paymentId: paymentDocRef.id, // Riferimento al documento di pagamento
+                    paymentId: paymentDocRef.id,
                 },
                 updatedAt: serverTimestamp(),
             });
@@ -395,6 +497,14 @@ export default function SubscriptionsPage() {
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
             </div>
         );
+    }
+    
+    if (userSubscription) {
+        return (
+             <div className="flex w-full flex-col items-center justify-center">
+                <SubscriptionStatusCard userSubscription={userSubscription} />
+            </div>
+        )
     }
 
     return (
@@ -430,3 +540,5 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
+
+    
