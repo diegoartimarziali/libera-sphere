@@ -104,7 +104,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
         name: "",
         surname: "",
         taxCode: "",
-        birthDate: undefined,
+        birthDate: null,
         birthPlace: "",
         address: "",
         streetNumber: "",
@@ -146,7 +146,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         
-        const birthDateValue = userData.birthDate?.toDate() || undefined;
+        const birthDateValue = userData.birthDate?.toDate() || null;
         let existingIsMinor = false;
         if(birthDateValue){
              const age = differenceInYears(new Date(), birthDateValue);
@@ -173,6 +173,12 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                 parentName: userData.parentData?.parentName || "",
                 parentSurname: userData.parentData?.parentSurname || "",
                 parentTaxCode: userData.parentData?.parentTaxCode || "",
+            };
+        } else {
+            existingData.parentData = {
+                parentName: "",
+                parentSurname: "",
+                parentTaxCode: "",
             };
         }
 
