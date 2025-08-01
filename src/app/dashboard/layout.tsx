@@ -46,6 +46,42 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
     );
 }
 
+// Componente Header condiviso
+function DashboardHeader({ userName, onLogout }: { userName: string; onLogout: () => void }) {
+    return (
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
+            <div className="w-full flex-1">
+                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                     <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-6 w-6"
+                    >
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                      <path d="M12 12L16 8"></path>
+                      <path d="M12 6v6l4 2"></path>
+                    </svg>
+                    <span className="text-foreground">LiberaSphere</span>
+                </Link>
+            </div>
+            <div className="flex items-center gap-4 ml-auto">
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                    {userName}
+                </span>
+                <Button variant="outline" size="icon" onClick={onLogout}>
+                    <LogOut className="h-4 w-4" />
+                    <span className="sr-only">Logout</span>
+                </Button>
+            </div>
+        </header>
+    );
+}
+
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [user, loadingAuth] = useAuthState(auth)
@@ -174,8 +210,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (isOnboarding || isPostTrial) {
      return (
-        <div className="flex min-h-screen w-full bg-background">
-          <main className="flex-1 p-4 md:p-8">{children}</main>
+        <div className="flex min-h-screen w-full flex-col bg-background">
+            <DashboardHeader userName={userData.name} onLogout={handleLogout} />
+            <main className="flex-1 p-4 md:p-8">{children}</main>
         </div>
       )
   }
@@ -213,19 +250,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
         </aside>
         <div className="flex flex-col">
-            <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-                <div className="w-full flex-1">
-                </div>
-                 <div className="flex items-center gap-4 ml-auto">
-                    <span className="text-sm text-muted-foreground hidden sm:inline">
-                        {userData?.name}
-                    </span>
-                    <Button variant="outline" size="icon" onClick={handleLogout}>
-                        <LogOut className="h-4 w-4" />
-                        <span className="sr-only">Logout</span>
-                    </Button>
-                 </div>
-            </header>
+            <DashboardHeader userName={userData.name} onLogout={handleLogout} />
             <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                 {children}
             </main>
@@ -233,3 +258,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+  
