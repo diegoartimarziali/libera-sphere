@@ -117,6 +117,7 @@ export default function AuthPage() {
         hasPracticedBefore: "",
         discipline: "",
         lastGrade: "",
+        qualification: "",
       })
       
       router.push("/dashboard");
