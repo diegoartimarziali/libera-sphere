@@ -247,6 +247,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
                     <NavLink href="/dashboard/stages" icon={CalendarHeart}>Stages</NavLink>
+                    <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
                 </nav>
             </div>
         </aside>
