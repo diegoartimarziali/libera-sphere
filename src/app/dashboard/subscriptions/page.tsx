@@ -116,20 +116,26 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                                 <CardTitle className="text-2xl">{sub.name}</CardTitle>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
-                                 {sub.purchaseStartDate && sub.purchaseEndDate && (
-                                    <div className="text-sm font-semibold text-primary">
-                                        Acquistabile dal {format(sub.purchaseStartDate.toDate(), "d MMM", { locale: it })} al {format(sub.purchaseEndDate.toDate(), "d MMM yyyy", { locale: it })}.
-                                    </div>
-                                )}
                                 <div className="text-5xl font-bold">
                                     {sub.price}€
                                     <span className="text-lg font-normal text-muted-foreground">/{sub.type === 'monthly' ? 'mese' : 'stagione'}</span>
                                 </div>
+                                {sub.purchaseStartDate && sub.purchaseEndDate && (
+                                    <div className="text-sm font-semibold text-primary">
+                                        Acquistabile dal {format(sub.purchaseStartDate.toDate(), "d MMM", { locale: it })} al {format(sub.purchaseEndDate.toDate(), "d MMM yyyy", { locale: it })}.
+                                    </div>
+                                )}
                                 <ul className="space-y-2 text-sm text-muted-foreground">
                                     <li className="flex items-center">
                                         <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
                                         <span>Accesso a tutte le lezioni della tua disciplina</span>
                                     </li>
+                                    {sub.type === 'seasonal' && (
+                                        <li className="flex items-center">
+                                            <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
+                                            <span>Accesso a tutte le Palestre</span>
+                                        </li>
+                                    )}
                                     <li className="flex items-center">
                                          <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
                                          <span>Copertura assicurativa sempre inclusa</span>
