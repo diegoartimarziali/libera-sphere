@@ -121,7 +121,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                             {sub.type === 'seasonal' && sub.isAvailable && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                             <CardHeader>
                                 <CardTitle className="text-2xl">{sub.name}</CardTitle>
-                                {sub.description && <CardDescription>{sub.description}</CardDescription>}
+                                {sub.description && sub.type !== 'seasonal' && <CardDescription>{sub.description}</CardDescription>}
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
                                 <div className="text-5xl font-bold">
@@ -158,10 +158,12 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                                 </ul>
                             </CardContent>
                             <CardFooter className="flex-col">
-                                {!sub.isAvailable && sub.purchaseStartDate && sub.purchaseEndDate && (
+                                {sub.purchaseStartDate && sub.purchaseEndDate && (
                                      <Alert variant="default" className="w-full mb-4 border-primary/50 text-center">
                                         <Info className="h-4 w-4" />
-                                        <AlertTitle className="font-semibold">Non ancora disponibile</AlertTitle>
+                                        <AlertTitle className="font-semibold">
+                                            {sub.isAvailable ? "Periodo di Acquisto Limitato" : "Non ancora disponibile"}
+                                        </AlertTitle>
                                         <AlertDescription>
                                             Potrai acquistare questo piano dal {format(sub.purchaseStartDate.toDate(), "d MMM", { locale: it })} al {format(sub.purchaseEndDate.toDate(), "d MMM yyyy", { locale: it })}.
                                         </AlertDescription>
