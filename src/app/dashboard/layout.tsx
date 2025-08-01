@@ -47,7 +47,7 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
 }
 
 // Componente Header condiviso
-function DashboardHeader({ userName, onLogout }: { userName: string; onLogout: () => void }) {
+function DashboardHeader({ onLogout }: { onLogout: () => void }) {
     return (
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
             <div className="w-full flex-1">
@@ -70,12 +70,9 @@ function DashboardHeader({ userName, onLogout }: { userName: string; onLogout: (
                 </Link>
             </div>
             <div className="flex items-center gap-4 ml-auto">
-                <span className="text-sm text-muted-foreground hidden sm:inline">
-                    {userName}
-                </span>
-                <Button variant="outline" size="icon" onClick={onLogout}>
-                    <LogOut className="h-4 w-4" />
-                    <span className="sr-only">Logout</span>
+                <Button variant="outline" onClick={onLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    <span className="uppercase font-bold">Log out</span>
                 </Button>
             </div>
         </header>
@@ -208,10 +205,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const isOnboarding = !userData.applicationSubmitted;
   const isPostTrial = userData.trialStatus === 'completed';
 
+  // Per gli utenti in onboarding o post-trial, usa un layout semplificato con solo l'header
   if (isOnboarding || isPostTrial) {
      return (
         <div className="flex min-h-screen w-full flex-col bg-background">
-            <DashboardHeader userName={userData.name} onLogout={handleLogout} />
+            <DashboardHeader onLogout={handleLogout} />
             <main className="flex-1 p-4 md:p-8">{children}</main>
         </div>
       )
@@ -250,7 +248,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
         </aside>
         <div className="flex flex-col">
-            <DashboardHeader userName={userData.name} onLogout={handleLogout} />
+            <DashboardHeader onLogout={handleLogout} />
             <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                 {children}
             </main>
@@ -259,4 +257,4 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   )
 }
 
-  
+    

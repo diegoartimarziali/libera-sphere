@@ -41,9 +41,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <Button asChild variant="outline">
                         <Link href="/dashboard">Torna alla Dashboard</Link>
                     </Button>
-                    <Button variant="outline" size="icon" onClick={handleLogout}>
-                        <LogOut className="h-4 w-4" />
-                        <span className="sr-only">Logout</span>
+                    <Button variant="outline" onClick={handleLogout}>
+                        <LogOut className="h-4 w-4 mr-2" />
+                        <span className="uppercase font-bold">Log out</span>
                     </Button>
                 </div>
             </header>
@@ -54,4 +54,4 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     );
 }
 
-  
+    
