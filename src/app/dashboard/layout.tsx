@@ -18,14 +18,10 @@ interface UserData {
   name: string
   email: string
   regulationsAccepted: boolean
-  isFormerMember: 'yes' | 'no' | null
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
-  medicalInfo?: {
-    type: 'certificate';
-    expiryDate?: Timestamp;
-    fileUrl?: string;
-  };
+  // Aggiungiamo altri campi opzionali per evitare errori di tipo
+  [key: string]: any;
 }
 
 function NavLink({ href, children, icon: Icon }: { href: string; children: React.ReactNode; icon: React.ElementType }) {
@@ -65,73 +61,87 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           toast({ variant: "destructive", title: "Errore di logout", description: "Impossibile disconnettersi. Riprova." });
       }
   }, [router, toast]);
-
+  
   useEffect(() => {
-    // Se l'autenticazione è in corso, non fare nulla
-    if (loadingAuth) {
-      setLoadingData(true);
-      return;
-    }
-
-    // Se non c'è utente alla fine del caricamento auth, reindirizza al login
-    if (!user) {
-      redirect("/");
-      return;
-    }
-
-    // C'è un utente, procedi a caricare i dati da Firestore
-    const userDocRef = doc(db, "users", user.uid);
-    getDoc(userDocRef).then(userDocSnap => {
-      if (userDocSnap.exists()) {
-        const fetchedUserData = userDocSnap.data() as UserData;
-        setUserData(fetchedUserData);
-        
-        // Logica di reindirizzamento ONBOARDING
-        // Viene eseguita solo dopo aver caricato i dati
-        const isOnboardingPage = [
-          "/dashboard/regulations", 
-          "/dashboard/medical-certificate", 
-          "/dashboard/liberasphere", 
-          "/dashboard/associates", 
-          "/dashboard/class-selection"
-        ].some(p => pathname.startsWith(p));
-
-        if (!fetchedUserData.regulationsAccepted) {
-          if (pathname !== "/dashboard/regulations") redirect("/dashboard/regulations");
-        } else if (!fetchedUserData.medicalCertificateSubmitted) {
-          if (pathname !== "/dashboard/medical-certificate") redirect("/dashboard/medical-certificate");
-        } else if (!fetchedUserData.applicationSubmitted) {
-          const selectionPath = ['/dashboard/liberasphere', '/dashboard/associates', '/dashboard/class-selection'];
-          if (!selectionPath.some(p => pathname.startsWith(p))) {
-            redirect("/dashboard/liberasphere");
-          }
-        } else {
-           // Se l'utente ha completato tutto e si trova su una pagina di onboarding, lo mandiamo alla dashboard
-           if (isOnboardingPage) {
-               redirect('/dashboard');
-           }
+    const fetchAndRedirect = async () => {
+        if (loadingAuth) {
+            return; // Aspetta che l'autenticazione finisca
         }
 
-      } else {
-        // Documento non trovato. Questo è un errore grave.
-        console.error("User document not found for UID:", user.uid);
-        toast({
-            variant: "destructive",
-            title: "Errore Critico",
-            description: "Impossibile trovare il tuo profilo utente. Eseguo il logout.",
-        });
-        // Disconnetti l'utente per evitare che rimanga bloccato
-        handleLogout();
-      }
-    }).catch(error => {
-      console.error("Error fetching user data in layout:", error);
-      toast({ title: "Errore di Connessione", description: "Impossibile caricare i dati utente. Eseguo il logout.", variant: "destructive" });
-      handleLogout();
-    }).finally(() => {
-      setLoadingData(false);
-    });
+        if (!user) {
+            redirect("/"); // Nessun utente, torna al login
+            return;
+        }
+
+        // Se abbiamo già i dati, non ricaricarli
+        if (userData) {
+            setLoadingData(false);
+            return;
+        }
+        
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (userDocSnap.exists()) {
+                const fetchedUserData = userDocSnap.data() as UserData;
+                setUserData(fetchedUserData);
+                
+                // === LOGICA DI REINDIRIZZAMENTO ===
+                const isOnboardingComplete = fetchedUserData.applicationSubmitted;
+
+                if (isOnboardingComplete) {
+                    // STATO OPERATIVO: L'utente ha finito l'onboarding. Nessun reindirizzamento forzato.
+                    // Può navigare liberamente nella sua dashboard.
+                } else {
+                    // STATO ONBOARDING: Guida l'utente passo-passo.
+                    const onboardingPages = [
+                        "/dashboard/regulations", 
+                        "/dashboard/medical-certificate", 
+                        "/dashboard/liberasphere", 
+                        "/dashboard/associates", 
+                        "/dashboard/class-selection"
+                    ];
+                    
+                    let targetPage = "";
+
+                    if (!fetchedUserData.regulationsAccepted) {
+                        targetPage = "/dashboard/regulations";
+                    } else if (!fetchedUserData.medicalCertificateSubmitted) {
+                        targetPage = "/dashboard/medical-certificate";
+                    } else { // Ha accettato regolamenti e caricato certificato
+                        targetPage = "/dashboard/liberasphere";
+                    }
+                    
+                    // Reindirizza solo se non si trova già sulla pagina giusta o su una pagina figlio del suo step
+                    const isAlreadyOnCorrectPath = pathname === targetPage || (targetPage === '/dashboard/liberasphere' && onboardingPages.some(p => pathname.startsWith(p)));
+
+                    if (targetPage && !isAlreadyOnCorrectPath) {
+                         router.push(targetPage);
+                    }
+                }
+
+            } else {
+                console.error("Documento utente non trovato per UID:", user.uid);
+                toast({
+                    variant: "destructive",
+                    title: "Errore Critico",
+                    description: "Impossibile trovare il tuo profilo utente. Eseguo il logout.",
+                });
+                await handleLogout();
+            }
+        } catch (error) {
+            console.error("Errore nel caricamento dati o reindirizzamento:", error);
+            toast({ title: "Errore di Caricamento", description: "Impossibile caricare i dati. Eseguo il logout.", variant: "destructive" });
+            await handleLogout();
+        } finally {
+            setLoadingData(false);
+        }
+    };
     
-  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
+    fetchAndRedirect();
+
+  }, [user, loadingAuth, pathname, router, toast, handleLogout, userData]); // userData aggiunto per evitare re-fetch
 
 
   if (loadingAuth || loadingData) {
@@ -142,8 +152,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     )
   }
   
-  if (!userData) {
-      // Questo stato viene mostrato se loadingData è false ma userData è ancora null (logout in corso)
+  if (!user || !userData) {
+      // Questo stato viene mostrato se il caricamento è finito ma i dati non ci sono (es. durante il logout)
       return (
          <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
             <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -152,10 +162,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  const onboardingInCorso = !userData.regulationsAccepted || !userData.medicalCertificateSubmitted || !userData.applicationSubmitted;
+  const isOnboarding = !userData.applicationSubmitted;
 
-  // Layout semplificato per l'onboarding
-  if (onboardingInCorso) {
+  // Se l'utente è in onboarding, mostriamo un layout semplificato
+  // Questo previene la visualizzazione della sidebar con link che verrebbero comunque bloccati
+  if (isOnboarding) {
      return (
         <div className="flex min-h-screen w-full bg-background">
           <main className="flex-1 p-4 md:p-8">{children}</main>
@@ -163,7 +174,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  // Layout completo della dashboard per utenti che hanno finito l'onboarding
+  // Layout completo della dashboard per utenti operativi
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <aside className="hidden border-r bg-muted/40 md:block">
@@ -197,9 +208,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </aside>
         <div className="flex flex-col">
             <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-                 {/* Qui potrebbe andare un menu mobile in futuro */}
                 <div className="w-full flex-1">
-                   {/* Spazio per breadcrumbs o titolo pagina */}
                 </div>
                  <div className="flex items-center gap-4 ml-auto">
                     <span className="text-sm text-muted-foreground hidden sm:inline">
@@ -218,5 +227,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
