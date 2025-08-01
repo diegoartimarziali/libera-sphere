@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { PersonalDataForm, type PersonalDataSchemaType } from "@/components/dashboard/PersonalDataForm"
 import { useToast } from "@/hooks/use-toast"
@@ -304,10 +304,43 @@ export default function AssociatesPage() {
 
     const { toast } = useToast()
     const router = useRouter()
+
+    const checkExistingData = useCallback(async (uid: string) => {
+        const userDocRef = doc(db, "users", uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            // Controlliamo se i dati anagrafici essenziali sono già presenti
+            if (userData.taxCode && userData.birthDate) {
+                // Pre-compila formData per averlo disponibile negli step successivi
+                 const prefilledData: PersonalDataSchemaType = {
+                    name: userData.name || "",
+                    surname: userData.surname || "",
+                    taxCode: userData.taxCode || "",
+                    birthDate: userData.birthDate?.toDate() || new Date(),
+                    birthPlace: userData.birthPlace || "",
+                    address: userData.address || "",
+                    streetNumber: userData.streetNumber || "",
+                    city: userData.city || "",
+                    zipCode: userData.zipCode || "",
+                    province: userData.province || "",
+                    phone: userData.phone || "",
+                    isMinor: false, // Sarà ricalcolato nel form
+                    parentData: userData.parentData || undefined,
+                };
+                setFormData(prefilledData);
+                setStep(2); // Salta direttamente allo step del pagamento
+            }
+        }
+    }, []);
     
     useEffect(() => {
         const fetchInitialData = async () => {
+             if (!user) return;
             try {
+                // Controlla prima i dati esistenti per decidere lo step
+                await checkExistingData(user.uid);
+
                 const feeDocRef = doc(db, "fees", "association");
                 const seasonSettingsRef = doc(db, "settings", "season");
                 
@@ -335,7 +368,7 @@ export default function AssociatesPage() {
             }
         };
         fetchInitialData();
-    }, [toast]);
+    }, [user, toast, checkExistingData]);
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data)
@@ -393,7 +426,7 @@ export default function AssociatesPage() {
                 applicationSubmitted: true,
                 associationStatus: "pending",
                 associationExpiryDate: seasonSettings.endDate,
-                trialStatus: 'not_applicable' // <<<<<<< MODIFICA CHIAVE QUI
+                trialStatus: 'not_applicable'
             };
 
             if (formData.isMinor && formData.parentData) {
@@ -425,14 +458,18 @@ export default function AssociatesPage() {
     }
 
     const handleBack = () => {
-        if (step === 4) {
+        if (step === 4) { // Riepilogo
             if (paymentMethod === 'online') {
-                setStep(3);
+                setStep(3); // torna all'iframe
             } else {
-                setStep(2);
+                setStep(2); // torna alla scelta del pagamento
             }
+        } else if (step === 3) { // Iframe
+             setStep(2); // torna alla scelta del pagamento
+        } else if (step === 2) { // Scelta pagamento
+             setStep(1); // torna ai dati anagrafici
         } else {
-            setStep(prev => prev - 1);
+            router.push('/dashboard'); // Dallo step 1, torna alla dashboard
         }
     }
 
@@ -468,7 +505,7 @@ export default function AssociatesPage() {
                 )}
                 {step === 2 && (
                     <PaymentStep
-                        onBack={() => setStep(1)}
+                        onBack={handleBack}
                         onNext={handlePaymentSubmit}
                         fee={feeData}
                     />
@@ -497,7 +534,5 @@ export default function AssociatesPage() {
         </div>
     )
 }
-
-    
 
     
