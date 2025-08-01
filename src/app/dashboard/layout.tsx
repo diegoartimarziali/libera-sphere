@@ -85,12 +85,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 let fetchedUserData = userDocSnap.data() as UserData;
 
                 // === LOGICA DI TRANSIZIONE STATO PROVA (SOLO PER UTENTI OPERATIVI) ===
-                const isTrialExpired = true; // RIGA DI CODICE PER IL TEST
                 if (
                     fetchedUserData.applicationSubmitted &&
                     fetchedUserData.trialStatus === 'active' &&
                     fetchedUserData.trialExpiryDate &&
-                    (isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate())) || isTrialExpired)
+                    isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()))
                 ) {
                     await updateDoc(userDocRef, { trialStatus: 'completed' });
                     // Rileggi i dati dopo l'aggiornamento per avere lo stato più recente
@@ -238,5 +237,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
