@@ -145,7 +145,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                                 {sub.type === 'seasonal' && sub.isAvailable && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                                 <CardHeader>
                                     <CardTitle className="text-2xl">{sub.name}</CardTitle>
-                                    {sub.description && sub.type !== 'seasonal' && <CardDescription>{sub.description}</CardDescription>}
+                                    
                                 </CardHeader>
                                 <CardContent className="flex-grow space-y-4">
                                     <div className="text-5xl font-bold">
@@ -223,7 +223,7 @@ function PaymentStep({ subscription, onBack, onNext }: { subscription: Subscript
                 <CardTitle>Passo 2: Metodo di Pagamento</CardTitle>
                 <CardDescription>
                     Stai acquistando: <span className="font-semibold text-foreground">{subscription.name}</span>.
-                    Scegli come versare la quota di {subscription.price.toFixed(2)}€.
+                    Scegli come versare la quota di <span className="font-semibold text-foreground">{subscription.price.toFixed(2)}€</span>.
                 </CardDescription>
             </CardHeader>
             <CardContent>
