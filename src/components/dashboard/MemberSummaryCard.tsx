@@ -2,9 +2,9 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, CreditCard, CalendarCheck2 } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2 } from "lucide-react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 
@@ -20,6 +20,8 @@ export interface MemberSummaryProps {
     medicalStatus: string;
     discipline?: string;
     grade?: string;
+    qualifica?: string;
+    socioDal?: Date;
     avatarUrl?: string;
     sportingSeason?: string;
     isInsured?: boolean;
@@ -34,11 +36,11 @@ const getInitials = (name: string) => {
 }
 
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string | boolean | null }) => {
-    if (value === undefined || value === null) return null;
+    if (value === undefined || value === null || value === '') return null;
     
     let displayValue: string;
     if (typeof value === 'boolean') {
-        displayValue = value ? 'SI' : 'NO';
+        displayValue = value ? 'Sì' : 'No';
     } else {
         displayValue = value;
     }
@@ -57,28 +59,31 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
 
     return (
         <Card className="flex flex-col">
-            <CardHeader className="flex flex-row items-center gap-4">
-                <Avatar className="h-16 w-16">
-                    {props.avatarUrl && <AvatarImage src={props.avatarUrl} alt={props.name} />}
-                    <AvatarFallback className="text-2xl bg-primary/20 text-primary">
+            <CardHeader className="flex flex-col items-center text-center p-4">
+                <Avatar className="h-20 w-20 mb-2">
+                    <AvatarFallback className="text-3xl bg-primary/20 text-primary">
                         {initials}
                     </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                    <CardTitle className="text-xl">{props.name}</CardTitle>
-                    <CardDescription>Riepilogo del tuo profilo</CardDescription>
-                </div>
+                <CardTitle className="text-2xl">{props.name}</CardTitle>
+                <CardDescription>Questo è il riepilogo del tuo profilo</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow space-y-4">
-                 <Separator />
+            <CardContent className="flex-grow space-y-4 p-4">
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
-                    <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
+                    <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal ? format(props.socioDal, 'dd MMMM yyyy', {locale: it}) : undefined} />
                     <InfoRow icon={<CalendarDays size={16} />} label="Stagione Sportiva" value={props.sportingSeason} />
-                    <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
-                    <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} />
+                 </div>
+                 
+                 <Separator />
+
+                 <div className="space-y-3">
                     <InfoRow icon={<Sparkles size={16} />} label="Disciplina" value={props.discipline} />
                     <InfoRow icon={<Award size={16} />} label="Grado" value={props.grade} />
+                    <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />
+                    <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
+                    <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
+                    <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} />
                  </div>
                  
                 {props.trialLessons && props.trialLessons.length > 0 && (
@@ -93,7 +98,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                                 <div key={index} className="flex items-center text-sm ml-8">
                                     <span className="font-medium">{index + 1}ª Lezione:</span>
                                     <span className="ml-auto text-muted-foreground text-right capitalize">
-                                        {format(lesson.date, "EEEE dd/MM", { locale: it })}
+                                        {format(lesson.date, "EEEE dd/MM", { locale: it })} - {lesson.time}
                                     </span>
                                 </div>
                             ))}

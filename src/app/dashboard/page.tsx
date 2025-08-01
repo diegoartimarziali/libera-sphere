@@ -16,10 +16,13 @@ import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/
 
 interface UserData {
   name: string
+  surname: string
   email: string
   isFormerMember: 'yes' | 'no';
   discipline: string;
   lastGrade: string;
+  qualifica?: string;
+  createdAt: Timestamp;
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   associationExpiryDate?: Timestamp;
   isInsured?: boolean;
@@ -28,6 +31,7 @@ interface UserData {
     expiryDate?: Timestamp;
   };
   trialLessons?: { lessonDate: Timestamp, time: string }[];
+  trialStatus?: 'active' | 'completed' | 'not_applicable';
 }
 
 interface SeasonSettings {
@@ -87,19 +91,23 @@ export default function DashboardPage() {
                 medicalStatusLabel = `Scade il ${format(data.medicalInfo.expiryDate.toDate(), 'dd/MM/yyyy')}`;
             }
             
-            const trialLessons: TrialLesson[] | undefined = data.trialLessons?.map(l => ({
-                date: l.lessonDate.toDate(),
-                time: l.time
-            }));
-
+            const trialLessons: TrialLesson[] | undefined = 
+                data.trialStatus === 'active' && data.trialLessons 
+                ? data.trialLessons.map(l => ({
+                    date: l.lessonDate.toDate(),
+                    time: l.time
+                }))
+                : undefined;
 
             setMemberCardProps({
-                name: data.name,
+                name: `${data.name} ${data.surname}`,
                 email: data.email,
                 membershipStatus: statusLabel,
                 medicalStatus: medicalStatusLabel,
                 discipline: data.discipline,
                 grade: data.lastGrade,
+                qualifica: data.qualifica,
+                socioDal: data.associationStatus === 'active' || data.associationStatus === 'pending' || data.associationStatus === 'expired' ? data.createdAt.toDate() : undefined,
                 sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
                 isInsured: data.isInsured,
                 trialLessons: trialLessons
@@ -178,15 +186,21 @@ export default function DashboardPage() {
         <div className="w-full max-w-2xl">
           {dataLoading || !memberCardProps ? (
             <Card>
-              <CardHeader className="flex flex-row items-center gap-4">
+              <CardHeader className="flex flex-row items-center gap-4 p-4">
                   <Skeleton className="h-16 w-16 rounded-full" />
                   <div className="flex-1 space-y-2">
                       <Skeleton className="h-6 w-3/4" />
                       <Skeleton className="h-4 w-1/2" />
                   </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-4">
                   <Skeleton className="h-px w-full" />
+                  <div className="space-y-3">
+                     <Skeleton className="h-5 w-full" />
+                     <Skeleton className="h-5 w-full" />
+                     <Skeleton className="h-5 w-full" />
+                  </div>
+                   <Skeleton className="h-px w-full" />
                   <div className="space-y-3">
                      <Skeleton className="h-5 w-full" />
                      <Skeleton className="h-5 w-full" />
@@ -195,9 +209,6 @@ export default function DashboardPage() {
                      <Skeleton className="h-5 w-full" />
                   </div>
               </CardContent>
-              <CardFooter>
-                   <Skeleton className="h-10 w-full" />
-              </CardFooter>
             </Card>
           ) : (
               <MemberSummaryCard {...memberCardProps} />
