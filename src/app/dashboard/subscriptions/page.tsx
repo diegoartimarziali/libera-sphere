@@ -27,11 +27,8 @@ interface Subscription {
     description: string;
     type: 'monthly' | 'seasonal';
     sumupLink: string;
-}
-
-interface SubscriptionSettings {
-    seasonalPurchaseStartDate: Timestamp;
-    seasonalPurchaseEndDate: Timestamp;
+    purchaseStartDate?: Timestamp;
+    purchaseEndDate?: Timestamp;
 }
 
 interface UserSubscription {
@@ -346,7 +343,6 @@ export default function SubscriptionsPage() {
             }
 
             try {
-                // Fetch user data to check for existing subscription
                 const userDocRef = doc(db, "users", user.uid);
                 const userDocSnap = await getDoc(userDocRef);
 
@@ -361,40 +357,26 @@ export default function SubscriptionsPage() {
                         };
                         setUserSubscription(subStatus);
                         setLoading(false);
-                        return; // Stop here, show status card
+                        return;
                     }
                 }
                 
-                // If no active sub, fetch available subscriptions and settings
                 const subsCollection = collection(db, 'subscriptions');
-                const settingsDocRef = doc(db, 'settings', 'subscriptions');
-                
-                const [subsSnapshot, settingsSnapshot] = await Promise.all([
-                    getDocs(subsCollection),
-                    getDoc(settingsDocRef)
-                ]);
+                const subsSnapshot = await getDocs(subsCollection);
 
-                const subsList = subsSnapshot.docs.map(doc => ({
+                const now = new Date();
+                const allSubs = subsSnapshot.docs.map(doc => ({
                     id: doc.id, ...doc.data()
                 } as Subscription));
-                
-                let availableSubs = subsList.sort((a,b) => a.price - b.price);
 
-                // Filter seasonal subscription based on date range
-                if (settingsSnapshot.exists()) {
-                    const settings = settingsSnapshot.data() as SubscriptionSettings;
-                    const now = new Date();
-                    const startDate = settings.seasonalPurchaseStartDate.toDate();
-                    const endDate = settings.seasonalPurchaseEndDate.toDate();
-
-                    if (now < startDate || now > endDate) {
-                        availableSubs = availableSubs.filter(sub => sub.type !== 'seasonal');
+                const availableSubs = allSubs.filter(sub => {
+                    if (sub.purchaseStartDate && sub.purchaseEndDate) {
+                        const startDate = sub.purchaseStartDate.toDate();
+                        const endDate = sub.purchaseEndDate.toDate();
+                        return now >= startDate && now <= endDate;
                     }
-                } else {
-                    // If settings don't exist, maybe hide seasonal as a fallback
-                    availableSubs = availableSubs.filter(sub => sub.type !== 'seasonal');
-                    console.warn("Subscription settings not found. Seasonal subscription is hidden.");
-                }
+                    return true; // Se non ha date, è sempre disponibile
+                }).sort((a,b) => a.price - b.price);
 
                 setSubscriptions(availableSubs);
 
@@ -540,5 +522,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
-    
