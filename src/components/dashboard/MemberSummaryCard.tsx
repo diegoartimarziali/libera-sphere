@@ -2,9 +2,8 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2 } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2, FileText } from "lucide-react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 
@@ -16,23 +15,16 @@ export interface TrialLesson {
 export interface MemberSummaryProps {
     name: string;
     email: string;
-    membershipStatus: string;
+    socioDal?: Date;
+    sportingSeason?: string;
+    regulationsStatus: string;
     medicalStatus: string;
     discipline?: string;
     grade?: string;
     qualifica?: string;
-    socioDal?: Date;
-    avatarUrl?: string;
-    sportingSeason?: string;
+    membershipStatus: string;
     isInsured?: boolean;
     trialLessons?: TrialLesson[];
-}
-
-const getInitials = (name: string) => {
-    if (!name) return "";
-    const names = name.split(' ');
-    if (names.length === 1) return names[0].charAt(0).toUpperCase();
-    return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
 }
 
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string | boolean | null }) => {
@@ -55,16 +47,9 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string,
 }
 
 export function MemberSummaryCard(props: MemberSummaryProps) {
-    const initials = getInitials(props.name);
-
     return (
         <Card className="flex flex-col">
             <CardHeader className="flex flex-col items-center text-center p-4">
-                <Avatar className="h-20 w-20 mb-2">
-                    <AvatarFallback className="text-3xl bg-primary/20 text-primary">
-                        {initials}
-                    </AvatarFallback>
-                </Avatar>
                 <CardTitle className="text-2xl">{props.name}</CardTitle>
                 <CardDescription>Questo è il riepilogo del tuo profilo</CardDescription>
             </CardHeader>
@@ -73,6 +58,8 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
                     <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal ? format(props.socioDal, 'dd MMMM yyyy', {locale: it}) : undefined} />
                     <InfoRow icon={<CalendarDays size={16} />} label="Stagione Sportiva" value={props.sportingSeason} />
+                    <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={props.regulationsStatus} />
+                    <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} />
                  </div>
                  
                  <Separator />
@@ -83,7 +70,6 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />
                     <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
                     <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
-                    <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} />
                  </div>
                  
                 {props.trialLessons && props.trialLessons.length > 0 && (

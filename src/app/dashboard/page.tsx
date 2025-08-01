@@ -25,6 +25,8 @@ interface UserData {
   createdAt: Timestamp;
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   associationExpiryDate?: Timestamp;
+  applicationSubmitted: boolean;
+  regulationsAccepted: boolean;
   isInsured?: boolean;
   medicalInfo?: {
     type: 'certificate';
@@ -69,20 +71,20 @@ export default function DashboardPage() {
                 setSeasonSettings(seasonDocSnap.data() as SeasonSettings);
             }
             
-            let statusLabel = "Non Associato";
+            let membershipStatusLabel = "Non Associato";
             switch (data.associationStatus) {
                 case 'pending':
-                    statusLabel = 'In Attesa';
+                    membershipStatusLabel = 'In Attesa di Approvazione';
                     break;
                 case 'active':
-                    statusLabel = data.associationExpiryDate ? `Valida fino al ${format(data.associationExpiryDate.toDate(), 'dd/MM/yyyy')}` : 'Attiva';
+                    membershipStatusLabel = data.associationExpiryDate ? `Valida fino al ${format(data.associationExpiryDate.toDate(), 'dd/MM/yyyy')}` : 'Attiva';
                     break;
                 case 'expired':
-                    statusLabel = 'Scaduta';
+                    membershipStatusLabel = 'Scaduta';
                     break;
                 case 'not_associated':
                 default:
-                    statusLabel = 'Non Associato';
+                    membershipStatusLabel = 'Non Associato';
                     break;
             }
             
@@ -90,6 +92,8 @@ export default function DashboardPage() {
             if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
                 medicalStatusLabel = `Scade il ${format(data.medicalInfo.expiryDate.toDate(), 'dd/MM/yyyy')}`;
             }
+
+            const regulationsStatusLabel = data.regulationsAccepted ? "Accettati" : "Non Accettati";
             
             const trialLessons: TrialLesson[] | undefined = 
                 data.trialStatus === 'active' && data.trialLessons 
@@ -98,17 +102,20 @@ export default function DashboardPage() {
                     time: l.time
                 }))
                 : undefined;
+                
+            const socioDalDate = data.applicationSubmitted ? data.createdAt.toDate() : undefined;
 
             setMemberCardProps({
                 name: `${data.name} ${data.surname}`,
                 email: data.email,
-                membershipStatus: statusLabel,
+                socioDal: socioDalDate,
+                sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
+                regulationsStatus: regulationsStatusLabel,
                 medicalStatus: medicalStatusLabel,
                 discipline: data.discipline,
                 grade: data.lastGrade,
                 qualifica: data.qualifica,
-                socioDal: data.associationStatus === 'active' || data.associationStatus === 'pending' || data.associationStatus === 'expired' ? data.createdAt.toDate() : undefined,
-                sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
+                membershipStatus: membershipStatusLabel,
                 isInsured: data.isInsured,
                 trialLessons: trialLessons
             });
@@ -186,16 +193,15 @@ export default function DashboardPage() {
         <div className="w-full max-w-2xl">
           {dataLoading || !memberCardProps ? (
             <Card>
-              <CardHeader className="flex flex-row items-center gap-4 p-4">
-                  <Skeleton className="h-16 w-16 rounded-full" />
+              <CardHeader className="flex flex-col items-center p-4 text-center">
                   <div className="flex-1 space-y-2">
-                      <Skeleton className="h-6 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-8 w-48 mx-auto" />
+                      <Skeleton className="h-4 w-64 mx-auto" />
                   </div>
               </CardHeader>
               <CardContent className="space-y-4 p-4">
-                  <Skeleton className="h-px w-full" />
                   <div className="space-y-3">
+                     <Skeleton className="h-5 w-full" />
                      <Skeleton className="h-5 w-full" />
                      <Skeleton className="h-5 w-full" />
                      <Skeleton className="h-5 w-full" />
