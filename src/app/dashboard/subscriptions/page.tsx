@@ -12,12 +12,13 @@ import { it } from "date-fns/locale"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, CheckCircle, XCircle, ArrowLeft, CreditCard, Landmark, University, CalendarClock } from "lucide-react"
+import { Loader2, CheckCircle, XCircle, ArrowLeft, CreditCard, Landmark, University, CalendarClock, Info } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { cn } from "@/lib/utils"
 
 
 interface Subscription {
@@ -29,6 +30,7 @@ interface Subscription {
     sumupLink: string;
     purchaseStartDate?: Timestamp;
     purchaseEndDate?: Timestamp;
+    isAvailable?: boolean;
 }
 
 interface UserSubscription {
@@ -110,27 +112,29 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
             ) : (
                 <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
                     {subscriptions.map((sub) => (
-                        <Card key={sub.id} className="flex flex-col border-2 hover:border-primary transition-all">
-                            {sub.type === 'seasonal' && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
+                        <Card 
+                            key={sub.id} 
+                            className={cn("flex flex-col border-2 transition-all",
+                                sub.isAvailable ? "hover:border-primary" : "bg-muted/50 border-dashed"
+                            )}
+                        >
+                            {sub.type === 'seasonal' && sub.isAvailable && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                             <CardHeader>
                                 <CardTitle className="text-2xl">{sub.name}</CardTitle>
+                                {sub.description && <CardDescription>{sub.description}</CardDescription>}
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
                                 <div className="text-5xl font-bold">
                                     {sub.price}€
                                     <span className="text-lg font-normal text-muted-foreground">/{sub.type === 'monthly' ? 'mese' : 'stagione'}</span>
                                 </div>
-                                {sub.purchaseStartDate && sub.purchaseEndDate && (
-                                    <div className="text-sm font-semibold text-primary">
-                                        Acquistabile dal {format(sub.purchaseStartDate.toDate(), "d MMM", { locale: it })} al {format(sub.purchaseEndDate.toDate(), "d MMM yyyy", { locale: it })}.
-                                    </div>
-                                )}
+                                
                                 <ul className="space-y-2 text-sm text-muted-foreground">
                                     <li className="flex items-center">
                                         <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
                                         <span>Accesso a tutte le lezioni della tua disciplina</span>
                                     </li>
-                                    {sub.type === 'seasonal' && (
+                                     {sub.type === 'seasonal' && (
                                         <li className="flex items-center">
                                             <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
                                             <span>Accesso a tutte le Palestre</span>
@@ -153,14 +157,24 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                                     )}
                                 </ul>
                             </CardContent>
-                            <CardFooter>
+                            <CardFooter className="flex-col">
+                                {!sub.isAvailable && sub.purchaseStartDate && sub.purchaseEndDate && (
+                                     <Alert variant="default" className="w-full mb-4 border-primary/50 text-center">
+                                        <Info className="h-4 w-4" />
+                                        <AlertTitle className="font-semibold">Non ancora disponibile</AlertTitle>
+                                        <AlertDescription>
+                                            Potrai acquistare questo piano dal {format(sub.purchaseStartDate.toDate(), "d MMM", { locale: it })} al {format(sub.purchaseEndDate.toDate(), "d MMM yyyy", { locale: it })}.
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
                                 <Button 
                                     className="w-full" 
                                     onClick={() => onSelect(sub)}
                                     variant={sub.type === 'seasonal' ? 'default' : 'secondary'}
                                     size="lg"
+                                    disabled={!sub.isAvailable}
                                 >
-                                    Scegli {sub.name}
+                                    {sub.isAvailable ? `Scegli ${sub.name}` : "Non disponibile"}
                                 </Button>
                             </CardFooter>
                         </Card>
@@ -375,20 +389,22 @@ export default function SubscriptionsPage() {
                 const subsSnapshot = await getDocs(subsCollection);
 
                 const now = new Date();
-                const allSubs = subsSnapshot.docs.map(doc => ({
-                    id: doc.id, ...doc.data()
-                } as Subscription));
-
-                const availableSubs = allSubs.filter(sub => {
-                    if (sub.purchaseStartDate && sub.purchaseEndDate) {
-                        const startDate = sub.purchaseStartDate.toDate();
-                        const endDate = sub.purchaseEndDate.toDate();
-                        return now >= startDate && now <= endDate;
+                const allSubs = subsSnapshot.docs.map(doc => {
+                    const subData = doc.data() as Omit<Subscription, 'id' | 'isAvailable'>;
+                    let isAvailable = true;
+                    if (subData.purchaseStartDate && subData.purchaseEndDate) {
+                        const startDate = subData.purchaseStartDate.toDate();
+                        const endDate = subData.purchaseEndDate.toDate();
+                        isAvailable = now >= startDate && now <= endDate;
                     }
-                    return true; // Se non ha date, è sempre disponibile
+                    return {
+                        id: doc.id,
+                        ...subData,
+                        isAvailable: isAvailable
+                    };
                 }).sort((a,b) => b.price - a.price); // Ordina dal più costoso al meno
 
-                setSubscriptions(availableSubs);
+                setSubscriptions(allSubs);
 
             } catch (error) {
                 console.error("Error fetching subscriptions data:", error);
