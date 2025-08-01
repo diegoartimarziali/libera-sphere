@@ -85,6 +85,8 @@ export default function AuthPage() {
         medicalCertificateSubmitted: false,
         applicationSubmitted: false,
         associationStatus: 'not_associated',
+        trialStatus: 'not_applicable',
+        trialExpiryDate: null,
         isInsured: false,
         // Altri campi inizializzati a valori sicuri
         birthPlace: "",

@@ -634,6 +634,7 @@ export default function ClassSelectionPage() {
         setIsSubmitting(true);
 
         const finalGrade = getFinalGrade();
+        const trialExpiryDate = gymSelection.trialLessons[2]?.lessonDate; // La terza lezione
 
         try {
             const userDocRef = doc(db, "users", user.uid);
@@ -659,11 +660,13 @@ export default function ClassSelectionPage() {
                 applicationSubmitted: true,
                 associationStatus: "not_associated",
                 isInsured: true,
-                medicalCertificateSubmitted: false,
+                medicalCertificateSubmitted: true,
                 trialLessons: gymSelection.trialLessons.map(lesson => ({
                     ...lesson,
                     lessonDate: Timestamp.fromDate(lesson.lessonDate)
                 })),
+                trialStatus: 'active',
+                trialExpiryDate: trialExpiryDate ? Timestamp.fromDate(trialExpiryDate) : null,
             };
             
              if (userData?.hasPracticedBefore === 'yes' && userData?.pastExperience) {
@@ -690,7 +693,7 @@ export default function ClassSelectionPage() {
             });
 
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
-            router.push("/dashboard/medical-certificate")
+            router.push("/dashboard")
         } catch (error) {
              console.error("Errore durante il completamento dell'iscrizione:", error);
              toast({ title: "Errore", description: "Impossibile completare l'iscrizione. Riprova.", variant: "destructive" });

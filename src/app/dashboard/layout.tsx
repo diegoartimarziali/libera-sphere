@@ -5,8 +5,10 @@ import { useEffect, useState, ReactNode, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc, Timestamp } from "firebase/firestore"
+import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
+import { isPast, startOfDay } from "date-fns"
+
 
 import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -20,6 +22,8 @@ interface UserData {
   regulationsAccepted: boolean
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
+  trialStatus?: 'active' | 'completed' | 'not_applicable';
+  trialExpiryDate?: Timestamp;
   // Aggiungiamo altri campi opzionali per evitare errori di tipo
   [key: string]: any;
 }
@@ -65,44 +69,51 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchAndRedirect = async () => {
         if (loadingAuth) {
-            return; // Aspetta che l'autenticazione finisca
-        }
-
-        if (!user) {
-            redirect("/"); // Nessun utente, torna al login
             return;
         }
 
-        // Se abbiamo già i dati, non ricaricarli
-        if (userData) {
-            setLoadingData(false);
+        if (!user) {
+            redirect("/");
             return;
         }
         
         try {
             const userDocRef = doc(db, "users", user.uid);
-            const userDocSnap = await getDoc(userDocRef);
+            let userDocSnap = await getDoc(userDocRef);
 
             if (userDocSnap.exists()) {
-                const fetchedUserData = userDocSnap.data() as UserData;
+                let fetchedUserData = userDocSnap.data() as UserData;
+
+                // === LOGICA DI TRANSIZIONE STATO PROVA (SOLO PER UTENTI OPERATIVI) ===
+                if (
+                    fetchedUserData.applicationSubmitted &&
+                    fetchedUserData.trialStatus === 'active' &&
+                    fetchedUserData.trialExpiryDate &&
+                    isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()))
+                ) {
+                    await updateDoc(userDocRef, { trialStatus: 'completed' });
+                    // Rileggi i dati dopo l'aggiornamento per avere lo stato più recente
+                    userDocSnap = await getDoc(userDocRef);
+                    fetchedUserData = userDocSnap.data() as UserData;
+                }
+                
                 setUserData(fetchedUserData);
                 
                 // === LOGICA DI REINDIRIZZAMENTO ===
-                const isOnboardingComplete = fetchedUserData.applicationSubmitted;
+                if (fetchedUserData.applicationSubmitted) {
+                    // STATO OPERATIVO: L'utente ha finito l'onboarding.
+                    // Applichiamo solo reindirizzamenti specifici per stati operativi.
 
-                if (isOnboardingComplete) {
-                    // STATO OPERATIVO: L'utente ha finito l'onboarding. Nessun reindirizzamento forzato.
-                    // Può navigare liberamente nella sua dashboard.
+                    // 1. Controlla se il periodo di prova è terminato
+                    if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates') {
+                        router.push('/dashboard/associates');
+                        return; // Termina l'esecuzione per evitare altri controlli
+                    }
+
+                    // Nessun altro reindirizzamento forzato, l'utente è libero di navigare.
+
                 } else {
                     // STATO ONBOARDING: Guida l'utente passo-passo.
-                    const onboardingPages = [
-                        "/dashboard/regulations", 
-                        "/dashboard/medical-certificate", 
-                        "/dashboard/liberasphere", 
-                        "/dashboard/associates", 
-                        "/dashboard/class-selection"
-                    ];
-                    
                     let targetPage = "";
 
                     if (!fetchedUserData.regulationsAccepted) {
@@ -113,10 +124,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         targetPage = "/dashboard/liberasphere";
                     }
                     
-                    // Reindirizza solo se non si trova già sulla pagina giusta o su una pagina figlio del suo step
-                    const isAlreadyOnCorrectPath = pathname === targetPage || (targetPage === '/dashboard/liberasphere' && onboardingPages.some(p => pathname.startsWith(p)));
-
-                    if (targetPage && !isAlreadyOnCorrectPath) {
+                    if (targetPage && pathname !== targetPage) {
                          router.push(targetPage);
                     }
                 }
@@ -139,9 +147,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         }
     };
     
-    fetchAndRedirect();
+    // Evita di rieseguire se abbiamo già i dati e non siamo in una pagina di onboarding
+    // Questo previene loop di re-fetch inutili
+    if (!userData || pathname.startsWith('/dashboard/regulations') || pathname.startsWith('/dashboard/medical-certificate') || pathname.startsWith('/dashboard/liberasphere')) {
+      fetchAndRedirect();
+    } else {
+      setLoadingData(false);
+    }
 
-  }, [user, loadingAuth, pathname, router, toast, handleLogout, userData]); // userData aggiunto per evitare re-fetch
+  }, [user, loadingAuth, pathname, router, toast, handleLogout, userData]);
 
 
   if (loadingAuth || loadingData) {
@@ -163,10 +177,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   const isOnboarding = !userData.applicationSubmitted;
+  const isPostTrial = userData.trialStatus === 'completed';
 
-  // Se l'utente è in onboarding, mostriamo un layout semplificato
+  // Se l'utente è in onboarding o deve associarsi, mostriamo un layout semplificato
   // Questo previene la visualizzazione della sidebar con link che verrebbero comunque bloccati
-  if (isOnboarding) {
+  if (isOnboarding || isPostTrial) {
      return (
         <div className="flex min-h-screen w-full bg-background">
           <main className="flex-1 p-4 md:p-8">{children}</main>
