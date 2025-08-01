@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState } from "react"
@@ -32,6 +33,16 @@ const registerSchema = z.object({
   password: z.string().min(6, { message: "La password deve contenere almeno 6 caratteri." }),
 })
 
+// Funzioni di utilità per la formattazione
+const capitalizeFirstLetter = (str: string) => {
+    if (!str) return str;
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+const capitalizeWords = (str: string) => {
+    if (!str) return str;
+    return str.split(' ').map(word => capitalizeFirstLetter(word)).join(' ');
+};
+
 export default function AuthPage() {
   const router = useRouter()
   const { toast } = useToast()
@@ -51,7 +62,7 @@ export default function AuthPage() {
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
     setIsLoading(true)
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password)
+      await signInWithEmailAndPassword(auth, values.email.toLowerCase(), values.password)
       router.push("/dashboard")
     } catch (error: any) {
         let description = "Email o password non corretti. Riprova."
@@ -69,16 +80,20 @@ export default function AuthPage() {
 
   const handleRegister = async (values: z.infer<typeof registerSchema>) => {
     setIsLoading(true)
+    const formattedEmail = values.email.toLowerCase();
+    const formattedName = capitalizeWords(values.name.trim());
+    const formattedSurname = capitalizeWords(values.surname.trim());
+
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password)
+      const userCredential = await createUserWithEmailAndPassword(auth, formattedEmail, values.password)
       const user = userCredential.user
 
       // Crea il documento utente in Firestore con l'UID corretto
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
-        name: values.name.trim(),
-        surname: values.surname.trim(),
-        email: values.email,
+        name: formattedName,
+        surname: formattedSurname,
+        email: formattedEmail,
         createdAt: serverTimestamp(),
         // Valori di default per l'onboarding
         regulationsAccepted: false,
@@ -270,5 +285,3 @@ export default function AuthPage() {
     </main>
   )
 }
-
-    
