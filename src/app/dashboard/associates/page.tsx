@@ -390,10 +390,10 @@ export default function AssociatesPage() {
                 city: formData.city,
                 province: formData.province,
                 phone: formData.phone,
-                // `parentData` is next
                 applicationSubmitted: true,
                 associationStatus: "pending",
                 associationExpiryDate: seasonSettings.endDate,
+                trialStatus: 'not_applicable' // <<<<<<< MODIFICA CHIAVE QUI
             };
 
             if (formData.isMinor && formData.parentData) {
@@ -415,7 +415,7 @@ export default function AssociatesPage() {
             });
 
             toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo. Verrai reindirizzato al prossimo passo." });
-            router.push("/dashboard/medical-certificate");
+            router.push("/dashboard");
          } catch (error) {
             console.error("Errore durante l'invio della domanda:", error);
             toast({ title: "Errore", description: "Impossibile inviare la domanda. Riprova.", variant: "destructive" });
@@ -498,3 +498,5 @@ export default function AssociatesPage() {
         </div>
     )
 }
+
+    
