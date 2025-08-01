@@ -37,6 +37,7 @@ export default function LiberaSpherePage() {
   const [gym, setGym] = useState(''); // Ora conterrà l'ID
   const [hasPracticedBefore, setHasPracticedBefore] = useState<'yes' | 'no' | null>(null);
   const [lastGrade, setLastGrade] = useState('');
+  const [qualification, setQualification] = useState('');
   const [aikidoGrade, setAikidoGrade] = useState('');
   const [firstYear, setFirstYear] = useState('');
   
@@ -88,6 +89,13 @@ export default function LiberaSpherePage() {
     "Cintura nera 4° dan"
   ];
   
+  const qualifications = [
+      "Nessuna",
+      "Allenatore",
+      "Istruttore",
+      "Maestro"
+  ];
+  
   const handleIsFormerMemberChange = (value: 'yes' | 'no') => {
       setIsFormerMember(value);
       // Resetta tutti gli altri stati per evitare dati sporchi tra le selezioni
@@ -95,6 +103,7 @@ export default function LiberaSpherePage() {
       setGym('');
       setHasPracticedBefore(null);
       setLastGrade('');
+      setQualification('');
       setAikidoGrade('');
       setFirstYear('');
   };
@@ -105,6 +114,7 @@ export default function LiberaSpherePage() {
       setGym('');
       setHasPracticedBefore(null);
       setLastGrade('');
+      setQualification('');
       setAikidoGrade('');
       // Se aikido, imposta automaticamente l'ID della palestra se ce n'è solo una
       const aikidoGyms = gyms.filter(g => g.disciplines.includes('Aikido'));
@@ -123,7 +133,7 @@ export default function LiberaSpherePage() {
     if (gymsLoading || !isFormerMember) return true;
 
     if (isFormerMember === 'yes') {
-        return !discipline || !gym || !firstYear || !lastGrade;
+        return !discipline || !gym || !firstYear || !lastGrade || !qualification;
     }
 
     if (isFormerMember === 'no') {
@@ -162,6 +172,7 @@ export default function LiberaSpherePage() {
         if (isFormerMember === 'yes') {
             dataToUpdate.firstYear = firstYear;
             dataToUpdate.lastGrade = lastGrade;
+            dataToUpdate.qualification = qualification;
             destination = "/dashboard/associates";
         } else { // isFormerMember === 'no'
             dataToUpdate.firstYear = new Date().getFullYear().toString();
@@ -364,7 +375,7 @@ export default function LiberaSpherePage() {
                 {gym && (
                     <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div>
+                             <div>
                                 <Label htmlFor="firstYear">Primo Anno di Associazione</Label>
                                 <Select value={firstYear} onValueChange={setFirstYear}>
                                     <SelectTrigger id="firstYear">
@@ -377,19 +388,32 @@ export default function LiberaSpherePage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div>
-                                <Label htmlFor="lastGrade">Il Tuo Grado Attuale</Label>
-                                <Select value={lastGrade} onValueChange={setLastGrade}>
-                                    <SelectTrigger id="lastGrade">
-                                        <SelectValue placeholder="Seleziona il grado" />
+                             <div>
+                                <Label htmlFor="qualification">Qualifica</Label>
+                                <Select value={qualification} onValueChange={setQualification}>
+                                    <SelectTrigger id="qualification">
+                                        <SelectValue placeholder="Seleziona la qualifica" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {grades.map(grade => (
-                                            <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                                        {qualifications.map(q => (
+                                            <SelectItem key={q} value={q}>{q}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
+                        </div>
+                        <div className="pt-4">
+                            <Label htmlFor="lastGrade">Il Tuo Grado Attuale</Label>
+                            <Select value={lastGrade} onValueChange={setLastGrade}>
+                                <SelectTrigger id="lastGrade">
+                                    <SelectValue placeholder="Seleziona il grado" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {grades.map(grade => (
+                                        <SelectItem key={grade} value={grade}>{grade}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 )}
@@ -406,3 +430,5 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
+
+    
