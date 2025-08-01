@@ -152,8 +152,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     } else if (fetchedUserData.isFormerMember === 'yes') {
                         // Se è un ex socio che ha fatto la scelta, va ad associarsi
                         targetPage = "/dashboard/associates";
+                    } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.discipline) {
+                        // Se è un nuovo utente che ha già scelto la disciplina, va alla selezione classe
+                        targetPage = "/dashboard/class-selection";
                     } else { 
-                        // Altrimenti (nuovo utente), va alla scelta iniziale
+                        // Altrimenti (nuovo utente che non ha ancora scelto), va alla scelta iniziale
                         targetPage = "/dashboard/liberasphere";
                     }
                     
@@ -256,5 +259,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
