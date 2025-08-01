@@ -169,6 +169,7 @@ export default function LiberaSpherePage() {
             dataToUpdate.firstYear = firstYear;
             dataToUpdate.lastGrade = lastGrade;
             dataToUpdate.qualification = qualification;
+            dataToUpdate.trialStatus = 'not_applicable'; // Correzione critica per ex soci
             destination = "/dashboard/associates";
         } else { // isFormerMember === 'no'
             dataToUpdate.firstYear = new Date().getFullYear().toString();
