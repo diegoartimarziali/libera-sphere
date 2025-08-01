@@ -202,11 +202,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  const isOnboarding = !userData.applicationSubmitted;
-  const isPostTrial = userData.trialStatus === 'completed';
+  const isOnboarding = !userData.applicationSubmitted || userData.trialStatus === 'completed';
+
 
   // Per gli utenti in onboarding o post-trial, usa un layout semplificato con solo l'header
-  if (isOnboarding || isPostTrial) {
+  if (isOnboarding) {
      return (
         <div className="flex min-h-screen w-full flex-col bg-background">
             <DashboardHeader onLogout={handleLogout} />

@@ -104,7 +104,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
         name: "",
         surname: "",
         taxCode: "",
-        birthDate: null,
+        birthDate: undefined,
         birthPlace: "",
         address: "",
         streetNumber: "",
@@ -146,7 +146,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         
-        const birthDateValue = userData.birthDate?.toDate() || null;
+        const birthDateValue = userData.birthDate?.toDate() || undefined;
         let existingIsMinor = false;
         if(birthDateValue){
              const age = differenceInYears(new Date(), birthDateValue);
@@ -455,7 +455,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
           </CardContent>
           <CardFooter className="flex justify-between">
             {onBack && (
-              <Button type="button" variant="outline" onClick={onBack}>
+              <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
                 Indietro
               </Button>
             )}
@@ -473,3 +473,5 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     </Card>
   )
 }
+
+    

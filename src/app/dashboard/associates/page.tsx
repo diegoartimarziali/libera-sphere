@@ -16,7 +16,7 @@ import { it } from "date-fns/locale"
 import { Checkbox } from "@/components/ui/checkbox"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, getDoc, Timestamp, collection, addDoc, serverTimestamp } from "firebase/firestore"
+import { doc, updateDoc, getDoc, Timestamp, collection, addDoc, serverTimestamp, getDocs, query, where, limit } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 
 interface FeeData {
@@ -305,48 +305,25 @@ export default function AssociatesPage() {
     const { toast } = useToast()
     const router = useRouter()
 
-    const checkExistingData = useCallback(async (uid: string) => {
-        const userDocRef = doc(db, "users", uid);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists()) {
-            const userData = userDocSnap.data();
-            // Controlliamo se i dati anagrafici essenziali sono già presenti
-            if (userData.taxCode && userData.birthDate) {
-                // Pre-compila formData per averlo disponibile negli step successivi
-                 const prefilledData: PersonalDataSchemaType = {
-                    name: userData.name || "",
-                    surname: userData.surname || "",
-                    taxCode: userData.taxCode || "",
-                    birthDate: userData.birthDate?.toDate() || new Date(),
-                    birthPlace: userData.birthPlace || "",
-                    address: userData.address || "",
-                    streetNumber: userData.streetNumber || "",
-                    city: userData.city || "",
-                    zipCode: userData.zipCode || "",
-                    province: userData.province || "",
-                    phone: userData.phone || "",
-                    isMinor: false, // Sarà ricalcolato nel form
-                    parentData: userData.parentData || undefined,
-                };
-                setFormData(prefilledData);
-                setStep(2); // Salta direttamente allo step del pagamento
-            }
-        }
-    }, []);
-    
     useEffect(() => {
         const fetchInitialData = async () => {
              if (!user) return;
             try {
-                // Controlla prima i dati esistenti per decidere lo step
-                await checkExistingData(user.uid);
-
+                const userDocRef = doc(db, "users", user.uid);
                 const feeDocRef = doc(db, "fees", "association");
                 const seasonSettingsRef = doc(db, "settings", "season");
+                const paymentsQuery = query(
+                    collection(db, 'users', user.uid, 'payments'),
+                    where('type', '==', 'association'),
+                    where('status', '==', 'pending'),
+                    limit(1)
+                );
                 
-                const [feeDocSnap, seasonDocSnap] = await Promise.all([
+                const [userDocSnap, feeDocSnap, seasonDocSnap, paymentsSnapshot] = await Promise.all([
+                    getDoc(userDocRef),
                     getDoc(feeDocRef),
-                    getDoc(seasonSettingsRef)
+                    getDoc(seasonSettingsRef),
+                    getDocs(paymentsQuery)
                 ]);
 
                 if (feeDocSnap.exists()) {
@@ -360,6 +337,40 @@ export default function AssociatesPage() {
                 } else {
                      toast({ title: "Errore", description: "Impossibile caricare le impostazioni della stagione.", variant: "destructive" });
                 }
+
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    const prefilledData: PersonalDataSchemaType = {
+                        name: userData.name || "",
+                        surname: userData.surname || "",
+                        taxCode: userData.taxCode || "",
+                        birthDate: userData.birthDate?.toDate() || new Date(),
+                        birthPlace: userData.birthPlace || "",
+                        address: userData.address || "",
+                        streetNumber: userData.streetNumber || "",
+                        city: userData.city || "",
+                        zipCode: userData.zipCode || "",
+                        province: userData.province || "",
+                        phone: userData.phone || "",
+                        isMinor: false,
+                        parentData: userData.parentData || undefined,
+                    };
+                    setFormData(prefilledData);
+
+                    // LOGICA DI AVANZAMENTO STEP
+                    const hasPersonalData = userData.taxCode && userData.birthDate;
+
+                    if (!paymentsSnapshot.empty) { // Se c'è un pagamento in sospeso
+                        const paymentData = paymentsSnapshot.docs[0].data();
+                        setPaymentMethod(paymentData.paymentMethod as PaymentMethod);
+                        setStep(4); // Vai direttamente al riepilogo
+                    } else if (hasPersonalData) { // Se ha dati ma non pagamento
+                        setStep(2); // Vai alla scelta del pagamento
+                    } else { // Altrimenti
+                        setStep(1); // Inizia dai dati anagrafici
+                    }
+                }
+
             } catch (error) {
                 console.error("Error fetching initial data:", error);
                 toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati iniziali. Riprova.", variant: "destructive" });
@@ -368,7 +379,7 @@ export default function AssociatesPage() {
             }
         };
         fetchInitialData();
-    }, [user, toast, checkExistingData]);
+    }, [user, toast]);
 
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data)
@@ -467,7 +478,7 @@ export default function AssociatesPage() {
         } else if (step === 3) { // Iframe
              setStep(2); // torna alla scelta del pagamento
         } else if (step === 2) { // Scelta pagamento
-             setStep(1); // torna ai dati anagrafici
+             router.push('/dashboard'); // Dallo step 2, torna alla dashboard
         } else {
             router.push('/dashboard'); // Dallo step 1, torna alla dashboard
         }
@@ -501,6 +512,7 @@ export default function AssociatesPage() {
                         description="Assicurati che tutte le informazioni siano corrette prima di inviare la tua domanda di associazione."
                         buttonText="Prosegui alla Scelta del Pagamento"
                         onFormSubmit={handleNextStep1}
+                        onBack={() => router.push('/dashboard')}
                     />
                 )}
                 {step === 2 && (

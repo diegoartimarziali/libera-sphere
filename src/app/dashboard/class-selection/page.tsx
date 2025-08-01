@@ -15,7 +15,7 @@ import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp, addDoc } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp, addDoc, limit } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -538,64 +538,143 @@ export default function ClassSelectionPage() {
 
     useEffect(() => {
         const fetchInitialData = async () => {
-            if (user) {
-                setLoading(true);
-                try {
-                    const feeDocRef = doc(db, "fees", "trial");
-                    const userDocRef = doc(db, "users", user.uid);
-                    const activitySettingsRef = doc(db, "settings", "activity");
-                    const enrollmentSettingsRef = doc(db, "settings", "enrollment");
-                    
-                    const [feeDocSnap, userDocSnap, activityDocSnap, enrollmentDocSnap] = await Promise.all([
-                        getDoc(feeDocRef), 
-                        getDoc(userDocRef),
-                        getDoc(activitySettingsRef),
-                        getDoc(enrollmentSettingsRef),
-                    ]);
-                    
-                    if (feeDocSnap.exists()) setFeeData(feeDocSnap.data() as FeeData);
-                    else toast({ title: "Errore", description: "Impossibile caricare i dati della quota.", variant: "destructive" });
+            if (!user) {
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
+            try {
+                const userDocRef = doc(db, "users", user.uid);
+                const feeDocRef = doc(db, "fees", "trial");
+                const activitySettingsRef = doc(db, "settings", "activity");
+                const enrollmentSettingsRef = doc(db, "settings", "enrollment");
+                 const paymentsQuery = query(
+                    collection(db, 'users', user.uid, 'payments'),
+                    where('type', '==', 'trial'),
+                    where('status', '==', 'pending'),
+                    limit(1)
+                );
+                
+                const [userDocSnap, feeDocSnap, activityDocSnap, enrollmentDocSnap, paymentsSnapshot] = await Promise.all([
+                    getDoc(userDocRef),
+                    getDoc(feeDocRef),
+                    getDoc(activitySettingsRef),
+                    getDoc(enrollmentSettingsRef),
+                    getDocs(paymentsQuery)
+                ]);
+                
+                if (feeDocSnap.exists()) setFeeData(feeDocSnap.data() as FeeData);
+                else toast({ title: "Errore", description: "Impossibile caricare i dati della quota.", variant: "destructive" });
 
-                    if (userDocSnap.exists()) setUserData(userDocSnap.data());
-                    
-                    if (activityDocSnap.exists() && enrollmentDocSnap.exists()) {
-                         const activityData = activityDocSnap.data();
-                         const enrollmentData = enrollmentDocSnap.data();
-
-                         if (activityData && enrollmentData) {
-                            setSettings({
-                                activity: activityData as Settings['activity'],
-                                enrollment: enrollmentData as Settings['enrollment']
-                            });
-                         } else {
-                             toast({ title: "Errore di configurazione", description: "Dati di configurazione mancanti.", variant: "destructive" });
-                         }
-                    } else {
-                        toast({ title: "Errore di configurazione", description: "Impostazioni per le attività o le iscrizioni non trovate.", variant: "destructive" });
-                    }
-
-                } catch (error) {
-                    console.error("Error fetching initial data:", error);
-                    toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati. Riprova.", variant: "destructive" });
-                } finally {
-                    setLoading(false);
+                if (userDocSnap.exists()) setUserData(userDocSnap.data());
+                
+                if (activityDocSnap.exists() && enrollmentDocSnap.exists()) {
+                     const activityData = activityDocSnap.data();
+                     const enrollmentData = enrollmentDocSnap.data();
+                     if (activityData && enrollmentData) {
+                        setSettings({
+                            activity: activityData as Settings['activity'],
+                            enrollment: enrollmentData as Settings['enrollment']
+                        });
+                     } else {
+                         toast({ title: "Errore di configurazione", description: "Dati di configurazione mancanti.", variant: "destructive" });
+                     }
+                } else {
+                    toast({ title: "Errore di configurazione", description: "Impostazioni per le attività o le iscrizioni non trovate.", variant: "destructive" });
                 }
-            } else {
-                 setLoading(false);
+
+                // LOGICA DI AVANZAMENTO STEP
+                if (userDocSnap.exists()) {
+                    const fetchedUserData = userDocSnap.data();
+                     const prefilledData: PersonalDataSchemaType = {
+                        name: fetchedUserData.name || "", surname: fetchedUserData.surname || "", taxCode: fetchedUserData.taxCode || "",
+                        birthDate: fetchedUserData.birthDate?.toDate() || null, birthPlace: fetchedUserData.birthPlace || "",
+                        address: fetchedUserData.address || "", streetNumber: fetchedUserData.streetNumber || "", city: fetchedUserData.city || "",
+                        zipCode: fetchedUserData.zipCode || "", province: fetchedUserData.province || "", phone: fetchedUserData.phone || "",
+                        isMinor: false, parentData: fetchedUserData.parentData || undefined,
+                    };
+                    setFormData(prefilledData);
+
+                    const hasPersonalData = fetchedUserData.taxCode && fetchedUserData.birthDate;
+                    const hasTrialLessons = fetchedUserData.trialLessons && fetchedUserData.trialLessons.length > 0;
+                    
+                    if (!paymentsSnapshot.empty) { // C'è un pagamento in sospeso
+                         const paymentData = paymentsSnapshot.docs[0].data();
+                         setPaymentMethod(paymentData.paymentMethod as PaymentMethod);
+                         setGymSelection({
+                             gymId: fetchedUserData.gym || '',
+                             gymName: '', // Lo recuperiamo dopo, non critico per il riepilogo
+                             discipline: fetchedUserData.discipline || '',
+                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, lessonDate: l.lessonDate.toDate()}))
+                         });
+                         setStep(5); // Vai al riepilogo
+                    } else if (hasTrialLessons) { // Ha scelto le lezioni ma non il pagamento
+                        setGymSelection({
+                             gymId: fetchedUserData.gym || '',
+                             gymName: '', // Lo recuperiamo dopo
+                             discipline: fetchedUserData.discipline || '',
+                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, lessonDate: l.lessonDate.toDate()}))
+                         });
+                        setStep(3); // Vai alla scelta pagamento
+                    } else if (hasPersonalData) { // Ha i dati personali ma non ha scelto le lezioni
+                        setStep(2); // Vai alla scelta palestra/lezioni
+                    } else { // Non ha neanche i dati
+                        setStep(1); // Parti dall'inizio
+                    }
+                }
+
+
+            } catch (error) {
+                console.error("Error fetching initial data:", error);
+                toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati. Riprova.", variant: "destructive" });
+            } finally {
+                setLoading(false);
             }
         };
         fetchInitialData();
     }, [user, toast]);
 
     
-    const handleNextStep1 = (data: PersonalDataSchemaType) => {
-        setFormData(data);
-        setStep(2);
+    const handleNextStep1 = async (data: PersonalDataSchemaType) => {
+        if (!user) return;
+        setIsSubmitting(true);
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            const dataToUpdate: any = {
+                name: data.name, surname: data.surname, birthPlace: data.birthPlace, birthDate: data.birthDate,
+                taxCode: data.taxCode, address: data.address, streetNumber: data.streetNumber, zipCode: data.zipCode,
+                city: data.city, province: data.province, phone: data.phone,
+            };
+            if (data.isMinor && data.parentData) { dataToUpdate.parentData = data.parentData; }
+            await updateDoc(userDocRef, dataToUpdate);
+
+            setFormData(data);
+            setStep(2);
+        } catch (error) {
+             toast({ title: "Errore", description: "Impossibile salvare i dati anagrafici.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
     
-    const handleNextStep2 = (data: GymSelectionData) => {
-        setGymSelection(data);
-        setStep(3);
+    const handleNextStep2 = async (data: GymSelectionData) => {
+        if (!user) return;
+         setIsSubmitting(true);
+        try {
+             const userDocRef = doc(db, "users", user.uid);
+             await updateDoc(userDocRef, {
+                 trialLessons: data.trialLessons.map(lesson => ({
+                    ...lesson,
+                    lessonDate: Timestamp.fromDate(lesson.lessonDate)
+                })),
+             });
+             setGymSelection(data);
+             setStep(3);
+        } catch (error) {
+             toast({ title: "Errore", description: "Impossibile salvare la scelta delle lezioni.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
+        }
     }
 
     const handleNextStep3 = (method: PaymentMethod) => {
@@ -640,44 +719,16 @@ export default function ClassSelectionPage() {
             const userDocRef = doc(db, "users", user.uid);
             
             const dataToUpdate: any = {
-                uid: user.uid,
-                name: formData.name,
-                surname: formData.surname,
-                birthPlace: formData.birthPlace,
-                birthDate: formData.birthDate,
-                taxCode: formData.taxCode,
-                address: formData.address,
-                streetNumber: formData.streetNumber,
-                zipCode: formData.zipCode,
-                city: formData.city,
-                province: formData.province,
-                email: user.email,
-                phone: formData.phone,
-                discipline: gymSelection.discipline,
-                lastGrade: finalGrade,
-                createdAt: serverTimestamp(),
-                regulationsAccepted: true,
+                // I dati anagrafici sono già stati salvati
                 applicationSubmitted: true,
                 associationStatus: "not_associated",
-                isInsured: true,
-                medicalCertificateSubmitted: true,
-                trialLessons: gymSelection.trialLessons.map(lesson => ({
-                    ...lesson,
-                    lessonDate: Timestamp.fromDate(lesson.lessonDate)
-                })),
                 trialStatus: 'active',
                 trialExpiryDate: trialExpiryDate ? Timestamp.fromDate(trialExpiryDate) : null,
+                lastGrade: finalGrade,
+                isInsured: true, // L'assicurazione parte con l'iscrizione di prova
+                medicalCertificateSubmitted: true, // Già controllato prima
             };
             
-             if (userData?.hasPracticedBefore === 'yes' && userData?.pastExperience) {
-                dataToUpdate.pastExperience = userData.pastExperience;
-            }
-
-
-            if (formData.isMinor && formData.parentData) {
-                dataToUpdate.parentData = formData.parentData;
-            }
-
             await updateDoc(userDocRef, dataToUpdate);
 
              // Create payment record
@@ -788,7 +839,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
 
     
