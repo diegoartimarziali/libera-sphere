@@ -114,9 +114,6 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                             {sub.type === 'seasonal' && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                             <CardHeader>
                                 <CardTitle className="text-2xl">{sub.name}</CardTitle>
-                                <CardDescription>
-                                    {sub.description}
-                                </CardDescription>
                             </CardHeader>
                             <CardContent className="flex-grow space-y-4">
                                  {sub.purchaseStartDate && sub.purchaseEndDate && (
@@ -529,5 +526,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
-    
