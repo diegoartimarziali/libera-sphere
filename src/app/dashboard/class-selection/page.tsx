@@ -677,17 +677,46 @@ export default function ClassSelectionPage() {
         }
     }
 
-    const handleNextStep3 = (method: PaymentMethod) => {
-        setPaymentMethod(method)
-        if (method === 'online') {
-            setStep(4); // Vai allo step dell'iFrame
-        } else {
-            setStep(5); // Vai direttamente al riepilogo
+    const handleNextStep3 = async (method: PaymentMethod) => {
+        if (!user || !feeData) {
+             toast({ title: "Errore", description: "Dati mancanti per procedere.", variant: "destructive" });
+             return;
+        }
+        setIsSubmitting(true);
+        
+        try {
+            // Crea il record di pagamento PENDING immediatamente
+            const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
+            await addDoc(paymentsCollectionRef, {
+                userId: user.uid,
+                createdAt: serverTimestamp(),
+                amount: feeData.price,
+                description: feeData.name,
+                type: 'trial',
+                status: 'pending',
+                paymentMethod: method,
+            });
+
+            setPaymentMethod(method);
+
+            // Ora naviga allo step successivo
+            if (method === 'online') {
+                setStep(4);
+            } else {
+                setStep(5);
+            }
+        } catch (error) {
+            console.error("Errore durante la creazione del pagamento:", error);
+            toast({ title: "Errore", description: "Impossibile registrare la scelta del pagamento. Riprova.", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
         }
     }
 
     const handleNextStep4 = () => {
-        setStep(5); // Dal pagamento online, vai al riepilogo
+        // L'utente ha (presumibilmente) pagato, il record di pagamento pending esiste già.
+        // Lo mandiamo solo al riepilogo.
+        setStep(5);
     }
 
     const getFinalGrade = () => {
@@ -713,35 +742,23 @@ export default function ClassSelectionPage() {
         setIsSubmitting(true);
 
         const finalGrade = getFinalGrade();
-        const trialExpiryDate = gymSelection.trialLessons[2]?.lessonDate; // La terza lezione
+        const trialExpiryDate = gymSelection.trialLessons[2]?.lessonDate;
 
         try {
             const userDocRef = doc(db, "users", user.uid);
             
+            // Aggiorniamo lo stato dell'utente. Il record di pagamento è già stato creato.
             const dataToUpdate: any = {
-                // I dati anagrafici sono già stati salvati
                 applicationSubmitted: true,
                 associationStatus: "not_associated",
                 trialStatus: 'active',
                 trialExpiryDate: trialExpiryDate ? Timestamp.fromDate(trialExpiryDate) : null,
                 lastGrade: finalGrade,
-                isInsured: true, // L'assicurazione parte con l'iscrizione di prova
-                medicalCertificateSubmitted: true, // Già controllato prima
+                isInsured: true, 
+                medicalCertificateSubmitted: true, 
             };
             
             await updateDoc(userDocRef, dataToUpdate);
-
-             // Create payment record
-            const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
-            await addDoc(paymentsCollectionRef, {
-                userId: user.uid,
-                createdAt: serverTimestamp(),
-                amount: feeData.price,
-                description: feeData.name,
-                type: 'trial',
-                status: 'pending',
-                paymentMethod: paymentMethod,
-            });
 
             toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
             router.push("/dashboard")
