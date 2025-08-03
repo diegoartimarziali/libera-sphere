@@ -10,7 +10,7 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
 
-import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart, Menu, UserSquare, Sparkles, UserPlus } from "lucide-react"
+import { Loader2, Home, HeartPulse, CreditCard, LogOut, Menu, UserSquare, Sparkles, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
@@ -30,7 +30,11 @@ interface UserData {
   [key: string]: any;
 }
 
-// Componente NavLink riutilizzabile
+// =================================================================
+// COMPONENTI DI NAVIGAZIONE
+// =================================================================
+
+// Componente NavLink riutilizzabile e pulito
 function NavLink({ href, children, icon: Icon }: { href: string; children: React.ReactNode; icon: React.ElementType }) {
     const pathname = usePathname();
     const isActive = pathname === href;
@@ -49,11 +53,14 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
     );
 }
 
-// Componente contenente i link di navigazione
+// *** UNICA FONTE DI VERITÀ PER I LINK ***
+// Questo componente decide QUALI link mostrare in base allo stato dell'utente.
 function NavigationLinks({ userData }: { userData: UserData | null }) {
     if (!userData) return null;
 
+    // Solo i soci attivi vedono i link operativi
     const isOperational = userData.associationStatus === 'active';
+    // Mostra il link per diventare socio solo se ha completato la prova e non è già socio/in attesa
     const showAssociationLink = userData.trialStatus === 'completed' && userData.associationStatus !== 'active' && userData.associationStatus !== 'pending';
 
     return (
@@ -77,7 +84,11 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
 }
 
 
-// Componente Header condiviso
+// =================================================================
+// COMPONENTI DI LAYOUT
+// =================================================================
+
+// Header che contiene il menu a comparsa (Sheet) per mobile e per i layout semplificati
 function DashboardHeader({ onLogout, userData }: { onLogout: () => void, userData: UserData | null }) {
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
@@ -110,6 +121,7 @@ function DashboardHeader({ onLogout, userData }: { onLogout: () => void, userDat
                             </svg>
                             <span className="sr-only">LiberaSphere</span>
                         </Link>
+                        {/* I link di navigazione sono qui dentro per il menu mobile */}
                         <NavigationLinks userData={userData} />
                     </nav>
                 </SheetContent>
@@ -144,6 +156,43 @@ function DashboardHeader({ onLogout, userData }: { onLogout: () => void, userDat
     );
 }
 
+// Sidebar fissa per il layout completo (solo desktop)
+function DesktopSidebar({ userData }: { userData: UserData | null }) {
+     return (
+        <aside className="hidden border-r bg-muted/40 md:block">
+            <div className="flex h-full max-h-screen flex-col gap-2">
+                <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                         <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-6 w-6"
+                        >
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                          <path d="M12 12L16 8"></path>
+                          <path d="M12 6v6l4 2"></path>
+                        </svg>
+                        <span className="">LiberaSphere</span>
+                    </Link>
+                </div>
+                <div className="flex-1">
+                    {/* I link di navigazione sono qui per la sidebar desktop */}
+                    <NavigationLinks userData={userData} />
+                </div>
+            </div>
+        </aside>
+     )
+}
+
+
+// =================================================================
+// LAYOUT PRINCIPALE
+// =================================================================
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [user, loadingAuth] = useAuthState(auth)
@@ -179,6 +228,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             if (userDocSnap.exists()) {
                 let fetchedUserData = userDocSnap.data() as UserData;
 
+                // Controlla e aggiorna lo stato della prova se scaduta
                 if (
                     fetchedUserData.trialStatus === 'active' &&
                     fetchedUserData.trialExpiryDate &&
@@ -197,25 +247,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.trialStatus === 'pending_payment';
 
-                // Se l'utente è in attesa o già socio attivo, non fare nulla e lascialo sulla dashboard.
+                // Se l'utente è in attesa o già socio attivo, NON deve essere reindirizzato.
                 if (isUserWaiting || fetchedUserData.associationStatus === 'active') {
                     setLoadingData(false);
                     return; 
                 }
 
-                // Altrimenti, procedi a guidare l'utente nel flusso di onboarding
+                // Altrimenti, guidalo nel flusso di onboarding
                 let targetPage = "";
                 if (!fetchedUserData.regulationsAccepted) {
                     targetPage = "/dashboard/regulations";
                 } else if (!fetchedUserData.medicalCertificateSubmitted) {
                     targetPage = "/dashboard/medical-certificate";
-                } else if (!fetchedUserData.isFormerMember) {
+                } else if (typeof fetchedUserData.isFormerMember !== 'string' || fetchedUserData.isFormerMember === "") {
                     targetPage = "/dashboard/liberasphere";
                 } else if (fetchedUserData.isFormerMember === 'yes') {
-                    // Se è un ex-socio ma non ha ancora lo stato 'pending', deve fare la domanda
                     targetPage = "/dashboard/associates";
                 } else if (fetchedUserData.isFormerMember === 'no') {
-                    // Se è un nuovo utente che ha finito l'onboarding ma non ha lezioni di prova, va lì
                     targetPage = "/dashboard/class-selection";
                 }
                 
@@ -244,6 +292,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [user, loadingAuth, pathname, router, toast, handleLogout]);
 
 
+  // === STATI DI CARICAMENTO ===
   if (loadingAuth || loadingData) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -261,21 +310,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  const isOperational = userData.associationStatus === 'active';
+  // === LOGICA DI VISUALIZZAZIONE ===
   
-  // Durante il flusso di onboarding guidato, non mostriamo l'header
-  const isOnboardingFlow = [
+  // Pagine di onboarding non devono avere menu di navigazione
+  const onboardingPages = [
     '/dashboard/regulations',
     '/dashboard/liberasphere',
     '/dashboard/associates',
     '/dashboard/class-selection',
-  ].includes(pathname);
-  
-  // Mostra l'header solo se l'utente è operativo o se è sulla dashboard in attesa
-  const showHeader = isOperational || !isOnboardingFlow;
+  ];
+  const isOnboardingFlow = onboardingPages.includes(pathname);
+
+  // Il socio è "operativo" solo quando il suo stato è attivo
+  const isOperational = userData.associationStatus === 'active';
 
 
-  if (!showHeader) {
+  // 1. Layout per l'Onboarding Guidato (senza menu)
+  if (isOnboardingFlow) {
       return (
          <div className="flex min-h-screen w-full flex-col bg-background">
              <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-background px-4 md:px-6">
@@ -289,36 +340,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
   
-  // Layout completo per soci attivi
+  // 2. Layout Completo per Soci Attivi (con sidebar su desktop)
   if (isOperational) {
       return (
         <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-            <aside className="hidden border-r bg-muted/40 md:block">
-                <div className="flex h-full max-h-screen flex-col gap-2">
-                    <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                        <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                             <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="hsl(var(--primary))"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="h-6 w-6"
-                            >
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                              <path d="M12 12L16 8"></path>
-                              <path d="M12 6v6l4 2"></path>
-                            </svg>
-                            <span className="">LiberaSphere</span>
-                        </Link>
-                    </div>
-                    <div className="flex-1">
-                        <NavigationLinks userData={userData} />
-                    </div>
-                </div>
-            </aside>
+            <DesktopSidebar userData={userData} />
             <div className="flex flex-col">
                 <DashboardHeader onLogout={handleLogout} userData={userData}/>
                 <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
@@ -329,7 +355,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  // Layout semplificato per tutti gli altri stati (in attesa, prova, ecc.)
+  // 3. Layout Semplificato per tutti gli altri stati (es. in attesa, prova completata, ecc.)
+  // Questo layout ha l'header con il menu a comparsa ma non la sidebar fissa.
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
         <DashboardHeader onLogout={handleLogout} userData={userData} />
