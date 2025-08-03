@@ -289,7 +289,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     '/dashboard/associates',
     '/dashboard/reviews'
   ];
-  const isOnboardingFlow = onboardingPages.includes(pathname);
+  
+  const isUserWaiting = 
+      userData.associationStatus === 'pending' || 
+      userData.trialStatus === 'pending_payment';
+
+  const isOnboardingFlow = onboardingPages.includes(pathname) && !isUserWaiting;
 
   // Layout per l'onboarding (senza menu principale, solo logout)
   if (isOnboardingFlow) {
@@ -314,5 +319,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
