@@ -10,7 +10,7 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
 
-import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart, Menu, UserSquare, Sparkles } from "lucide-react"
+import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart, Menu, UserSquare, Sparkles, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
@@ -54,12 +54,17 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
     if (!userData) return null;
 
     const isOperational = userData.associationStatus === 'active';
+    const showAssociationLink = userData.trialStatus === 'completed' && userData.associationStatus !== 'active' && userData.associationStatus !== 'pending';
 
     return (
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
             <NavLink href="/dashboard" icon={UserSquare}>Scheda Personale</NavLink>
             <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
             <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
+
+            {showAssociationLink && (
+                 <NavLink href="/dashboard/associates" icon={UserPlus}>Diventa Socio</NavLink>
+            )}
 
             {isOperational && (
                 <>
@@ -161,10 +166,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   
   useEffect(() => {
     const fetchAndRedirect = async () => {
-        if (loadingAuth) {
-            return;
-        }
-
+        if (loadingAuth) return;
         if (!user) {
             redirect("/");
             return;
@@ -177,82 +179,70 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             if (userDocSnap.exists()) {
                 let fetchedUserData = userDocSnap.data() as UserData;
 
-                // === LOGICA DI TRANSIZIONE STATO PROVA ===
                 if (
                     fetchedUserData.trialStatus === 'active' &&
                     fetchedUserData.trialExpiryDate &&
                     isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()))
                 ) {
                     await updateDoc(userDocRef, { trialStatus: 'completed' });
-                    // Rileggi i dati dopo l'aggiornamento per avere lo stato più recente
                     userDocSnap = await getDoc(userDocRef);
                     fetchedUserData = userDocSnap.data() as UserData;
+                    toast({ title: "Periodo di prova terminato", description: "Puoi ora procedere con l'associazione." });
                 }
                 
                 setUserData(fetchedUserData);
                 
-                // === NUOVA LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
-
-                // Se l'utente è attivo o in attesa, non deve essere reindirizzato
-                const isUserActiveOrPending = 
-                    fetchedUserData.associationStatus === 'active' || 
+                // === LOGICA DI REINDIRIZZAMENTO ONBOARDING (REVISIONATA) ===
+                const isUserWaiting = 
                     fetchedUserData.associationStatus === 'pending' || 
-                    fetchedUserData.trialStatus === 'pending_payment' || 
-                    fetchedUserData.trialStatus === 'active';
+                    fetchedUserData.trialStatus === 'pending_payment';
+
+                // Se l'utente è in attesa o già socio attivo, non fare nulla.
+                // L'unica eccezione è guidare l'utente alla pagina di associazione se la prova è finita.
+                if (fetchedUserData.associationStatus === 'active' || isUserWaiting) {
+                    if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates' && fetchedUserData.associationStatus !== 'active' && fetchedUserData.associationStatus !== 'pending') {
+                        router.push('/dashboard/associates');
+                    }
+                    return; 
+                }
+
+                // Altrimenti, procedi a guidare l'utente nel flusso di onboarding
+                let targetPage = "";
+                if (!fetchedUserData.regulationsAccepted) {
+                    targetPage = "/dashboard/regulations";
+                } else if (!fetchedUserData.medicalCertificateSubmitted) {
+                    targetPage = "/dashboard/medical-certificate";
+                } else if (!fetchedUserData.isFormerMember) {
+                    targetPage = "/dashboard/liberasphere";
+                } else if (fetchedUserData.isFormerMember === 'yes') {
+                    targetPage = "/dashboard/associates";
+                } else if (fetchedUserData.isFormerMember === 'no') {
+                    targetPage = "/dashboard/class-selection";
+                }
                 
-                if (isUserActiveOrPending) {
-                     if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates') {
-                         router.push('/dashboard/associates');
-                     }
-                     // L'utente è in uno stato stabile, non facciamo nulla
-                     // tranne il caso specifico della prova completata
-                } else {
-                    // Altrimenti, guidiamo l'utente nel flusso di onboarding
-                    let targetPage = "";
-                    if (!fetchedUserData.regulationsAccepted) {
-                        targetPage = "/dashboard/regulations";
-                    } else if (!fetchedUserData.medicalCertificateSubmitted) {
-                        targetPage = "/dashboard/medical-certificate";
-                    } else if (!fetchedUserData.isFormerMember) {
-                        // Se non ha ancora scelto se è un ex-socio
-                        targetPage = "/dashboard/liberasphere";
-                    } else if (fetchedUserData.isFormerMember === 'yes') {
-                        // Se è un ex socio, va ad associarsi
-                        targetPage = "/dashboard/associates";
-                    } else if (fetchedUserData.isFormerMember === 'no') {
-                        // Se è un nuovo utente, va alla selezione classe
-                         targetPage = "/dashboard/class-selection";
-                    } else {
-                        // Fallback per stati imprevisti, lo mandiamo al primo step
-                        targetPage = "/dashboard/regulations"
-                    }
-                    
-                    if (targetPage && pathname !== targetPage) {
-                         router.push(targetPage);
-                    }
+                if (targetPage && pathname !== targetPage) {
+                    router.push(targetPage);
                 }
 
             } else {
                 console.error("Documento utente non trovato per UID:", user.uid);
                 toast({
-                    variant: "destructive",
-                    title: "Errore Critico",
+                    variant: "destructive", title: "Errore Critico",
                     description: "Impossibile trovare il tuo profilo utente. Eseguo il logout.",
                 });
                 await handleLogout();
             }
         } catch (error) {
             console.error("Errore nel caricamento dati o reindirizzamento:", error);
-            toast({ title: "Errore di Caricamento", description: "Impossibile caricare i dati. Eseguo il logout.", variant: "destructive" });
-            await handleLogout();
+            toast({ title: "Errore di Caricamento", description: "Impossibile caricare i dati. Riprova più tardi.", variant: "destructive" });
         } finally {
             setLoadingData(false);
         }
     };
     
-    fetchAndRedirect();
+    if(!loadingData) fetchAndRedirect();
 
-  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
+  }, [user, loadingAuth, pathname, router, toast, handleLogout, loadingData]);
 
 
   if (loadingAuth || loadingData) {
@@ -272,10 +262,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  // Un utente è operativo (e vede il layout completo) solo se lo stato associazione è 'active'
   const isOperational = userData.associationStatus === 'active';
   
-  // Stabiliamo se l'utente è in un flusso di onboarding attivo dove il menu non serve
+  // Durante il flusso di onboarding guidato, non mostriamo l'header
   const isOnboardingFlow = [
     '/dashboard/regulations',
     '/dashboard/liberasphere',
@@ -283,9 +272,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     '/dashboard/class-selection',
   ].includes(pathname);
   
-  // L'utente vede l'header (e quindi il menu) se NON è in un flusso di onboarding attivo
-  // O se è già operativo.
-  const showHeader = !isOnboardingFlow || isOperational;
+  // Mostra l'header solo se l'utente è operativo o se è sulla dashboard in attesa
+  const showHeader = isOperational || !isOnboardingFlow;
 
 
   if (!showHeader) {
@@ -302,8 +290,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
   
-
-  // Layout completo della dashboard per utenti operativi (soci attivi)
+  // Layout completo per soci attivi
   if (isOperational) {
       return (
         <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
@@ -343,8 +330,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  // Layout semplificato per utenti in attesa sulla dashboard 
-  // o qualsiasi altro stato non coperto (fallback)
+  // Layout semplificato per tutti gli altri stati (in attesa, prova, ecc.)
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
         <DashboardHeader onLogout={handleLogout} userData={userData} />
@@ -352,3 +338,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
