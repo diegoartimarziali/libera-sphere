@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 import { useToast } from "@/hooks/use-toast"
 import { PersonalDataForm, type PersonalDataSchemaType } from "@/components/dashboard/PersonalDataForm"
@@ -12,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { format, getDay, addDays, startOfDay, nextDay } from "date-fns"
 import { it } from "date-fns/locale"
-import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles } from "lucide-react"
+import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles, MessageSquareQuote } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp, addDoc, limit } from "firebase/firestore"
@@ -239,6 +240,19 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+
+                 <Alert variant="default" className="w-full border-primary/50 text-center">
+                    <MessageSquareQuote className="h-4 w-4" />
+                    <AlertTitle className="font-semibold">
+                       Curioso di sapere cosa ne pensano gli altri?
+                    </AlertTitle>
+                    <AlertDescription>
+                        <Button asChild variant="link" className="p-0 h-auto">
+                            <Link href="/dashboard/reviews">Leggi le recensioni di chi ha già provato</Link>
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+
                 {isPreRegistrationPeriod() && (
                     <Alert>
                         <Info className="h-4 w-4" />
@@ -854,9 +868,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
-
-    
 
     
