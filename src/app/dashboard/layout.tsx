@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { useEffect, useState, ReactNode, useCallback } from "react"
@@ -97,47 +96,49 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
 // HEADER UNIFICATO
 // =================================================================
 
-function DashboardHeader({ onLogout, userData }: { onLogout: () => void; userData: UserData | null }) {
+function DashboardHeader({ onLogout, userData, showMenu }: { onLogout: () => void; userData: UserData | null, showMenu: boolean }) {
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
-             <Sheet>
-                <SheetTrigger asChild>
-                    <Button variant="outline">
-                        <Menu className="h-5 w-5" />
-                        <span className="ml-2 font-semibold">MENU</span>
-                    </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="sm:max-w-xs">
-                    <SheetHeader>
-                        <SheetTitle className="sr-only">Menu Principale</SheetTitle>
-                    </SheetHeader>
-                     <nav className="grid gap-6 text-lg font-medium">
-                         <SheetClose asChild>
-                             <Link
-                                href="/dashboard"
-                                className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-                              >
-                               <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="h-5 w-5 transition-all group-hover:scale-110"
-                                >
-                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                                  <path d="M12 12L16 8"></path>
-                                  <path d="M12 6v6l4 2"></path>
-                                </svg>
-                                <span className="sr-only">LiberaSphere</span>
-                            </Link>
-                         </SheetClose>
-                        <NavigationLinks userData={userData} onLinkClick={() => {}} />
-                    </nav>
-                </SheetContent>
-            </Sheet>
+             {showMenu && (
+                 <Sheet>
+                    <SheetTrigger asChild>
+                        <Button variant="outline">
+                            <Menu className="h-5 w-5" />
+                            <span className="ml-2 font-semibold">MENU</span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="sm:max-w-xs">
+                        <SheetHeader>
+                            <SheetTitle className="sr-only">Menu Principale</SheetTitle>
+                        </SheetHeader>
+                         <nav className="grid gap-6 text-lg font-medium">
+                             <SheetClose asChild>
+                                 <Link
+                                    href="/dashboard"
+                                    className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                                  >
+                                   <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      className="h-5 w-5 transition-all group-hover:scale-110"
+                                    >
+                                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                                      <path d="M12 12L16 8"></path>
+                                      <path d="M12 6v6l4 2"></path>
+                                    </svg>
+                                    <span className="sr-only">LiberaSphere</span>
+                                </Link>
+                             </SheetClose>
+                            <NavigationLinks userData={userData} onLinkClick={() => {}} />
+                        </nav>
+                    </SheetContent>
+                </Sheet>
+             )}
 
             <div className="ml-auto flex items-center gap-4">
                 <Button variant="outline" onClick={onLogout}>
@@ -284,40 +285,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const onboardingPages = [
     '/dashboard/regulations',
     '/dashboard/liberasphere',
-    '/dashboard/class-selection',
     '/dashboard/trial-completed',
-    '/dashboard/associates',
     '/dashboard/reviews'
   ];
   
-  const isUserWaiting = 
-      userData.associationStatus === 'pending' || 
-      userData.trialStatus === 'pending_payment';
+  const isUserOnboarding = onboardingPages.includes(pathname);
+  const isUserWaiting = userData.associationStatus === 'pending' || userData.trialStatus === 'pending_payment';
 
-  // Se l'utente è in attesa, non è più considerato in "onboarding" ai fini del layout
-  const isOnboardingFlow = onboardingPages.includes(pathname) && !isUserWaiting;
-
-
-  // Layout per l'onboarding (senza menu principale, solo logout)
-  if (isOnboardingFlow) {
-      return (
-         <div className="flex min-h-screen w-full flex-col bg-background">
-             <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-background px-4 md:px-6">
-                 <Button variant="outline" onClick={handleLogout}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    <span className="uppercase font-bold">Log out</span>
-                </Button>
-             </header>
-             <main className="flex-1 p-4 md:p-8">{children}</main>
-         </div>
-      )
-  }
+  // Mostra il menu se l'utente non è in una pagina di onboarding esplicita
+  // O se è in attesa di pagamento (il che lo toglie dall'onboarding attivo)
+  const showMenu = !isUserOnboarding || isUserWaiting;
   
-  // Layout unificato per tutti gli altri casi (dashboard, pagamenti, etc.)
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-        <DashboardHeader onLogout={handleLogout} userData={userData} />
+        <DashboardHeader onLogout={handleLogout} userData={userData} showMenu={showMenu} />
         <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
   )
 }
+
+    
