@@ -102,7 +102,7 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
     // Funzioni che usano i settings
     const isPreRegistrationPeriod = (): boolean => {
         if (!settings) return false;
-        const today = startOfDay(new date());
+        const today = startOfDay(new Date());
         const activityStartDate = settings.activity.startDate.toDate();
         return today < activityStartDate;
     }
@@ -855,5 +855,7 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
