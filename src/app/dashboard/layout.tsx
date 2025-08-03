@@ -222,6 +222,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                      return;
                 }
 
+                // Permetti la visualizzazione della pagina recensioni senza reindirizzamento
+                if (pathname === '/dashboard/reviews') {
+                    setLoadingData(false);
+                    return;
+                }
+
                 // Altrimenti, guida l'utente nel flusso di onboarding.
                 let targetPage = "";
                 if (!fetchedUserData.regulationsAccepted) {
@@ -281,6 +287,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     '/dashboard/class-selection',
     '/dashboard/trial-completed',
     '/dashboard/associates',
+    '/dashboard/reviews'
   ];
   const isOnboardingFlow = onboardingPages.includes(pathname);
 
@@ -307,3 +314,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
