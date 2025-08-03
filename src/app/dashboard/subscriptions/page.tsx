@@ -7,7 +7,7 @@ import { collection, doc, getDocs, serverTimestamp, updateDoc, addDoc, getDoc, T
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
-import { format } from "date-fns"
+import { format, lastDayOfMonth } from "date-fns"
 import { it } from "date-fns/locale"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -30,21 +30,44 @@ interface Subscription {
     sumupLink: string;
     purchaseStartDate?: Timestamp;
     purchaseEndDate?: Timestamp;
-    isAvailable?: boolean;
+    isAvailable?: boolean; // Questo verrà calcolato dinamicamente
 }
 
 interface UserSubscription {
     name: string;
     type: 'monthly' | 'seasonal';
     purchasedAt: Timestamp;
-    status: 'active' | 'pending';
+    expiresAt?: Timestamp;
+    status: 'active' | 'pending' | 'expired';
 }
 
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
 
+interface ActivitySettings {
+    startDate: Timestamp;
+    endDate: Timestamp;
+}
+
 // Componente Card per lo stato dell'abbonamento
 function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSubscription }) {
     const router = useRouter();
+
+    const getStatusVariant = () => {
+        switch(userSubscription.status) {
+            case 'active': return 'default';
+            case 'pending': return 'secondary';
+            case 'expired': return 'destructive';
+            default: return 'secondary';
+        }
+    }
+    const getStatusLabel = () => {
+        switch(userSubscription.status) {
+            case 'active': return 'Attivo';
+            case 'pending': return 'In attesa di approvazione';
+            case 'expired': return 'Scaduto';
+            default: return 'Sconosciuto';
+        }
+    }
 
     return (
         <Card className="w-full max-w-lg">
@@ -61,10 +84,16 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
                     <span className="text-muted-foreground">Acquistato il</span>
                     <span className="font-semibold">{format(userSubscription.purchasedAt.toDate(), "dd MMMM yyyy", { locale: it })}</span>
                 </div>
+                 {userSubscription.expiresAt && (
+                    <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground">Scade il</span>
+                        <span className="font-semibold">{format(userSubscription.expiresAt.toDate(), "dd MMMM yyyy", { locale: it })}</span>
+                    </div>
+                )}
                 <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Stato</span>
-                    <Badge variant={userSubscription.status === 'active' ? "default" : "secondary"}>
-                        {userSubscription.status === 'active' ? "Attivo" : "In attesa di approvazione"}
+                    <Badge variant={getStatusVariant()}>
+                       {getStatusLabel()}
                     </Badge>
                 </div>
             </CardContent>
@@ -78,9 +107,23 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
                         </AlertDescription>
                     </Alert>
                 )}
+                 {userSubscription.status === 'expired' && (
+                     <Alert variant="destructive">
+                        <CalendarClock className="h-4 w-4" />
+                        <AlertTitle>Abbonamento Scaduto</AlertTitle>
+                        <AlertDescription>
+                          Il tuo abbonamento non è più valido. Acquistane uno nuovo per continuare ad accedere ai corsi.
+                        </AlertDescription>
+                    </Alert>
+                )}
                  <Button className="w-full" onClick={() => router.push('/dashboard/payments')}>
                     Visualizza i Miei Pagamenti
                 </Button>
+                 {userSubscription.status === 'expired' && (
+                     <Button className="w-full" variant="default" onClick={() => window.location.reload()}>
+                        Acquista un nuovo abbonamento
+                    </Button>
+                )}
             </CardFooter>
         </Card>
     );
@@ -182,14 +225,14 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                                     </ul>
                                 </CardContent>
                                 <CardFooter className="flex-col">
-                                    {sub.isAvailable && sub.purchaseStartDate && sub.purchaseEndDate && (
+                                    {sub.isAvailable && sub.type === 'seasonal' && sub.purchaseStartDate && sub.purchaseEndDate && (
                                          <Alert variant="default" className="w-full mb-4 border-primary/50 text-center">
                                             <Info className="h-4 w-4" />
                                             <AlertTitle className="font-semibold">
                                                Periodo di Acquisto Limitato
                                             </AlertTitle>
                                             <AlertDescription>
-                                                Potrai acquistare questo piano dal {format(sub.purchaseStartDate.toDate(), "d MMM", { locale: it })} al {format(sub.purchaseEndDate.toDate(), "d MMM yyyy", { locale: it })}.
+                                                Acquistabile fino al {format(sub.purchaseEndDate.toDate(), "d MMM yyyy", { locale: it })}.
                                             </AlertDescription>
                                         </Alert>
                                     )}
@@ -380,6 +423,7 @@ export default function SubscriptionsPage() {
     const [userSubscription, setUserSubscription] = useState<UserSubscription | null>(null);
     const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+    const [activitySettings, setActivitySettings] = useState<ActivitySettings | null>(null);
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -395,16 +439,30 @@ export default function SubscriptionsPage() {
 
             try {
                 const userDocRef = doc(db, "users", user.uid);
-                const userDocSnap = await getDoc(userDocRef);
+                const settingsDocRef = doc(db, "settings", "activity");
+                
+                const [userDocSnap, settingsDocSnap] = await Promise.all([
+                    getDoc(userDocRef),
+                    getDoc(settingsDocRef)
+                ]);
+
+                if (settingsDocSnap.exists()) {
+                    setActivitySettings(settingsDocSnap.data() as ActivitySettings);
+                } else {
+                     toast({ title: "Errore di configurazione", description: "Impostazioni delle attività non trovate.", variant: "destructive" });
+                     setLoading(false);
+                     return;
+                }
 
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
-                    if (userData.activeSubscription) {
+                    if (userData.subscriptionAccessStatus && userData.subscriptionAccessStatus !== 'expired' && userData.activeSubscription) {
                         const subStatus: UserSubscription = {
                             name: userData.activeSubscription.name,
                             type: userData.activeSubscription.type,
                             purchasedAt: userData.activeSubscription.purchasedAt,
-                            status: userData.subscriptionAccessStatus === 'active' ? 'active' : 'pending'
+                            expiresAt: userData.activeSubscription.expiresAt,
+                            status: userData.subscriptionAccessStatus
                         };
                         setUserSubscription(subStatus);
                         setLoading(false);
@@ -416,21 +474,28 @@ export default function SubscriptionsPage() {
                 const subsSnapshot = await getDocs(subsCollection);
 
                 const now = new Date();
+                const activitySettingsData = settingsDocSnap.data() as ActivitySettings;
+
                 const allSubs = subsSnapshot.docs.map(doc => {
                     const subData = doc.data() as Omit<Subscription, 'id' | 'isAvailable'>;
-                    let isAvailable = true;
-                    // Se le date esistono, controlla il periodo di validità
-                    if (subData.purchaseStartDate && subData.purchaseEndDate) {
+                    let isAvailable = false;
+                    
+                    if (subData.type === 'seasonal' && subData.purchaseStartDate && subData.purchaseEndDate) {
                         const startDate = subData.purchaseStartDate.toDate();
                         const endDate = subData.purchaseEndDate.toDate();
                         isAvailable = now >= startDate && now <= endDate;
+                    } else if (subData.type === 'monthly') {
+                        const seasonStartDate = activitySettingsData.startDate.toDate();
+                        const seasonEndDate = activitySettingsData.endDate.toDate();
+                        isAvailable = now >= seasonStartDate && now <= seasonEndDate;
                     }
+
                     return {
                         id: doc.id,
                         ...subData,
                         isAvailable: isAvailable
                     };
-                }).sort((a,b) => b.price - a.price); // Ordina dal più costoso al meno
+                }).sort((a,b) => b.price - a.price);
 
                 setSubscriptions(allSubs);
 
@@ -480,8 +545,8 @@ export default function SubscriptionsPage() {
     }
 
     const handleConfirmPayment = async () => {
-        if (!user || !selectedSubscription) {
-            toast({ title: "Errore", description: "Utente o abbonamento non valido.", variant: "destructive" });
+        if (!user || !selectedSubscription || !activitySettings) {
+            toast({ title: "Errore", description: "Dati utente, abbonamento o impostazioni non validi.", variant: "destructive" });
             return;
         }
         
@@ -501,6 +566,14 @@ export default function SubscriptionsPage() {
                 relatedId: selectedSubscription.id,
             });
 
+            // Calcola la data di scadenza
+            let expiryDate: Date;
+            if (selectedSubscription.type === 'seasonal') {
+                expiryDate = activitySettings.endDate.toDate();
+            } else { // monthly
+                expiryDate = lastDayOfMonth(new Date());
+            }
+
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, {
                 activeSubscription: {
@@ -508,6 +581,7 @@ export default function SubscriptionsPage() {
                     name: selectedSubscription.name,
                     type: selectedSubscription.type,
                     purchasedAt: serverTimestamp(),
+                    expiresAt: Timestamp.fromDate(expiryDate),
                     paymentId: paymentDocRef.id,
                 },
                 subscriptionAccessStatus: 'pending',
@@ -519,6 +593,7 @@ export default function SubscriptionsPage() {
                 description: `La tua richiesta per l'abbonamento ${selectedSubscription.name} è in fase di verifica.`,
             });
             router.push('/dashboard');
+            window.location.reload(); // Force reload to show status
 
         } catch (error) {
             console.error("Error confirming payment:", error);

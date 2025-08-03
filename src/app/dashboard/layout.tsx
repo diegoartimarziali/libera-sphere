@@ -30,6 +30,14 @@ interface UserData {
   trialOutcome?: 'declined' | 'accepted';
   isFormerMember: 'yes' | 'no';
   isInsured?: boolean;
+  subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
+  activeSubscription?: {
+      subscriptionId: string;
+      name: string;
+      type: 'monthly' | 'seasonal';
+      purchasedAt: Timestamp;
+      expiresAt?: Timestamp;
+  };
   [key: string]: any;
 }
 
@@ -217,6 +225,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     updates.isInsured = false;
                     userModified = true;
                     toast({ title: "Associazione Scaduta", description: "La tua tessera è scaduta. Rinnovala per continuare." });
+                }
+                
+                // Controllo scadenza abbonamento
+                 if (
+                    fetchedUserData.subscriptionAccessStatus === 'active' &&
+                    fetchedUserData.activeSubscription?.expiresAt &&
+                    isPast(startOfDay(fetchedUserData.activeSubscription.expiresAt.toDate()))
+                ) {
+                    updates.subscriptionAccessStatus = 'expired';
+                    userModified = true;
+                    toast({ title: "Abbonamento Scaduto", description: "Il tuo abbonamento è scaduto. Rinnovalo per accedere ai corsi." });
                 }
 
                 if (userModified) {
