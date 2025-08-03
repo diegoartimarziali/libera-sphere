@@ -751,16 +751,16 @@ export default function ClassSelectionPage() {
             const dataToUpdate: any = {
                 applicationSubmitted: true,
                 associationStatus: "not_associated",
-                trialStatus: 'active',
+                trialStatus: 'pending_payment',
                 trialExpiryDate: trialExpiryDate ? Timestamp.fromDate(trialExpiryDate) : null,
                 lastGrade: finalGrade,
-                isInsured: true, 
+                isInsured: false, 
                 medicalCertificateSubmitted: true, 
             };
             
             await updateDoc(userDocRef, dataToUpdate);
 
-            toast({ title: "Iscrizione Completata!", description: "Benvenuto nel Passaporto Selezioni. Verrai reindirizzato al prossimo passo."});
+            toast({ title: "Iscrizione Completata!", description: "La tua richiesta è stata inviata. Verrai reindirizzato al prossimo passo."});
             router.push("/dashboard")
         } catch (error) {
              console.error("Errore durante il completamento dell'iscrizione:", error);
@@ -856,5 +856,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    

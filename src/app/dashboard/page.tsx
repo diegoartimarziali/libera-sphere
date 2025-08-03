@@ -11,7 +11,7 @@ import { it } from "date-fns/locale"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, AlertTriangle, HeartPulse } from "lucide-react"
+import { AlertCircle, AlertTriangle, HeartPulse, Clock } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
 
 interface UserData {
@@ -33,7 +33,7 @@ interface UserData {
     expiryDate?: Timestamp;
   };
   trialLessons?: { lessonDate: Timestamp, time: string }[];
-  trialStatus?: 'active' | 'completed' | 'not_applicable';
+  trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
 }
 
 interface SeasonSettings {
@@ -96,7 +96,7 @@ export default function DashboardPage() {
             const regulationsStatusLabel = data.regulationsAccepted ? "Accettati" : "Non Accettati";
             
             const trialLessons: TrialLesson[] | undefined = 
-                data.trialStatus === 'active' && data.trialLessons 
+                (data.trialStatus === 'active' || data.trialStatus === 'pending_payment') && data.trialLessons
                 ? data.trialLessons.map(l => ({
                     date: l.lessonDate.toDate(),
                     time: l.time
@@ -104,6 +104,11 @@ export default function DashboardPage() {
                 : undefined;
                 
             const socioDalDate = (data.associationStatus === 'active' || data.associationStatus === 'pending') ? data.createdAt.toDate() : undefined;
+            
+            let trialStatusLabel: string | undefined = undefined;
+            if(data.trialStatus === 'pending_payment') trialStatusLabel = "In attesa di approvazione pagamento";
+            if(data.trialStatus === 'active') trialStatusLabel = "Attiva";
+
 
             setMemberCardProps({
                 name: `${data.name} ${data.surname}`,
@@ -117,7 +122,8 @@ export default function DashboardPage() {
                 qualifica: data.qualifica,
                 membershipStatus: membershipStatusLabel,
                 isInsured: data.isInsured,
-                trialLessons: trialLessons
+                trialLessons: trialLessons,
+                trialStatus: trialStatusLabel
             });
 
             if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
@@ -149,34 +155,46 @@ export default function DashboardPage() {
     }
   }, [user, authLoading])
 
-  const renderCertificateAlert = () => {
-    if (dataLoading) {
-      return <Skeleton className="h-24 w-full mb-6" />;
-    }
-    
-    if (certificateStatus === 'expired') {
-      return (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Certificato Medico Scaduto!</AlertTitle>
-          <AlertDescription>
-            Il tuo certificato medico è scaduto. Per continuare le attività, devi caricarne uno nuovo.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    
-    if (certificateStatus === 'expiring' && daysToExpire !== null) {
-      return (
-        <Alert className="mb-6 border-yellow-500 text-yellow-700 [&>svg]:text-yellow-500">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Certificato Medico in Scadenza</AlertTitle>
-          <AlertDescription>
-            {daysToExpire > 0 ? `Attenzione, il tuo certificato medico scadrà tra ${daysToExpire} giorni.` : "Attenzione, il tuo certificato medico scade oggi."} Ricordati di rinnovarlo e caricare la nuova versione.
-          </AlertDescription>
-        </Alert>
-      );
-    }
+  const renderInfoAlert = () => {
+      if (dataLoading) {
+        return <Skeleton className="h-24 w-full mb-6" />;
+      }
+      
+      if (userData?.trialStatus === 'pending_payment') {
+           return (
+            <Alert className="mb-6">
+              <Clock className="h-4 w-4" />
+              <AlertTitle>Richiesta Inviata!</AlertTitle>
+              <AlertDescription>
+                La tua iscrizione alle lezioni di prova è in attesa di approvazione. Riceverai una notifica non appena il pagamento sarà confermato.
+              </AlertDescription>
+            </Alert>
+          );
+      }
+
+      if (certificateStatus === 'expired') {
+        return (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Certificato Medico Scaduto!</AlertTitle>
+            <AlertDescription>
+              Il tuo certificato medico è scaduto. Per continuare le attività, devi caricarne uno nuovo.
+            </AlertDescription>
+          </Alert>
+        );
+      }
+      
+      if (certificateStatus === 'expiring' && daysToExpire !== null) {
+        return (
+          <Alert className="mb-6 border-yellow-500 text-yellow-700 [&>svg]:text-yellow-500">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Certificato Medico in Scadenza</AlertTitle>
+            <AlertDescription>
+              {daysToExpire > 0 ? `Attenzione, il tuo certificato medico scadrà tra ${daysToExpire} giorni.` : "Attenzione, il tuo certificato medico scade oggi."} Ricordati di rinnovarlo e caricare la nuova versione.
+            </AlertDescription>
+          </Alert>
+        );
+      }
 
     return null;
   }
@@ -187,7 +205,7 @@ export default function DashboardPage() {
          {dataLoading ? <Skeleton className="h-9 w-64" /> : `Benvenuto, ${userData?.name?.split(' ')[0] || ''}!`}
       </h1>
 
-      {renderCertificateAlert()}
+      {renderInfoAlert()}
       
        <div className="flex justify-center">
         <div className="w-full max-w-2xl">

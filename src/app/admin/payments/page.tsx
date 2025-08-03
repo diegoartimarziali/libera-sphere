@@ -96,15 +96,24 @@ export default function AdminPaymentsPage() {
         
         try {
             const batch = writeBatch(db);
+            const userDocRef = doc(db, 'users', payment.userId);
 
             // 1. Aggiorna lo stato del pagamento
             const paymentDocRef = doc(db, 'users', payment.userId, 'payments', payment.id);
             batch.update(paymentDocRef, { status: 'completed' });
 
-            // 2. Se è una quota associativa, aggiorna lo stato dell'utente
+            // 2. Logica specifica per tipo di pagamento
             if (payment.type === 'association') {
-                const userDocRef = doc(db, 'users', payment.userId);
                 batch.update(userDocRef, { associationStatus: 'active' });
+            } else if (payment.type === 'trial') {
+                batch.update(userDocRef, { 
+                    trialStatus: 'active',
+                    isInsured: true
+                });
+            } else if (payment.type === 'subscription') {
+                // Per ora, l'attivazione della subscription è gestita a livello di utente
+                // quando si crea il pagamento, qui potremmo solo confermare lo stato se necessario.
+                // Al momento l'approvazione del pagamento è l'unica azione richiesta.
             }
             
             // Esegui le operazioni in batch
@@ -199,4 +208,3 @@ export default function AdminPaymentsPage() {
         </Card>
     );
 }
-

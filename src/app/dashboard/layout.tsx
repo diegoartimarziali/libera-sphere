@@ -24,7 +24,7 @@ interface UserData {
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
-  trialStatus?: 'active' | 'completed' | 'not_applicable';
+  trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialExpiryDate?: Timestamp;
   // Aggiungiamo altri campi opzionali per evitare errori di tipo
   [key: string]: any;
@@ -209,7 +209,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         router.push('/dashboard/associates');
                         return; 
                     }
-                    // Nessun altro reindirizzamento forzato.
+                    // Se l'utente ha una prova in attesa di pagamento e non è sulla dashboard, lo mandiamo lì
+                    if (fetchedUserData.trialStatus === 'pending_payment' && pathname !== '/dashboard') {
+                        router.push('/dashboard');
+                        return;
+                    }
 
                 } else {
                     // STATO ONBOARDING: Guida l'utente passo-passo.
