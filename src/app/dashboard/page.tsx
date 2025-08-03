@@ -19,6 +19,7 @@ interface UserData {
   surname: string
   email: string
   isFormerMember: 'yes' | 'no';
+  firstYear?: string;
   discipline: string;
   lastGrade: string;
   qualification: string;
@@ -98,7 +99,14 @@ export default function DashboardPage() {
                 }))
                 : undefined;
                 
-            const socioDalDate = (data.associationStatus === 'active' || data.associationStatus === 'pending') ? data.createdAt.toDate() : undefined;
+            let socioDalYear: string | undefined;
+            if (data.associationStatus === 'active' || data.associationStatus === 'pending') {
+                if (data.isFormerMember === 'yes' && data.firstYear) {
+                    socioDalYear = data.firstYear;
+                } else {
+                    socioDalYear = format(data.createdAt.toDate(), 'yyyy');
+                }
+            }
             
             let trialStatusLabel: string | undefined = undefined;
             if(data.trialStatus === 'pending_payment') trialStatusLabel = "In attesa di approvazione pagamento";
@@ -108,7 +116,7 @@ export default function DashboardPage() {
             setMemberCardProps({
                 name: `${data.name} ${data.surname}`,
                 email: data.email,
-                socioDal: socioDalDate,
+                socioDal: socioDalYear,
                 sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
                 regulationsStatus: regulationsStatusLabel,
                 medicalStatus: medicalStatusLabel,
@@ -250,5 +258,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-    

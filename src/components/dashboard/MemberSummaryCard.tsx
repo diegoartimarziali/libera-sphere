@@ -15,7 +15,7 @@ export interface TrialLesson {
 export interface MemberSummaryProps {
     name: string;
     email: string;
-    socioDal?: Date;
+    socioDal?: string;
     sportingSeason?: string;
     regulationsStatus: string;
     medicalStatus: string;
@@ -57,7 +57,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
             <CardContent className="flex-grow space-y-4 p-4">
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
-                    <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal ? format(props.socioDal, 'dd MMMM yyyy', {locale: it}) : undefined} />
+                    <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} />
                     <InfoRow icon={<CalendarDays size={16} />} label="Stagione Sportiva" value={props.sportingSeason} />
                     <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={props.regulationsStatus} />
                     <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} />
