@@ -10,11 +10,12 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
 
-import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart } from "lucide-react"
+import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
 import { cn } from "@/lib/utils"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 interface UserData {
   name: string
@@ -29,6 +30,7 @@ interface UserData {
   [key: string]: any;
 }
 
+// Componente NavLink riutilizzabile
 function NavLink({ href, children, icon: Icon }: { href: string; children: React.ReactNode; icon: React.ElementType }) {
     const pathname = usePathname();
     const isActive = pathname === href;
@@ -47,12 +49,79 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
     );
 }
 
-// Componente Header condiviso
-function DashboardHeader({ onLogout }: { onLogout: () => void }) {
+// Componente contenente i link di navigazione
+function NavigationLinks({ userData }: { userData: UserData | null }) {
+    if (!userData) return null;
+
+    // Utente operativo, non in onboarding e non post-trial
+    const isOperational = userData.applicationSubmitted && userData.trialStatus !== 'completed';
+
     return (
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
-            <div className="w-full flex-1">
-                 <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+        <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+            {isOperational ? (
+                <>
+                    <NavLink href="/dashboard" icon={Home}>Scheda Personale</NavLink>
+                    <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
+                    {userData.associationStatus === 'active' && (
+                        <>
+                            <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
+                            <NavLink href="/dashboard/stages" icon={CalendarHeart}>Stages</NavLink>
+                            <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
+                        </>
+                    )}
+                </>
+            ) : (
+                // Durante l'onboarding o post-trial, non mostrare link nel menu mobile,
+                // ma manteniamo la struttura per coerenza se dovesse servire.
+                <></>
+            )}
+        </nav>
+    );
+}
+
+
+// Componente Header condiviso
+function DashboardHeader({ onLogout, userData }: { onLogout: () => void, userData: UserData | null }) {
+    const isOperational = userData?.applicationSubmitted && userData.trialStatus !== 'completed';
+    
+    return (
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+             <Sheet>
+                <SheetTrigger asChild>
+                    <Button size="icon" variant="outline" className="sm:hidden">
+                        <Menu className="h-5 w-5" />
+                        <span className="sr-only">Apri menu</span>
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="sm:max-w-xs">
+                     <nav className="grid gap-6 text-lg font-medium">
+                         <Link
+                            href="/dashboard"
+                            className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                          >
+                           <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-5 w-5 transition-all group-hover:scale-110"
+                            >
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                              <path d="M12 12L16 8"></path>
+                              <path d="M12 6v6l4 2"></path>
+                            </svg>
+                            <span className="sr-only">LiberaSphere</span>
+                        </Link>
+                        {isOperational && <NavigationLinks userData={userData} />}
+                    </nav>
+                </SheetContent>
+            </Sheet>
+
+             <div className="w-full flex-1 md:w-auto">
+                 <Link href="/dashboard" className="hidden items-center gap-2 font-semibold md:flex">
                      <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
@@ -213,7 +282,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   if (isOnboarding) {
      return (
         <div className="flex min-h-screen w-full flex-col bg-background">
-            <DashboardHeader onLogout={handleLogout} />
+            <DashboardHeader onLogout={handleLogout} userData={userData} />
             <main className="flex-1 p-4 md:p-8">{children}</main>
         </div>
       )
@@ -243,21 +312,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         <span className="">LiberaSphere</span>
                     </Link>
                 </div>
-                <nav className="grid items-start px-2 text-sm font-medium lg:px-4 flex-1">
-                    <NavLink href="/dashboard" icon={Home}>Scheda Personale</NavLink>
-                    <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
-                    {userData?.associationStatus === 'active' && (
-                        <>
-                            <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
-                            <NavLink href="/dashboard/stages" icon={CalendarHeart}>Stages</NavLink>
-                            <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
-                        </>
-                    )}
-                </nav>
+                <div className="flex-1">
+                    <NavigationLinks userData={userData} />
+                </div>
             </div>
         </aside>
         <div className="flex flex-col">
-            <DashboardHeader onLogout={handleLogout} />
+            <DashboardHeader onLogout={handleLogout} userData={userData}/>
             <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                 {children}
             </main>
