@@ -103,7 +103,7 @@ export default function DashboardPage() {
                 }))
                 : undefined;
                 
-            const socioDalDate = data.applicationSubmitted ? data.createdAt.toDate() : undefined;
+            const socioDalDate = (data.associationStatus === 'active' || data.associationStatus === 'pending') ? data.createdAt.toDate() : undefined;
 
             setMemberCardProps({
                 name: `${data.name} ${data.surname}`,
