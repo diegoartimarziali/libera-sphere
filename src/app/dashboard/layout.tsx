@@ -28,6 +28,7 @@ interface UserData {
   trialExpiryDate?: Timestamp;
   trialOutcome?: 'declined' | 'accepted';
   isFormerMember: 'yes' | 'no';
+  isInsured?: boolean;
   [key: string]: any;
 }
 
@@ -97,10 +98,12 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
 // =================================================================
 
 function DashboardHeader({ onLogout, userData, showMenu }: { onLogout: () => void; userData: UserData | null, showMenu: boolean }) {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
              {showMenu && (
-                 <Sheet>
+                 <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                     <SheetTrigger asChild>
                         <Button variant="outline">
                             <Menu className="h-5 w-5" />
@@ -134,7 +137,7 @@ function DashboardHeader({ onLogout, userData, showMenu }: { onLogout: () => voi
                                     <span className="sr-only">LiberaSphere</span>
                                 </Link>
                              </SheetClose>
-                            <NavigationLinks userData={userData} onLinkClick={() => {}} />
+                            <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
                         </nav>
                     </SheetContent>
                 </Sheet>
@@ -195,7 +198,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     fetchedUserData.trialExpiryDate &&
                     isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()))
                 ) {
-                    await updateDoc(userDocRef, { trialStatus: 'completed' });
+                    await updateDoc(userDocRef, { 
+                        trialStatus: 'completed',
+                        isInsured: false // La copertura assicurativa della prova decade
+                    });
                     userDocSnap = await getDoc(userDocRef); // Re-fetch data
                     fetchedUserData = userDocSnap.data() as UserData;
                     toast({ title: "Periodo di prova terminato", description: "Puoi ora decidere se continuare con noi." });
@@ -204,6 +210,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 setUserData(fetchedUserData);
                 
                 // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
+                 const onboardingPages = [
+                    '/dashboard/regulations',
+                    '/dashboard/liberasphere',
+                    '/dashboard/trial-completed',
+                    '/dashboard/reviews'
+                 ];
+
+                const isUserOnboardingPage = onboardingPages.includes(pathname);
+                
                 const isUserWaiting = 
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.trialStatus === 'pending_payment';
@@ -282,19 +297,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       return null; // Dovrebbe essere già stato reindirizzato
   }
   
-  const onboardingPages = [
+  const onboardingPagesForMenu = [
     '/dashboard/regulations',
     '/dashboard/liberasphere',
     '/dashboard/trial-completed',
-    '/dashboard/reviews'
   ];
   
-  const isUserOnboarding = onboardingPages.includes(pathname);
-  const isUserWaiting = userData.associationStatus === 'pending' || userData.trialStatus === 'pending_payment';
+  // L'utente è in un flusso di onboarding attivo se si trova in una di queste pagine E non è in attesa di approvazione
+  const isUserOnboarding = 
+      onboardingPagesForMenu.includes(pathname) &&
+      !(userData.associationStatus === 'pending' || userData.trialStatus === 'pending_payment');
 
-  // Mostra il menu se l'utente non è in una pagina di onboarding esplicita
-  // O se è in attesa di pagamento (il che lo toglie dall'onboarding attivo)
-  const showMenu = !isUserOnboarding || isUserWaiting;
+  const showMenu = !isUserOnboarding;
   
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
