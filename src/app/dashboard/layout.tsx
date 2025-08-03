@@ -214,7 +214,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     '/dashboard/regulations',
                     '/dashboard/liberasphere',
                     '/dashboard/trial-completed',
-                    '/dashboard/reviews'
                  ];
 
                 const isUserOnboardingPage = onboardingPages.includes(pathname);
@@ -317,5 +316,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
