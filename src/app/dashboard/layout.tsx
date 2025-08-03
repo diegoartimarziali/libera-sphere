@@ -24,6 +24,7 @@ interface UserData {
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
+  associationExpiryDate?: Timestamp;
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialExpiryDate?: Timestamp;
   trialOutcome?: 'declined' | 'accepted';
@@ -188,9 +189,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         try {
             const userDocRef = doc(db, "users", user.uid);
             let userDocSnap = await getDoc(userDocRef);
+            let userModified = false;
 
             if (userDocSnap.exists()) {
                 let fetchedUserData = userDocSnap.data() as UserData;
+                const updates: { [key: string]: any } = {};
 
                 // Controllo scadenza prova
                 if (
@@ -198,13 +201,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     fetchedUserData.trialExpiryDate &&
                     isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()))
                 ) {
-                    await updateDoc(userDocRef, { 
-                        trialStatus: 'completed',
-                        isInsured: false // La copertura assicurativa della prova decade
-                    });
+                    updates.trialStatus = 'completed';
+                    updates.isInsured = false;
+                    userModified = true;
+                    toast({ title: "Periodo di prova terminato", description: "Puoi ora decidere se continuare con noi." });
+                }
+
+                // Controllo scadenza associazione
+                if (
+                    fetchedUserData.associationStatus === 'active' &&
+                    fetchedUserData.associationExpiryDate &&
+                    isPast(startOfDay(fetchedUserData.associationExpiryDate.toDate()))
+                ) {
+                    updates.associationStatus = 'expired';
+                    updates.isInsured = false;
+                    userModified = true;
+                    toast({ title: "Associazione Scaduta", description: "La tua tessera è scaduta. Rinnovala per continuare." });
+                }
+
+                if (userModified) {
+                    await updateDoc(userDocRef, updates);
                     userDocSnap = await getDoc(userDocRef); // Re-fetch data
                     fetchedUserData = userDocSnap.data() as UserData;
-                    toast({ title: "Periodo di prova terminato", description: "Puoi ora decidere se continuare con noi." });
                 }
                 
                 setUserData(fetchedUserData);

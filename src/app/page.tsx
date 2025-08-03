@@ -1,5 +1,4 @@
 
-
 "use client"
 
 import { useState } from "react"
@@ -102,7 +101,7 @@ export default function AuthPage() {
         associationStatus: 'not_associated',
         trialStatus: 'not_applicable',
         trialExpiryDate: null,
-        isInsured: false,
+        isInsured: false, // Punto di partenza corretto
         // Altri campi inizializzati a valori sicuri
         birthPlace: "",
         birthDate: null,
