@@ -27,6 +27,7 @@ interface FeeData {
 
 interface SeasonSettings {
     endDate: Timestamp;
+    label?: string;
 }
 
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
@@ -531,7 +532,10 @@ export default function AssociatesPage() {
             <div className="mb-8 text-center">
                 <h1 className="text-3xl font-bold">Domanda di Associazione</h1>
                 <p className="mt-2 text-muted-foreground">
-                    Completa e verifica i tuoi dati per inviare la domanda.
+                    {seasonSettings?.label 
+                        ? `Completa e verifica i tuoi dati per inviare la domanda di associazione per la stagione ${seasonSettings.label}.`
+                        : "Completa e verifica i tuoi dati per inviare la domanda."
+                    }
                 </p>
             </div>
             
@@ -579,3 +583,5 @@ export default function AssociatesPage() {
         </div>
     )
 }
+
+    
