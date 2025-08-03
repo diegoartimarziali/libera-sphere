@@ -53,38 +53,19 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
 function NavigationLinks({ userData }: { userData: UserData | null }) {
     if (!userData) return null;
 
-    const isOperational = userData.applicationSubmitted && userData.trialStatus !== 'completed';
-    
-    // Un utente può vedere i pagamenti se è socio o se ha almeno una prova in corso o in attesa
-    const canSeePayments = userData.associationStatus === 'active' || 
-                           userData.trialStatus === 'active' || 
-                           userData.trialStatus === 'pending_payment' ||
-                           userData.applicationSubmitted; // Mostra sempre i pagamenti dopo l'onboarding
+    const isOperational = userData.associationStatus === 'active';
 
     return (
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            {isOperational ? (
+            <NavLink href="/dashboard" icon={Home}>Scheda Personale</NavLink>
+            <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
+            <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
+
+            {isOperational && (
                 <>
-                    <NavLink href="/dashboard" icon={Home}>Scheda Personale</NavLink>
-                    <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
-                    
-                    {/* Link visibili solo ai soci attivi */}
-                    {userData.associationStatus === 'active' && (
-                        <>
-                            <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
-                            <NavLink href="/dashboard/stages" icon={CalendarHeart}>Stages</NavLink>
-                        </>
-                    )}
-                    
-                    {/* Link pagamenti visibile a soci o utenti in prova */}
-                    {canSeePayments && (
-                        <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
-                    )}
+                    <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
+                    <NavLink href="/dashboard/stages" icon={CalendarHeart}>Stages</NavLink>
                 </>
-            ) : (
-                // Durante l'onboarding o post-trial, non mostrare link nel menu mobile,
-                // ma manteniamo la struttura per coerenza se dovesse servire.
-                <></>
             )}
         </nav>
     );
@@ -93,7 +74,7 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
 
 // Componente Header condiviso
 function DashboardHeader({ onLogout, userData }: { onLogout: () => void, userData: UserData | null }) {
-    const isOperational = userData?.applicationSubmitted && userData.trialStatus !== 'completed';
+    const isOperational = userData?.associationStatus === 'active';
     
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
@@ -214,12 +195,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 setUserData(fetchedUserData);
                 
                 // === LOGICA DI REINDIRIZZAMENTO ===
-                if (fetchedUserData.applicationSubmitted) {
-                    // STATO OPERATIVO: L'utente ha finito l'onboarding.
+                if (fetchedUserData.associationStatus === 'active') {
+                    // L'utente è un socio attivo, non fare nulla, può navigare
+                } else if (fetchedUserData.applicationSubmitted) {
+                    // L'utente ha completato l'onboarding ma NON è socio attivo
+                    // Es. è in attesa di pagamento (trial o associazione) o la prova è finita.
                     if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates') {
-                        router.push('/dashboard/associates');
-                        return; 
+                         router.push('/dashboard/associates');
+                         return; 
                     }
+                    // Altrimenti (es. pending_payment), può stare sulla dashboard, pagamenti, certificato
                 } else {
                     // STATO ONBOARDING: Guida l'utente passo-passo.
                     let targetPage = "";
@@ -284,11 +269,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  const isOnboarding = !userData.applicationSubmitted || userData.trialStatus === 'completed';
+  // L'utente è in onboarding se non è socio attivo
+  const isOnboardingOrPending = userData.associationStatus !== 'active';
 
 
-  // Per gli utenti in onboarding o post-trial, usa un layout semplificato con solo l'header
-  if (isOnboarding) {
+  // Per gli utenti non attivi, usa un layout semplificato con solo l'header
+  if (isOnboardingOrPending) {
      return (
         <div className="flex min-h-screen w-full flex-col bg-background">
             <DashboardHeader onLogout={handleLogout} userData={userData} />
@@ -297,7 +283,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  // Layout completo della dashboard per utenti operativi
+  // Layout completo della dashboard per utenti operativi (soci attivi)
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
         <aside className="hidden border-r bg-muted/40 md:block">
@@ -335,3 +321,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
