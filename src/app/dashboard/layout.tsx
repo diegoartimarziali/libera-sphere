@@ -220,16 +220,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         router.push('/dashboard/associates');
                         return; 
                     }
-                    // Se l'utente ha una prova in attesa di pagamento e non è sulla dashboard o sui pagamenti, lo mandiamo lì
-                    if (
-                        fetchedUserData.trialStatus === 'pending_payment' &&
-                        pathname !== '/dashboard' &&
-                        pathname !== '/dashboard/payments'
-                    ) {
-                        router.push('/dashboard');
-                        return;
-                    }
-
                 } else {
                     // STATO ONBOARDING: Guida l'utente passo-passo.
                     let targetPage = "";
