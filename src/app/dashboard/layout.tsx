@@ -10,7 +10,7 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
 
-import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart, Menu, UserSquare } from "lucide-react"
+import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart, Menu, UserSquare, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
@@ -64,7 +64,7 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
             {isOperational && (
                 <>
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
-                    <NavLink href="/dashboard/stages" icon={CalendarHeart}>Stages</NavLink>
+                    <NavLink href="/dashboard/stages" icon={Sparkles}>Stages</NavLink>
                 </>
             )}
         </nav>
@@ -191,30 +191,37 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 
                 setUserData(fetchedUserData);
                 
-                // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
-                if (fetchedUserData.associationStatus !== 'active') {
-                     // STATO ONBOARDING: Guida l'utente passo-passo.
-                    let targetPage = "";
+                // === NUOVA LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
 
+                // Se l'utente è attivo o in attesa, non deve essere reindirizzato
+                const isUserActiveOrPending = 
+                    fetchedUserData.associationStatus === 'active' || 
+                    fetchedUserData.associationStatus === 'pending' || 
+                    fetchedUserData.trialStatus === 'pending_payment' || 
+                    fetchedUserData.trialStatus === 'active';
+                
+                if (isUserActiveOrPending) {
+                     if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates') {
+                         router.push('/dashboard/associates');
+                     }
+                     // L'utente è in uno stato stabile, non facciamo nulla
+                     // tranne il caso specifico della prova completata
+                } else {
+                    // Altrimenti, guidiamo l'utente nel flusso di onboarding
+                    let targetPage = "";
                     if (!fetchedUserData.regulationsAccepted) {
                         targetPage = "/dashboard/regulations";
                     } else if (!fetchedUserData.medicalCertificateSubmitted) {
                         targetPage = "/dashboard/medical-certificate";
+                    } else if (!fetchedUserData.isFormerMember) {
+                        // Se non ha ancora scelto se è un ex-socio
+                        targetPage = "/dashboard/liberasphere";
                     } else if (fetchedUserData.isFormerMember === 'yes') {
-                        // Se è un ex socio che ha fatto la scelta, va ad associarsi
-                         if(pathname !== "/dashboard/associates") targetPage = "/dashboard/associates";
-                    } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.discipline) {
-                        // Se è un nuovo utente che ha già scelto la disciplina, va alla selezione classe
-                        if(pathname !== "/dashboard/class-selection") targetPage = "/dashboard/class-selection";
-                    } else if (fetchedUserData.isFormerMember) {
-                        // Altrimenti (nuovo utente che non ha ancora scelto), va alla scelta iniziale
-                        if(pathname !== "/dashboard/liberasphere") targetPage = "/dashboard/liberasphere";
-                    } else if(fetchedUserData.applicationSubmitted) {
-                        // Se ha sottomesso la domanda (è in pending o prova completata) non reindirizzare forzatamente
-                         if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates') {
-                            router.push('/dashboard/associates');
-                            return; 
-                        }
+                        // Se è un ex socio, va ad associarsi
+                        targetPage = "/dashboard/associates";
+                    } else if (fetchedUserData.isFormerMember === 'no') {
+                        // Se è un nuovo utente, va alla selezione classe
+                         targetPage = "/dashboard/class-selection";
                     } else {
                         // Fallback per stati imprevisti, lo mandiamo al primo step
                         targetPage = "/dashboard/regulations"
@@ -268,15 +275,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   // Un utente è operativo (e vede il layout completo) solo se lo stato associazione è 'active'
   const isOperational = userData.associationStatus === 'active';
   
-  // L'utente è in una fase di onboarding "attiva" (cioè sta compilando un form) se non è operativo
-  // e non si trova sulla dashboard principale. In questo caso, non mostriamo il menu.
-  const inActiveOnboardingFlow = !isOperational && pathname !== '/dashboard';
+  // Stabiliamo se l'utente è in un flusso di onboarding attivo dove il menu non serve
+  const isOnboardingFlow = [
+    '/dashboard/regulations',
+    '/dashboard/liberasphere',
+    '/dashboard/associates',
+    '/dashboard/class-selection',
+  ].includes(pathname);
   
-  // L'utente è in uno stato di attesa (e vede il menu ridotto) se è sulla dashboard ma non è ancora operativo
-  const isPendingOnDashboard = !isOperational && pathname === '/dashboard';
+  // L'utente vede l'header (e quindi il menu) se NON è in un flusso di onboarding attivo
+  // O se è già operativo.
+  const showHeader = !isOnboardingFlow || isOperational;
 
 
-  if (inActiveOnboardingFlow) {
+  if (!showHeader) {
       return (
          <div className="flex min-h-screen w-full flex-col bg-background">
              <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-background px-4 md:px-6">
@@ -331,7 +343,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  // Layout semplificato per utenti in attesa sulla dashboard (isPendingOnDashboard)
+  // Layout semplificato per utenti in attesa sulla dashboard 
   // o qualsiasi altro stato non coperto (fallback)
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -340,5 +352,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
