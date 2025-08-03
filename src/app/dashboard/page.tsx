@@ -12,7 +12,7 @@ import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, AlertTriangle, Clock, Smile, Frown } from "lucide-react"
+import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
 
 interface UserData {
@@ -37,6 +37,7 @@ interface UserData {
   trialLessons?: { lessonDate: Timestamp, time: string }[];
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialOutcome?: 'declined' | 'accepted';
+  subscriptionAccessStatus?: 'pending' | 'active';
 }
 
 interface SeasonSettings {
@@ -128,7 +129,8 @@ export default function DashboardPage() {
                 membershipStatus: membershipStatusLabel,
                 isInsured: data.isInsured,
                 trialLessons: trialLessons,
-                trialStatus: trialStatusLabel
+                trialStatus: trialStatusLabel,
+                subscriptionAccessStatus: data.subscriptionAccessStatus,
             });
 
             if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
@@ -163,6 +165,18 @@ export default function DashboardPage() {
   const renderInfoAlert = () => {
       if (dataLoading) {
         return <Skeleton className="h-24 w-full mb-6" />;
+      }
+      
+      if (userData?.subscriptionAccessStatus === 'pending') {
+          return (
+            <Alert className="mb-6 border-orange-500 text-orange-700 [&>svg]:text-orange-500">
+              <DoorClosed className="h-4 w-4" />
+              <AlertTitle>Abbonamento in Attesa</AlertTitle>
+              <AlertDescription>
+                Il tuo accesso ai corsi sarà attivato non appena il pagamento del tuo abbonamento verrà confermato dalla segreteria.
+              </AlertDescription>
+            </Alert>
+          );
       }
       
       if (userData?.associationStatus === 'pending') {

@@ -116,8 +116,7 @@ export default function AdminPaymentsPage() {
                 });
             } else if (payment.type === 'subscription') {
                 batch.update(userDocRef, { 
-                    // Per ora l'abbonamento non modifica lo stato socio, solo il pagamento.
-                    // Potrebbe essere rivisto se un abbonamento DEVE attivare lo stato.
+                    subscriptionAccessStatus: 'active'
                 });
             }
             

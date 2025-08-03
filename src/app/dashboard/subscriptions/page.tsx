@@ -404,7 +404,7 @@ export default function SubscriptionsPage() {
                             name: userData.activeSubscription.name,
                             type: userData.activeSubscription.type,
                             purchasedAt: userData.activeSubscription.purchasedAt,
-                            status: userData.associationStatus === 'active' ? 'active' : 'pending'
+                            status: userData.subscriptionAccessStatus === 'active' ? 'active' : 'pending'
                         };
                         setUserSubscription(subStatus);
                         setLoading(false);
@@ -510,6 +510,7 @@ export default function SubscriptionsPage() {
                     purchasedAt: serverTimestamp(),
                     paymentId: paymentDocRef.id,
                 },
+                subscriptionAccessStatus: 'pending',
                 updatedAt: serverTimestamp(),
             });
 

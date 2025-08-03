@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2, FileText, Activity } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2, FileText, Activity, KeyRound } from "lucide-react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 
@@ -26,6 +26,7 @@ export interface MemberSummaryProps {
     isInsured?: boolean;
     trialLessons?: TrialLesson[];
     trialStatus?: string;
+    subscriptionAccessStatus?: 'pending' | 'active';
 }
 
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string | boolean | null }) => {
@@ -48,6 +49,13 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string,
 }
 
 export function MemberSummaryCard(props: MemberSummaryProps) {
+    let subscriptionAccessStatusLabel: string | undefined = undefined;
+    if (props.subscriptionAccessStatus === 'pending') {
+        subscriptionAccessStatusLabel = "In attesa di approvazione";
+    } else if (props.subscriptionAccessStatus === 'active') {
+        subscriptionAccessStatusLabel = "Attivo";
+    }
+
     return (
         <Card className="flex flex-col">
             <CardHeader className="flex flex-col items-center text-center p-4">
@@ -72,6 +80,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
                     <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
                     <InfoRow icon={<Activity size={16} />} label="Stato Prova" value={props.trialStatus} />
+                    <InfoRow icon={<KeyRound size={16} />} label="Accesso ai Corsi" value={subscriptionAccessStatusLabel} />
                  </div>
                  
                 {props.trialLessons && props.trialLessons.length > 0 && (
