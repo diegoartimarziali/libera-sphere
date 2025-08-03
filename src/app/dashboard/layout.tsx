@@ -74,8 +74,6 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
 
 // Componente Header condiviso
 function DashboardHeader({ onLogout, userData }: { onLogout: () => void, userData: UserData | null }) {
-    const isOperational = userData?.associationStatus === 'active';
-    
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
              <Sheet>
@@ -269,12 +267,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  // L'utente è in onboarding se non è socio attivo
-  const isOnboardingOrPending = userData.associationStatus !== 'active';
+  // L'utente è operativo solo se lo stato associazione è 'active'
+  const isOperational = userData.associationStatus === 'active';
 
 
-  // Per gli utenti non attivi, usa un layout semplificato con solo l'header
-  if (isOnboardingOrPending) {
+  // Per gli utenti non operativi (in onboarding o pending), usa un layout semplificato
+  if (!isOperational) {
      return (
         <div className="flex min-h-screen w-full flex-col bg-background">
             <DashboardHeader onLogout={handleLogout} userData={userData} />
@@ -321,5 +319,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
