@@ -177,9 +177,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             if (userDocSnap.exists()) {
                 let fetchedUserData = userDocSnap.data() as UserData;
 
-                // === LOGICA DI TRANSIZIONE STATO PROVA (SOLO PER UTENTI OPERATIVI) ===
+                // === LOGICA DI TRANSIZIONE STATO PROVA ===
                 if (
-                    fetchedUserData.applicationSubmitted &&
                     fetchedUserData.trialStatus === 'active' &&
                     fetchedUserData.trialExpiryDate &&
                     isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()))
@@ -192,19 +191,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 
                 setUserData(fetchedUserData);
                 
-                // === LOGICA DI REINDIRIZZAMENTO ===
-                if (fetchedUserData.associationStatus === 'active') {
-                    // L'utente è un socio attivo, non fare nulla, può navigare
-                } else if (fetchedUserData.applicationSubmitted) {
-                    // L'utente ha completato l'onboarding ma NON è socio attivo
-                    // Es. è in attesa di pagamento (trial o associazione) o la prova è finita.
-                    if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates') {
-                         router.push('/dashboard/associates');
-                         return; 
-                    }
-                    // Altrimenti (es. pending_payment), può stare sulla dashboard, pagamenti, certificato
-                } else {
-                    // STATO ONBOARDING: Guida l'utente passo-passo.
+                // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
+                const isOperational = fetchedUserData.associationStatus === 'active';
+
+                if (!isOperational) {
+                     // STATO ONBOARDING: Guida l'utente passo-passo.
                     let targetPage = "";
 
                     if (!fetchedUserData.regulationsAccepted) {
@@ -217,12 +208,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.discipline) {
                         // Se è un nuovo utente che ha già scelto la disciplina, va alla selezione classe
                         targetPage = "/dashboard/class-selection";
-                    } else { 
+                    } else if (fetchedUserData.isFormerMember) {
                         // Altrimenti (nuovo utente che non ha ancora scelto), va alla scelta iniziale
                         targetPage = "/dashboard/liberasphere";
+                    } else if(fetchedUserData.applicationSubmitted) {
+                        // Se ha sottomesso la domanda (è in pending o prova completata) non reindirizzare forzatamente
+                         if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates') {
+                            router.push('/dashboard/associates');
+                            return; 
+                        }
+                    } else {
+                        // Fallback per stati imprevisti, lo mandiamo al primo step
+                        targetPage = "/dashboard/regulations"
                     }
                     
-                    if (pathname !== targetPage) {
+                    if (targetPage && pathname !== targetPage) {
                          router.push(targetPage);
                     }
                 }
@@ -319,3 +319,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
