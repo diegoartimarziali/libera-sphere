@@ -53,8 +53,12 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
 function NavigationLinks({ userData }: { userData: UserData | null }) {
     if (!userData) return null;
 
-    // Utente operativo, non in onboarding e non post-trial
     const isOperational = userData.applicationSubmitted && userData.trialStatus !== 'completed';
+    
+    // Un utente può vedere i pagamenti se è socio o se ha almeno una prova in corso o in attesa
+    const canSeePayments = userData.associationStatus === 'active' || 
+                           userData.trialStatus === 'active' || 
+                           userData.trialStatus === 'pending_payment';
 
     return (
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
@@ -62,12 +66,18 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
                 <>
                     <NavLink href="/dashboard" icon={Home}>Scheda Personale</NavLink>
                     <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
+                    
+                    {/* Link visibili solo ai soci attivi */}
                     {userData.associationStatus === 'active' && (
                         <>
                             <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
                             <NavLink href="/dashboard/stages" icon={CalendarHeart}>Stages</NavLink>
-                            <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
                         </>
+                    )}
+                    
+                    {/* Link pagamenti visibile a soci o utenti in prova */}
+                    {canSeePayments && (
+                        <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
                     )}
                 </>
             ) : (
@@ -115,7 +125,7 @@ function DashboardHeader({ onLogout, userData }: { onLogout: () => void, userDat
                             </svg>
                             <span className="sr-only">LiberaSphere</span>
                         </Link>
-                        {isOperational && <NavigationLinks userData={userData} />}
+                        <NavigationLinks userData={userData} />
                     </nav>
                 </SheetContent>
             </Sheet>
