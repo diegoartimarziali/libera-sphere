@@ -294,7 +294,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       userData.associationStatus === 'pending' || 
       userData.trialStatus === 'pending_payment';
 
+  // Se l'utente è in attesa, non è più considerato in "onboarding" ai fini del layout
   const isOnboardingFlow = onboardingPages.includes(pathname) && !isUserWaiting;
+
 
   // Layout per l'onboarding (senza menu principale, solo logout)
   if (isOnboardingFlow) {
