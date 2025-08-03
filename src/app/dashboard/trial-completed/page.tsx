@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, updateDoc, writeBatch, collection, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, writeBatch, collection, serverTimestamp, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Star, Send, ArrowLeft, LogOut } from "lucide-react";
 import { signOut } from "firebase/auth";
@@ -110,10 +110,14 @@ export default function TrialCompletedPage() {
 
             // 2. Se c'è un feedback, lo salva nella collezione apposita
             if(rating > 0 || comment.trim() !== '') {
+                 const userDocSnap = await getDoc(userDocRef);
+                 const userData = userDocSnap.data();
+
                  const feedbackCollectionRef = collection(db, "feedbacks", "selection", "entries");
                  const newFeedbackRef = doc(feedbackCollectionRef);
                  batch.set(newFeedbackRef, {
-                    userId: user.uid, // Salviamo l'id utente per possibili riferimenti futuri
+                    userId: user.uid,
+                    discipline: userData?.discipline || 'Non specificata',
                     rating: rating,
                     comment: comment,
                     submittedAt: serverTimestamp(),
@@ -189,3 +193,4 @@ export default function TrialCompletedPage() {
         </div>
     );
 }
+

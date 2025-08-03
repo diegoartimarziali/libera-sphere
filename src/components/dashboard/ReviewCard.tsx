@@ -60,5 +60,3 @@ export function ReviewCard({ review }: ReviewCardProps) {
         </Card>
     );
 }
-
-    
