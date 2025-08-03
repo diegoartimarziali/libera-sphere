@@ -465,7 +465,9 @@ export default function AssociatesPage() {
                 applicationSubmitted: true,
                 associationStatus: "pending",
                 associationExpiryDate: seasonSettings.endDate,
-                trialStatus: 'not_applicable'
+                trialStatus: 'not_applicable',
+                // Aggiungiamo anche la qualifica per mantenerla aggiornata
+                qualification: qualification,
             };
 
             if (formData.isMinor && formData.parentData) {
@@ -577,5 +579,3 @@ export default function AssociatesPage() {
         </div>
     )
 }
-
-    

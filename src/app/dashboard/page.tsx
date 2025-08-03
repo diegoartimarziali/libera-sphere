@@ -21,7 +21,7 @@ interface UserData {
   isFormerMember: 'yes' | 'no';
   discipline: string;
   lastGrade: string;
-  qualifica?: string;
+  qualification: string;
   createdAt: Timestamp;
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   associationExpiryDate?: Timestamp;
@@ -119,7 +119,7 @@ export default function DashboardPage() {
                 medicalStatus: medicalStatusLabel,
                 discipline: data.discipline,
                 grade: data.lastGrade,
-                qualifica: data.qualifica,
+                qualifica: data.qualification,
                 membershipStatus: membershipStatusLabel,
                 isInsured: data.isInsured,
                 trialLessons: trialLessons,

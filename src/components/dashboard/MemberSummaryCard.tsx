@@ -29,7 +29,7 @@ export interface MemberSummaryProps {
 }
 
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string | boolean | null }) => {
-    if (value === undefined || value === null || value === '') return null;
+    if (value === undefined || value === null || value === '' || value === 'Nessuna') return null;
     
     let displayValue: string;
     if (typeof value === 'boolean') {
