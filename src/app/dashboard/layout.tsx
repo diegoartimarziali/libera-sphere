@@ -204,13 +204,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         targetPage = "/dashboard/medical-certificate";
                     } else if (fetchedUserData.isFormerMember === 'yes') {
                         // Se è un ex socio che ha fatto la scelta, va ad associarsi
-                        targetPage = "/dashboard/associates";
+                         if(pathname !== "/dashboard/associates") targetPage = "/dashboard/associates";
                     } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.discipline) {
                         // Se è un nuovo utente che ha già scelto la disciplina, va alla selezione classe
-                        targetPage = "/dashboard/class-selection";
+                        if(pathname !== "/dashboard/class-selection") targetPage = "/dashboard/class-selection";
                     } else if (fetchedUserData.isFormerMember) {
                         // Altrimenti (nuovo utente che non ha ancora scelto), va alla scelta iniziale
-                        targetPage = "/dashboard/liberasphere";
+                        if(pathname !== "/dashboard/liberasphere") targetPage = "/dashboard/liberasphere";
                     } else if(fetchedUserData.applicationSubmitted) {
                         // Se ha sottomesso la domanda (è in pending o prova completata) non reindirizzare forzatamente
                          if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates') {
@@ -269,55 +269,75 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // L'utente è operativo solo se lo stato associazione è 'active'
   const isOperational = userData.associationStatus === 'active';
+  
+  // L'utente è in attesa sulla dashboard, mostra il menu ridotto
+  const isPendingOnDashboard = pathname === '/dashboard' && 
+      (userData.associationStatus === 'pending' || userData.trialStatus === 'pending_payment' || userData.trialStatus === 'active');
 
+  // Durante l'onboarding attivo, non mostrare il menu di navigazione.
+  const inActiveOnboarding = !isOperational && !isPendingOnDashboard && pathname !== '/dashboard';
+  
 
-  // Per gli utenti non operativi (in onboarding o pending), usa un layout semplificato
-  if (!isOperational) {
-     return (
-        <div className="flex min-h-screen w-full flex-col bg-background">
-            <DashboardHeader onLogout={handleLogout} userData={userData} />
-            <main className="flex-1 p-4 md:p-8">{children}</main>
+  if (inActiveOnboarding) {
+      return (
+         <div className="flex min-h-screen w-full flex-col bg-background">
+             <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-background px-4 md:px-6">
+                 <Button variant="outline" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    <span className="uppercase font-bold">Log out</span>
+                </Button>
+             </header>
+             <main className="flex-1 p-4 md:p-8">{children}</main>
+         </div>
+      )
+  }
+  
+
+  // Layout completo della dashboard per utenti operativi (soci attivi)
+  if (isOperational) {
+      return (
+        <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+            <aside className="hidden border-r bg-muted/40 md:block">
+                <div className="flex h-full max-h-screen flex-col gap-2">
+                    <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+                        <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                             <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="hsl(var(--primary))"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="h-6 w-6"
+                            >
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                              <path d="M12 12L16 8"></path>
+                              <path d="M12 6v6l4 2"></path>
+                            </svg>
+                            <span className="">LiberaSphere</span>
+                        </Link>
+                    </div>
+                    <div className="flex-1">
+                        <NavigationLinks userData={userData} />
+                    </div>
+                </div>
+            </aside>
+            <div className="flex flex-col">
+                <DashboardHeader onLogout={handleLogout} userData={userData}/>
+                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+                    {children}
+                </main>
+            </div>
         </div>
       )
   }
 
-  // Layout completo della dashboard per utenti operativi (soci attivi)
+  // Layout semplificato per utenti in attesa o in prova (non operativi)
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-        <aside className="hidden border-r bg-muted/40 md:block">
-            <div className="flex h-full max-h-screen flex-col gap-2">
-                <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                         <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-6 w-6"
-                        >
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                          <path d="M12 12L16 8"></path>
-                          <path d="M12 6v6l4 2"></path>
-                        </svg>
-                        <span className="">LiberaSphere</span>
-                    </Link>
-                </div>
-                <div className="flex-1">
-                    <NavigationLinks userData={userData} />
-                </div>
-            </div>
-        </aside>
-        <div className="flex flex-col">
-            <DashboardHeader onLogout={handleLogout} userData={userData}/>
-            <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-                {children}
-            </main>
-        </div>
+    <div className="flex min-h-screen w-full flex-col bg-background">
+        <DashboardHeader onLogout={handleLogout} userData={userData} />
+        <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
   )
 }
-
-    
