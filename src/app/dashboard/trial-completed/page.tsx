@@ -5,9 +5,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, updateDoc, writeBatch, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, writeBatch, collection, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star, Send, ArrowLeft } from "lucide-react";
+import { Loader2, Star, Send, ArrowLeft, LogOut } from "lucide-react";
+import { signOut } from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -70,8 +71,8 @@ function FeedbackForm({ onFeedbackSubmit, onBack }: { onFeedbackSubmit: (rating:
                     Torna Indietro
                 </Button>
                 <Button onClick={handleSubmit} disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
-                    <span className="ml-2">Invia e torna alla Dashboard</span>
+                    {isSubmitting ? <Loader2 className="animate-spin" /> : <LogOut />}
+                    <span className="ml-2">Invia Feedback ed Esci</span>
                 </Button>
             </div>
         </div>
@@ -123,10 +124,11 @@ export default function TrialCompletedPage() {
 
             toast({
                 title: "Grazie per la tua scelta!",
-                description: "La tua opinione è preziosa per noi."
+                description: "La tua opinione è preziosa per noi. Verrai disconnesso."
             });
-
-            router.push("/dashboard");
+            
+            await signOut(auth);
+            router.push("/");
 
         } catch (error) {
             console.error("Error submitting feedback:", error);
