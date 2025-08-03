@@ -89,9 +89,9 @@ function DashboardHeader({ onLogout, userData }: { onLogout: () => void; userDat
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
              <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                 <SheetTrigger asChild>
-                    <Button size="icon" variant="outline">
+                    <Button variant="outline">
                         <Menu className="h-5 w-5" />
-                        <span className="sr-only">Apri menu</span>
+                        <span className="ml-2 font-semibold">MENU</span>
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="sm:max-w-xs">
@@ -192,6 +192,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                 // Se l'utente è in attesa o è già attivo, non reindirizzare e lascialo navigare.
                 if (isUserWaiting || fetchedUserData.associationStatus === 'active') {
+                    setLoadingData(false);
                     return; 
                 }
 
@@ -221,6 +222,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             console.error("Errore nel caricamento dati:", error);
             toast({ title: "Errore di Caricamento", description: "Impossibile caricare i dati. Riprova.", variant: "destructive" });
         } finally {
+            // Spostato qui per assicurare che venga chiamato anche in caso di reindirizzamento
             setLoadingData(false);
         }
     };
@@ -253,7 +255,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   ];
   const isOnboardingFlow = onboardingPages.includes(pathname);
 
-  // Layout per l'onboarding (senza menu principale)
+  // Layout per l'onboarding (senza menu principale, solo logout)
   if (isOnboardingFlow) {
       return (
          <div className="flex min-h-screen w-full flex-col bg-background">
@@ -276,5 +278,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
