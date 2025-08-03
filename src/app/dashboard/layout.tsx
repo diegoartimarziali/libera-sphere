@@ -192,17 +192,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 
                 setUserData(fetchedUserData);
                 
-                // === LOGICA DI REINDIRIZZAMENTO ONBOARDING (REVISIONATA) ===
+                // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
                 const isUserWaiting = 
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.trialStatus === 'pending_payment';
 
-                // Se l'utente è in attesa o già socio attivo, non fare nulla.
-                // L'unica eccezione è guidare l'utente alla pagina di associazione se la prova è finita.
-                if (fetchedUserData.associationStatus === 'active' || isUserWaiting) {
-                    if (fetchedUserData.trialStatus === 'completed' && pathname !== '/dashboard/associates' && fetchedUserData.associationStatus !== 'active' && fetchedUserData.associationStatus !== 'pending') {
-                        router.push('/dashboard/associates');
-                    }
+                // Se l'utente è in attesa o già socio attivo, non fare nulla e lascialo sulla dashboard.
+                if (isUserWaiting || fetchedUserData.associationStatus === 'active') {
+                    setLoadingData(false);
                     return; 
                 }
 
@@ -215,8 +212,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 } else if (!fetchedUserData.isFormerMember) {
                     targetPage = "/dashboard/liberasphere";
                 } else if (fetchedUserData.isFormerMember === 'yes') {
+                    // Se è un ex-socio ma non ha ancora lo stato 'pending', deve fare la domanda
                     targetPage = "/dashboard/associates";
                 } else if (fetchedUserData.isFormerMember === 'no') {
+                    // Se è un nuovo utente che ha finito l'onboarding ma non ha lezioni di prova, va lì
                     targetPage = "/dashboard/class-selection";
                 }
                 
@@ -240,9 +239,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         }
     };
     
-    if(!loadingData) fetchAndRedirect();
+    fetchAndRedirect();
 
-  }, [user, loadingAuth, pathname, router, toast, handleLogout, loadingData]);
+  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
 
 
   if (loadingAuth || loadingData) {
@@ -338,5 +337,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
