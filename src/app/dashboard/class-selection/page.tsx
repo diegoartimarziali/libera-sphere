@@ -755,7 +755,6 @@ export default function ClassSelectionPage() {
                 trialExpiryDate: trialExpiryDate ? Timestamp.fromDate(trialExpiryDate) : null,
                 lastGrade: finalGrade,
                 isInsured: false, 
-                medicalCertificateSubmitted: true, 
             };
             
             await updateDoc(userDocRef, dataToUpdate);
