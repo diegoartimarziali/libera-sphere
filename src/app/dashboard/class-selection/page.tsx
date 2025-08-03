@@ -102,7 +102,7 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
     // Funzioni che usano i settings
     const isPreRegistrationPeriod = (): boolean => {
         if (!settings) return false;
-        const today = startOfDay(new Date());
+        const today = startOfDay(new date());
         const activityStartDate = settings.activity.startDate.toDate();
         return today < activityStartDate;
     }
@@ -754,7 +754,7 @@ export default function ClassSelectionPage() {
                 trialStatus: 'pending_payment',
                 trialExpiryDate: trialExpiryDate ? Timestamp.fromDate(trialExpiryDate) : null,
                 lastGrade: finalGrade,
-                isInsured: false, 
+                isInsured: false, // Esplicitamente impostato a false
             };
             
             await updateDoc(userDocRef, dataToUpdate);
@@ -855,3 +855,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
