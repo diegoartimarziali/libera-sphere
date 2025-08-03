@@ -754,7 +754,6 @@ export default function ClassSelectionPage() {
                 trialStatus: 'pending_payment',
                 trialExpiryDate: trialExpiryDate ? Timestamp.fromDate(trialExpiryDate) : null,
                 lastGrade: finalGrade,
-                isInsured: false, // Esplicitamente impostato a false
             };
             
             await updateDoc(userDocRef, dataToUpdate);
@@ -855,6 +854,8 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
 
