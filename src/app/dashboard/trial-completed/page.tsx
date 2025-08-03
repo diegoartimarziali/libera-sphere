@@ -7,7 +7,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Star, Send } from "lucide-react";
+import { Loader2, Star, Send, ArrowLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 
-function FeedbackForm({ onFeedbackSubmit }: { onFeedbackSubmit: (rating: number, comment: string) => void }) {
+function FeedbackForm({ onFeedbackSubmit, onBack }: { onFeedbackSubmit: (rating: number, comment: string) => void, onBack: () => void }) {
     const [rating, setRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [comment, setComment] = useState("");
@@ -64,10 +64,16 @@ function FeedbackForm({ onFeedbackSubmit }: { onFeedbackSubmit: (rating: number,
                     onChange={(e) => setComment(e.target.value)}
                 />
             </div>
-             <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full">
-                {isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
-                <span className="ml-2">Invia e torna alla Dashboard</span>
-            </Button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button onClick={onBack} variant="outline" disabled={isSubmitting}>
+                    <ArrowLeft />
+                    <span className="ml-2">Torna Indietro</span>
+                </Button>
+                <Button onClick={handleSubmit} disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
+                    <span className="ml-2">Invia e torna alla Dashboard</span>
+                </Button>
+            </div>
         </div>
     )
 }
@@ -84,6 +90,10 @@ export default function TrialCompletedPage() {
         setChoice('no');
     }
     
+    const handleGoBack = () => {
+        setChoice(null);
+    }
+    
     const handleFeedbackSubmit = async (rating: number, comment: string) => {
         if (!user) {
             toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
@@ -94,16 +104,18 @@ export default function TrialCompletedPage() {
             const userDocRef = doc(db, "users", user.uid);
             const dataToUpdate: any = {
                 trialOutcome: 'declined',
-                feedback: {
+            };
+            if(rating > 0 || comment.trim() !== '') {
+                 dataToUpdate.feedback = {
                     rating: rating,
                     comment: comment,
                     submittedAt: serverTimestamp(),
                 }
-            };
+            }
             await updateDoc(userDocRef, dataToUpdate);
 
             toast({
-                title: "Grazie per il tuo feedback!",
+                title: "Grazie per la tua scelta!",
                 description: "La tua opinione è preziosa per noi."
             });
 
@@ -141,7 +153,7 @@ export default function TrialCompletedPage() {
                     )}
                     
                     {choice === 'no' && (
-                        <FeedbackForm onFeedbackSubmit={handleFeedbackSubmit} />
+                        <FeedbackForm onFeedbackSubmit={handleFeedbackSubmit} onBack={handleGoBack} />
                     )}
 
                 </CardContent>
