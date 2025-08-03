@@ -10,7 +10,7 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
 
-import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart, Menu } from "lucide-react"
+import { Loader2, Home, HeartPulse, CreditCard, LogOut, CalendarHeart, Menu, UserSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
@@ -57,7 +57,7 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
 
     return (
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            <NavLink href="/dashboard" icon={Home}>Scheda Personale</NavLink>
+            <NavLink href="/dashboard" icon={UserSquare}>Scheda Personale</NavLink>
             <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
             <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
 
@@ -192,9 +192,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 setUserData(fetchedUserData);
                 
                 // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
-                const isOperational = fetchedUserData.associationStatus === 'active';
-
-                if (!isOperational) {
+                if (fetchedUserData.associationStatus !== 'active') {
                      // STATO ONBOARDING: Guida l'utente passo-passo.
                     let targetPage = "";
 
@@ -267,18 +265,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  // L'utente è operativo solo se lo stato associazione è 'active'
+  // Un utente è operativo (e vede il layout completo) solo se lo stato associazione è 'active'
   const isOperational = userData.associationStatus === 'active';
   
-  // L'utente è in attesa sulla dashboard, mostra il menu ridotto
-  const isPendingOnDashboard = pathname === '/dashboard' && 
-      (userData.associationStatus === 'pending' || userData.trialStatus === 'pending_payment' || userData.trialStatus === 'active');
-
-  // Durante l'onboarding attivo, non mostrare il menu di navigazione.
-  const inActiveOnboarding = !isOperational && !isPendingOnDashboard && pathname !== '/dashboard';
+  // L'utente è in una fase di onboarding "attiva" (cioè sta compilando un form) se non è operativo
+  // e non si trova sulla dashboard principale. In questo caso, non mostriamo il menu.
+  const inActiveOnboardingFlow = !isOperational && pathname !== '/dashboard';
   
+  // L'utente è in uno stato di attesa (e vede il menu ridotto) se è sulla dashboard ma non è ancora operativo
+  const isPendingOnDashboard = !isOperational && pathname === '/dashboard';
 
-  if (inActiveOnboarding) {
+
+  if (inActiveOnboardingFlow) {
       return (
          <div className="flex min-h-screen w-full flex-col bg-background">
              <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-background px-4 md:px-6">
@@ -333,7 +331,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  // Layout semplificato per utenti in attesa o in prova (non operativi)
+  // Layout semplificato per utenti in attesa sulla dashboard (isPendingOnDashboard)
+  // o qualsiasi altro stato non coperto (fallback)
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
         <DashboardHeader onLogout={handleLogout} userData={userData} />
@@ -341,3 +340,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    

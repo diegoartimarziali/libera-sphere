@@ -9,9 +9,9 @@ import { differenceInDays, isPast, format, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
+import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, AlertTriangle, HeartPulse, Clock } from "lucide-react"
+import { AlertCircle, AlertTriangle, Clock } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
 
 interface UserData {
@@ -43,7 +43,6 @@ interface SeasonSettings {
 export default function DashboardPage() {
   const [user, authLoading] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
-  const [seasonSettings, setSeasonSettings] = useState<SeasonSettings | null>(null);
   const [dataLoading, setDataLoading] = useState(true)
   const [certificateStatus, setCertificateStatus] = useState<'valid' | 'expiring' | 'expired' | null>(null);
   const [daysToExpire, setDaysToExpire] = useState<number | null>(null);
@@ -66,10 +65,6 @@ export default function DashboardPage() {
           if (userDocSnap.exists()) {
             const data = userDocSnap.data() as UserData;
             setUserData(data)
-            
-            if (seasonDocSnap.exists()) {
-                setSeasonSettings(seasonDocSnap.data() as SeasonSettings);
-            }
             
             let membershipStatusLabel = "Non Associato";
             switch (data.associationStatus) {
@@ -160,13 +155,25 @@ export default function DashboardPage() {
         return <Skeleton className="h-24 w-full mb-6" />;
       }
       
+      if (userData?.associationStatus === 'pending') {
+          return (
+            <Alert className="mb-6">
+              <Clock className="h-4 w-4" />
+              <AlertTitle>Domanda di Associazione Inviata!</AlertTitle>
+              <AlertDescription>
+                La tua richiesta è in attesa di approvazione. Riceverai una notifica non appena il pagamento sarà confermato e lo stato aggiornato.
+              </AlertDescription>
+            </Alert>
+          );
+      }
+      
       if (userData?.trialStatus === 'pending_payment') {
            return (
             <Alert className="mb-6">
               <Clock className="h-4 w-4" />
-              <AlertTitle>Richiesta Inviata!</AlertTitle>
+              <AlertTitle>Richiesta Lezioni di Prova Inviata!</AlertTitle>
               <AlertDescription>
-                La tua iscrizione alle lezioni di prova è in attesa di approvazione. Riceverai una notifica non appena il pagamento sarà confermato.
+                La tua iscrizione è in attesa di approvazione. Riceverai una notifica non appena il pagamento sarà confermato.
               </AlertDescription>
             </Alert>
           );
@@ -243,3 +250,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+    

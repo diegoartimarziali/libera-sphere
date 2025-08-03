@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from "react"
 import { db } from "@/lib/firebase"
-import { collectionGroup, getDocs, query, where, doc, writeBatch, Timestamp } from "firebase/firestore"
+import { collectionGroup, getDocs, query, where, doc, writeBatch, Timestamp, getDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
-import { it } from "date-fns/locale"
+
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -59,10 +59,11 @@ export default function AdminPaymentsPage() {
 
                     // Recupera i dati dell'utente associato
                     const userDocRef = doc(db, 'users', payment.userId);
-                    const userDocSnap = await getDocs(query(collectionGroup(db, 'users'), where('uid', '==', payment.userId)));
+                    const userDocSnap = await getDoc(userDocRef);
 
-                    if (!userDocSnap.empty) {
-                        const userData = userDocSnap.docs[0].data();
+
+                    if (userDocSnap.exists()) {
+                        const userData = userDocSnap.data();
                         payment.userInfo = {
                             name: `${userData.name} ${userData.surname}`,
                             email: userData.email,
@@ -104,7 +105,10 @@ export default function AdminPaymentsPage() {
 
             // 2. Logica specifica per tipo di pagamento
             if (payment.type === 'association') {
-                batch.update(userDocRef, { associationStatus: 'active' });
+                batch.update(userDocRef, { 
+                    associationStatus: 'active',
+                    isInsured: true
+                 });
             } else if (payment.type === 'trial') {
                 batch.update(userDocRef, { 
                     trialStatus: 'active',
@@ -208,3 +212,5 @@ export default function AdminPaymentsPage() {
         </Card>
     );
 }
+
+    
