@@ -22,6 +22,7 @@ interface UserData {
   regulationsAccepted: boolean
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
+  associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   trialStatus?: 'active' | 'completed' | 'not_applicable';
   trialExpiryDate?: Timestamp;
   // Aggiungiamo altri campi opzionali per evitare errori di tipo
@@ -245,9 +246,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <nav className="grid items-start px-2 text-sm font-medium lg:px-4 flex-1">
                     <NavLink href="/dashboard" icon={Home}>Scheda Personale</NavLink>
                     <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
-                    <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
-                    <NavLink href="/dashboard/stages" icon={CalendarHeart}>Stages</NavLink>
-                    <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
+                    {userData?.associationStatus === 'active' && (
+                        <>
+                            <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
+                            <NavLink href="/dashboard/stages" icon={CalendarHeart}>Stages</NavLink>
+                            <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
+                        </>
+                    )}
                 </nav>
             </div>
         </aside>
