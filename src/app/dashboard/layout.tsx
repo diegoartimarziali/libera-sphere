@@ -27,6 +27,7 @@ interface UserData {
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialExpiryDate?: Timestamp;
+  trialOutcome?: 'declined';
   isFormerMember: 'yes' | 'no';
   [key: string]: any;
 }
@@ -196,7 +197,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     await updateDoc(userDocRef, { trialStatus: 'completed' });
                     userDocSnap = await getDoc(userDocRef); // Re-fetch data
                     fetchedUserData = userDocSnap.data() as UserData;
-                    toast({ title: "Periodo di prova terminato", description: "Puoi ora procedere con l'associazione." });
+                    toast({ title: "Periodo di prova terminato", description: "Puoi ora decidere se continuare con noi." });
                 }
                 
                 setUserData(fetchedUserData);
@@ -208,6 +209,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                 // Se l'utente è in attesa o è già attivo o è socio scaduto, non reindirizzare e lascialo navigare.
                 if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired') {
+                     setLoadingData(false);
+                     return;
+                }
+                
+                // Se l'utente ha completato la prova e non ha ancora scelto cosa fare
+                 if (fetchedUserData.trialStatus === 'completed' && !fetchedUserData.trialOutcome) {
+                    if (pathname !== '/dashboard/trial-completed') {
+                         router.push('/dashboard/trial-completed');
+                    }
                      setLoadingData(false);
                      return;
                 }
@@ -223,8 +233,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 } else if (fetchedUserData.isFormerMember === 'yes' && fetchedUserData.associationStatus !== 'active') {
                     targetPage = "/dashboard/associates";
                 } else if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus !== 'active') {
-                    targetPage = "/dashboard/associates";
-                } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.trialStatus !== 'active' && fetchedUserData.trialStatus !== 'completed') {
+                    // Questa logica ora è gestita dalla pagina trial-completed
+                } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.trialStatus !== 'active' && fetchedUserData.trialStatus !== 'completed' && fetchedUserData.trialStatus !== 'pending_payment') {
                     targetPage = "/dashboard/class-selection";
                 }
                 
@@ -268,8 +278,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const onboardingPages = [
     '/dashboard/regulations',
     '/dashboard/liberasphere',
-    '/dashboard/associates',
     '/dashboard/class-selection',
+    '/dashboard/trial-completed',
+    '/dashboard/associates',
   ];
   const isOnboardingFlow = onboardingPages.includes(pathname);
 
