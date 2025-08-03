@@ -58,7 +58,8 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
     // Un utente può vedere i pagamenti se è socio o se ha almeno una prova in corso o in attesa
     const canSeePayments = userData.associationStatus === 'active' || 
                            userData.trialStatus === 'active' || 
-                           userData.trialStatus === 'pending_payment';
+                           userData.trialStatus === 'pending_payment' ||
+                           userData.applicationSubmitted; // Mostra sempre i pagamenti dopo l'onboarding
 
     return (
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
@@ -219,8 +220,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         router.push('/dashboard/associates');
                         return; 
                     }
-                    // Se l'utente ha una prova in attesa di pagamento e non è sulla dashboard, lo mandiamo lì
-                    if (fetchedUserData.trialStatus === 'pending_payment' && pathname !== '/dashboard') {
+                    // Se l'utente ha una prova in attesa di pagamento e non è sulla dashboard o sui pagamenti, lo mandiamo lì
+                    if (
+                        fetchedUserData.trialStatus === 'pending_payment' &&
+                        pathname !== '/dashboard' &&
+                        pathname !== '/dashboard/payments'
+                    ) {
                         router.push('/dashboard');
                         return;
                     }
