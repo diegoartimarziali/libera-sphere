@@ -27,6 +27,7 @@ interface UserData {
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialExpiryDate?: Timestamp;
+  isFormerMember: 'yes' | 'no';
   [key: string]: any;
 }
 
@@ -65,7 +66,11 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
     if (!userData) return null;
 
     const isOperational = userData.associationStatus === 'active';
-    const showAssociationLink = userData.trialStatus === 'completed' && userData.associationStatus !== 'active' && userData.associationStatus !== 'pending';
+    const isReadyForAssociation = 
+        (userData.isFormerMember === 'yes' || userData.trialStatus === 'completed') &&
+        userData.associationStatus !== 'active' &&
+        userData.associationStatus !== 'pending';
+
 
     return (
         <>
@@ -73,7 +78,7 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
             <NavLink href="/dashboard/medical-certificate" icon={HeartPulse} onClick={onLinkClick}>Certificato Medico</NavLink>
             <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick}>I Miei Pagamenti</NavLink>
 
-            {showAssociationLink && (
+            {isReadyForAssociation && (
                  <NavLink href="/dashboard/associates" icon={UserPlus} onClick={onLinkClick}>Diventa Socio</NavLink>
             )}
 
@@ -216,6 +221,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 } else if (typeof fetchedUserData.isFormerMember !== 'string' || fetchedUserData.isFormerMember === "") {
                     targetPage = "/dashboard/liberasphere";
                 } else if (fetchedUserData.isFormerMember === 'yes' && fetchedUserData.associationStatus !== 'active') {
+                    targetPage = "/dashboard/associates";
+                } else if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus !== 'active') {
                     targetPage = "/dashboard/associates";
                 } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.trialStatus !== 'active' && fetchedUserData.trialStatus !== 'completed') {
                     targetPage = "/dashboard/class-selection";

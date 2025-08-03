@@ -7,12 +7,14 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, Timestamp } from "firebase/firestore"
 import { differenceInDays, isPast, format, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
+import Link from "next/link"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, AlertTriangle, Clock } from "lucide-react"
+import { AlertCircle, AlertTriangle, Clock, Award } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
+import { Button } from "@/components/ui/button"
 
 interface UserData {
   name: string
@@ -185,6 +187,21 @@ export default function DashboardPage() {
               </AlertDescription>
             </Alert>
           );
+      }
+      
+      if (userData?.trialStatus === 'completed' && userData.associationStatus !== 'active' && userData.associationStatus !== 'pending') {
+          return (
+             <Alert className="mb-6 border-primary/50 text-primary-foreground [&>svg]:text-primary">
+                <Award className="h-4 w-4" />
+                <AlertTitle className="text-primary font-bold">Periodo di Prova Terminato!</AlertTitle>
+                <AlertDescription className="text-foreground">
+                    Complimenti per aver completato le lezioni di prova. Ora puoi diventare un socio a tutti gli effetti per continuare il tuo percorso.
+                    <Button asChild className="mt-4 w-full sm:w-auto sm:ml-4">
+                        <Link href="/dashboard/associates">Diventa Socio Ora</Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+          )
       }
 
       if (certificateStatus === 'expired') {
