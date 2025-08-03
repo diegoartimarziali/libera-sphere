@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, writeBatch, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Star, Send, ArrowLeft } from "lucide-react";
 
@@ -66,8 +66,8 @@ function FeedbackForm({ onFeedbackSubmit, onBack }: { onFeedbackSubmit: (rating:
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button onClick={onBack} variant="outline" disabled={isSubmitting}>
-                    <ArrowLeft />
-                    <span className="ml-2">Torna Indietro</span>
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Torna Indietro
                 </Button>
                 <Button onClick={handleSubmit} disabled={isSubmitting}>
                     {isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
@@ -101,18 +101,25 @@ export default function TrialCompletedPage() {
         }
 
         try {
+            const batch = writeBatch(db);
             const userDocRef = doc(db, "users", user.uid);
-            const dataToUpdate: any = {
-                trialOutcome: 'declined',
-            };
+            
+            // 1. Aggiorna lo stato dell'utente
+            batch.update(userDocRef, { trialOutcome: 'declined' });
+
+            // 2. Se c'è un feedback, lo salva nella collezione apposita
             if(rating > 0 || comment.trim() !== '') {
-                 dataToUpdate.feedback = {
+                 const feedbackCollectionRef = collection(db, "feedbacks", "selection", "entries");
+                 const newFeedbackRef = doc(feedbackCollectionRef);
+                 batch.set(newFeedbackRef, {
+                    userId: user.uid, // Salviamo l'id utente per possibili riferimenti futuri
                     rating: rating,
                     comment: comment,
                     submittedAt: serverTimestamp(),
-                }
+                 });
             }
-            await updateDoc(userDocRef, dataToUpdate);
+
+            await batch.commit();
 
             toast({
                 title: "Grazie per la tua scelta!",
@@ -126,6 +133,25 @@ export default function TrialCompletedPage() {
             toast({ title: "Errore", description: "Impossibile inviare il feedback. Riprova.", variant: "destructive" });
         }
     }
+    
+    const handleYesChoice = async () => {
+        if (!user) {
+            toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
+            return;
+        }
+
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, {
+                trialOutcome: 'accepted',
+            });
+            router.push('/dashboard/associates');
+        } catch (error) {
+            console.error("Error setting trial outcome:", error);
+            toast({ title: "Errore", description: "Impossibile salvare la tua scelta. Riprova.", variant: "destructive" });
+        }
+    };
+
 
     return (
         <div className="flex w-full flex-col items-center justify-center">
@@ -145,7 +171,7 @@ export default function TrialCompletedPage() {
                                <Button size="lg" variant="outline" onClick={handleNoChoice}>
                                     No, per ora non proseguo
                                 </Button>
-                               <Button size="lg" onClick={() => router.push('/dashboard/associates')}>
+                               <Button size="lg" onClick={handleYesChoice}>
                                     Sì, voglio associarmi!
                                 </Button>
                             </div>

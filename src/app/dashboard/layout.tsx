@@ -27,7 +27,7 @@ interface UserData {
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialExpiryDate?: Timestamp;
-  trialOutcome?: 'declined';
+  trialOutcome?: 'declined' | 'accepted';
   isFormerMember: 'yes' | 'no';
   [key: string]: any;
 }
@@ -232,8 +232,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     targetPage = "/dashboard/liberasphere";
                 } else if (fetchedUserData.isFormerMember === 'yes' && fetchedUserData.associationStatus !== 'active') {
                     targetPage = "/dashboard/associates";
-                } else if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus !== 'active') {
-                    // Questa logica ora è gestita dalla pagina trial-completed
+                } else if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus !== 'active' && fetchedUserData.trialOutcome === 'accepted') {
+                     targetPage = "/dashboard/associates";
                 } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.trialStatus !== 'active' && fetchedUserData.trialStatus !== 'completed' && fetchedUserData.trialStatus !== 'pending_payment') {
                     targetPage = "/dashboard/class-selection";
                 }

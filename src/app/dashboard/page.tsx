@@ -12,7 +12,7 @@ import Link from "next/link"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, AlertTriangle, Clock } from "lucide-react"
+import { AlertCircle, AlertTriangle, Clock, Smile, Frown } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
 
 interface UserData {
@@ -36,6 +36,7 @@ interface UserData {
   };
   trialLessons?: { lessonDate: Timestamp, time: string }[];
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
+  trialOutcome?: 'declined' | 'accepted';
 }
 
 interface SeasonSettings {
@@ -183,6 +184,18 @@ export default function DashboardPage() {
               <AlertTitle>Richiesta Lezioni di Prova Inviata!</AlertTitle>
               <AlertDescription>
                 La tua iscrizione è in attesa di approvazione. Riceverai una notifica non appena il pagamento sarà confermato.
+              </AlertDescription>
+            </Alert>
+          );
+      }
+
+      if (userData?.trialOutcome === 'declined') {
+          return (
+            <Alert className="mb-6 border-blue-500 text-blue-700 [&>svg]:text-blue-500">
+              <Frown className="h-4 w-4" />
+              <AlertTitle>Ci dispiace vederti andare</AlertTitle>
+              <AlertDescription>
+                Grazie per aver provato i nostri corsi. Le nostre porte per te sono sempre aperte se dovessi cambiare idea in futuro!
               </AlertDescription>
             </Alert>
           );
