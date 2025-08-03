@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
 import { cn } from "@/lib/utils"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
 
 interface UserData {
   name: string
@@ -26,21 +26,21 @@ interface UserData {
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialExpiryDate?: Timestamp;
-  // Aggiungiamo altri campi opzionali per evitare errori di tipo
   [key: string]: any;
 }
 
 // =================================================================
-// COMPONENTI DI NAVIGAZIONE (UNIFICATI)
+// COMPONENTI DI NAVIGAZIONE
 // =================================================================
 
-function NavLink({ href, children, icon: Icon }: { href: string; children: React.ReactNode; icon: React.ElementType }) {
+function NavLink({ href, children, icon: Icon, onClick }: { href: string; children: React.ReactNode; icon: React.ElementType, onClick?: () => void }) {
     const pathname = usePathname();
     const isActive = pathname === href;
 
     return (
         <Link
             href={href}
+            onClick={onClick}
             className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
                 isActive && "bg-muted text-primary"
@@ -52,7 +52,7 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
     );
 }
 
-function NavigationLinks({ userData }: { userData: UserData | null }) {
+function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null, onLinkClick: () => void }) {
     if (!userData) return null;
 
     const isOperational = userData.associationStatus === 'active';
@@ -60,18 +60,18 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
 
     return (
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            <NavLink href="/dashboard" icon={UserSquare}>Scheda Personale</NavLink>
-            <NavLink href="/dashboard/medical-certificate" icon={HeartPulse}>Certificato Medico</NavLink>
-            <NavLink href="/dashboard/payments" icon={CreditCard}>I Miei Pagamenti</NavLink>
+            <NavLink href="/dashboard" icon={UserSquare} onClick={onLinkClick}>Scheda Personale</NavLink>
+            <NavLink href="/dashboard/medical-certificate" icon={HeartPulse} onClick={onLinkClick}>Certificato Medico</NavLink>
+            <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick}>I Miei Pagamenti</NavLink>
 
             {showAssociationLink && (
-                 <NavLink href="/dashboard/associates" icon={UserPlus}>Diventa Socio</NavLink>
+                 <NavLink href="/dashboard/associates" icon={UserPlus} onClick={onLinkClick}>Diventa Socio</NavLink>
             )}
 
             {isOperational && (
                 <>
-                    <NavLink href="/dashboard/subscriptions" icon={CreditCard}>Abbonamenti</NavLink>
-                    <NavLink href="/dashboard/stages" icon={Sparkles}>Stages</NavLink>
+                    <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
+                    <NavLink href="/dashboard/stages" icon={Sparkles} onClick={onLinkClick}>Stages</NavLink>
                 </>
             )}
         </nav>
@@ -79,55 +79,17 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
 }
 
 // =================================================================
-// COMPONENTI DI LAYOUT (UNIFICATI E CORRETTI)
+// HEADER UNIFICATO
 // =================================================================
 
-function DesktopSidebar({ userData }: { userData: UserData | null }) {
-     return (
-        <aside className="hidden border-r bg-muted/40 md:block">
-            <div className="flex h-full max-h-screen flex-col gap-2">
-                <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                         <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-6 w-6"
-                        >
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                          <path d="M12 12L16 8"></path>
-                          <path d="M12 6v6l4 2"></path>
-                        </svg>
-                        <span className="">LiberaSphere</span>
-                    </Link>
-                </div>
-                <div className="flex-1">
-                    <NavigationLinks userData={userData} />
-                </div>
-            </div>
-        </aside>
-     )
-}
-
-function DashboardHeader({ 
-    onLogout, 
-    userData, 
-    showMenuButtonOnDesktop = false 
-}: { 
-    onLogout: () => void, 
-    userData: UserData | null, 
-    showMenuButtonOnDesktop?: boolean 
-}) {
+function DashboardHeader({ onLogout, userData }: { onLogout: () => void; userData: UserData | null }) {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    
     return (
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
-             <Sheet>
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
+             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                 <SheetTrigger asChild>
-                    {/* CORREZIONE: Il bottone è nascosto su desktop solo se showMenuButtonOnDesktop è false */}
-                    <Button size="icon" variant="outline" className={cn(!showMenuButtonOnDesktop && "sm:hidden")}>
+                    <Button size="icon" variant="outline">
                         <Menu className="h-5 w-5" />
                         <span className="sr-only">Apri menu</span>
                     </Button>
@@ -154,7 +116,8 @@ function DashboardHeader({
                             </svg>
                             <span className="sr-only">LiberaSphere</span>
                         </Link>
-                        <NavigationLinks userData={userData} />
+                        {/* Passiamo la funzione per chiudere il menu al click */}
+                        <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
                     </nav>
                 </SheetContent>
             </Sheet>
@@ -169,8 +132,9 @@ function DashboardHeader({
     );
 }
 
+
 // =================================================================
-// LAYOUT PRINCIPALE (LOGICA RICOSTRUITA E SEMPLIFICATA)
+// LAYOUT PRINCIPALE
 // =================================================================
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -199,6 +163,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             return;
         }
         
+        setLoadingData(true);
         try {
             const userDocRef = doc(db, "users", user.uid);
             let userDocSnap = await getDoc(userDocRef);
@@ -206,6 +171,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             if (userDocSnap.exists()) {
                 let fetchedUserData = userDocSnap.data() as UserData;
 
+                // Controllo scadenza prova
                 if (
                     fetchedUserData.trialStatus === 'active' &&
                     fetchedUserData.trialExpiryDate &&
@@ -219,15 +185,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 
                 setUserData(fetchedUserData);
                 
-                // === NUOVA LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
+                // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
                 const isUserWaiting = 
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.trialStatus === 'pending_payment';
 
+                // Se l'utente è in attesa o è già attivo, non reindirizzare e lascialo navigare.
                 if (isUserWaiting || fetchedUserData.associationStatus === 'active') {
                     return; 
                 }
 
+                // Altrimenti, guida l'utente nel flusso di onboarding.
                 let targetPage = "";
                 if (!fetchedUserData.regulationsAccepted) {
                     targetPage = "/dashboard/regulations";
@@ -274,10 +242,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
   
   if (!user || !userData) {
-      return null; // Should be redirected
+      return null; // Dovrebbe essere già stato reindirizzato
   }
-
-  // === LOGICA DI VISUALIZZAZIONE SEMPLIFICATA ===
   
   const onboardingPages = [
     '/dashboard/regulations',
@@ -287,6 +253,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   ];
   const isOnboardingFlow = onboardingPages.includes(pathname);
 
+  // Layout per l'onboarding (senza menu principale)
   if (isOnboardingFlow) {
       return (
          <div className="flex min-h-screen w-full flex-col bg-background">
@@ -301,26 +268,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
   
-  const isOperational = userData.associationStatus === 'active';
-
-  if (isOperational) {
-      return (
-        <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
-            <DesktopSidebar userData={userData} />
-            <div className="flex flex-col">
-                <DashboardHeader onLogout={handleLogout} userData={userData} showMenuButtonOnDesktop={false} />
-                <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-                    {children}
-                </main>
-            </div>
-        </div>
-      )
-  }
-
-  // Layout Semplificato (per utenti in attesa, etc.)
+  // Layout unificato per tutti gli altri casi (dashboard, pagamenti, etc.)
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-        <DashboardHeader onLogout={handleLogout} userData={userData} showMenuButtonOnDesktop={true} />
+        <DashboardHeader onLogout={handleLogout} userData={userData} />
         <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
   )
