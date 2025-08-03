@@ -10,7 +10,7 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
 
-import { Loader2, Home, HeartPulse, CreditCard, LogOut, Menu, UserSquare, Sparkles, UserPlus } from "lucide-react"
+import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
@@ -31,10 +31,9 @@ interface UserData {
 }
 
 // =================================================================
-// COMPONENTI DI NAVIGAZIONE
+// COMPONENTI DI NAVIGAZIONE (UNIFICATI)
 // =================================================================
 
-// Componente NavLink riutilizzabile e pulito
 function NavLink({ href, children, icon: Icon }: { href: string; children: React.ReactNode; icon: React.ElementType }) {
     const pathname = usePathname();
     const isActive = pathname === href;
@@ -53,14 +52,10 @@ function NavLink({ href, children, icon: Icon }: { href: string; children: React
     );
 }
 
-// *** UNICA FONTE DI VERITÀ PER I LINK ***
-// Questo componente decide QUALI link mostrare in base allo stato dell'utente.
 function NavigationLinks({ userData }: { userData: UserData | null }) {
     if (!userData) return null;
 
-    // Solo i soci attivi vedono i link operativi
     const isOperational = userData.associationStatus === 'active';
-    // Mostra il link per diventare socio solo se ha completato la prova e non è già socio/in attesa
     const showAssociationLink = userData.trialStatus === 'completed' && userData.associationStatus !== 'active' && userData.associationStatus !== 'pending';
 
     return (
@@ -83,18 +78,56 @@ function NavigationLinks({ userData }: { userData: UserData | null }) {
     );
 }
 
-
 // =================================================================
-// COMPONENTI DI LAYOUT
+// COMPONENTI DI LAYOUT (UNIFICATI E CORRETTI)
 // =================================================================
 
-// Header che contiene il menu a comparsa (Sheet) per mobile e per i layout semplificati
-function DashboardHeader({ onLogout, userData }: { onLogout: () => void, userData: UserData | null }) {
+function DesktopSidebar({ userData }: { userData: UserData | null }) {
+     return (
+        <aside className="hidden border-r bg-muted/40 md:block">
+            <div className="flex h-full max-h-screen flex-col gap-2">
+                <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
+                         <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-6 w-6"
+                        >
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                          <path d="M12 12L16 8"></path>
+                          <path d="M12 6v6l4 2"></path>
+                        </svg>
+                        <span className="">LiberaSphere</span>
+                    </Link>
+                </div>
+                <div className="flex-1">
+                    <NavigationLinks userData={userData} />
+                </div>
+            </div>
+        </aside>
+     )
+}
+
+function DashboardHeader({ 
+    onLogout, 
+    userData, 
+    showMenuButtonOnDesktop = false 
+}: { 
+    onLogout: () => void, 
+    userData: UserData | null, 
+    showMenuButtonOnDesktop?: boolean 
+}) {
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
              <Sheet>
                 <SheetTrigger asChild>
-                    <Button size="icon" variant="outline" className="sm:hidden">
+                    {/* CORREZIONE: Il bottone è nascosto su desktop solo se showMenuButtonOnDesktop è false */}
+                    <Button size="icon" variant="outline" className={cn(!showMenuButtonOnDesktop && "sm:hidden")}>
                         <Menu className="h-5 w-5" />
                         <span className="sr-only">Apri menu</span>
                     </Button>
@@ -121,32 +154,12 @@ function DashboardHeader({ onLogout, userData }: { onLogout: () => void, userDat
                             </svg>
                             <span className="sr-only">LiberaSphere</span>
                         </Link>
-                        {/* I link di navigazione sono qui dentro per il menu mobile */}
                         <NavigationLinks userData={userData} />
                     </nav>
                 </SheetContent>
             </Sheet>
 
-             <div className="w-full flex-1 md:w-auto">
-                 <Link href="/dashboard" className="hidden items-center gap-2 font-semibold md:flex">
-                     <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-6 w-6"
-                    >
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                      <path d="M12 12L16 8"></path>
-                      <path d="M12 6v6l4 2"></path>
-                    </svg>
-                    <span className="text-foreground">LiberaSphere</span>
-                </Link>
-            </div>
-            <div className="flex items-center gap-4 ml-auto">
+            <div className="ml-auto flex items-center gap-4">
                 <Button variant="outline" onClick={onLogout}>
                     <LogOut className="h-4 w-4 mr-2" />
                     <span className="uppercase font-bold">Log out</span>
@@ -156,42 +169,8 @@ function DashboardHeader({ onLogout, userData }: { onLogout: () => void, userDat
     );
 }
 
-// Sidebar fissa per il layout completo (solo desktop)
-function DesktopSidebar({ userData }: { userData: UserData | null }) {
-     return (
-        <aside className="hidden border-r bg-muted/40 md:block">
-            <div className="flex h-full max-h-screen flex-col gap-2">
-                <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                    <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                         <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="hsl(var(--primary))"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-6 w-6"
-                        >
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                          <path d="M12 12L16 8"></path>
-                          <path d="M12 6v6l4 2"></path>
-                        </svg>
-                        <span className="">LiberaSphere</span>
-                    </Link>
-                </div>
-                <div className="flex-1">
-                    {/* I link di navigazione sono qui per la sidebar desktop */}
-                    <NavigationLinks userData={userData} />
-                </div>
-            </div>
-        </aside>
-     )
-}
-
-
 // =================================================================
-// LAYOUT PRINCIPALE
+// LAYOUT PRINCIPALE (LOGICA RICOSTRUITA E SEMPLIFICATA)
 // =================================================================
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -215,7 +194,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   
   useEffect(() => {
     const fetchAndRedirect = async () => {
-        if (loadingAuth) return;
         if (!user) {
             redirect("/");
             return;
@@ -228,32 +206,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             if (userDocSnap.exists()) {
                 let fetchedUserData = userDocSnap.data() as UserData;
 
-                // Controlla e aggiorna lo stato della prova se scaduta
                 if (
                     fetchedUserData.trialStatus === 'active' &&
                     fetchedUserData.trialExpiryDate &&
                     isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()))
                 ) {
                     await updateDoc(userDocRef, { trialStatus: 'completed' });
-                    userDocSnap = await getDoc(userDocRef);
+                    userDocSnap = await getDoc(userDocRef); // Re-fetch data
                     fetchedUserData = userDocSnap.data() as UserData;
                     toast({ title: "Periodo di prova terminato", description: "Puoi ora procedere con l'associazione." });
                 }
                 
                 setUserData(fetchedUserData);
                 
-                // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
+                // === NUOVA LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
                 const isUserWaiting = 
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.trialStatus === 'pending_payment';
 
-                // Se l'utente è in attesa o già socio attivo, NON deve essere reindirizzato.
                 if (isUserWaiting || fetchedUserData.associationStatus === 'active') {
-                    setLoadingData(false);
                     return; 
                 }
 
-                // Altrimenti, guidalo nel flusso di onboarding
                 let targetPage = "";
                 if (!fetchedUserData.regulationsAccepted) {
                     targetPage = "/dashboard/regulations";
@@ -272,27 +246,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 }
 
             } else {
-                console.error("Documento utente non trovato per UID:", user.uid);
-                toast({
-                    variant: "destructive", title: "Errore Critico",
-                    description: "Impossibile trovare il tuo profilo utente. Eseguo il logout.",
-                });
+                toast({ variant: "destructive", title: "Errore Critico", description: "Profilo utente non trovato. Eseguo il logout." });
                 await handleLogout();
             }
         } catch (error) {
-            console.error("Errore nel caricamento dati o reindirizzamento:", error);
-            toast({ title: "Errore di Caricamento", description: "Impossibile caricare i dati. Riprova più tardi.", variant: "destructive" });
+            console.error("Errore nel caricamento dati:", error);
+            toast({ title: "Errore di Caricamento", description: "Impossibile caricare i dati. Riprova.", variant: "destructive" });
         } finally {
             setLoadingData(false);
         }
     };
     
-    fetchAndRedirect();
+    if (!loadingAuth && user) {
+        fetchAndRedirect();
+    } else if (!loadingAuth && !user) {
+         redirect("/");
+    }
 
   }, [user, loadingAuth, pathname, router, toast, handleLogout]);
 
-
-  // === STATI DI CARICAMENTO ===
   if (loadingAuth || loadingData) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -302,17 +274,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
   
   if (!user || !userData) {
-      return (
-         <div className="flex h-screen w-full flex-col items-center justify-center bg-background gap-4">
-            <Loader2 className="h-16 w-16 animate-spin text-primary" />
-            <p className="text-muted-foreground">Reindirizzamento in corso...</p>
-         </div>
-      )
+      return null; // Should be redirected
   }
 
-  // === LOGICA DI VISUALIZZAZIONE ===
+  // === LOGICA DI VISUALIZZAZIONE SEMPLIFICATA ===
   
-  // Pagine di onboarding non devono avere menu di navigazione
   const onboardingPages = [
     '/dashboard/regulations',
     '/dashboard/liberasphere',
@@ -321,11 +287,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   ];
   const isOnboardingFlow = onboardingPages.includes(pathname);
 
-  // Il socio è "operativo" solo quando il suo stato è attivo
-  const isOperational = userData.associationStatus === 'active';
-
-
-  // 1. Layout per l'Onboarding Guidato (senza menu)
   if (isOnboardingFlow) {
       return (
          <div className="flex min-h-screen w-full flex-col bg-background">
@@ -340,13 +301,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
   
-  // 2. Layout Completo per Soci Attivi (con sidebar su desktop)
+  const isOperational = userData.associationStatus === 'active';
+
   if (isOperational) {
       return (
         <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
             <DesktopSidebar userData={userData} />
             <div className="flex flex-col">
-                <DashboardHeader onLogout={handleLogout} userData={userData}/>
+                <DashboardHeader onLogout={handleLogout} userData={userData} showMenuButtonOnDesktop={false} />
                 <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
                     {children}
                 </main>
@@ -355,12 +317,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       )
   }
 
-  // 3. Layout Semplificato per tutti gli altri stati (es. in attesa, prova completata, ecc.)
-  // Questo layout ha l'header con il menu a comparsa ma non la sidebar fissa.
+  // Layout Semplificato (per utenti in attesa, etc.)
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-        <DashboardHeader onLogout={handleLogout} userData={userData} />
+        <DashboardHeader onLogout={handleLogout} userData={userData} showMenuButtonOnDesktop={true} />
         <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
   )
 }
+
+    
