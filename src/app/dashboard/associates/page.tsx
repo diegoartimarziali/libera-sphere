@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { CreditCard, Landmark, ArrowLeft, CheckCircle, University } from "lucide-react"
+import { CreditCard, Landmark, ArrowLeft, CheckCircle, University, Sparkles, Award, Star } from "lucide-react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -32,11 +32,14 @@ interface SeasonSettings {
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
 
 // Componente per visualizzare i dati in modo pulito
-const DataRow = ({ label, value }: { label: string; value?: string | null }) => (
+const DataRow = ({ label, value, icon }: { label: string; value?: string | null, icon?: React.ReactNode }) => (
     value ? (
-        <div className="flex flex-col sm:flex-row sm:justify-between">
-            <dt className="font-medium text-muted-foreground">{label}</dt>
-            <dd className="mt-1 text-foreground sm:mt-0">{value}</dd>
+        <div className="flex items-center">
+            {icon && <div className="w-5 text-muted-foreground">{icon}</div>}
+            <div className={`flex flex-col sm:flex-row sm:justify-between w-full ${icon ? 'ml-3' : ''}`}>
+                 <dt className="font-medium text-muted-foreground">{label}</dt>
+                 <dd className="mt-1 text-foreground sm:mt-0 sm:text-right">{value}</dd>
+            </div>
         </div>
     ) : null
 );
@@ -216,14 +219,20 @@ function ConfirmationStep({
     onBack,
     onComplete,
     isSubmitting,
-    fee
+    fee,
+    discipline,
+    lastGrade,
+    qualification,
 }: {
     formData: PersonalDataSchemaType,
     paymentMethod: PaymentMethod | null,
     onBack: () => void,
     onComplete: () => void,
     isSubmitting: boolean,
-    fee: FeeData | null
+    fee: FeeData | null,
+    discipline: string | null,
+    lastGrade: string | null,
+    qualification: string | null,
 }) {
     const [isConfirmed, setIsConfirmed] = useState(false);
     
@@ -266,6 +275,15 @@ function ConfirmationStep({
                 )}
 
                  <div className="space-y-4 rounded-md border p-4">
+                     <h3 className="font-semibold text-lg">Carriera Sportiva</h3>
+                     <dl className="space-y-2">
+                        <DataRow label="Disciplina" value={discipline} icon={<Sparkles size={16}/>} />
+                        <DataRow label="Grado" value={lastGrade} icon={<Award size={16}/>} />
+                        <DataRow label="Qualifica" value={qualification} icon={<Star size={16}/>}/>
+                     </dl>
+                </div>
+
+                 <div className="space-y-4 rounded-md border p-4">
                     <h3 className="font-semibold text-lg">Quota Associativa</h3>
                     <dl className="space-y-2">
                        <DataRow label="Metodo Scelto" value={getPaymentDescription(paymentMethod)} />
@@ -301,6 +319,10 @@ export default function AssociatesPage() {
     const [feeData, setFeeData] = useState<FeeData | null>(null);
     const [seasonSettings, setSeasonSettings] = useState<SeasonSettings | null>(null);
     const [loading, setLoading] = useState(true);
+    const [discipline, setDiscipline] = useState<string | null>(null);
+    const [lastGrade, setLastGrade] = useState<string | null>(null);
+    const [qualification, setQualification] = useState<string | null>(null);
+
 
     const { toast } = useToast()
     const router = useRouter()
@@ -340,6 +362,12 @@ export default function AssociatesPage() {
 
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
+                    
+                    // Set career data
+                    setDiscipline(userData.discipline || null);
+                    setLastGrade(userData.lastGrade || null);
+                    setQualification(userData.qualification || null);
+
                     const prefilledData: PersonalDataSchemaType = {
                         name: userData.name || "",
                         surname: userData.surname || "",
@@ -533,6 +561,9 @@ export default function AssociatesPage() {
                         onComplete={submitApplication}
                         isSubmitting={isSubmitting}
                         fee={feeData}
+                        discipline={discipline}
+                        lastGrade={lastGrade}
+                        qualification={qualification}
                     />
                 )}
             </div>
