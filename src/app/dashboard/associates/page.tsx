@@ -534,7 +534,7 @@ export default function AssociatesPage() {
                 <p className="mt-2 text-muted-foreground">
                     {seasonSettings?.label 
                         ? `Completa e verifica i tuoi dati per inviare la domanda di associazione per la stagione ${seasonSettings.label}.`
-                        : "Completa e verifica i tuoi dati per inviare la domanda."
+                        : "Completa e verifica i tuoi dati per inviare la domanda di associazione."
                     }
                 </p>
             </div>
@@ -583,5 +583,3 @@ export default function AssociatesPage() {
         </div>
     )
 }
-
-    
