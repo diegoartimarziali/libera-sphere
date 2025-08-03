@@ -115,9 +115,9 @@ export default function AdminPaymentsPage() {
                     isInsured: true
                 });
             } else if (payment.type === 'subscription') {
-                // Per ora, l'attivazione della subscription è gestita a livello di utente
-                // quando si crea il pagamento, qui potremmo solo confermare lo stato se necessario.
-                // Al momento l'approvazione del pagamento è l'unica azione richiesta.
+                batch.update(userDocRef, { 
+                    associationStatus: 'active' // Assumiamo che un abbonamento attivi/confermi lo stato socio
+                });
             }
             
             // Esegui le operazioni in batch
@@ -212,5 +212,3 @@ export default function AdminPaymentsPage() {
         </Card>
     );
 }
-
-    

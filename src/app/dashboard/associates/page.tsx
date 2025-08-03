@@ -467,6 +467,7 @@ export default function AssociatesPage() {
                 associationStatus: "pending",
                 associationExpiryDate: seasonSettings.endDate,
                 trialStatus: 'not_applicable',
+                isInsured: false, // L'assicurazione sarà attivata solo dopo l'approvazione
                 // Aggiungiamo anche la qualifica per mantenerla aggiornata
                 qualification: qualification,
             };
