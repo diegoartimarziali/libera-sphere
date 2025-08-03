@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useEffect, useState, ReactNode, useCallback } from "react"
@@ -15,7 +16,7 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
 import { cn } from "@/lib/utils"
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 interface UserData {
   name: string
@@ -37,18 +38,26 @@ function NavLink({ href, children, icon: Icon, onClick }: { href: string; childr
     const pathname = usePathname();
     const isActive = pathname === href;
 
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        if (onClick) {
+            onClick();
+        }
+    };
+    
     return (
-        <Link
-            href={href}
-            onClick={onClick}
-            className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                isActive && "bg-muted text-primary"
-            )}
-        >
-            <Icon className="h-4 w-4" />
-            {children}
-        </Link>
+        <SheetClose asChild>
+            <Link
+                href={href}
+                onClick={handleClick}
+                className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                    isActive && "bg-muted text-primary"
+                )}
+            >
+                <Icon className="h-4 w-4" />
+                {children}
+            </Link>
+        </SheetClose>
     );
 }
 
@@ -59,7 +68,7 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
     const showAssociationLink = userData.trialStatus === 'completed' && userData.associationStatus !== 'active' && userData.associationStatus !== 'pending';
 
     return (
-        <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+        <>
             <NavLink href="/dashboard" icon={UserSquare} onClick={onLinkClick}>Scheda Personale</NavLink>
             <NavLink href="/dashboard/medical-certificate" icon={HeartPulse} onClick={onLinkClick}>Certificato Medico</NavLink>
             <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick}>I Miei Pagamenti</NavLink>
@@ -74,7 +83,7 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
                     <NavLink href="/dashboard/stages" icon={Sparkles} onClick={onLinkClick}>Stages</NavLink>
                 </>
             )}
-        </nav>
+        </>
     );
 }
 
@@ -83,11 +92,9 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
 // =================================================================
 
 function DashboardHeader({ onLogout, userData }: { onLogout: () => void; userData: UserData | null }) {
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    
     return (
         <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
-             <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+             <Sheet>
                 <SheetTrigger asChild>
                     <Button variant="outline">
                         <Menu className="h-5 w-5" />
@@ -95,29 +102,33 @@ function DashboardHeader({ onLogout, userData }: { onLogout: () => void; userDat
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="sm:max-w-xs">
+                    <SheetHeader>
+                        <SheetTitle className="sr-only">Menu Principale</SheetTitle>
+                    </SheetHeader>
                      <nav className="grid gap-6 text-lg font-medium">
-                         <Link
-                            href="/dashboard"
-                            className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-                          >
-                           <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="h-5 w-5 transition-all group-hover:scale-110"
-                            >
-                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                              <path d="M12 12L16 8"></path>
-                              <path d="M12 6v6l4 2"></path>
-                            </svg>
-                            <span className="sr-only">LiberaSphere</span>
-                        </Link>
-                        {/* Passiamo la funzione per chiudere il menu al click */}
-                        <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
+                         <SheetClose asChild>
+                             <Link
+                                href="/dashboard"
+                                className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                              >
+                               <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="h-5 w-5 transition-all group-hover:scale-110"
+                                >
+                                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                                  <path d="M12 12L16 8"></path>
+                                  <path d="M12 6v6l4 2"></path>
+                                </svg>
+                                <span className="sr-only">LiberaSphere</span>
+                            </Link>
+                         </SheetClose>
+                        <NavigationLinks userData={userData} onLinkClick={() => {}} />
                     </nav>
                 </SheetContent>
             </Sheet>
@@ -190,10 +201,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.trialStatus === 'pending_payment';
 
-                // Se l'utente è in attesa o è già attivo, non reindirizzare e lascialo navigare.
-                if (isUserWaiting || fetchedUserData.associationStatus === 'active') {
-                    setLoadingData(false);
-                    return; 
+                // Se l'utente è in attesa o è già attivo o è socio scaduto, non reindirizzare e lascialo navigare.
+                if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired') {
+                     setLoadingData(false);
+                     return;
                 }
 
                 // Altrimenti, guida l'utente nel flusso di onboarding.
@@ -204,9 +215,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     targetPage = "/dashboard/medical-certificate";
                 } else if (typeof fetchedUserData.isFormerMember !== 'string' || fetchedUserData.isFormerMember === "") {
                     targetPage = "/dashboard/liberasphere";
-                } else if (fetchedUserData.isFormerMember === 'yes') {
+                } else if (fetchedUserData.isFormerMember === 'yes' && fetchedUserData.associationStatus !== 'active') {
                     targetPage = "/dashboard/associates";
-                } else if (fetchedUserData.isFormerMember === 'no') {
+                } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.trialStatus !== 'active' && fetchedUserData.trialStatus !== 'completed') {
                     targetPage = "/dashboard/class-selection";
                 }
                 
