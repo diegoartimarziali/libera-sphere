@@ -389,11 +389,11 @@ export default function AdminPaymentsPage() {
                                                                          {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="h-4 w-4" />}
                                                                     </Button>
                                                                     <Button
+                                                                        variant="success"
                                                                         size="icon"
                                                                         onClick={() => handlePaymentUpdate(p, 'completed')}
                                                                         disabled={updatingPaymentId === p.id}
                                                                         title="Approva pagamento"
-                                                                        className="bg-green-600 hover:bg-green-700 text-white"
                                                                     >
                                                                         {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4" />}
                                                                     </Button>
