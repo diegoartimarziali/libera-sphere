@@ -162,16 +162,8 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
 
                         // Se l'utente ha un abbonamento ATTIVO O PENDING, blocca tutto
                         if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
-                           if (userSubscription.type === 'seasonal') {
-                                isPurchasable = false;
-                                disabledReason = "Hai già un abbonamento stagionale attivo.";
-                           } else if (userSubscription.type === 'monthly') {
-                                // Se l'utente ha un mensile, può comprare un altro mensile ma non lo stagionale
-                                if (sub.type === 'seasonal') {
-                                    isPurchasable = false;
-                                    disabledReason = "Non puoi acquistare lo stagionale con un mensile attivo.";
-                                }
-                           }
+                           isPurchasable = false;
+                           disabledReason = "Hai già un abbonamento attivo o in attesa di approvazione.";
                         }
                         
                         // Messaggio di default se non acquistabile per data
@@ -219,8 +211,8 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                              <span>Copertura assicurativa sempre inclusa</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <XCircle className="h-4 w-4 mr-2 text-destructive flex-shrink-0" />
-                                            <span>Nessun vincolo a lungo termine, massima flessibilità</span>
+                                             <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                                            <span>Massima flessibilità</span>
                                         </li>
                                     </ul>
                                 </CardContent>
@@ -414,9 +406,6 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, subscription }: { o
 }
 
 export default function SubscriptionsPage() {
-    // Interruttore per la modalità di test
-    const FORCE_PURCHASE_MODE = true; // Imposta su 'false' per tornare al comportamento normale
-
     const [user] = useAuthState(auth);
     const [step, setStep] = useState(1);
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -480,7 +469,7 @@ export default function SubscriptionsPage() {
                         } else if (subData.type === 'monthly') {
                             const seasonStartDate = activitySettingsData.startDate.toDate();
                             const seasonEndDate = activitySettingsData.endDate.toDate();
-                            isAvailable = FORCE_PURCHASE_MODE || isWithinInterval(now, { start: seasonStartDate, end: seasonEndDate });
+                            isAvailable = isWithinInterval(now, { start: seasonStartDate, end: seasonEndDate });
                         }
 
                         return {
@@ -506,7 +495,7 @@ export default function SubscriptionsPage() {
         };
 
         fetchData();
-    }, [user, toast, FORCE_PURCHASE_MODE]);
+    }, [user, toast]);
 
     const handleSelectSubscription = (sub: Subscription) => {
         setSelectedSubscription(sub);
