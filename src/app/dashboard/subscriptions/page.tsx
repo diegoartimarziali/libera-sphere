@@ -160,15 +160,18 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                         let isPurchasable = sub.isAvailable ?? false;
                         let disabledReason = "";
 
-                        // Se l'utente ha un abbonamento STAGIONALE, NIENTE è acquistabile.
-                        if (userSubscription?.type === 'seasonal' && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
-                            isPurchasable = false;
-                            disabledReason = "Hai già un abbonamento stagionale attivo.";
-                        }
-                        // Se l'utente ha un abbonamento MENSILE, solo lo stagionale è bloccato.
-                        else if (sub.type === 'seasonal' && userSubscription?.type === 'monthly' && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
-                           isPurchasable = false;
-                           disabledReason = "Non puoi acquistare lo stagionale se hai un mensile attivo.";
+                        // Se l'utente ha un abbonamento ATTIVO O PENDING, blocca tutto
+                        if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
+                           if (userSubscription.type === 'seasonal') {
+                                isPurchasable = false;
+                                disabledReason = "Hai già un abbonamento stagionale attivo.";
+                           } else if (userSubscription.type === 'monthly') {
+                                // Se l'utente ha un mensile, può comprare un altro mensile ma non lo stagionale
+                                if (sub.type === 'seasonal') {
+                                    isPurchasable = false;
+                                    disabledReason = "Non puoi acquistare lo stagionale con un mensile attivo.";
+                                }
+                           }
                         }
                         
                         // Messaggio di default se non acquistabile per data
@@ -216,8 +219,8 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                              <span>Copertura assicurativa sempre inclusa</span>
                                         </li>
                                         <li className="flex items-center">
-                                            <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
-                                            <span>Massima flessibilità</span>
+                                            <XCircle className="h-4 w-4 mr-2 text-destructive flex-shrink-0" />
+                                            <span>Nessun vincolo a lungo termine, massima flessibilità</span>
                                         </li>
                                     </ul>
                                 </CardContent>
@@ -447,7 +450,7 @@ export default function SubscriptionsPage() {
 
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
-                    if (userData.subscriptionAccessStatus) { // Controlliamo se esiste un abbonamento, anche scaduto
+                    if (userData.subscriptionAccessStatus && (userData.subscriptionAccessStatus === 'active' || userData.subscriptionAccessStatus === 'pending')) {
                         const subStatus: UserSubscription = {
                             name: userData.activeSubscription.name,
                             type: userData.activeSubscription.type,
@@ -651,4 +654,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
