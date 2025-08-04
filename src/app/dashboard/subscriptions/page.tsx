@@ -8,7 +8,7 @@ import { collection, doc, getDocs, serverTimestamp, updateDoc, addDoc, getDoc, T
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
-import { format, lastDayOfMonth, isWithinInterval, startOfMonth } from "date-fns"
+import { format, lastDayOfMonth, isWithinInterval, startOfMonth, differenceInDays, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -53,22 +53,27 @@ interface ActivitySettings {
 function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSubscription }) {
     const router = useRouter();
 
-    const getStatusVariant = () => {
+    const getStatusInfo = () => {
+        if (userSubscription.type === 'monthly' && userSubscription.status === 'active' && userSubscription.expiresAt) {
+            const expiryDate = startOfDay(userSubscription.expiresAt.toDate());
+            const today = startOfDay(new Date());
+            const daysDiff = differenceInDays(expiryDate, today);
+
+            if (daysDiff <= 4) {
+                return { label: "In scadenza", variant: "warning" as const };
+            }
+        }
+        
         switch(userSubscription.status) {
-            case 'active': return 'success';
-            case 'pending': return 'secondary';
-            case 'expired': return 'destructive';
-            default: return 'secondary';
+            case 'active': return { label: 'Attivo', variant: "success" as const };
+            case 'pending': return { label: 'In attesa di approvazione', variant: "secondary" as const };
+            case 'expired': return { label: 'Scaduto', variant: "destructive" as const };
+            default: return { label: 'Sconosciuto', variant: "secondary" as const };
         }
     }
-    const getStatusLabel = () => {
-        switch(userSubscription.status) {
-            case 'active': return 'Attivo';
-            case 'pending': return 'In attesa di approvazione';
-            case 'expired': return 'Scaduto';
-            default: return 'Sconosciuto';
-        }
-    }
+    
+    const statusInfo = getStatusInfo();
+
 
     return (
         <Card className="w-full max-w-lg mb-8">
@@ -93,8 +98,8 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
                 )}
                 <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Stato</span>
-                    <Badge variant={getStatusVariant()}>
-                       {getStatusLabel()}
+                    <Badge variant={statusInfo.variant}>
+                       {statusInfo.label}
                     </Badge>
                 </div>
             </CardContent>
@@ -172,9 +177,13 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                     {subscriptions.map((sub) => {
                         let isPurchasable = sub.isAvailable ?? false;
                         let disabledReason = "";
-
-                        // Se l'utente ha un abbonamento ATTIVO O PENDING, blocca l'acquisto solo se non è mensile
-                        if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && userSubscription.type !== 'monthly') {
+                        
+                         // Se l'utente ha un abbonamento mensile attivo, non può acquistarne un altro.
+                        if (userSubscription && userSubscription.type === 'monthly' && userSubscription.status === 'active') {
+                            isPurchasable = false;
+                            disabledReason = "Hai già un abbonamento attivo per questo mese.";
+                        } else if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && userSubscription.type !== 'monthly') {
+                            // Se l'utente ha un abbonamento NON mensile ATTIVO O PENDING, blocca l'acquisto
                            isPurchasable = false;
                            disabledReason = "Hai già un abbonamento attivo o in attesa di approvazione.";
                         }
@@ -184,12 +193,6 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                              disabledReason = `Acquistabile dal ${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
                         } else if (!isPurchasable && !disabledReason) {
                             disabledReason = "Non Disponibile Ora";
-                        }
-                        
-                         // Se l'utente ha un abbonamento mensile attivo, non può acquistarne un altro.
-                        if (userSubscription && userSubscription.type === 'monthly' && userSubscription.status === 'active') {
-                            isPurchasable = false;
-                            disabledReason = "Hai già un abbonamento attivo per questo mese.";
                         }
 
 
@@ -629,8 +632,6 @@ export default function SubscriptionsPage() {
     let showPurchaseOptions = true;
 
     if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
-        // Se ho un mensile, vedo comunque le opzioni di acquisto (filtrate)
-        // Se ho uno stagionale (o altro tipo non mensile), non vedo opzioni di acquisto
         if (userSubscription.type !== 'monthly') {
             showPurchaseOptions = false;
         }
@@ -676,3 +677,5 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
+
+    

@@ -41,6 +41,7 @@ interface UserData {
   activeSubscription?: {
       name: string;
       type: 'monthly' | 'seasonal';
+      expiresAt?: Timestamp;
   }
 }
 
@@ -120,11 +121,28 @@ export default function DashboardPage() {
             if(data.trialStatus === 'active') trialStatusLabel = "Attiva";
 
             let subscriptionStatusLabel: string | undefined = undefined;
-            if(data.subscriptionAccessStatus) {
-                switch(data.subscriptionAccessStatus) {
-                    case 'pending': subscriptionStatusLabel = 'In attesa di approvazione'; break;
-                    case 'active': subscriptionStatusLabel = 'Attivo'; break;
-                    case 'expired': subscriptionStatusLabel = 'Scaduto'; break;
+            if (data.subscriptionAccessStatus && data.activeSubscription) {
+                 switch(data.subscriptionAccessStatus) {
+                    case 'pending': 
+                        subscriptionStatusLabel = 'In attesa di approvazione'; 
+                        break;
+                    case 'expired': 
+                        subscriptionStatusLabel = 'Scaduto'; 
+                        break;
+                    case 'active':
+                         if (data.activeSubscription.type === 'monthly' && data.activeSubscription.expiresAt) {
+                            const expiryDate = startOfDay(data.activeSubscription.expiresAt.toDate());
+                            const today = startOfDay(new Date());
+                            const daysDiff = differenceInDays(expiryDate, today);
+                            if (daysDiff <= 4) {
+                                subscriptionStatusLabel = 'In scadenza';
+                            } else {
+                                subscriptionStatusLabel = 'Attivo';
+                            }
+                        } else {
+                            subscriptionStatusLabel = 'Attivo';
+                        }
+                        break;
                 }
             }
 
@@ -299,3 +317,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+    
