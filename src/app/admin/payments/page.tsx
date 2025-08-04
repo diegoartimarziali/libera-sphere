@@ -7,6 +7,7 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { collection, getDocs, query, orderBy, collectionGroup, where, doc, writeBatch, Timestamp, updateDoc, getDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
+import type { VariantProps } from "class-variance-authority"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -341,7 +342,7 @@ export default function AdminPaymentsPage() {
                                             size="sm"
                                             className="ml-4"
                                             onClick={(e) => {
-                                                e.stopPropagation(); // Questo è comunque utile per non far scattare altri listener sul div genitore
+                                                e.stopPropagation(); 
                                                 handleMakeAdmin(profile.uid);
                                             }}
                                         >
@@ -420,5 +421,6 @@ export default function AdminPaymentsPage() {
             </CardContent>
         </Card>
     );
+}
 
     
