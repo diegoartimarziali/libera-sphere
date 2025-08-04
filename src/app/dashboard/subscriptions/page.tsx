@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -12,7 +13,7 @@ import { it } from "date-fns/locale"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, CheckCircle, XCircle, ArrowLeft, CreditCard, Landmark, University, CalendarClock } from "lucide-react"
+import { Loader2, CheckCircle, XCircle, ArrowLeft, CreditCard, Landmark, University, CalendarClock, Info } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
@@ -130,7 +131,7 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
 }
 
 // Componente per la selezione dell'abbonamento
-function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscriptions: Subscription[], onSelect: (sub: Subscription) => void, onBack: () => void }) {
+function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscription }: { subscriptions: Subscription[], onSelect: (sub: Subscription) => void, onBack: () => void, userSubscription: UserSubscription | null }) {
     
     return (
         <div className="flex w-full flex-col items-center">
@@ -156,25 +157,34 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
             ) : (
                 <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
                     {subscriptions.map((sub) => {
-                        const isSeasonalAndUnavailable = sub.type === 'seasonal' && !sub.isAvailable;
-                        
+                        const alreadyOwned = userSubscription?.type === sub.type && (userSubscription?.status === 'active' || userSubscription?.status === 'pending');
+                        const isPurchasable = sub.isAvailable && !alreadyOwned;
+
+                        const getDisabledReason = () => {
+                            if (alreadyOwned) return "Già attivo";
+                            if (sub.type === 'seasonal' && !sub.isAvailable) {
+                                return `Acquistabile dal ${format(sub.purchaseStartDate!.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate!.toDate(), 'dd/MM/yy')}`;
+                            }
+                            return "Non Disponibile Ora";
+                        };
+
                         return (
                             <Card 
                                 key={sub.id} 
                                 className={cn(
                                     "flex flex-col border-2 transition-all",
-                                    isSeasonalAndUnavailable 
+                                    !isPurchasable 
                                         ? "border-dashed border-muted-foreground/50 bg-muted/30" 
                                         : "hover:border-primary"
                                 )}
                             >
-                                {sub.type === 'seasonal' && !isSeasonalAndUnavailable && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
+                                {sub.type === 'seasonal' && isPurchasable && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                                 <CardHeader>
-                                    <CardTitle className={cn("text-2xl", isSeasonalAndUnavailable && "text-muted-foreground")}>{sub.name}</CardTitle>
+                                    <CardTitle className={cn("text-2xl", !isPurchasable && "text-muted-foreground")}>{sub.name}</CardTitle>
                                     <CardDescription>{sub.description}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="flex-grow space-y-4">
-                                    <div className={cn("text-5xl font-bold", isSeasonalAndUnavailable && "text-muted-foreground/80")}>
+                                    <div className={cn("text-5xl font-bold", !isPurchasable && "text-muted-foreground/80")}>
                                         {sub.price}€
                                         <span className="text-lg font-normal text-muted-foreground">/{sub.type === 'monthly' ? 'mese' : 'stagione'}</span>
                                     </div>
@@ -208,21 +218,22 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                                     </ul>
                                 </CardContent>
                                 <CardFooter className="flex-col items-start space-y-2">
-                                     {isSeasonalAndUnavailable && sub.purchaseStartDate && (
+                                     {!isPurchasable && (
                                         <Alert variant="default" className="w-full border-primary/50 text-center">
+                                            <Info className="h-4 w-4" />
                                             <AlertDescription>
-                                                Acquistabile dal {format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al {format(sub.purchaseEndDate!.toDate(), 'dd/MM/yy')}
+                                                {getDisabledReason()}
                                             </AlertDescription>
                                         </Alert>
                                     )}
                                     <Button 
                                         className="w-full" 
                                         onClick={() => onSelect(sub)}
-                                        variant={sub.type === 'seasonal' && !isSeasonalAndUnavailable ? 'default' : 'secondary'}
+                                        variant={sub.type === 'seasonal' && isPurchasable ? 'default' : 'secondary'}
                                         size="lg"
-                                        disabled={isSeasonalAndUnavailable}
+                                        disabled={!isPurchasable}
                                     >
-                                        {isSeasonalAndUnavailable ? "Non Disponibile Ora" : `Scegli ${sub.name}`}
+                                        {!isPurchasable ? "Non Acquistabile" : `Scegli ${sub.name}`}
                                     </Button>
                                 </CardFooter>
                             </Card>
@@ -430,6 +441,7 @@ export default function SubscriptionsPage() {
                     getDocs(subsCollection)
                 ]);
 
+                let currentUserSub: UserSubscription | null = null;
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
                     if (userData.subscriptionAccessStatus && (userData.subscriptionAccessStatus === 'active' || userData.subscriptionAccessStatus === 'pending')) {
@@ -441,30 +453,26 @@ export default function SubscriptionsPage() {
                             status: userData.subscriptionAccessStatus
                         };
                         setUserSubscription(subStatus);
-                        // Se l'abbonamento è STAGIONALE, blocchiamo la possibilità di nuovi acquisti
-                        if (subStatus.type === 'seasonal') {
-                            setLoading(false);
-                            return; // Esce dalla funzione, mostrando solo la Status Card
-                        }
+                        currentUserSub = subStatus;
                     }
                 }
                 
                 if (settingsDocSnap.exists()) {
-                     const settingsData = settingsDocSnap.data() as ActivitySettings;
-                    setActivitySettings(settingsData);
+                     const activitySettingsData = settingsDocSnap.data() as ActivitySettings;
+                    setActivitySettings(activitySettingsData);
                     
                     const now = new Date();
                     const allSubs = subsSnapshot.docs.map(doc => {
                         const subData = doc.data() as Omit<Subscription, 'id' | 'isAvailable'>;
                         let isAvailable = false;
                         
-                        if (subData.type === 'seasonal' && subData.purchaseStartDate && subData.purchaseEndDate) {
+                         if (subData.type === 'seasonal' && subData.purchaseStartDate && subData.purchaseEndDate) {
                             const startDate = subData.purchaseStartDate.toDate();
                             const endDate = subData.purchaseEndDate.toDate();
                             isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
                         } else if (subData.type === 'monthly') {
-                            const seasonStartDate = settingsData.startDate.toDate();
-                            const seasonEndDate = settingsData.endDate.toDate();
+                            const seasonStartDate = activitySettingsData.startDate.toDate();
+                            const seasonEndDate = activitySettingsData.endDate.toDate();
                             isAvailable = FORCE_PURCHASE_MODE || isWithinInterval(now, { start: seasonStartDate, end: seasonEndDate });
                         }
 
@@ -491,7 +499,7 @@ export default function SubscriptionsPage() {
         };
 
         fetchData();
-    }, [user, toast, FORCE_PURCHASE_MODE]);
+    }, [user, toast]);
 
     const handleSelectSubscription = (sub: Subscription) => {
         setSelectedSubscription(sub);
@@ -606,7 +614,7 @@ export default function SubscriptionsPage() {
     return (
         <div className="flex w-full flex-col items-center justify-center">
 
-            {userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && userSubscription.type === 'monthly' && (
+            {userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && (
                  <div className="w-full max-w-lg mb-8">
                     <SubscriptionStatusCard userSubscription={userSubscription} />
                  </div>
@@ -615,9 +623,10 @@ export default function SubscriptionsPage() {
 
             {step === 1 && (
                 <SubscriptionSelectionStep
-                    subscriptions={subscriptions.filter(s => s.isAvailable || s.type === 'seasonal')}
+                    subscriptions={subscriptions}
                     onSelect={handleSelectSubscription}
                     onBack={() => router.push('/dashboard')}
+                    userSubscription={userSubscription}
                 />
             )}
             {step === 2 && selectedSubscription && (
@@ -644,5 +653,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
-    
