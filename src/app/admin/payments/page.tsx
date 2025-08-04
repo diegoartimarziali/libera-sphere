@@ -11,11 +11,12 @@ import { format } from "date-fns"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+import { Badge, badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Loader2, Check, X, User, Users, Search, ShieldPlus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 
 interface Payment {
@@ -49,9 +50,9 @@ interface Gym {
 }
 
 // Funzioni helper per tradurre stati e metodi
-const getStatusVariant = (status: Payment['status']) => {
+const getStatusVariant = (status: Payment['status']): VariantProps<typeof badgeVariants>["variant"] => {
     switch (status) {
-        case 'completed': return 'default';
+        case 'completed': return 'success';
         case 'pending': return 'secondary';
         case 'failed': return 'destructive';
         default: return 'secondary';
