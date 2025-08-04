@@ -157,16 +157,20 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
             ) : (
                 <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
                     {subscriptions.map((sub) => {
-                        const alreadyOwned = userSubscription?.type === sub.type && (userSubscription?.status === 'active' || userSubscription?.status === 'pending');
-                        const isPurchasable = sub.isAvailable && !alreadyOwned;
+                        const hasActiveSubscription = userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending');
+                        const isPurchasable = sub.isAvailable && !hasActiveSubscription;
 
                         const getDisabledReason = () => {
-                            if (alreadyOwned) return "Già attivo";
-                            if (sub.type === 'seasonal' && !sub.isAvailable) {
-                                return `Acquistabile dal ${format(sub.purchaseStartDate!.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate!.toDate(), 'dd/MM/yy')}`;
+                            if (hasActiveSubscription) return "Hai già un abbonamento attivo";
+                            if (!sub.isAvailable) {
+                                if (sub.type === 'seasonal' && sub.purchaseStartDate && sub.purchaseEndDate) {
+                                     return `Acquistabile dal ${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
+                                }
+                                return "Non Disponibile Ora";
                             }
-                            return "Non Disponibile Ora";
+                            return "Non Acquistabile";
                         };
+
 
                         return (
                             <Card 
@@ -395,7 +399,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, subscription }: { o
                     </div>
                      <div className="space-y-1">
                         <p className="font-semibold text-foreground">Causale:</p>
-                        <p className="font-mono bg-muted p-2 rounded-md">{`${subscription?.name} [Nome Cognome Socio]`}</p>
+                        <p className="font-mono bg-muted p-2 rounded-md">{`Abbonamento ${subscription?.name} [Nome Cognome Socio]`}</p>
                     </div>
                 </div>
                 <DialogFooter>
@@ -441,10 +445,9 @@ export default function SubscriptionsPage() {
                     getDocs(subsCollection)
                 ]);
 
-                let currentUserSub: UserSubscription | null = null;
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
-                    if (userData.subscriptionAccessStatus && (userData.subscriptionAccessStatus === 'active' || userData.subscriptionAccessStatus === 'pending')) {
+                    if (userData.subscriptionAccessStatus && userData.subscriptionAccessStatus !== 'expired') {
                         const subStatus: UserSubscription = {
                             name: userData.activeSubscription.name,
                             type: userData.activeSubscription.type,
@@ -453,7 +456,6 @@ export default function SubscriptionsPage() {
                             status: userData.subscriptionAccessStatus
                         };
                         setUserSubscription(subStatus);
-                        currentUserSub = subStatus;
                     }
                 }
                 
@@ -469,7 +471,7 @@ export default function SubscriptionsPage() {
                          if (subData.type === 'seasonal' && subData.purchaseStartDate && subData.purchaseEndDate) {
                             const startDate = subData.purchaseStartDate.toDate();
                             const endDate = subData.purchaseEndDate.toDate();
-                            isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
+                             isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
                         } else if (subData.type === 'monthly') {
                             const seasonStartDate = activitySettingsData.startDate.toDate();
                             const seasonEndDate = activitySettingsData.endDate.toDate();
@@ -499,7 +501,7 @@ export default function SubscriptionsPage() {
         };
 
         fetchData();
-    }, [user, toast]);
+    }, [user, toast, FORCE_PURCHASE_MODE]);
 
     const handleSelectSubscription = (sub: Subscription) => {
         setSelectedSubscription(sub);
@@ -550,7 +552,7 @@ export default function SubscriptionsPage() {
                 userId: user.uid,
                 createdAt: serverTimestamp(),
                 amount: selectedSubscription.price,
-                description: selectedSubscription.name,
+                description: `Abbonamento ${selectedSubscription.name}`,
                 type: 'subscription',
                 status: 'pending',
                 paymentMethod: finalPaymentMethod,
@@ -603,24 +605,25 @@ export default function SubscriptionsPage() {
         );
     }
     
-    if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && userSubscription.type === 'seasonal') {
+    // Mostra solo lo stato se l'utente ha un abbonamento attivo o in attesa
+    if (userSubscription && userSubscription.status !== 'expired') {
         return (
              <div className="flex w-full flex-col items-center justify-center">
                 <SubscriptionStatusCard userSubscription={userSubscription} />
+                 <div className="mt-8 w-full">
+                    <SubscriptionSelectionStep
+                        subscriptions={subscriptions}
+                        onSelect={handleSelectSubscription}
+                        onBack={() => router.push('/dashboard')}
+                        userSubscription={userSubscription}
+                    />
+                 </div>
             </div>
         )
     }
 
     return (
         <div className="flex w-full flex-col items-center justify-center">
-
-            {userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && (
-                 <div className="w-full max-w-lg mb-8">
-                    <SubscriptionStatusCard userSubscription={userSubscription} />
-                 </div>
-            )}
-
-
             {step === 1 && (
                 <SubscriptionSelectionStep
                     subscriptions={subscriptions}
