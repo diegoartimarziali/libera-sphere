@@ -7,7 +7,7 @@ import { collection, doc, getDocs, serverTimestamp, updateDoc, addDoc, getDoc, T
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
-import { format, lastDayOfMonth, isWithinInterval } from "date-fns"
+import { format, lastDayOfMonth, isWithinInterval, startOfMonth } from "date-fns"
 import { it } from "date-fns/locale"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -137,6 +137,13 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
         : "flex justify-center w-full";
         
     const cardContainerClasses = subscriptions.length === 1 ? "w-full max-w-md" : "";
+    
+    const now = new Date();
+    const firstDay = format(startOfMonth(now), "dd");
+    const month = format(now, "MMMM", { locale: it });
+    const year = format(now, "yyyy");
+    const dynamicMonthlyDescription = `Abbonamento valido dal ${firstDay}/${month}/${year}`;
+
 
     return (
         <div className="flex w-full flex-col items-center">
@@ -192,7 +199,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                     {sub.type === 'seasonal' && isPurchasable && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                                     <CardHeader>
                                         <CardTitle className={cn("text-2xl", !isPurchasable && "text-muted-foreground")}>{sub.name}</CardTitle>
-                                        <CardDescription>{sub.description}</CardDescription>
+                                        <CardDescription>{sub.type === 'monthly' ? dynamicMonthlyDescription : sub.description}</CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex-grow space-y-4">
                                         <div className={cn("text-5xl font-bold", !isPurchasable && "text-muted-foreground/80")}>
@@ -613,8 +620,9 @@ export default function SubscriptionsPage() {
     let showPurchaseOptions = true;
 
     if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
+        // Se ho un mensile, vedo comunque le opzioni di acquisto (filtrate)
+        // Se ho uno stagionale (o altro tipo non mensile), non vedo opzioni di acquisto
         if (userSubscription.type !== 'monthly') {
-            // Se ho uno stagionale (o altro tipo non mensile), non vedo opzioni di acquisto
             showPurchaseOptions = false;
         }
     }
