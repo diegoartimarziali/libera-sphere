@@ -139,7 +139,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
     const cardContainerClasses = subscriptions.length === 1 ? "w-full max-w-md" : "";
     
     const now = new Date();
-    const firstDay = format(startOfMonth(now), "dd");
+    const firstDay = format(startOfMonth(now), "d", { locale: it });
     const month = format(now, "MMMM", { locale: it });
     const year = format(now, "yyyy");
     const dynamicMonthlyDescription = `Abbonamento valido dal ${firstDay}/${month}/${year}`;
@@ -183,6 +183,12 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                              disabledReason = `Acquistabile dal ${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
                         } else if (!isPurchasable && !disabledReason) {
                             disabledReason = "Non Disponibile Ora";
+                        }
+                        
+                         // Se l'utente ha un abbonamento mensile attivo, non può acquistarne un altro.
+                        if (userSubscription && userSubscription.type === 'monthly' && userSubscription.status === 'active') {
+                            isPurchasable = false;
+                            disabledReason = "Hai già un abbonamento attivo per questo mese.";
                         }
 
 
@@ -482,8 +488,8 @@ export default function SubscriptionsPage() {
                                 isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
                             }
                         } else if (subData.type === 'monthly') {
-                            // L'abbonamento mensile è sempre acquistabile
-                            isAvailable = true;
+                             // E' acquistabile solo se NON c'è un abbonamento mensile ATTIVO
+                            isAvailable = !(currentUserSubscription?.type === 'monthly' && currentUserSubscription?.status === 'active');
                         }
 
                         return {
