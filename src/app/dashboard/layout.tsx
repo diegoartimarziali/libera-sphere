@@ -10,16 +10,18 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
 
-import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles } from "lucide-react"
+import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
 import { cn } from "@/lib/utils"
+import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
 interface UserData {
   name: string
   email: string
+  role?: 'admin' | 'user';
   regulationsAccepted: boolean
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
@@ -47,7 +49,7 @@ interface UserData {
 
 function NavLink({ href, children, icon: Icon, onClick }: { href: string; children: React.ReactNode; icon: React.ElementType, onClick?: () => void }) {
     const pathname = usePathname();
-    const isActive = pathname === href;
+    const isActive = pathname.startsWith(href) && (href !== '/dashboard' || pathname === '/dashboard');
 
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         if (onClick) {
@@ -96,6 +98,13 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
                 <>
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
                     <NavLink href="/dashboard/stages" icon={Sparkles} onClick={onLinkClick}>Stages</NavLink>
+                </>
+            )}
+            
+            {userData.role === 'admin' && (
+                <>
+                    <Separator className="my-2" />
+                    <NavLink href="/admin" icon={Shield} onClick={onLinkClick}>Pannello Admin</NavLink>
                 </>
             )}
         </>
@@ -260,7 +269,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 // Se l'utente è in uno stato di attesa o ha già completato l'onboarding principale,
                 // non lo reindirizziamo forzatamente, permettendogli di navigare.
                 // La gestione di ciò che può vedere è delegata alle singole pagine.
-                if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired') {
+                if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired' || fetchedUserData.role === 'admin') {
                      // Non fare nulla, lascia che l'utente navighi
                 } else if (fetchedUserData.trialStatus === 'completed' && !fetchedUserData.trialOutcome) {
                     if (pathname !== '/dashboard/trial-completed') {
@@ -342,3 +351,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
