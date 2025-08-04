@@ -10,13 +10,14 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
 
-import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield } from "lucide-react"
+import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 
 interface UserData {
   name: string
@@ -98,6 +99,7 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
                 <>
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
                     <NavLink href="/dashboard/stages" icon={Sparkles} onClick={onLinkClick}>Stages</NavLink>
+                    <NavLink href="/dashboard/attendances" icon={ClipboardList} onClick={onLinkClick}>Le Mie Presenze</NavLink>
                 </>
             )}
             
@@ -119,54 +121,71 @@ function DashboardHeader({ onLogout, userData, showMenu }: { onLogout: () => voi
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
-             {showMenu && (
-                 <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-                    <SheetTrigger asChild>
-                        <Button variant="outline">
-                            <Menu className="h-5 w-5" />
-                            <span className="ml-2 font-semibold">MENU</span>
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="sm:max-w-xs">
-                        <SheetHeader>
-                            <SheetTitle className="sr-only">Menu Principale</SheetTitle>
-                        </SheetHeader>
-                         <nav className="grid gap-6 text-lg font-medium">
-                             <SheetClose asChild>
-                                 <Link
-                                    href="/dashboard"
-                                    className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-                                  >
-                                   <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      className="h-5 w-5 transition-all group-hover:scale-110"
-                                    >
-                                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                                      <path d="M12 12L16 8"></path>
-                                      <path d="M12 6v6l4 2"></path>
-                                    </svg>
-                                    <span className="sr-only">LiberaSphere</span>
-                                </Link>
-                             </SheetClose>
-                            <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
-                        </nav>
-                    </SheetContent>
-                </Sheet>
-             )}
+        <header className="sticky top-0 z-30 flex h-auto min-h-14 flex-col gap-4 border-b bg-background px-4 sm:px-6">
+             <div className="flex h-14 items-center">
+                 {showMenu && (
+                     <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                        <SheetTrigger asChild>
+                            <Button variant="outline">
+                                <Menu className="h-5 w-5" />
+                                <span className="ml-2 font-semibold">MENU</span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="sm:max-w-xs">
+                            <SheetHeader>
+                                <SheetTitle className="sr-only">Menu Principale</SheetTitle>
+                            </SheetHeader>
+                             <nav className="grid gap-6 text-lg font-medium">
+                                 <SheetClose asChild>
+                                     <Link
+                                        href="/dashboard"
+                                        className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                                      >
+                                       <svg
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          className="h-5 w-5 transition-all group-hover:scale-110"
+                                        >
+                                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                                          <path d="M12 12L16 8"></path>
+                                          <path d="M12 6v6l4 2"></path>
+                                        </svg>
+                                        <span className="sr-only">LiberaSphere</span>
+                                    </Link>
+                                 </SheetClose>
+                                <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
+                            </nav>
+                        </SheetContent>
+                    </Sheet>
+                 )}
 
-            <div className="ml-auto flex items-center gap-4">
-                <Button variant="outline" onClick={onLogout}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    <span className="uppercase font-bold">Log out</span>
-                </Button>
+                <div className="ml-auto flex items-center gap-4">
+                    <Button variant="outline" onClick={onLogout}>
+                        <LogOut className="h-4 w-4 mr-2" />
+                        <span className="uppercase font-bold">Log out</span>
+                    </Button>
+                </div>
             </div>
+
+            {/* Placeholder per la funzionalità "L'appello" */}
+            {userData?.associationStatus === 'active' && (
+                 <div className="pb-4">
+                     <Alert variant="info">
+                        <Info className="h-4 w-4"/>
+                        <AlertTitle>Sei dei nostri stasera?</AlertTitle>
+                        <AlertDescription className="flex items-center gap-4 mt-2">
+                           <p>Questo è un segnaposto per la futura funzione di appello.</p>
+                           <Button size="sm">SÌ</Button>
+                           <Button size="sm" variant="outline">NO</Button>
+                        </AlertDescription>
+                    </Alert>
+                 </div>
+            )}
         </header>
     );
 }
