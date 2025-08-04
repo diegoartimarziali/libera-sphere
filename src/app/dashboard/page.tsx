@@ -232,7 +232,7 @@ export default function DashboardPage() {
       
       if (userData?.associationStatus === 'pending') {
           return (
-            <Alert variant="info" className="mb-6">
+            <Alert variant="warning" className="mb-6">
               <Clock className="h-4 w-4" />
               <AlertTitle>Domanda di Associazione Inviata!</AlertTitle>
               <AlertDescription>
@@ -244,7 +244,7 @@ export default function DashboardPage() {
       
       if (userData?.trialStatus === 'pending_payment') {
            return (
-            <Alert variant="info" className="mb-6">
+            <Alert variant="warning" className="mb-6">
               <Clock className="h-4 w-4" />
               <AlertTitle>Richiesta Lezioni di Prova Inviata!</AlertTitle>
               <AlertDescription>
@@ -337,3 +337,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+    

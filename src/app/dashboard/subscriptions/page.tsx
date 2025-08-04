@@ -66,7 +66,7 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
         
         switch(userSubscription.status) {
             case 'active': return { label: 'Attivo', variant: "success" as const };
-            case 'pending': return { label: 'In attesa di approvazione', variant: "secondary" as const };
+            case 'pending': return { label: 'In attesa di approvazione', variant: "warning" as const };
             case 'expired': return { label: 'Scaduto', variant: "destructive" as const };
             default: return { label: 'Sconosciuto', variant: "secondary" as const };
         }
@@ -105,7 +105,7 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
             </CardContent>
             <CardFooter className="flex-col gap-4">
                 {userSubscription.status === 'pending' && (
-                     <Alert variant="info">
+                     <Alert variant="warning">
                         <CalendarClock className="h-4 w-4" />
                         <AlertTitle>Pagamento in Verifica</AlertTitle>
                         <AlertDescription>
@@ -204,7 +204,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                     {sub.type === 'seasonal' && isPurchasable && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                                     <CardHeader>
                                         <CardTitle className={cn("text-2xl", !isPurchasable && "text-muted-foreground")}>{sub.name}</CardTitle>
-                                        <CardDescription className={cn("font-bold text-foreground", sub.type !== 'monthly' && "font-normal text-muted-foreground")}>
+                                        <CardDescription className="font-bold text-foreground">
                                             {sub.type === 'monthly' ? dynamicMonthlyDescription : sub.description}
                                         </CardDescription>
                                     </CardHeader>
@@ -673,3 +673,5 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
+
+    
