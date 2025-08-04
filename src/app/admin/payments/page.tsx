@@ -82,7 +82,7 @@ export default function AdminPaymentsPage() {
     const [loading, setLoading] = useState(true);
     const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("all");
+    const [statusFilter, setStatusFilter] = useState("pending_completed");
 
     const { toast } = useToast();
 
@@ -185,9 +185,13 @@ export default function AdminPaymentsPage() {
                     });
                 }
             } else { // se il pagamento viene messo a FAILED
-                // Qui potremmo voler resettare lo stato dell'utente.
-                // Es. se un pagamento di associazione fallisce, l'utente non diventa attivo.
-                // Per ora, aggiorniamo solo il pagamento. In futuro si può aggiungere logica qui.
+                 if (payment.type === 'association') {
+                    batch.update(userDocRef, { associationStatus: 'not_associated' });
+                } else if (payment.type === 'trial') {
+                    batch.update(userDocRef, { trialStatus: 'not_applicable' });
+                } else if (payment.type === 'subscription') {
+                    batch.update(userDocRef, { subscriptionAccessStatus: 'expired' });
+                }
             }
             
             await batch.commit();
@@ -198,15 +202,30 @@ export default function AdminPaymentsPage() {
             });
             
             // Aggiorna lo stato locale per riflettere il cambiamento senza ricaricare
-            setProfiles(prevProfiles => prevProfiles.map(profile => {
-                if (profile.uid === payment.userId) {
-                    return {
-                        ...profile,
-                        payments: profile.payments.map(p => p.id === payment.id ? { ...p, status: newStatus } : p)
-                    };
-                }
-                return profile;
-            }));
+             setProfiles(prevProfiles => {
+                return prevProfiles.map(profile => {
+                    if (profile.uid === payment.userId) {
+                        const updatedPayments = profile.payments.map(p => 
+                            p.id === payment.id ? { ...p, status: newStatus } : p
+                        );
+                        
+                        let updatedProfile = { ...profile, payments: updatedPayments };
+
+                        if (newStatus === 'completed') {
+                            if (payment.type === 'association') updatedProfile.associationStatus = 'active';
+                            if (payment.type === 'trial') updatedProfile.trialStatus = 'active';
+                            if (payment.type === 'subscription') updatedProfile.subscriptionAccessStatus = 'active';
+                        } else { // failed
+                            if (payment.type === 'association') updatedProfile.associationStatus = 'not_associated';
+                            if (payment.type === 'trial') updatedProfile.trialStatus = 'not_applicable';
+                            if (payment.type === 'subscription') updatedProfile.subscriptionAccessStatus = 'expired';
+                        }
+                        
+                        return updatedProfile;
+                    }
+                    return profile;
+                });
+            });
 
 
         } catch (error) {
@@ -259,10 +278,10 @@ export default function AdminPaymentsPage() {
         })
         .filter(profile => {
             if (statusFilter === 'all') return true;
-            if (statusFilter === 'pending_payments') return profile.payments.some(p => p.status === 'pending');
-            if (statusFilter === 'active_members') return profile.associationStatus === 'active';
-            if (statusFilter === 'pending_members') return profile.associationStatus === 'pending';
-             if (statusFilter === 'active_trials') return profile.trialStatus === 'active';
+            if (statusFilter === 'pending_completed') return profile.payments.some(p => p.status === 'pending' || p.status === 'completed');
+            if (statusFilter === 'pending') return profile.payments.some(p => p.status === 'pending');
+            if (statusFilter === 'failed') return profile.payments.some(p => p.status === 'failed');
+            if (statusFilter === 'no_payments') return profile.payments.length === 0;
             return true;
         });
 
@@ -271,7 +290,7 @@ export default function AdminPaymentsPage() {
             <CardHeader>
                 <CardTitle>Gestione Pagamenti Utenti</CardTitle>
                 <CardDescription>
-                    Visualizza e gestisci l'estratto conto di ogni utente registrato.
+                    Visualizza e gestisci l'estratto conto di ogni utente registrato. La vista di default mostra solo gli utenti con pagamenti recenti o in sospeso.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -286,15 +305,15 @@ export default function AdminPaymentsPage() {
                         />
                     </div>
                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-full sm:w-[220px]">
-                            <SelectValue placeholder="Filtra per stato" />
+                        <SelectTrigger className="w-full sm:w-[280px]">
+                            <SelectValue placeholder="Filtra per stato pagamento" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="all">Tutti gli Utenti</SelectItem>
-                            <SelectItem value="pending_payments">Con Pagamenti in Sospeso</SelectItem>
-                            <SelectItem value="active_members">Soci Attivi</SelectItem>
-                             <SelectItem value="pending_members">Associazioni Pendenti</SelectItem>
-                             <SelectItem value="active_trials">Prove Attive</SelectItem>
+                            <SelectItem value="pending_completed">Pagamenti Recenti/Pendenti</SelectItem>
+                            <SelectItem value="pending">Solo Pagamenti In Sospeso</SelectItem>
+                             <SelectItem value="failed">Solo Pagamenti Falliti</SelectItem>
+                             <SelectItem value="no_payments">Utenti senza Pagamenti</SelectItem>
+                             <SelectItem value="all">Tutti gli Utenti</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -316,8 +335,8 @@ export default function AdminPaymentsPage() {
                                         </div>
                                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
                                             <span>{profile.email}</span>
-                                            <span>{profile.discipline}</span>
-                                            <span>{gyms.get(profile.gym || '')}</span>
+                                            {profile.discipline && <span>{profile.discipline}</span>}
+                                            {profile.gym && <span>{gyms.get(profile.gym)}</span>}
                                         </div>
                                     </div>
                                     {currentUserRole === 'admin' && profile.role !== 'admin' && (
@@ -397,7 +416,7 @@ export default function AdminPaymentsPage() {
                              <div className="text-center py-16 text-muted-foreground">
                                 <Users className="mx-auto h-12 w-12" />
                                 <h3 className="mt-4 text-lg font-semibold">Nessun Utente Trovato</h3>
-                                <p className="mt-1 text-sm">Prova a modificare i filtri di ricerca.</p>
+                                <p className="mt-1 text-sm">Prova a modificare i filtri di ricerca o la chiave di ricerca.</p>
                             </div>
                         )}
                     </Accordion>
@@ -406,3 +425,5 @@ export default function AdminPaymentsPage() {
         </Card>
     );
 }
+
+    
