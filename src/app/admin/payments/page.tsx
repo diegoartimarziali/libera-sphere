@@ -319,26 +319,28 @@ export default function AdminPaymentsPage() {
                     <Accordion type="multiple" className="w-full">
                         {filteredProfiles.length > 0 ? filteredProfiles.map(profile => (
                             <AccordionItem value={profile.uid} key={profile.uid}>
-                                <AccordionTrigger className="hover:bg-muted/50 px-4 rounded-md">
-                                    <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
-                                        <div className="flex items-center">
-                                            <User className="h-5 w-5 mr-3 text-primary" />
-                                            <span className="font-bold text-lg">{profile.name} {profile.surname}</span>
-                                            {profile.role === 'admin' && <Badge variant="destructive" className="ml-3">Admin</Badge>}
+                                 <div className="flex items-center hover:bg-muted/50 px-4 rounded-md">
+                                    <AccordionTrigger className="flex-1">
+                                        <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
+                                            <div className="flex items-center">
+                                                <User className="h-5 w-5 mr-3 text-primary" />
+                                                <span className="font-bold text-lg">{profile.name} {profile.surname}</span>
+                                                {profile.role === 'admin' && <Badge variant="destructive" className="ml-3">Admin</Badge>}
+                                            </div>
+                                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
+                                                <span>{profile.email}</span>
+                                                {profile.discipline && <span>{profile.discipline}</span>}
+                                                {profile.gym && <span>{gyms.get(profile.gym)}</span>}
+                                            </div>
                                         </div>
-                                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
-                                            <span>{profile.email}</span>
-                                            {profile.discipline && <span>{profile.discipline}</span>}
-                                            {profile.gym && <span>{gyms.get(profile.gym)}</span>}
-                                        </div>
-                                    </div>
-                                    {currentUserRole === 'admin' && profile.role !== 'admin' && (
+                                    </AccordionTrigger>
+                                     {currentUserRole === 'admin' && profile.role !== 'admin' && (
                                         <Button 
                                             variant="outline"
                                             size="sm"
                                             className="ml-4"
                                             onClick={(e) => {
-                                                e.stopPropagation(); // Impedisce l'apertura/chiusura dell'accordion
+                                                e.stopPropagation(); // Questo è comunque utile per non far scattare altri listener sul div genitore
                                                 handleMakeAdmin(profile.uid);
                                             }}
                                         >
@@ -346,7 +348,7 @@ export default function AdminPaymentsPage() {
                                             Rendi Admin
                                         </Button>
                                     )}
-                                </AccordionTrigger>
+                                </div>
                                 <AccordionContent className="p-4 bg-muted/20">
                                     {profile.payments.length > 0 ? (
                                         <Table>
@@ -417,4 +419,5 @@ export default function AdminPaymentsPage() {
             </CardContent>
         </Card>
     );
-}
+
+    
