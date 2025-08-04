@@ -178,12 +178,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                         let isPurchasable = sub.isAvailable ?? false;
                         let disabledReason = "";
                         
-                         // Se l'utente ha un abbonamento mensile attivo, non può acquistarne un altro.
-                        if (userSubscription && userSubscription.type === 'monthly' && userSubscription.status === 'active') {
-                            isPurchasable = false;
-                            disabledReason = "Hai già un abbonamento attivo per questo mese.";
-                        } else if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && userSubscription.type !== 'monthly') {
-                            // Se l'utente ha un abbonamento NON mensile ATTIVO O PENDING, blocca l'acquisto
+                        if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
                            isPurchasable = false;
                            disabledReason = "Hai già un abbonamento attivo o in attesa di approvazione.";
                         }
@@ -209,7 +204,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                     {sub.type === 'seasonal' && isPurchasable && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                                     <CardHeader>
                                         <CardTitle className={cn("text-2xl", !isPurchasable && "text-muted-foreground")}>{sub.name}</CardTitle>
-                                        <CardDescription className={sub.type === 'monthly' ? "font-bold text-foreground" : ""}>
+                                        <CardDescription className={cn("font-bold text-foreground", sub.type !== 'monthly' && "font-normal text-muted-foreground")}>
                                             {sub.type === 'monthly' ? dynamicMonthlyDescription : sub.description}
                                         </CardDescription>
                                     </CardHeader>
@@ -494,8 +489,7 @@ export default function SubscriptionsPage() {
                                 isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
                             }
                         } else if (subData.type === 'monthly') {
-                             // E' acquistabile solo se NON c'è un abbonamento mensile ATTIVO
-                            isAvailable = !(currentUserSubscription?.type === 'monthly' && currentUserSubscription?.status === 'active');
+                            isAvailable = true;
                         }
 
                         return {
@@ -505,11 +499,7 @@ export default function SubscriptionsPage() {
                         };
                     }).sort((a,b) => b.price - a.price);
 
-                    if (currentUserSubscription?.type === 'monthly' && (currentUserSubscription.status === 'active' || currentUserSubscription.status === 'pending')) {
-                         setSubscriptions(allSubs.filter(s => s.type === 'monthly'));
-                    } else {
-                        setSubscriptions(allSubs);
-                    }
+                    setSubscriptions(allSubs);
 
                 } else {
                      toast({ title: "Errore di configurazione", description: "Impostazioni delle attività non trovate.", variant: "destructive" });
@@ -630,11 +620,9 @@ export default function SubscriptionsPage() {
     }
     
     let showPurchaseOptions = true;
-
+    
     if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
-        if (userSubscription.type !== 'monthly') {
-            showPurchaseOptions = false;
-        }
+        showPurchaseOptions = false;
     }
 
 
@@ -645,29 +633,34 @@ export default function SubscriptionsPage() {
                 <SubscriptionStatusCard userSubscription={userSubscription} />
             )}
 
-            {step === 1 && showPurchaseOptions && (
-                 <SubscriptionSelectionStep
-                    subscriptions={subscriptions}
-                    onSelect={handleSelectSubscription}
-                    onBack={() => router.push('/dashboard')}
-                    userSubscription={userSubscription}
-                />
+            {showPurchaseOptions && (
+              <>
+                {step === 1 && (
+                     <SubscriptionSelectionStep
+                        subscriptions={subscriptions}
+                        onSelect={handleSelectSubscription}
+                        onBack={() => router.push('/dashboard')}
+                        userSubscription={userSubscription}
+                    />
+                )}
+                {step === 2 && selectedSubscription && (
+                    <PaymentStep
+                        subscription={selectedSubscription}
+                        onBack={() => setStep(1)}
+                        onNext={handlePaymentSubmit}
+                    />
+                )}
+                {step === 3 && selectedSubscription && paymentMethod === 'online' && (
+                    <OnlinePaymentStep 
+                        subscription={selectedSubscription}
+                        onBack={() => setStep(2)}
+                        onNext={handleConfirmPayment}
+                        isSubmitting={isSubmitting}
+                    />
+                )}
+              </>
             )}
-            {step === 2 && selectedSubscription && (
-                <PaymentStep
-                    subscription={selectedSubscription}
-                    onBack={() => setStep(1)}
-                    onNext={handlePaymentSubmit}
-                />
-            )}
-            {step === 3 && selectedSubscription && paymentMethod === 'online' && (
-                <OnlinePaymentStep 
-                    subscription={selectedSubscription}
-                    onBack={() => setStep(2)}
-                    onNext={handleConfirmPayment}
-                    isSubmitting={isSubmitting}
-                />
-            )}
+
             <BankTransferDialog
                 open={isBankTransferDialogOpen}
                 onOpenChange={setIsBankTransferDialogOpen}
@@ -677,5 +670,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
-    
