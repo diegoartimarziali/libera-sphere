@@ -5,12 +5,12 @@ import { useEffect, useState, ReactNode, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc, updateDoc, Timestamp, collection, addDoc, query, where, getDocs } from "firebase/firestore"
+import { doc, getDoc, updateDoc, Timestamp, collection, addDoc, query, where, getDocs, startOfDay as startOfTodayFs, serverTimestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay, getDay } from "date-fns"
 
 
-import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, Info } from "lucide-react"
+import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, Info, ThumbsUp, ThumbsDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
@@ -120,28 +120,56 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
 }
 
 // =================================================================
+// COMPONENTE APPELLO
+// =================================================================
+function AttendancePrompt({ onRespond, isSubmitting }: { onRespond: (isPresent: boolean) => void, isSubmitting: boolean }) {
+    return (
+        <div className="hidden md:flex items-center gap-4 bg-primary/10 border border-primary/20 p-2 rounded-lg">
+            <span className="text-sm font-semibold text-primary-foreground">Sei dei nostri stasera?</span>
+            <div className="flex gap-2">
+                 <Button size="sm" variant="success" onClick={() => onRespond(true)} disabled={isSubmitting}>
+                     {isSubmitting ? <Loader2 className="animate-spin" /> : <ThumbsUp />}
+                     <span className="ml-2">Sì</span>
+                 </Button>
+                 <Button size="sm" variant="destructive" onClick={() => onRespond(false)} disabled={isSubmitting}>
+                     {isSubmitting ? <Loader2 className="animate-spin" /> : <ThumbsDown />}
+                     <span className="ml-2">No</span>
+                 </Button>
+            </div>
+        </div>
+    )
+}
+
+// =================================================================
 // HEADER UNIFICATO
 // =================================================================
 
 function DashboardHeader({ 
     onLogout, 
     userData, 
-    showMenu
+    showMenu,
+    showAttendancePrompt,
+    onAttendanceRespond,
+    isSubmittingAttendance,
 }: { 
     onLogout: () => void; 
     userData: UserData | null, 
-    showMenu: boolean
+    showMenu: boolean,
+    showAttendancePrompt: boolean,
+    onAttendanceRespond: (isPresent: boolean) => void,
+    isSubmittingAttendance: boolean
 }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6 justify-between">
+            <div className="flex items-center gap-4">
                  {showMenu && (
                      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                         <SheetTrigger asChild>
                             <Button variant="outline">
                                 <Menu className="h-5 w-5" />
-                                <span className="ml-2 font-semibold">MENU</span>
+                                <span className="ml-2 font-semibold hidden sm:inline">MENU</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="sm:max-w-xs">
@@ -176,13 +204,15 @@ function DashboardHeader({
                         </SheetContent>
                     </Sheet>
                  )}
+                 {showAttendancePrompt && <AttendancePrompt onRespond={onAttendanceRespond} isSubmitting={isSubmittingAttendance} />}
+            </div>
 
-                <div className="ml-auto flex items-center gap-4">
-                    <Button variant="outline" onClick={onLogout}>
-                        <LogOut className="h-4 w-4 mr-2" />
-                        <span className="uppercase font-bold">Log out</span>
-                    </Button>
-                </div>
+            <div className="flex items-center gap-4">
+                <Button variant="outline" onClick={onLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    <span className="uppercase font-bold">Log out</span>
+                </Button>
+            </div>
         </header>
     );
 }
@@ -196,6 +226,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [user, loadingAuth] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loadingData, setLoadingData] = useState(true)
+  const [gymData, setGymData] = useState<any | null>(null);
+  const [showAttendancePrompt, setShowAttendancePrompt] = useState(false);
+  const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
+
   const { toast } = useToast()
   const router = useRouter()
   const pathname = usePathname()
@@ -211,6 +245,77 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
   }, [router, toast]);
   
+   const checkShowAttendance = useCallback(async () => {
+    if (!user || !userData || !gymData || userData.associationStatus !== 'active') {
+        setShowAttendancePrompt(false);
+        return;
+    }
+
+    const today = new Date();
+    // Domenica = 0, Lunedì = 1... Sabato = 6
+    const dayIndex = getDay(today);
+    const dayNames = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
+    const todayDayName = dayNames[dayIndex];
+
+    const lessonDays = (gymData.regularLessons || []).map((l: Lesson) => l.dayOfWeek.toLowerCase());
+
+    if (!lessonDays.includes(todayDayName)) {
+        setShowAttendancePrompt(false);
+        return;
+    }
+
+    try {
+        const todayStart = startOfDay(today);
+        const attendancesRef = collection(db, "attendances");
+        const q = query(
+            attendancesRef,
+            where("userId", "==", user.uid),
+            where("lessonDate", "==", Timestamp.fromDate(todayStart))
+        );
+        const querySnapshot = await getDocs(q);
+
+        // Se non ci sono documenti, l'utente non ha risposto. Mostra il prompt.
+        setShowAttendancePrompt(querySnapshot.empty);
+        
+    } catch (error) {
+        console.error("Error checking attendance:", error);
+        setShowAttendancePrompt(false);
+    }
+  }, [user, userData, gymData]);
+
+  useEffect(() => {
+    if (user && userData && gymData) {
+        checkShowAttendance();
+    }
+  }, [user, userData, gymData, checkShowAttendance]);
+
+
+  const handleAttendanceRespond = async (isPresent: boolean) => {
+     if (!user) return;
+     setIsSubmittingAttendance(true);
+     try {
+        const todayStart = startOfDay(new Date());
+        const attendanceData = {
+            userId: user.uid,
+            isPresent: isPresent,
+            lessonDate: Timestamp.fromDate(todayStart),
+            type: "lesson",
+            submittedAt: serverTimestamp()
+        };
+        await addDoc(collection(db, "attendances"), attendanceData);
+        setShowAttendancePrompt(false); // Nasconde il prompt dopo la risposta
+        toast({
+            title: "Risposta registrata!",
+            description: "Grazie per averci fatto sapere."
+        });
+
+     } catch(error) {
+         console.error("Error saving attendance:", error);
+         toast({ variant: "destructive", title: "Errore", description: "Impossibile salvare la tua presenza." });
+     } finally {
+         setIsSubmittingAttendance(false);
+     }
+  }
 
   useEffect(() => {
     const fetchAndRedirect = async () => {
@@ -227,6 +332,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
             if (userDocSnap.exists()) {
                 let fetchedUserData = userDocSnap.data() as UserData;
+                
+                if (fetchedUserData.gym) {
+                    const gymDocRef = doc(db, "gyms", fetchedUserData.gym);
+                    const gymDocSnap = await getDoc(gymDocRef);
+                    if (gymDocSnap.exists()) {
+                        setGymData(gymDocSnap.data());
+                    }
+                }
                 
                 const updates: { [key: string]: any } = {};
 
@@ -284,19 +397,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.trialStatus === 'pending_payment';
 
-                // Se l'utente è in uno stato di attesa o ha già completato l'onboarding principale,
-                // non lo reindirizziamo forzatamente, permettendogli di navigare.
-                // La gestione di ciò che può vedere è delegata alle singole pagine.
                 if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired' || fetchedUserData.role === 'admin') {
-                     // Non fare nulla, lascia che l'utente navighi
                 } else if (fetchedUserData.trialStatus === 'completed' && !fetchedUserData.trialOutcome) {
                     if (pathname !== '/dashboard/trial-completed') {
                          router.push('/dashboard/trial-completed');
                     }
                 } else if (pathname === '/dashboard/reviews') {
-                    // Permetti la visualizzazione della pagina recensioni senza reindirizzamento
                 } else {
-                    // Altrimenti, guida l'utente nel flusso di onboarding.
                     let targetPage = "";
                     if (!fetchedUserData.regulationsAccepted) {
                         targetPage = "/dashboard/regulations";
@@ -355,7 +462,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     '/dashboard/trial-completed',
   ];
   
-  // L'utente è in un flusso di onboarding attivo se si trova in una di queste pagine E non è in attesa di approvazione
   const isUserOnboarding = 
       onboardingPagesForMenu.includes(pathname) &&
       !(userData.associationStatus === 'pending' || userData.trialStatus === 'pending_payment');
@@ -368,6 +474,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             onLogout={handleLogout} 
             userData={userData} 
             showMenu={showMenu}
+            showAttendancePrompt={showAttendancePrompt}
+            onAttendanceRespond={handleAttendanceRespond}
+            isSubmittingAttendance={isSubmittingAttendance}
         />
         <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
