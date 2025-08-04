@@ -70,10 +70,10 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
     }
 
     return (
-        <Card className="w-full max-w-lg">
+        <Card className="w-full max-w-lg mb-8">
             <CardHeader>
-                <CardTitle>Il Tuo Abbonamento</CardTitle>
-                <CardDescription>Riepilogo del tuo piano di abbonamento attuale.</CardDescription>
+                <CardTitle>Il Tuo Abbonamento Attuale</CardTitle>
+                <CardDescription>Riepilogo del tuo piano.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                  <div className="flex items-center justify-between">
@@ -134,7 +134,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
     return (
         <div className="flex w-full flex-col items-center">
             <div className="mb-8 text-center">
-                <h1 className="text-3xl font-bold">Scegli il tuo Abbonamento</h1>
+                <h1 className="text-3xl font-bold">Scegli il tuo Prossimo Abbonamento</h1>
                 <p className="mt-2 text-muted-foreground">
                     Seleziona il piano più adatto a te per accedere a tutte le attività.
                 </p>
@@ -460,8 +460,11 @@ export default function SubscriptionsPage() {
                             status: userData.subscriptionAccessStatus
                         };
                         setUserSubscription(subStatus);
-                        setLoading(false);
-                        return; // Esce dalla funzione, mostrando solo la Status Card
+                        // Se l'abbonamento è STAGIONALE, blocchiamo tutto
+                        if (subStatus.type === 'seasonal') {
+                            setLoading(false);
+                            return; // Esce dalla funzione, mostrando solo la Status Card
+                        }
                     }
                 }
                 
@@ -596,8 +599,9 @@ export default function SubscriptionsPage() {
                 title: "Richiesta Inviata",
                 description: `La tua richiesta per l'abbonamento ${selectedSubscription.name} è in fase di verifica.`,
             });
-            router.push('/dashboard');
-            window.location.reload(); // Force reload to show status
+            
+            // Ricarica la pagina per riflettere il nuovo stato
+            window.location.reload(); 
 
         } catch (error) {
             console.error("Error confirming payment:", error);
@@ -615,7 +619,8 @@ export default function SubscriptionsPage() {
         );
     }
     
-    if (userSubscription) {
+    // Mostra solo la status card se l'abbonamento è STAGIONALE e attivo/pending
+    if (userSubscription && userSubscription.type === 'seasonal') {
         return (
              <div className="flex w-full flex-col items-center justify-center">
                 <SubscriptionStatusCard userSubscription={userSubscription} />
@@ -625,6 +630,12 @@ export default function SubscriptionsPage() {
 
     return (
         <div className="flex w-full flex-col items-center justify-center">
+            
+            {/* Mostra la status card anche per i mensili, ma non blocca il resto */}
+            {userSubscription && userSubscription.type === 'monthly' && (
+                 <SubscriptionStatusCard userSubscription={userSubscription} />
+            )}
+
             {step === 1 && (
                 <SubscriptionSelectionStep
                     subscriptions={subscriptions}
@@ -657,4 +668,3 @@ export default function SubscriptionsPage() {
     );
 }
 
-    
