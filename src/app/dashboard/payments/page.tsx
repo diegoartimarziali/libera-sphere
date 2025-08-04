@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 // Definisco il tipo di dati per un pagamento
 interface Payment {
@@ -28,11 +29,11 @@ interface Payment {
 const getStatusVariant = (status: Payment['status']): "default" | "secondary" | "destructive" => {
     switch (status) {
         case 'completed':
-            return 'default'; // Verde (colore primario del tema)
+            return 'default';
         case 'pending':
-            return 'secondary'; // Giallo/grigio
+            return 'secondary';
         case 'failed':
-            return 'destructive'; // Rosso
+            return 'destructive';
         default:
             return 'secondary';
     }
@@ -140,7 +141,11 @@ export default function UserPaymentsPage() {
                                     <TableCell>{translatePaymentMethod(payment.paymentMethod)}</TableCell>
                                     <TableCell className="text-right">{payment.amount.toFixed(2)} €</TableCell>
                                     <TableCell className="text-center">
-                                        <Badge variant={getStatusVariant(payment.status)}>
+                                        <Badge variant={getStatusVariant(payment.status)}
+                                           className={cn({
+                                                'bg-success text-success-foreground hover:bg-success/80': payment.status === 'completed',
+                                            })}
+                                        >
                                             {translateStatus(payment.status)}
                                         </Badge>
                                     </TableCell>
