@@ -5,7 +5,7 @@ import { useEffect, useState, ReactNode, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc, updateDoc, Timestamp, collection, addDoc, query, where, getDocs, startOfDay as startOfTodayFs, serverTimestamp } from "firebase/firestore"
+import { doc, getDoc, updateDoc, Timestamp, collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay, getDay } from "date-fns"
 
@@ -226,7 +226,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [user, loadingAuth] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loadingData, setLoadingData] = useState(true)
-  const [gymData, setGymData] = useState<any | null>(null);
   const [showAttendancePrompt, setShowAttendancePrompt] = useState(false);
   const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
 
@@ -245,51 +244,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
   }, [router, toast]);
   
-   const checkShowAttendance = useCallback(async () => {
-    if (!user || !userData || !gymData || userData.associationStatus !== 'active') {
-        setShowAttendancePrompt(false);
-        return;
-    }
-
-    const today = new Date();
-    // Domenica = 0, Lunedì = 1... Sabato = 6
-    const dayIndex = getDay(today);
-    const dayNames = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
-    const todayDayName = dayNames[dayIndex];
-
-    const lessonDays = (gymData.regularLessons || []).map((l: Lesson) => l.dayOfWeek.toLowerCase());
-
-    if (!lessonDays.includes(todayDayName)) {
-        setShowAttendancePrompt(false);
-        return;
-    }
-
-    try {
-        const todayStart = startOfDay(today);
-        const attendancesRef = collection(db, "attendances");
-        const q = query(
-            attendancesRef,
-            where("userId", "==", user.uid),
-            where("lessonDate", "==", Timestamp.fromDate(todayStart))
-        );
-        const querySnapshot = await getDocs(q);
-
-        // Se non ci sono documenti, l'utente non ha risposto. Mostra il prompt.
-        setShowAttendancePrompt(querySnapshot.empty);
-        
-    } catch (error) {
-        console.error("Error checking attendance:", error);
-        setShowAttendancePrompt(false);
-    }
-  }, [user, userData, gymData]);
-
-  useEffect(() => {
-    if (user && userData && gymData) {
-        checkShowAttendance();
-    }
-  }, [user, userData, gymData, checkShowAttendance]);
-
-
   const handleAttendanceRespond = async (isPresent: boolean) => {
      if (!user) return;
      setIsSubmittingAttendance(true);
@@ -317,6 +271,42 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
      }
   }
 
+  const checkShowAttendance = useCallback(async (currentGymData: any) => {
+    if (!user || !userData || !currentGymData || userData.associationStatus !== 'active') {
+        setShowAttendancePrompt(false);
+        return;
+    }
+
+    const today = new Date();
+    const dayIndex = getDay(today);
+    const dayNames = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
+    const todayDayName = dayNames[dayIndex];
+
+    const lessonDays = (currentGymData.regularLessons || []).map((l: Lesson) => l.dayOfWeek.toLowerCase());
+
+    if (!lessonDays.includes(todayDayName)) {
+        setShowAttendancePrompt(false);
+        return;
+    }
+
+    try {
+        const todayStart = startOfDay(today);
+        const attendancesRef = collection(db, "attendances");
+        const q = query(
+            attendancesRef,
+            where("userId", "==", user.uid),
+            where("lessonDate", "==", Timestamp.fromDate(todayStart))
+        );
+        const querySnapshot = await getDocs(q);
+        
+        setShowAttendancePrompt(querySnapshot.empty);
+        
+    } catch (error) {
+        console.error("Error checking attendance:", error);
+        setShowAttendancePrompt(false);
+    }
+  }, [user, userData]);
+
   useEffect(() => {
     const fetchAndRedirect = async () => {
         if (!user) {
@@ -329,15 +319,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             const userDocRef = doc(db, "users", user.uid);
             let userDocSnap = await getDoc(userDocRef);
             let userModified = false;
+            let fetchedUserData = userDocSnap.data() as UserData;
 
             if (userDocSnap.exists()) {
-                let fetchedUserData = userDocSnap.data() as UserData;
                 
                 if (fetchedUserData.gym) {
                     const gymDocRef = doc(db, "gyms", fetchedUserData.gym);
                     const gymDocSnap = await getDoc(gymDocRef);
                     if (gymDocSnap.exists()) {
-                        setGymData(gymDocSnap.data());
+                        const gymData = gymDocSnap.data();
+                        // Chiamata diretta alla funzione di controllo dopo aver recuperato i dati
+                        checkShowAttendance(gymData);
                     }
                 }
                 
@@ -442,7 +434,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
          redirect("/");
     }
 
-  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
+  }, [user, loadingAuth, pathname, router, toast, handleLogout, checkShowAttendance]);
 
   if (loadingAuth || loadingData) {
     return (
@@ -482,5 +474,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
