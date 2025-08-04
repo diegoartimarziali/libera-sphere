@@ -157,26 +157,21 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
             ) : (
                 <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
                     {subscriptions.map((sub) => {
-                        const hasActiveSeasonal = userSubscription?.type === 'seasonal' && (userSubscription.status === 'active' || userSubscription.status === 'pending');
-                        const hasActiveMonthly = userSubscription?.type === 'monthly' && (userSubscription.status === 'active' || userSubscription.status === 'pending');
-
                         let isPurchasable = sub.isAvailable ?? false;
                         let disabledReason = "";
-
-                        if (sub.type === 'seasonal') {
-                            if (hasActiveMonthly) {
-                                isPurchasable = false;
-                                disabledReason = "Non puoi acquistare lo stagionale se hai un mensile attivo.";
-                            }
+                        
+                        // Logica di esclusività basata sulle tue regole
+                        if (sub.type === 'seasonal' && (userSubscription?.type === 'monthly' && (userSubscription.status === 'active' || userSubscription.status === 'pending'))) {
+                           isPurchasable = false;
+                           disabledReason = "Non puoi acquistare lo stagionale se hai un mensile attivo.";
                         }
-
-                        if (sub.type === 'monthly') {
-                            if (hasActiveSeasonal) {
-                                isPurchasable = false;
-                                disabledReason = "Hai già un abbonamento stagionale attivo.";
-                            }
+                        
+                        if (sub.type === 'monthly' && (userSubscription?.type === 'seasonal' && (userSubscription.status === 'active' || userSubscription.status === 'pending'))) {
+                           isPurchasable = false;
+                           disabledReason = "Hai già un abbonamento stagionale attivo.";
                         }
-
+                        
+                        // Messaggio di default se non acquistabile per data
                         if (!isPurchasable && !disabledReason) {
                             if (sub.type === 'seasonal' && sub.purchaseStartDate && sub.purchaseEndDate) {
                                  disabledReason = `Acquistabile dal ${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
@@ -224,8 +219,8 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                         </li>
                                         {sub.type === 'monthly' ? (
                                             <li className="flex items-center">
-                                                <XCircle className="h-4 w-4 mr-2 text-destructive flex-shrink-0" />
-                                                <span>Nessun vincolo a lungo termine, massima flessibilità</span>
+                                                <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
+                                                <span>Massima flessibilità</span>
                                             </li>
                                         ) : (
                                              <li className="flex items-center">
@@ -413,7 +408,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, subscription }: { o
                     </div>
                      <div className="space-y-1">
                         <p className="font-semibold text-foreground">Causale:</p>
-                        <p className="font-mono bg-muted p-2 rounded-md">{`Abbonamento ${subscription?.name} [Nome Cognome Socio]`}</p>
+                        <p className="font-mono bg-muted p-2 rounded-md">{`${subscription?.name} [Nome Cognome Socio]`}</p>
                     </div>
                 </div>
                 <DialogFooter>
@@ -482,10 +477,12 @@ export default function SubscriptionsPage() {
                         const subData = doc.data() as Omit<Subscription, 'id' | 'isAvailable'>;
                         let isAvailable = false;
                         
-                         if (subData.type === 'seasonal' && subData.purchaseStartDate && subData.purchaseEndDate) {
-                            const startDate = subData.purchaseStartDate.toDate();
-                            const endDate = subData.purchaseEndDate.toDate();
-                            isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
+                        if (subData.type === 'seasonal') {
+                            if (subData.purchaseStartDate && subData.purchaseEndDate) {
+                                const startDate = subData.purchaseStartDate.toDate();
+                                const endDate = subData.purchaseEndDate.toDate();
+                                isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
+                            }
                         } else if (subData.type === 'monthly') {
                             const seasonStartDate = activitySettingsData.startDate.toDate();
                             const seasonEndDate = activitySettingsData.endDate.toDate();
@@ -620,19 +617,11 @@ export default function SubscriptionsPage() {
     }
     
     // Mostra solo lo stato se l'utente ha un abbonamento attivo o in attesa
-    if (userSubscription && userSubscription.status !== 'expired') {
+    if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
         return (
              <div className="flex w-full flex-col items-center justify-center">
                 <SubscriptionStatusCard userSubscription={userSubscription} />
-                 <div className="mt-8 w-full">
-                    <SubscriptionSelectionStep
-                        subscriptions={subscriptions}
-                        onSelect={handleSelectSubscription}
-                        onBack={() => router.push('/dashboard')}
-                        userSubscription={userSubscription}
-                    />
-                 </div>
-            </div>
+             </div>
         )
     }
 
