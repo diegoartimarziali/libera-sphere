@@ -5,7 +5,7 @@ import { useEffect, useState, ReactNode, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc, updateDoc, Timestamp, collection, addDoc, query, where, getDocs, serverTimestamp } from "firebase/firestore"
+import { doc, getDoc, updateDoc, Timestamp, collection, addDoc, query, where, getDocs } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay, getDay } from "date-fns"
 
@@ -228,6 +228,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [loadingData, setLoadingData] = useState(true)
   const [showAttendancePrompt, setShowAttendancePrompt] = useState(false);
   const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
+  const [gymData, setGymData] = useState<any>(null);
+
 
   const { toast } = useToast()
   const router = useRouter()
@@ -252,7 +254,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         const attendanceData = {
             userId: user.uid,
             isPresent: isPresent,
-            lessonDate: Timestamp.fromDate(todayStart),
+            lessonDate: Timestamp.fromDa(todayStart),
             type: "lesson",
             submittedAt: serverTimestamp()
         };
@@ -271,8 +273,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
      }
   }
 
-  const checkShowAttendance = useCallback(async (currentGymData: any) => {
-    if (!user || !userData || !currentGymData || userData.associationStatus !== 'active') {
+  const checkShowAttendance = useCallback(async () => {
+    if (!user || !userData || !gymData || userData.associationStatus !== 'active') {
         setShowAttendancePrompt(false);
         return;
     }
@@ -282,7 +284,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const dayNames = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
     const todayDayName = dayNames[dayIndex];
 
-    const lessonDays = (currentGymData.regularLessons || []).map((l: Lesson) => l.dayOfWeek.toLowerCase());
+    const lessonDays = (gymData.regularLessons || []).map((l: Lesson) => l.dayOfWeek.toLowerCase());
 
     if (!lessonDays.includes(todayDayName)) {
         setShowAttendancePrompt(false);
@@ -305,7 +307,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         console.error("Error checking attendance:", error);
         setShowAttendancePrompt(false);
     }
-  }, [user, userData]);
+  }, [user, userData, gymData]);
+
+  useEffect(() => {
+    if(userData && gymData){
+        checkShowAttendance();
+    }
+  }, [userData, gymData, checkShowAttendance]);
+
 
   useEffect(() => {
     const fetchAndRedirect = async () => {
@@ -327,9 +336,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     const gymDocRef = doc(db, "gyms", fetchedUserData.gym);
                     const gymDocSnap = await getDoc(gymDocRef);
                     if (gymDocSnap.exists()) {
-                        const gymData = gymDocSnap.data();
-                        // Chiamata diretta alla funzione di controllo dopo aver recuperato i dati
-                        checkShowAttendance(gymData);
+                        setGymData(gymDocSnap.data());
                     }
                 }
                 
@@ -434,7 +441,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
          redirect("/");
     }
 
-  }, [user, loadingAuth, pathname, router, toast, handleLogout, checkShowAttendance]);
+  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
 
   if (loadingAuth || loadingData) {
     return (
