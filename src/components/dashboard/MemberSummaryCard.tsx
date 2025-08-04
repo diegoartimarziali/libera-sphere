@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2, FileText, Activity, KeyRound, Repeat, CalendarClock } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2, FileText, Activity, KeyRound, Repeat, CalendarClock, Building } from "lucide-react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 
@@ -19,6 +19,7 @@ export interface MemberSummaryProps {
     sportingSeason?: string;
     regulationsStatus: string;
     medicalStatus: string;
+    gymName?: string;
     discipline?: string;
     grade?: string;
     qualifica?: string;
@@ -69,6 +70,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <Separator />
 
                  <div className="space-y-3">
+                    <InfoRow icon={<Building size={16} />} label="Palestra" value={props.gymName} />
                     <InfoRow icon={<Sparkles size={16} />} label="Disciplina" value={props.discipline} />
                     <InfoRow icon={<Award size={16} />} label="Grado" value={props.grade} />
                     <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />

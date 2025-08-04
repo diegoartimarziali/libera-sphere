@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, getDoc, Timestamp } from "firebase/firestore"
+import { doc, getDoc, Timestamp, collection, getDocs } from "firebase/firestore"
 import { differenceInDays, isPast, format, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
 import Link from "next/link"
@@ -22,6 +22,7 @@ interface UserData {
   isFormerMember: 'yes' | 'no';
   firstYear?: string;
   discipline: string;
+  gym?: string;
   lastGrade: string;
   qualification: string;
   createdAt: Timestamp;
@@ -49,6 +50,11 @@ interface SeasonSettings {
     label: string;
 }
 
+interface Gym {
+    id: string;
+    name: string;
+}
+
 export default function DashboardPage() {
   const [user, authLoading] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
@@ -65,11 +71,16 @@ export default function DashboardPage() {
         try {
           const userDocRef = doc(db, "users", user.uid)
           const seasonSettingsRef = doc(db, "settings", "season");
+          const gymsCollectionRef = collection(db, "gyms");
           
-          const [userDocSnap, seasonDocSnap] = await Promise.all([
+          const [userDocSnap, seasonDocSnap, gymsSnapshot] = await Promise.all([
               getDoc(userDocRef),
-              getDoc(seasonSettingsRef)
+              getDoc(seasonSettingsRef),
+              getDocs(gymsCollectionRef)
           ]);
+          
+          const gymsMap = new Map<string, string>();
+          gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
 
           if (userDocSnap.exists()) {
             const data = userDocSnap.data() as UserData;
@@ -172,6 +183,7 @@ export default function DashboardPage() {
                 sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
                 regulationsStatus: regulationsStatusLabel,
                 medicalStatus: medicalStatusLabel,
+                gymName: data.gym ? gymsMap.get(data.gym) : undefined,
                 discipline: data.discipline,
                 grade: data.lastGrade,
                 qualifica: data.qualification,
@@ -337,5 +349,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-    
