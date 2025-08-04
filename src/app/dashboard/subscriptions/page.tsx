@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -139,7 +140,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
     const cardContainerClasses = subscriptions.length === 1 ? "w-full max-w-md" : "";
     
     const now = new Date();
-    const firstDay = format(startOfMonth(now), "d", { locale: it });
+    const firstDay = format(startOfMonth(now), "dd", { locale: it });
     const month = format(now, "MMMM", { locale: it });
     const year = format(now, "yyyy");
     const dynamicMonthlyDescription = `Abbonamento valido dal ${firstDay}/${month}/${year}`;
@@ -205,7 +206,9 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                     {sub.type === 'seasonal' && isPurchasable && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
                                     <CardHeader>
                                         <CardTitle className={cn("text-2xl", !isPurchasable && "text-muted-foreground")}>{sub.name}</CardTitle>
-                                        <CardDescription>{sub.type === 'monthly' ? dynamicMonthlyDescription : sub.description}</CardDescription>
+                                        <CardDescription className={sub.type === 'monthly' ? "font-bold text-foreground" : ""}>
+                                            {sub.type === 'monthly' ? dynamicMonthlyDescription : sub.description}
+                                        </CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex-grow space-y-4">
                                         <div className={cn("text-5xl font-bold", !isPurchasable && "text-muted-foreground/80")}>
