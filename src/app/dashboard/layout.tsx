@@ -5,7 +5,7 @@ import { useEffect, useState, ReactNode, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc, updateDoc, Timestamp, collection, addDoc, query, where, getDocs, startOfDay as startOfToday } from "firebase/firestore"
+import { doc, getDoc, updateDoc, Timestamp, collection, addDoc, query, where, getDocs } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay, getDay } from "date-fns"
 
@@ -126,21 +126,16 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
 function DashboardHeader({ 
     onLogout, 
     userData, 
-    showMenu, 
-    showAttendancePrompt, 
-    onAttendanceSubmit 
+    showMenu
 }: { 
     onLogout: () => void; 
     userData: UserData | null, 
-    showMenu: boolean,
-    showAttendancePrompt: boolean,
-    onAttendanceSubmit: (isPresent: boolean) => void
+    showMenu: boolean
 }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
-        <header className="sticky top-0 z-30 flex h-auto min-h-14 flex-col gap-4 border-b bg-background px-4 sm:px-6">
-             <div className="flex h-14 items-center">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
                  {showMenu && (
                      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                         <SheetTrigger asChild>
@@ -188,21 +183,6 @@ function DashboardHeader({
                         <span className="uppercase font-bold">Log out</span>
                     </Button>
                 </div>
-            </div>
-
-            {showAttendancePrompt && (
-                 <div className="pb-4">
-                     <Alert variant="info">
-                        <Info className="h-4 w-4"/>
-                        <AlertTitle>Sei dei nostri stasera?</AlertTitle>
-                        <AlertDescription className="flex items-center gap-4 mt-2">
-                           <p>Conferma la tua presenza alla lezione di oggi.</p>
-                           <Button size="sm" onClick={() => onAttendanceSubmit(true)}>SÌ</Button>
-                           <Button size="sm" variant="outline" onClick={() => onAttendanceSubmit(false)}>NO</Button>
-                        </AlertDescription>
-                    </Alert>
-                 </div>
-            )}
         </header>
     );
 }
@@ -216,7 +196,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [user, loadingAuth] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loadingData, setLoadingData] = useState(true)
-  const [showAttendancePrompt, setShowAttendancePrompt] = useState(false);
   const { toast } = useToast()
   const router = useRouter()
   const pathname = usePathname()
@@ -232,84 +211,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
   }, [router, toast]);
   
-  const handleAttendanceSubmit = useCallback(async (isPresent: boolean) => {
-      if (!user) return;
-      setShowAttendancePrompt(false); // Nascondi subito il prompt
-      try {
-        const attendanceRef = collection(db, "attendances");
-        await addDoc(attendanceRef, {
-            userId: user.uid,
-            lessonDate: Timestamp.fromDate(startOfToday(new Date())),
-            isPresent: isPresent,
-            type: "lesson",
-            submittedAt: Timestamp.now(),
-        });
-        toast({
-            title: "Grazie per la risposta!",
-            description: "La tua presenza è stata registrata.",
-        });
-      } catch (error) {
-          console.error("Error submitting attendance:", error);
-          toast({ variant: "destructive", title: "Errore", description: "Impossibile registrare la presenza." });
-          setShowAttendancePrompt(true); // Se c'è un errore, rimostra il prompt
-      }
-
-  }, [user, toast]);
-  
-  // Mappa per convertire il nome del giorno in numero (Domenica=0, Lunedì=1...)
-  const dayNameToJsGetDay: { [key: string]: number } = {
-        'domenica': 0, 'lunedi': 1, 'martedi': 2, 'mercoledi': 3, 
-        'giovedi': 4, 'venerdi': 5, 'sabato': 6
-  };
-  
-  const checkShowAttendance = useCallback(async (user: UserData, uid: string) => {
-    // 1. L'utente deve essere un socio attivo
-    if (user.associationStatus !== 'active') return;
-
-    // 2. Deve avere una palestra associata
-    if (!user.gym) return;
-
-    try {
-        // 3. Controlla se l'utente ha già risposto oggi
-        const todayStart = startOfToday(new Date());
-        const attendanceQuery = query(
-            collection(db, "attendances"),
-            where("userId", "==", uid),
-            where("lessonDate", "==", Timestamp.fromDate(todayStart))
-        );
-        const attendanceSnap = await getDocs(attendanceQuery);
-        if (!attendanceSnap.empty) {
-            setShowAttendancePrompt(false);
-            return; // Ha già risposto
-        }
-        
-        // 4. Controlla se è un giorno di lezione
-        const gymDocRef = doc(db, "gyms", user.gym);
-        const gymDocSnap = await getDoc(gymDocRef);
-
-        if (gymDocSnap.exists()) {
-            const gymData = gymDocSnap.data();
-            const regularLessons: Lesson[] = gymData.regularLessons || [];
-            
-            const todayJsNumber = getDay(new Date()); // Domenica = 0, Lunedì = 1...
-            const isLessonDay = regularLessons.some(lesson => {
-                const lessonDayNumber = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
-                return lessonDayNumber === todayJsNumber;
-            });
-            
-            if (isLessonDay) {
-                 // TODO - Fase 3: Controllare la collezione `lesson_overrides`
-                 setShowAttendancePrompt(true);
-            } else {
-                 setShowAttendancePrompt(false);
-            }
-        }
-
-    } catch (error) {
-        console.error("Error checking attendance conditions", error);
-        setShowAttendancePrompt(false);
-    }
-  }, [dayNameToJsGetDay]);
 
   useEffect(() => {
     const fetchAndRedirect = async () => {
@@ -371,7 +272,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 }
                 
                 setUserData(fetchedUserData);
-                await checkShowAttendance(fetchedUserData, user.uid);
                 
                 // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
                  const onboardingPages = [
@@ -435,7 +335,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
          redirect("/");
     }
 
-  }, [user, loadingAuth, pathname, router, toast, handleLogout, checkShowAttendance]);
+  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
 
   if (loadingAuth || loadingData) {
     return (
@@ -468,8 +368,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             onLogout={handleLogout} 
             userData={userData} 
             showMenu={showMenu}
-            showAttendancePrompt={showAttendancePrompt}
-            onAttendanceSubmit={handleAttendanceSubmit}
         />
         <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
