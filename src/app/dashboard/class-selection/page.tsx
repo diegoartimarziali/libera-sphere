@@ -83,8 +83,8 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
 
 // Mappa per convertire il nome del giorno in numero (Domenica=0, Lunedì=1...)
 const dayNameToJsGetDay: { [key: string]: number } = {
-    'domenica': 0, 'lunedì': 1, 'martedì': 2, 'mercoledì': 3, 
-    'giovedì': 4, 'venerdì': 5, 'sabato': 6
+    'domenica': 0, 'lunedi': 1, 'martedi': 2, 'mercoledi': 3, 
+    'giovedi': 4, 'venerdi': 5, 'sabato': 6
 };
 
 
@@ -869,5 +869,7 @@ export default function ClassSelectionPage() {
     )
 }
 
+
+    
 
     

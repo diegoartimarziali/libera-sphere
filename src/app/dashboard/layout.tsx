@@ -5,9 +5,9 @@ import { useEffect, useState, ReactNode, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore"
+import { doc, getDoc, updateDoc, Timestamp, collection, addDoc, query, where, getDocs, startOfDay as startOfToday } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { isPast, startOfDay } from "date-fns"
+import { isPast, startOfDay, getDay } from "date-fns"
 
 
 import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, Info } from "lucide-react"
@@ -19,10 +19,16 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 
+interface Lesson {
+    dayOfWeek: string;
+    time: string;
+}
+
 interface UserData {
   name: string
   email: string
   role?: 'admin' | 'user';
+  gym?: string;
   regulationsAccepted: boolean
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
@@ -117,7 +123,19 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
 // HEADER UNIFICATO
 // =================================================================
 
-function DashboardHeader({ onLogout, userData, showMenu }: { onLogout: () => void; userData: UserData | null, showMenu: boolean }) {
+function DashboardHeader({ 
+    onLogout, 
+    userData, 
+    showMenu, 
+    showAttendancePrompt, 
+    onAttendanceSubmit 
+}: { 
+    onLogout: () => void; 
+    userData: UserData | null, 
+    showMenu: boolean,
+    showAttendancePrompt: boolean,
+    onAttendanceSubmit: (isPresent: boolean) => void
+}) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
@@ -172,16 +190,15 @@ function DashboardHeader({ onLogout, userData, showMenu }: { onLogout: () => voi
                 </div>
             </div>
 
-            {/* Placeholder per la funzionalità "L'appello" */}
-            {userData?.associationStatus === 'active' && (
+            {showAttendancePrompt && (
                  <div className="pb-4">
                      <Alert variant="info">
                         <Info className="h-4 w-4"/>
                         <AlertTitle>Sei dei nostri stasera?</AlertTitle>
                         <AlertDescription className="flex items-center gap-4 mt-2">
-                           <p>Questo è un segnaposto per la futura funzione di appello.</p>
-                           <Button size="sm">SÌ</Button>
-                           <Button size="sm" variant="outline">NO</Button>
+                           <p>Conferma la tua presenza alla lezione di oggi.</p>
+                           <Button size="sm" onClick={() => onAttendanceSubmit(true)}>SÌ</Button>
+                           <Button size="sm" variant="outline" onClick={() => onAttendanceSubmit(false)}>NO</Button>
                         </AlertDescription>
                     </Alert>
                  </div>
@@ -199,6 +216,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [user, loadingAuth] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loadingData, setLoadingData] = useState(true)
+  const [showAttendancePrompt, setShowAttendancePrompt] = useState(false);
   const { toast } = useToast()
   const router = useRouter()
   const pathname = usePathname()
@@ -214,6 +232,85 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
   }, [router, toast]);
   
+  const handleAttendanceSubmit = useCallback(async (isPresent: boolean) => {
+      if (!user) return;
+      setShowAttendancePrompt(false); // Nascondi subito il prompt
+      try {
+        const attendanceRef = collection(db, "attendances");
+        await addDoc(attendanceRef, {
+            userId: user.uid,
+            lessonDate: Timestamp.fromDate(startOfToday(new Date())),
+            isPresent: isPresent,
+            type: "lesson",
+            submittedAt: Timestamp.now(),
+        });
+        toast({
+            title: "Grazie per la risposta!",
+            description: "La tua presenza è stata registrata.",
+        });
+      } catch (error) {
+          console.error("Error submitting attendance:", error);
+          toast({ variant: "destructive", title: "Errore", description: "Impossibile registrare la presenza." });
+          setShowAttendancePrompt(true); // Se c'è un errore, rimostra il prompt
+      }
+
+  }, [user, toast]);
+  
+  // Mappa per convertire il nome del giorno in numero (Domenica=0, Lunedì=1...)
+  const dayNameToJsGetDay: { [key: string]: number } = {
+        'domenica': 0, 'lunedi': 1, 'martedi': 2, 'mercoledi': 3, 
+        'giovedi': 4, 'venerdi': 5, 'sabato': 6
+  };
+  
+  const checkShowAttendance = useCallback(async (user: UserData, uid: string) => {
+    // 1. L'utente deve essere un socio attivo
+    if (user.associationStatus !== 'active') return;
+
+    // 2. Deve avere una palestra associata
+    if (!user.gym) return;
+
+    try {
+        // 3. Controlla se l'utente ha già risposto oggi
+        const todayStart = startOfToday(new Date());
+        const attendanceQuery = query(
+            collection(db, "attendances"),
+            where("userId", "==", uid),
+            where("lessonDate", "==", Timestamp.fromDate(todayStart))
+        );
+        const attendanceSnap = await getDocs(attendanceQuery);
+        if (!attendanceSnap.empty) {
+            setShowAttendancePrompt(false);
+            return; // Ha già risposto
+        }
+        
+        // 4. Controlla se è un giorno di lezione
+        const gymDocRef = doc(db, "gyms", user.gym);
+        const gymDocSnap = await getDoc(gymDocRef);
+
+        if (gymDocSnap.exists()) {
+            const gymData = gymDocSnap.data();
+            const regularLessons: Lesson[] = gymData.regularLessons || [];
+            
+            const todayJsNumber = getDay(new Date()); // Domenica = 0, Lunedì = 1...
+            const isLessonDay = regularLessons.some(lesson => {
+                const lessonDayNumber = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
+                return lessonDayNumber === todayJsNumber;
+            });
+            
+            if (isLessonDay) {
+                 // TODO - Fase 3: Controllare la collezione `lesson_overrides`
+                 setShowAttendancePrompt(true);
+            } else {
+                 setShowAttendancePrompt(false);
+            }
+        }
+
+    } catch (error) {
+        console.error("Error checking attendance conditions", error);
+        setShowAttendancePrompt(false);
+    }
+  }, [dayNameToJsGetDay]);
+
   useEffect(() => {
     const fetchAndRedirect = async () => {
         if (!user) {
@@ -274,6 +371,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 }
                 
                 setUserData(fetchedUserData);
+                await checkShowAttendance(fetchedUserData, user.uid);
                 
                 // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
                  const onboardingPages = [
@@ -337,7 +435,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
          redirect("/");
     }
 
-  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
+  }, [user, loadingAuth, pathname, router, toast, handleLogout, checkShowAttendance]);
 
   if (loadingAuth || loadingData) {
     return (
@@ -366,7 +464,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
-        <DashboardHeader onLogout={handleLogout} userData={userData} showMenu={showMenu} />
+        <DashboardHeader 
+            onLogout={handleLogout} 
+            userData={userData} 
+            showMenu={showMenu}
+            showAttendancePrompt={showAttendancePrompt}
+            onAttendanceSubmit={handleAttendanceSubmit}
+        />
         <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
   )
