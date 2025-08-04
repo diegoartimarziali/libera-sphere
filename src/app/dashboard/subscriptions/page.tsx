@@ -489,11 +489,12 @@ export default function SubscriptionsPage() {
                     if (subData.type === 'seasonal' && subData.purchaseStartDate && subData.purchaseEndDate) {
                         const startDate = subData.purchaseStartDate.toDate();
                         const endDate = subData.purchaseEndDate.toDate();
+                        // La disponibilità dello stagionale dipende SOLO dalle sue date, non dalla modalità di forzatura
                         isAvailable = now >= startDate && now <= endDate;
                     } else if (subData.type === 'monthly') {
                         const seasonStartDate = activitySettingsData.startDate.toDate();
                         const seasonEndDate = activitySettingsData.endDate.toDate();
-                        // Applica la modalità di forzatura qui
+                        // Applica la modalità di forzatura solo per il mensile
                         isAvailable = FORCE_PURCHASE_MODE || (now >= seasonStartDate && now <= seasonEndDate);
                     }
 
