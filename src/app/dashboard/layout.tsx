@@ -211,19 +211,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             if (userDocSnap.exists()) {
                 let fetchedUserData = userDocSnap.data() as UserData;
                 
-                // ================== FORZATURA PER TEST ==================
-                const isTestMode = true; // Imposta a true per attivare la forzatura
-                if (isTestMode) {
-                    fetchedUserData.associationStatus = 'active';
-                    fetchedUserData.subscriptionAccessStatus = 'expired';
-                    fetchedUserData.regulationsAccepted = true;
-                    fetchedUserData.medicalCertificateSubmitted = true;
-                    fetchedUserData.applicationSubmitted = true;
-                    fetchedUserData.trialStatus = 'completed';
-                    fetchedUserData.trialOutcome = 'accepted';
-                }
-                // ========================================================
-                
                 const updates: { [key: string]: any } = {};
 
                 // Controllo scadenza prova
@@ -261,7 +248,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     toast({ title: "Abbonamento Scaduto", description: "Il tuo abbonamento è scaduto. Rinnovalo per accedere ai corsi." });
                 }
 
-                if (userModified && !isTestMode) { // Non salvare le modifiche se siamo in test mode
+                if (userModified) {
                     await updateDoc(userDocRef, updates);
                     userDocSnap = await getDoc(userDocRef); // Re-fetch data
                     fetchedUserData = userDocSnap.data() as UserData;
@@ -365,3 +352,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
