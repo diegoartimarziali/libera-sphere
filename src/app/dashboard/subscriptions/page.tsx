@@ -157,19 +157,33 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
             ) : (
                 <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
                     {subscriptions.map((sub) => {
-                        const hasActiveSubscription = userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending');
-                        const isPurchasable = sub.isAvailable && !hasActiveSubscription;
+                        const hasActiveSeasonal = userSubscription?.type === 'seasonal' && (userSubscription.status === 'active' || userSubscription.status === 'pending');
+                        const hasActiveMonthly = userSubscription?.type === 'monthly' && (userSubscription.status === 'active' || userSubscription.status === 'pending');
 
-                        const getDisabledReason = () => {
-                            if (hasActiveSubscription) return "Hai già un abbonamento attivo";
-                            if (!sub.isAvailable) {
-                                if (sub.type === 'seasonal' && sub.purchaseStartDate && sub.purchaseEndDate) {
-                                     return `Acquistabile dal ${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
-                                }
-                                return "Non Disponibile Ora";
+                        let isPurchasable = sub.isAvailable ?? false;
+                        let disabledReason = "";
+
+                        if (sub.type === 'seasonal') {
+                            if (hasActiveMonthly) {
+                                isPurchasable = false;
+                                disabledReason = "Non puoi acquistare lo stagionale se hai un mensile attivo.";
                             }
-                            return "Non Acquistabile";
-                        };
+                        }
+
+                        if (sub.type === 'monthly') {
+                            if (hasActiveSeasonal) {
+                                isPurchasable = false;
+                                disabledReason = "Hai già un abbonamento stagionale attivo.";
+                            }
+                        }
+
+                        if (!isPurchasable && !disabledReason) {
+                            if (sub.type === 'seasonal' && sub.purchaseStartDate && sub.purchaseEndDate) {
+                                 disabledReason = `Acquistabile dal ${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
+                            } else {
+                                disabledReason = "Non Disponibile Ora";
+                            }
+                        }
 
 
                         return (
@@ -226,7 +240,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                         <Alert variant="default" className="w-full border-primary/50 text-center">
                                             <Info className="h-4 w-4" />
                                             <AlertDescription>
-                                                {getDisabledReason()}
+                                                {disabledReason}
                                             </AlertDescription>
                                         </Alert>
                                     )}
@@ -471,7 +485,7 @@ export default function SubscriptionsPage() {
                          if (subData.type === 'seasonal' && subData.purchaseStartDate && subData.purchaseEndDate) {
                             const startDate = subData.purchaseStartDate.toDate();
                             const endDate = subData.purchaseEndDate.toDate();
-                             isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
+                            isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
                         } else if (subData.type === 'monthly') {
                             const seasonStartDate = activitySettingsData.startDate.toDate();
                             const seasonEndDate = activitySettingsData.endDate.toDate();
@@ -656,3 +670,4 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
+
