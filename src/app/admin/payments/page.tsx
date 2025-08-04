@@ -3,16 +3,19 @@
 
 import { useState, useEffect } from "react"
 import { db } from "@/lib/firebase"
-import { collectionGroup, getDocs, query, where, doc, writeBatch, Timestamp, getDoc } from "firebase/firestore"
+import { collection, getDocs, query, orderBy, collectionGroup, where, doc, writeBatch, Timestamp, updateDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 
-
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, Check } from "lucide-react"
+import { Loader2, Check, X, User, Users, Search } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 
 interface Payment {
     id: string; // Document ID of the payment
@@ -23,190 +26,324 @@ interface Payment {
     paymentMethod: 'online' | 'in_person' | 'bank_transfer';
     status: 'pending' | 'completed' | 'failed';
     type: 'association' | 'trial' | 'subscription';
-    userInfo?: {
-        name: string;
-        email: string;
+}
+
+interface UserProfile {
+    uid: string;
+    name: string;
+    surname: string;
+    email: string;
+    discipline?: string;
+    gym?: string;
+    associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
+    trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
+    subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
+    payments: Payment[];
+}
+
+interface Gym {
+    id: string;
+    name: string;
+}
+
+// Funzioni helper per tradurre stati e metodi
+const getStatusVariant = (status: Payment['status']) => {
+    switch (status) {
+        case 'completed': return 'default';
+        case 'pending': return 'secondary';
+        case 'failed': return 'destructive';
+        default: return 'secondary';
+    }
+}
+const translateStatus = (status: Payment['status']) => {
+    switch (status) {
+        case 'completed': return 'Completato';
+        case 'pending': return 'In attesa';
+        case 'failed': return 'Fallito';
+        default: return status;
+    }
+}
+const translatePaymentMethod = (method: Payment['paymentMethod']) => {
+    switch (method) {
+        case 'online': return 'Online';
+        case 'in_person': return 'In Sede';
+        case 'bank_transfer': return 'Bonifico';
+        default: return method;
     }
 }
 
-
 export default function AdminPaymentsPage() {
-    const [payments, setPayments] = useState<Payment[]>([]);
+    const [profiles, setProfiles] = useState<UserProfile[]>([]);
+    const [gyms, setGyms] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
-    const [approvingId, setApprovingId] = useState<string | null>(null);
+    const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("all");
+
     const { toast } = useToast();
 
     useEffect(() => {
-        const fetchPendingPayments = async () => {
+        const fetchData = async () => {
             setLoading(true);
             try {
-                // 1. Query per tutti i pagamenti in sospeso
-                const paymentsQuery = query(
-                    collectionGroup(db, 'payments'), 
-                    where('status', '==', 'pending')
-                );
-                const querySnapshot = await getDocs(paymentsQuery);
+                // 1. Fetch all gyms
+                const gymsSnapshot = await getDocs(collection(db, "gyms"));
+                const gymsMap = new Map<string, string>();
+                gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
+                setGyms(gymsMap);
+
+                // 2. Fetch all users
+                const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
+                const userIds = usersSnapshot.docs.map(doc => doc.id);
+
+                // 3. Fetch all payments for all users
+                const paymentsSnapshot = await getDocs(query(collectionGroup(db, 'payments'), orderBy('createdAt', 'desc')));
+                const paymentsByUserId = new Map<string, Payment[]>();
                 
-                const pendingPayments: Payment[] = [];
-
-                // 2. Recupera i dati utente per ogni pagamento
-                for (const paymentDoc of querySnapshot.docs) {
-                    const paymentData = paymentDoc.data() as Omit<Payment, 'id'>;
-                    const payment: Payment = {
-                        id: paymentDoc.id,
-                        ...paymentData,
-                    };
-
-                    // Recupera i dati dell'utente associato
-                    const userDocRef = doc(db, 'users', payment.userId);
-                    const userDocSnap = await getDoc(userDocRef);
-
-
-                    if (userDocSnap.exists()) {
-                        const userData = userDocSnap.data();
-                        payment.userInfo = {
-                            name: `${userData.name} ${userData.surname}`,
-                            email: userData.email,
-                        }
+                paymentsSnapshot.forEach(doc => {
+                    const payment = { id: doc.id, ...doc.data() } as Payment;
+                    const userId = payment.userId;
+                    if (!paymentsByUserId.has(userId)) {
+                        paymentsByUserId.set(userId, []);
                     }
-                    pendingPayments.push(payment);
-                }
+                    paymentsByUserId.get(userId)!.push(payment);
+                });
                 
-                // Ordina per data di creazione
-                pendingPayments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-
-                setPayments(pendingPayments);
+                // 4. Combine data into profiles
+                const userProfiles = usersSnapshot.docs.map(doc => {
+                    const userData = doc.data();
+                    return {
+                        uid: doc.id,
+                        name: userData.name,
+                        surname: userData.surname,
+                        email: userData.email,
+                        discipline: userData.discipline,
+                        gym: userData.gym,
+                        associationStatus: userData.associationStatus,
+                        trialStatus: userData.trialStatus,
+                        subscriptionAccessStatus: userData.subscriptionAccessStatus,
+                        payments: paymentsByUserId.get(doc.id) || []
+                    };
+                });
+                
+                setProfiles(userProfiles);
 
             } catch (error) {
-                console.error("Error fetching pending payments: ", error);
+                console.error("Error fetching admin data: ", error);
                 toast({
                     variant: "destructive",
                     title: "Errore",
-                    description: "Impossibile caricare i pagamenti in sospeso."
+                    description: "Impossibile caricare i dati degli utenti e dei pagamenti."
                 });
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchPendingPayments();
+        fetchData();
     }, [toast]);
-
-    const handleApprovePayment = async (payment: Payment) => {
-        setApprovingId(payment.id);
+    
+    const handlePaymentUpdate = async (payment: Payment, newStatus: 'completed' | 'failed') => {
+        setUpdatingPaymentId(payment.id);
         
         try {
             const batch = writeBatch(db);
             const userDocRef = doc(db, 'users', payment.userId);
+            const paymentDocRef = doc(db, 'users', payment.userId, 'payments', payment.id);
 
             // 1. Aggiorna lo stato del pagamento
-            const paymentDocRef = doc(db, 'users', payment.userId, 'payments', payment.id);
-            batch.update(paymentDocRef, { status: 'completed' });
+            batch.update(paymentDocRef, { status: newStatus });
 
-            // 2. Logica specifica per tipo di pagamento
-            if (payment.type === 'association') {
-                batch.update(userDocRef, { 
-                    associationStatus: 'active',
-                    isInsured: true
-                 });
-            } else if (payment.type === 'trial') {
-                batch.update(userDocRef, { 
-                    trialStatus: 'active',
-                    isInsured: true
-                });
-            } else if (payment.type === 'subscription') {
-                batch.update(userDocRef, { 
-                    subscriptionAccessStatus: 'active'
-                });
+            // 2. Logica specifica se il pagamento viene APPROVATO
+            if (newStatus === 'completed') {
+                 if (payment.type === 'association') {
+                    batch.update(userDocRef, { 
+                        associationStatus: 'active',
+                        isInsured: true
+                    });
+                } else if (payment.type === 'trial') {
+                    batch.update(userDocRef, { 
+                        trialStatus: 'active',
+                        isInsured: true
+                    });
+                } else if (payment.type === 'subscription') {
+                    batch.update(userDocRef, { 
+                        subscriptionAccessStatus: 'active'
+                    });
+                }
+            } else { // se il pagamento viene messo a FAILED
+                // Qui potremmo voler resettare lo stato dell'utente.
+                // Es. se un pagamento di associazione fallisce, l'utente non diventa attivo.
+                // Per ora, aggiorniamo solo il pagamento. In futuro si può aggiungere logica qui.
             }
             
-            // Esegui le operazioni in batch
             await batch.commit();
 
             toast({
-                title: "Pagamento Approvato!",
-                description: `Il pagamento di ${payment.userInfo?.name} è stato segnato come completato.`
+                title: `Pagamento ${newStatus === 'completed' ? 'Approvato' : 'Fallito'}!`,
+                description: `Lo stato del pagamento di ${payment.description} è stato aggiornato.`
             });
+            
+            // Aggiorna lo stato locale per riflettere il cambiamento senza ricaricare
+            setProfiles(prevProfiles => prevProfiles.map(profile => {
+                if (profile.uid === payment.userId) {
+                    return {
+                        ...profile,
+                        payments: profile.payments.map(p => p.id === payment.id ? { ...p, status: newStatus } : p)
+                    };
+                }
+                return profile;
+            }));
 
-            // Rimuovi il pagamento dalla lista locale
-            setPayments(prev => prev.filter(p => p.id !== payment.id));
 
         } catch (error) {
-             console.error("Error approving payment: ", error);
+             console.error(`Error updating payment to ${newStatus}: `, error);
             toast({
                 variant: "destructive",
                 title: "Errore",
-                description: "Impossibile approvare il pagamento. Riprova."
+                description: `Impossibile aggiornare il pagamento. Riprova.`
             });
         } finally {
-            setApprovingId(null);
+            setUpdatingPaymentId(null);
         }
     }
 
+    const filteredProfiles = profiles
+        .filter(profile => {
+            const fullName = `${profile.name} ${profile.surname}`.toLowerCase();
+            const email = profile.email.toLowerCase();
+            const search = searchTerm.toLowerCase();
+            return fullName.includes(search) || email.includes(search);
+        })
+        .filter(profile => {
+            if (statusFilter === 'all') return true;
+            if (statusFilter === 'pending_payments') return profile.payments.some(p => p.status === 'pending');
+            if (statusFilter === 'active_members') return profile.associationStatus === 'active';
+            if (statusFilter === 'pending_members') return profile.associationStatus === 'pending';
+             if (statusFilter === 'active_trials') return profile.trialStatus === 'active';
+            return true;
+        });
 
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Pagamenti in Sospeso</CardTitle>
+                <CardTitle>Gestione Pagamenti Utenti</CardTitle>
                 <CardDescription>
-                    Approva i pagamenti ricevuti per attivare i servizi corrispondenti per gli utenti.
+                    Visualizza e gestisci l'estratto conto di ogni utente registrato.
                 </CardDescription>
             </CardHeader>
             <CardContent>
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                    <div className="relative flex-grow">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                            placeholder="Cerca per nome o email..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10"
+                        />
+                    </div>
+                     <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-full sm:w-[220px]">
+                            <SelectValue placeholder="Filtra per stato" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Tutti gli Utenti</SelectItem>
+                            <SelectItem value="pending_payments">Con Pagamenti in Sospeso</SelectItem>
+                            <SelectItem value="active_members">Soci Attivi</SelectItem>
+                             <SelectItem value="pending_members">Associazioni Pendenti</SelectItem>
+                             <SelectItem value="active_trials">Prove Attive</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
                 {loading ? (
-                    <div className="flex justify-center items-center h-48">
-                        <Loader2 className="h-8 w-8 animate-spin" />
+                    <div className="flex justify-center items-center h-64">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
                     </div>
                 ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Data</TableHead>
-                                <TableHead>Utente</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Descrizione</TableHead>
-                                <TableHead className="text-right">Importo</TableHead>
-                                <TableHead>Metodo</TableHead>
-                                <TableHead className="text-right">Azione</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {payments.length > 0 ? payments.map((payment) => (
-                                <TableRow key={payment.id}>
-                                    <TableCell>{format(payment.createdAt.toDate(), 'dd/MM/yyyy HH:mm')}</TableCell>
-                                    <TableCell className="font-medium">{payment.userInfo?.name || 'N/D'}</TableCell>
-                                    <TableCell className="hidden md:table-cell">{payment.userInfo?.email || 'N/D'}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={payment.type === 'association' ? 'default' : 'secondary'}>
-                                            {payment.description}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">{payment.amount.toFixed(2)} €</TableCell>
-                                    <TableCell>{payment.paymentMethod}</TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            size="sm"
-                                            onClick={() => handleApprovePayment(payment)}
-                                            disabled={approvingId === payment.id}
-                                        >
-                                            {approvingId === payment.id ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <Check className="h-4 w-4" />
-                                            )}
-                                            <span className="ml-2">Approva</span>
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            )) : (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="text-center h-24">
-                                        Nessun pagamento in sospeso. Ottimo lavoro!
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                    <Accordion type="multiple" className="w-full">
+                        {filteredProfiles.length > 0 ? filteredProfiles.map(profile => (
+                            <AccordionItem value={profile.uid} key={profile.uid}>
+                                <AccordionTrigger className="hover:bg-muted/50 px-4 rounded-md">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
+                                        <div className="flex items-center">
+                                            <User className="h-5 w-5 mr-3 text-primary" />
+                                            <span className="font-bold text-lg">{profile.name} {profile.surname}</span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
+                                            <span>{profile.email}</span>
+                                            <span>{profile.discipline}</span>
+                                            <span>{gyms.get(profile.gym || '')}</span>
+                                        </div>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="p-4 bg-muted/20">
+                                    {profile.payments.length > 0 ? (
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>Data</TableHead>
+                                                    <TableHead>Descrizione</TableHead>
+                                                    <TableHead>Metodo</TableHead>
+                                                    <TableHead>Importo</TableHead>
+                                                    <TableHead>Stato</TableHead>
+                                                    <TableHead className="text-right">Azione</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {profile.payments.map(p => (
+                                                    <TableRow key={p.id}>
+                                                        <TableCell>{format(p.createdAt.toDate(), 'dd/MM/yy HH:mm')}</TableCell>
+                                                        <TableCell>{p.description}</TableCell>
+                                                        <TableCell>{translatePaymentMethod(p.paymentMethod)}</TableCell>
+                                                        <TableCell>{p.amount.toFixed(2)} €</TableCell>
+                                                        <TableCell>
+                                                            <Badge variant={getStatusVariant(p.status)}>
+                                                                {translateStatus(p.status)}
+                                                            </Badge>
+                                                        </TableCell>
+                                                        <TableCell className="text-right">
+                                                            {p.status === 'pending' && (
+                                                                <div className="flex gap-2 justify-end">
+                                                                    <Button
+                                                                        variant="destructive"
+                                                                        size="icon"
+                                                                        onClick={() => handlePaymentUpdate(p, 'failed')}
+                                                                        disabled={updatingPaymentId === p.id}
+                                                                        title="Segna come fallito"
+                                                                    >
+                                                                         {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="h-4 w-4" />}
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="default"
+                                                                        size="icon"
+                                                                        onClick={() => handlePaymentUpdate(p, 'completed')}
+                                                                        disabled={updatingPaymentId === p.id}
+                                                                        title="Approva pagamento"
+                                                                    >
+                                                                        {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4" />}
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    ) : (
+                                        <p className="text-center text-muted-foreground py-4">Nessun pagamento registrato per questo utente.</p>
+                                    )}
+                                </AccordionContent>
+                            </AccordionItem>
+                        )) : (
+                             <div className="text-center py-16 text-muted-foreground">
+                                <Users className="mx-auto h-12 w-12" />
+                                <h3 className="mt-4 text-lg font-semibold">Nessun Utente Trovato</h3>
+                                <p className="mt-1 text-sm">Prova a modificare i filtri di ricerca.</p>
+                            </div>
+                        )}
+                    </Accordion>
                 )}
             </CardContent>
         </Card>
