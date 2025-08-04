@@ -446,17 +446,9 @@ export default function SubscriptionsPage() {
                     getDoc(settingsDocRef)
                 ]);
 
-                if (settingsDocSnap.exists()) {
-                    setActivitySettings(settingsDocSnap.data() as ActivitySettings);
-                } else {
-                     toast({ title: "Errore di configurazione", description: "Impostazioni delle attività non trovate.", variant: "destructive" });
-                     setLoading(false);
-                     return;
-                }
-
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
-                    if (userData.subscriptionAccessStatus && userData.subscriptionAccessStatus !== 'expired' && userData.activeSubscription) {
+                    if (userData.subscriptionAccessStatus && userData.subscriptionAccessStatus !== 'expired') {
                         const subStatus: UserSubscription = {
                             name: userData.activeSubscription.name,
                             type: userData.activeSubscription.type,
@@ -466,8 +458,16 @@ export default function SubscriptionsPage() {
                         };
                         setUserSubscription(subStatus);
                         setLoading(false);
-                        return;
+                        return; // Esce dalla funzione, mostrando solo la Status Card
                     }
+                }
+                
+                if (settingsDocSnap.exists()) {
+                    setActivitySettings(settingsDocSnap.data() as ActivitySettings);
+                } else {
+                     toast({ title: "Errore di configurazione", description: "Impostazioni delle attività non trovate.", variant: "destructive" });
+                     setLoading(false);
+                     return;
                 }
                 
                 const subsCollection = collection(db, 'subscriptions');
