@@ -2,8 +2,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { db } from "@/lib/firebase"
-import { collection, getDocs, query, orderBy, collectionGroup, where, doc, writeBatch, Timestamp, updateDoc } from "firebase/firestore"
+import { db, auth } from "@/lib/firebase"
+import { useAuthState } from "react-firebase-hooks/auth"
+import { collection, getDocs, query, orderBy, collectionGroup, where, doc, writeBatch, Timestamp, updateDoc, getDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 
@@ -12,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, Check, X, User, Users, Search } from "lucide-react"
+import { Loader2, Check, X, User, Users, Search, ShieldPlus } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -33,6 +34,7 @@ interface UserProfile {
     name: string;
     surname: string;
     email: string;
+    role?: 'admin' | 'user';
     discipline?: string;
     gym?: string;
     associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
@@ -73,6 +75,8 @@ const translatePaymentMethod = (method: Payment['paymentMethod']) => {
 }
 
 export default function AdminPaymentsPage() {
+    const [user] = useAuthState(auth);
+    const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
     const [profiles, setProfiles] = useState<UserProfile[]>([]);
     const [gyms, setGyms] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
@@ -86,6 +90,14 @@ export default function AdminPaymentsPage() {
         const fetchData = async () => {
             setLoading(true);
             try {
+                 // 0. Get current admin user role
+                if (user) {
+                    const userDoc = await getDoc(doc(db, "users", user.uid));
+                    if (userDoc.exists()) {
+                        setCurrentUserRole(userDoc.data().role);
+                    }
+                }
+
                 // 1. Fetch all gyms
                 const gymsSnapshot = await getDocs(collection(db, "gyms"));
                 const gymsMap = new Map<string, string>();
@@ -117,6 +129,7 @@ export default function AdminPaymentsPage() {
                         name: userData.name,
                         surname: userData.surname,
                         email: userData.email,
+                        role: userData.role,
                         discipline: userData.discipline,
                         gym: userData.gym,
                         associationStatus: userData.associationStatus,
@@ -141,7 +154,7 @@ export default function AdminPaymentsPage() {
         };
 
         fetchData();
-    }, [toast]);
+    }, [toast, user]);
     
     const handlePaymentUpdate = async (payment: Payment, newStatus: 'completed' | 'failed') => {
         setUpdatingPaymentId(payment.id);
@@ -208,6 +221,35 @@ export default function AdminPaymentsPage() {
         }
     }
 
+    const handleMakeAdmin = async (userId: string) => {
+        if (!window.confirm("Sei sicuro di voler rendere questo utente un amministratore? Avrà pieno accesso a tutte le funzioni di gestione.")) {
+            return;
+        }
+
+        try {
+            const userDocRef = doc(db, 'users', userId);
+            await updateDoc(userDocRef, { role: 'admin' });
+
+            toast({
+                title: "Utente Promosso!",
+                description: "L'utente è ora un amministratore.",
+            });
+
+            // Aggiorna lo stato locale
+            setProfiles(prevProfiles => prevProfiles.map(p => 
+                p.uid === userId ? { ...p, role: 'admin' } : p
+            ));
+
+        } catch (error) {
+             console.error("Error making user admin: ", error);
+             toast({
+                variant: "destructive",
+                title: "Errore",
+                description: "Impossibile promuovere l'utente ad amministratore."
+            });
+        }
+    }
+
     const filteredProfiles = profiles
         .filter(profile => {
             const fullName = `${profile.name} ${profile.surname}`.toLowerCase();
@@ -266,10 +308,11 @@ export default function AdminPaymentsPage() {
                         {filteredProfiles.length > 0 ? filteredProfiles.map(profile => (
                             <AccordionItem value={profile.uid} key={profile.uid}>
                                 <AccordionTrigger className="hover:bg-muted/50 px-4 rounded-md">
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
+                                    <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
                                         <div className="flex items-center">
                                             <User className="h-5 w-5 mr-3 text-primary" />
                                             <span className="font-bold text-lg">{profile.name} {profile.surname}</span>
+                                            {profile.role === 'admin' && <Badge variant="destructive" className="ml-3">Admin</Badge>}
                                         </div>
                                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
                                             <span>{profile.email}</span>
@@ -277,6 +320,20 @@ export default function AdminPaymentsPage() {
                                             <span>{gyms.get(profile.gym || '')}</span>
                                         </div>
                                     </div>
+                                    {currentUserRole === 'admin' && profile.role !== 'admin' && (
+                                        <Button 
+                                            variant="outline"
+                                            size="sm"
+                                            className="ml-4"
+                                            onClick={(e) => {
+                                                e.stopPropagation(); // Impedisce l'apertura/chiusura dell'accordion
+                                                handleMakeAdmin(profile.uid);
+                                            }}
+                                        >
+                                            <ShieldPlus className="h-4 w-4 mr-2" />
+                                            Rendi Admin
+                                        </Button>
+                                    )}
                                 </AccordionTrigger>
                                 <AccordionContent className="p-4 bg-muted/20">
                                     {profile.payments.length > 0 ? (
@@ -294,7 +351,7 @@ export default function AdminPaymentsPage() {
                                             <TableBody>
                                                 {profile.payments.map(p => (
                                                     <TableRow key={p.id}>
-                                                        <TableCell>{format(p.createdAt.toDate(), 'dd/MM/yy HH:mm')}</TableCell>
+                                                        <TableCell>{p.createdAt ? format(p.createdAt.toDate(), 'dd/MM/yy HH:mm') : 'N/D'}</TableCell>
                                                         <TableCell>{p.description}</TableCell>
                                                         <TableCell>{translatePaymentMethod(p.paymentMethod)}</TableCell>
                                                         <TableCell>{p.amount.toFixed(2)} €</TableCell>

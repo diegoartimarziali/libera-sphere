@@ -1,16 +1,18 @@
 
 "use client"
 
-import { ReactNode, useCallback } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, redirect } from "next/navigation";
+import { useAuthState } from "react-firebase-hooks/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Loader2 } from "lucide-react";
 import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
 
 function AdminNavLink({ href, children }: { href: string; children: React.ReactNode }) {
     const pathname = usePathname();
@@ -31,8 +33,44 @@ function AdminNavLink({ href, children }: { href: string; children: React.ReactN
 
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
+    const [user, loadingAuth] = useAuthState(auth);
+    const [isAuthorizing, setIsAuthorizing] = useState(true);
     const router = useRouter();
     const { toast } = useToast();
+
+     useEffect(() => {
+        const checkAdminRole = async () => {
+            if (loadingAuth) return;
+            if (!user) {
+                redirect('/'); // Se non c'è utente, reindirizza al login
+                return;
+            }
+
+            try {
+                const userDocRef = doc(db, 'users', user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+
+                if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
+                    setIsAuthorizing(false); // Utente è admin, permette l'accesso
+                } else {
+                    // Se non ha il ruolo o il documento non esiste, nega l'accesso
+                    toast({
+                        variant: "destructive",
+                        title: "Accesso Negato",
+                        description: "Non disponi dei permessi per accedere a quest'area."
+                    });
+                    router.push('/dashboard');
+                }
+            } catch (error) {
+                 console.error("Error checking admin role:", error);
+                 toast({ variant: "destructive", title: "Errore", description: "Impossibile verificare i permessi." });
+                 router.push('/dashboard');
+            }
+        };
+        
+        checkAdminRole();
+
+    }, [user, loadingAuth, router, toast]);
 
     const handleLogout = useCallback(async () => {
       try {
@@ -44,6 +82,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           toast({ variant: "destructive", title: "Errore di logout", description: "Impossibile disconnettersi. Riprova." });
       }
     }, [router, toast]);
+
+    if (loadingAuth || isAuthorizing) {
+        return (
+             <div className="flex h-screen w-full items-center justify-center bg-muted/40">
+                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            </div>
+        )
+    }
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-muted/40">
