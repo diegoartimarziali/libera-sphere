@@ -7,7 +7,7 @@ import { collection, doc, getDocs, serverTimestamp, updateDoc, addDoc, getDoc, T
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
-import { format, lastDayOfMonth } from "date-fns"
+import { format, lastDayOfMonth, isWithinInterval } from "date-fns"
 import { it } from "date-fns/locale"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -28,6 +28,9 @@ interface Subscription {
     description: string;
     type: 'monthly' | 'seasonal';
     sumupLink: string;
+    purchaseStartDate?: Timestamp;
+    purchaseEndDate?: Timestamp;
+    isAvailable?: boolean;
 }
 
 interface UserSubscription {
@@ -128,6 +131,7 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
 
 // Componente per la selezione dell'abbonamento
 function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscriptions: Subscription[], onSelect: (sub: Subscription) => void, onBack: () => void }) {
+    
     return (
         <div className="flex w-full flex-col items-center">
             <div className="mb-8 text-center">
@@ -151,59 +155,79 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack }: { subscr
                  </Card>
             ) : (
                 <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
-                    {subscriptions.map((sub) => (
-                        <Card key={sub.id} className="flex flex-col border-2 hover:border-primary transition-all">
-                            {sub.type === 'seasonal' && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
-                            <CardHeader>
-                                <CardTitle className="text-2xl">{sub.name}</CardTitle>
-                                <CardDescription>{sub.description}</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-grow space-y-4">
-                                <div className="text-5xl font-bold">
-                                    {sub.price}€
-                                    <span className="text-lg font-normal text-muted-foreground">/{sub.type === 'monthly' ? 'mese' : 'stagione'}</span>
-                                </div>
-                                
-                                <ul className="space-y-2 text-sm text-muted-foreground">
-                                    <li className="flex items-center">
-                                        <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
-                                        <span>Accesso a tutte le lezioni della tua disciplina</span>
-                                    </li>
-                                     {sub.type === 'seasonal' && (
+                    {subscriptions.map((sub) => {
+                        const isSeasonalAndUnavailable = sub.type === 'seasonal' && !sub.isAvailable;
+                        
+                        return (
+                            <Card 
+                                key={sub.id} 
+                                className={cn(
+                                    "flex flex-col border-2 transition-all",
+                                    isSeasonalAndUnavailable 
+                                        ? "border-dashed border-muted-foreground/50 bg-muted/30" 
+                                        : "hover:border-primary"
+                                )}
+                            >
+                                {sub.type === 'seasonal' && !isSeasonalAndUnavailable && <Badge className="absolute -top-3 right-4">Consigliato</Badge>}
+                                <CardHeader>
+                                    <CardTitle className={cn("text-2xl", isSeasonalAndUnavailable && "text-muted-foreground")}>{sub.name}</CardTitle>
+                                    <CardDescription>{sub.description}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex-grow space-y-4">
+                                    <div className={cn("text-5xl font-bold", isSeasonalAndUnavailable && "text-muted-foreground/80")}>
+                                        {sub.price}€
+                                        <span className="text-lg font-normal text-muted-foreground">/{sub.type === 'monthly' ? 'mese' : 'stagione'}</span>
+                                    </div>
+                                    
+                                    <ul className="space-y-2 text-sm text-muted-foreground">
                                         <li className="flex items-center">
                                             <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
-                                            <span>Accesso a tutte le Palestre</span>
+                                            <span>Accesso a tutte le lezioni della tua disciplina</span>
                                         </li>
-                                    )}
-                                    <li className="flex items-center">
-                                         <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
-                                         <span>Copertura assicurativa sempre inclusa</span>
-                                    </li>
-                                    {sub.type === 'monthly' ? (
+                                         {sub.type === 'seasonal' && (
+                                            <li className="flex items-center">
+                                                <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
+                                                <span>Accesso a tutte le Palestre</span>
+                                            </li>
+                                        )}
                                         <li className="flex items-center">
-                                            <XCircle className="h-4 w-4 mr-2 text-destructive flex-shrink-0" />
-                                            <span>Nessun vincolo a lungo termine, massima flessibilità</span>
+                                             <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
+                                             <span>Copertura assicurativa sempre inclusa</span>
                                         </li>
-                                    ) : (
-                                         <li className="flex items-center">
-                                            <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
-                                            <span>Il modo più conveniente per vivere un anno di sport</span>
-                                         </li>
+                                        {sub.type === 'monthly' ? (
+                                            <li className="flex items-center">
+                                                <XCircle className="h-4 w-4 mr-2 text-destructive flex-shrink-0" />
+                                                <span>Nessun vincolo a lungo termine, massima flessibilità</span>
+                                            </li>
+                                        ) : (
+                                             <li className="flex items-center">
+                                                <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
+                                                <span>Il modo più conveniente per vivere un anno di sport</span>
+                                             </li>
+                                        )}
+                                    </ul>
+                                </CardContent>
+                                <CardFooter className="flex-col items-start space-y-2">
+                                     {isSeasonalAndUnavailable && sub.purchaseStartDate && (
+                                        <Alert variant="default" className="w-full border-primary/50 text-center">
+                                            <AlertDescription>
+                                                Acquistabile dal {format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al {format(sub.purchaseEndDate!.toDate(), 'dd/MM/yy')}
+                                            </AlertDescription>
+                                        </Alert>
                                     )}
-                                </ul>
-                            </CardContent>
-                            <CardFooter>
-                                <Button 
-                                    className="w-full" 
-                                    onClick={() => onSelect(sub)}
-                                    variant={sub.type === 'seasonal' ? 'default' : 'secondary'}
-                                    size="lg"
-                                >
-                                    Scegli {sub.name}
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                                    <Button 
+                                        className="w-full" 
+                                        onClick={() => onSelect(sub)}
+                                        variant={sub.type === 'seasonal' && !isSeasonalAndUnavailable ? 'default' : 'secondary'}
+                                        size="lg"
+                                        disabled={isSeasonalAndUnavailable}
+                                    >
+                                        {isSeasonalAndUnavailable ? "Non Disponibile Ora" : `Scegli ${sub.name}`}
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        )
+                    })}
                 </div>
             )}
         </div>
@@ -360,7 +384,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, subscription }: { o
                     </div>
                      <div className="space-y-1">
                         <p className="font-semibold text-foreground">Causale:</p>
-                        <p className="font-mono bg-muted p-2 rounded-md">{`Abbonamento ${subscription?.name} [Nome Cognome Socio]`}</p>
+                        <p className="font-mono bg-muted p-2 rounded-md">{`${subscription?.name} [Nome Cognome Socio]`}</p>
                     </div>
                 </div>
                 <DialogFooter>
@@ -398,10 +422,12 @@ export default function SubscriptionsPage() {
             try {
                 const userDocRef = doc(db, "users", user.uid);
                 const settingsDocRef = doc(db, "settings", "activity");
+                const subsCollection = collection(db, 'subscriptions');
                 
-                const [userDocSnap, settingsDocSnap] = await Promise.all([
+                const [userDocSnap, settingsDocSnap, subsSnapshot] = await Promise.all([
                     getDoc(userDocRef),
-                    getDoc(settingsDocRef)
+                    getDoc(settingsDocRef),
+                    getDocs(subsCollection)
                 ]);
 
                 if (userDocSnap.exists()) {
@@ -415,35 +441,45 @@ export default function SubscriptionsPage() {
                             status: userData.subscriptionAccessStatus
                         };
                         setUserSubscription(subStatus);
+                        // Se l'abbonamento è STAGIONALE, blocchiamo la possibilità di nuovi acquisti
+                        if (subStatus.type === 'seasonal') {
+                            setLoading(false);
+                            return; // Esce dalla funzione, mostrando solo la Status Card
+                        }
                     }
                 }
                 
                 if (settingsDocSnap.exists()) {
-                    setActivitySettings(settingsDocSnap.data() as ActivitySettings);
-                } else {
-                     toast({ title: "Errore di configurazione", description: "Impostazioni delle attività non trovate.", variant: "destructive" });
-                     setLoading(false);
-                     return;
-                }
-                
-                const subsCollection = collection(db, 'subscriptions');
-                const subsSnapshot = await getDocs(subsCollection);
+                     const settingsData = settingsDocSnap.data() as ActivitySettings;
+                    setActivitySettings(settingsData);
+                    
+                    const now = new Date();
+                    const allSubs = subsSnapshot.docs.map(doc => {
+                        const subData = doc.data() as Omit<Subscription, 'id' | 'isAvailable'>;
+                        let isAvailable = false;
+                        
+                        if (subData.type === 'seasonal' && subData.purchaseStartDate && subData.purchaseEndDate) {
+                            const startDate = subData.purchaseStartDate.toDate();
+                            const endDate = subData.purchaseEndDate.toDate();
+                            isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
+                        } else if (subData.type === 'monthly') {
+                            const seasonStartDate = settingsData.startDate.toDate();
+                            const seasonEndDate = settingsData.endDate.toDate();
+                            isAvailable = FORCE_PURCHASE_MODE || isWithinInterval(now, { start: seasonStartDate, end: seasonEndDate });
+                        }
 
-                const now = new Date();
-                const activitySettingsData = settingsDocSnap.data() as ActivitySettings;
-                const seasonStartDate = activitySettingsData.startDate.toDate();
-                const seasonEndDate = activitySettingsData.endDate.toDate();
-                
-                // Se la stagione non è attiva (e non siamo in modalità forzata), non mostriamo nulla
-                if (!FORCE_PURCHASE_MODE && (now < seasonStartDate || now > seasonEndDate)) {
-                    setSubscriptions([]);
-                } else {
-                    const allSubs = subsSnapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    } as Subscription)).sort((a,b) => b.price - a.price);
+                        return {
+                            id: doc.id,
+                            ...subData,
+                            isAvailable: isAvailable
+                        };
+                    }).sort((a,b) => b.price - a.price);
 
                     setSubscriptions(allSubs);
+
+                } else {
+                     toast({ title: "Errore di configurazione", description: "Impostazioni delle attività non trovate.", variant: "destructive" });
+                     setSubscriptions([]);
                 }
 
             } catch (error) {
@@ -506,7 +542,7 @@ export default function SubscriptionsPage() {
                 userId: user.uid,
                 createdAt: serverTimestamp(),
                 amount: selectedSubscription.price,
-                description: `Abbonamento ${selectedSubscription.name}`,
+                description: selectedSubscription.name,
                 type: 'subscription',
                 status: 'pending',
                 paymentMethod: finalPaymentMethod,
@@ -559,7 +595,7 @@ export default function SubscriptionsPage() {
         );
     }
     
-    if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
+    if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && userSubscription.type === 'seasonal') {
         return (
              <div className="flex w-full flex-col items-center justify-center">
                 <SubscriptionStatusCard userSubscription={userSubscription} />
@@ -569,9 +605,17 @@ export default function SubscriptionsPage() {
 
     return (
         <div className="flex w-full flex-col items-center justify-center">
+
+            {userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && userSubscription.type === 'monthly' && (
+                 <div className="w-full max-w-lg mb-8">
+                    <SubscriptionStatusCard userSubscription={userSubscription} />
+                 </div>
+            )}
+
+
             {step === 1 && (
                 <SubscriptionSelectionStep
-                    subscriptions={subscriptions}
+                    subscriptions={subscriptions.filter(s => s.isAvailable || s.type === 'seasonal')}
                     onSelect={handleSelectSubscription}
                     onBack={() => router.push('/dashboard')}
                 />
