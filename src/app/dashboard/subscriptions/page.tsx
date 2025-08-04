@@ -417,6 +417,9 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, subscription }: { o
 }
 
 export default function SubscriptionsPage() {
+    // Interruttore per la modalità di test
+    const FORCE_PURCHASE_MODE = true; // Imposta su 'false' per tornare al comportamento normale
+
     const [user] = useAuthState(auth);
     const [step, setStep] = useState(1);
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -448,7 +451,7 @@ export default function SubscriptionsPage() {
 
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
-                    if (userData.subscriptionAccessStatus && userData.subscriptionAccessStatus !== 'expired') {
+                    if (userData.subscriptionAccessStatus && (userData.subscriptionAccessStatus === 'active' || userData.subscriptionAccessStatus === 'pending')) {
                         const subStatus: UserSubscription = {
                             name: userData.activeSubscription.name,
                             type: userData.activeSubscription.type,
@@ -487,7 +490,8 @@ export default function SubscriptionsPage() {
                     } else if (subData.type === 'monthly') {
                         const seasonStartDate = activitySettingsData.startDate.toDate();
                         const seasonEndDate = activitySettingsData.endDate.toDate();
-                        isAvailable = now >= seasonStartDate && now <= seasonEndDate;
+                        // Applica la modalità di forzatura qui
+                        isAvailable = FORCE_PURCHASE_MODE || (now >= seasonStartDate && now <= seasonEndDate);
                     }
 
                     return {
@@ -508,7 +512,7 @@ export default function SubscriptionsPage() {
         };
 
         fetchData();
-    }, [user, toast]);
+    }, [user, toast, FORCE_PURCHASE_MODE]);
 
     const handleSelectSubscription = (sub: Subscription) => {
         setSelectedSubscription(sub);
@@ -652,3 +656,5 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
+
+    
