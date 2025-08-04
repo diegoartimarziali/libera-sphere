@@ -159,25 +159,23 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                     {subscriptions.map((sub) => {
                         let isPurchasable = sub.isAvailable ?? false;
                         let disabledReason = "";
-                        
-                        // Logica di esclusività basata sulle tue regole
-                        if (sub.type === 'seasonal' && (userSubscription?.type === 'monthly' && (userSubscription.status === 'active' || userSubscription.status === 'pending'))) {
+
+                        // Se l'utente ha un abbonamento STAGIONALE, NIENTE è acquistabile.
+                        if (userSubscription?.type === 'seasonal' && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
+                            isPurchasable = false;
+                            disabledReason = "Hai già un abbonamento stagionale attivo.";
+                        }
+                        // Se l'utente ha un abbonamento MENSILE, solo lo stagionale è bloccato.
+                        else if (sub.type === 'seasonal' && userSubscription?.type === 'monthly' && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
                            isPurchasable = false;
                            disabledReason = "Non puoi acquistare lo stagionale se hai un mensile attivo.";
                         }
                         
-                        if (sub.type === 'monthly' && (userSubscription?.type === 'seasonal' && (userSubscription.status === 'active' || userSubscription.status === 'pending'))) {
-                           isPurchasable = false;
-                           disabledReason = "Hai già un abbonamento stagionale attivo.";
-                        }
-                        
                         // Messaggio di default se non acquistabile per data
-                        if (!isPurchasable && !disabledReason) {
-                            if (sub.type === 'seasonal' && sub.purchaseStartDate && sub.purchaseEndDate) {
-                                 disabledReason = `Acquistabile dal ${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
-                            } else {
-                                disabledReason = "Non Disponibile Ora";
-                            }
+                        if (!isPurchasable && !disabledReason && sub.type === 'seasonal' && sub.purchaseStartDate && sub.purchaseEndDate) {
+                             disabledReason = `Acquistabile dal ${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
+                        } else if (!isPurchasable && !disabledReason) {
+                            disabledReason = "Non Disponibile Ora";
                         }
 
 
@@ -217,17 +215,10 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                              <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
                                              <span>Copertura assicurativa sempre inclusa</span>
                                         </li>
-                                        {sub.type === 'monthly' ? (
-                                            <li className="flex items-center">
-                                                <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
-                                                <span>Massima flessibilità</span>
-                                            </li>
-                                        ) : (
-                                             <li className="flex items-center">
-                                                <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
-                                                <span>Il modo più conveniente per vivere un anno di sport</span>
-                                             </li>
-                                        )}
+                                        <li className="flex items-center">
+                                            <CheckCircle className="h-4 w-4 mr-2 text-green-500 flex-shrink-0" />
+                                            <span>Massima flessibilità</span>
+                                        </li>
                                     </ul>
                                 </CardContent>
                                 <CardFooter className="flex-col items-start space-y-2">
@@ -456,7 +447,7 @@ export default function SubscriptionsPage() {
 
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
-                    if (userData.subscriptionAccessStatus && userData.subscriptionAccessStatus !== 'expired') {
+                    if (userData.subscriptionAccessStatus) { // Controlliamo se esiste un abbonamento, anche scaduto
                         const subStatus: UserSubscription = {
                             name: userData.activeSubscription.name,
                             type: userData.activeSubscription.type,
@@ -563,7 +554,7 @@ export default function SubscriptionsPage() {
                 userId: user.uid,
                 createdAt: serverTimestamp(),
                 amount: selectedSubscription.price,
-                description: `Abbonamento ${selectedSubscription.name}`,
+                description: selectedSubscription.name,
                 type: 'subscription',
                 status: 'pending',
                 paymentMethod: finalPaymentMethod,
@@ -616,7 +607,8 @@ export default function SubscriptionsPage() {
         );
     }
     
-    // Mostra solo lo stato se l'utente ha un abbonamento attivo o in attesa
+    // Mostra la status card solo se l'abbonamento è ATTIVO o IN ATTESA.
+    // Se è scaduto, mostra le opzioni di acquisto.
     if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
         return (
              <div className="flex w-full flex-col items-center justify-center">
