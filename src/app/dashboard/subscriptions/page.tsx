@@ -140,10 +140,10 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
 
     return (
         <div className="flex w-full flex-col items-center">
-            <div className="mb-8 text-center">
-                <h1 className="text-3xl font-bold">Scegli il tuo Prossimo Abbonamento</h1>
+            <div className="mb-8 text-center max-w-2xl">
+                <h1 className="text-3xl font-bold">Acquista il tuo abbonamento mensile</h1>
                 <p className="mt-2 text-muted-foreground">
-                    Seleziona il piano più adatto a te per accedere a tutte le attività.
+                    ricordati di farlo ogni mese entro il 1° giorno, anche se paghi in palestra, in questo modo avrai sempre sotto controllo i tuoi pagamenti e potrai ottenere la tua attestazione di pagamento cumulativa che potrai scaricare.
                 </p>
             </div>
             
@@ -659,4 +659,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
