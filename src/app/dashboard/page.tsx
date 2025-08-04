@@ -37,7 +37,11 @@ interface UserData {
   trialLessons?: { lessonDate: Timestamp, time: string }[];
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialOutcome?: 'declined' | 'accepted';
-  subscriptionAccessStatus?: 'pending' | 'active';
+  subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
+  activeSubscription?: {
+      name: string;
+      type: 'monthly' | 'seasonal';
+  }
 }
 
 interface SeasonSettings {
@@ -115,6 +119,14 @@ export default function DashboardPage() {
             if(data.trialStatus === 'pending_payment') trialStatusLabel = "In attesa di approvazione pagamento";
             if(data.trialStatus === 'active') trialStatusLabel = "Attiva";
 
+            let subscriptionStatusLabel: string | undefined = undefined;
+            if(data.subscriptionAccessStatus) {
+                switch(data.subscriptionAccessStatus) {
+                    case 'pending': subscriptionStatusLabel = 'In attesa di approvazione'; break;
+                    case 'active': subscriptionStatusLabel = 'Attivo'; break;
+                    case 'expired': subscriptionStatusLabel = 'Scaduto'; break;
+                }
+            }
 
             setMemberCardProps({
                 name: `${data.name} ${data.surname}`,
@@ -130,7 +142,8 @@ export default function DashboardPage() {
                 isInsured: data.isInsured,
                 trialLessons: trialLessons,
                 trialStatus: trialStatusLabel,
-                subscriptionAccessStatus: data.subscriptionAccessStatus,
+                subscriptionType: data.activeSubscription?.name,
+                subscriptionStatus: subscriptionStatusLabel,
             });
 
             if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
