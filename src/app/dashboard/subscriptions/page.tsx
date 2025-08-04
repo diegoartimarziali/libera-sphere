@@ -159,8 +159,8 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                         let isPurchasable = sub.isAvailable ?? false;
                         let disabledReason = "";
 
-                        // Se l'utente ha un abbonamento ATTIVO O PENDING, blocca tutto
-                        if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
+                        // Se l'utente ha un abbonamento ATTIVO O PENDING, blocca l'acquisto solo se non è mensile
+                        if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && userSubscription.type !== 'monthly') {
                            isPurchasable = false;
                            disabledReason = "Hai già un abbonamento attivo o in attesa di approvazione.";
                         }
@@ -466,7 +466,7 @@ export default function SubscriptionsPage() {
                                 isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
                             }
                         } else if (subData.type === 'monthly') {
-                            // FORZATURA PER TEST: L'abbonamento mensile è sempre disponibile
+                            // L'abbonamento mensile è sempre acquistabile
                             isAvailable = true;
                         }
 
@@ -596,21 +596,18 @@ export default function SubscriptionsPage() {
             </div>
         );
     }
-    
-    // Mostra la status card solo se l'abbonamento è ATTIVO o IN ATTESA.
-    // Se è scaduto, mostra le opzioni di acquisto.
-    if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
-        return (
-             <div className="flex w-full flex-col items-center justify-center">
-                <SubscriptionStatusCard userSubscription={userSubscription} />
-             </div>
-        )
-    }
+
+    const showPurchaseOptions = !userSubscription || userSubscription.status === 'expired' || userSubscription.type === 'monthly';
 
     return (
-        <div className="flex w-full flex-col items-center justify-center">
-            {step === 1 && (
-                <SubscriptionSelectionStep
+        <div className="flex w-full flex-col items-center justify-center space-y-8">
+            
+            {userSubscription && userSubscription.status !== 'expired' && (
+                <SubscriptionStatusCard userSubscription={userSubscription} />
+            )}
+
+            {step === 1 && showPurchaseOptions && (
+                 <SubscriptionSelectionStep
                     subscriptions={subscriptions}
                     onSelect={handleSelectSubscription}
                     onBack={() => router.push('/dashboard')}
@@ -641,3 +638,5 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
+
+    
