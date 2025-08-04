@@ -489,7 +489,10 @@ export default function SubscriptionsPage() {
                                 isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
                             }
                         } else if (subData.type === 'monthly') {
-                            isAvailable = true;
+                             isAvailable = isWithinInterval(now, { 
+                                start: activitySettingsData.startDate.toDate(), 
+                                end: activitySettingsData.endDate.toDate() 
+                            });
                         }
 
                         return {
