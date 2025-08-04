@@ -54,7 +54,7 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
 
     const getStatusVariant = () => {
         switch(userSubscription.status) {
-            case 'active': return 'default';
+            case 'active': return 'success';
             case 'pending': return 'secondary';
             case 'expired': return 'destructive';
             default: return 'secondary';
@@ -596,19 +596,25 @@ export default function SubscriptionsPage() {
             </div>
         );
     }
-
-    const showPurchaseOptions = !userSubscription || userSubscription.status === 'expired' || userSubscription.type === 'monthly';
-
-    // Logica di filtraggio per la mutua esclusività
+    
     let filteredSubscriptions = subscriptions;
-    if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && userSubscription.type === 'monthly') {
-        filteredSubscriptions = subscriptions.filter(sub => sub.type === 'monthly');
+    let showPurchaseOptions = true;
+
+    if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
+        if (userSubscription.type === 'monthly') {
+             // Se ho un mensile, vedo solo le opzioni per il mensile
+            filteredSubscriptions = subscriptions.filter(sub => sub.type === 'monthly');
+        } else {
+            // Se ho uno stagionale (o altro tipo non mensile), non vedo opzioni di acquisto
+            showPurchaseOptions = false;
+        }
     }
+
 
     return (
         <div className="flex w-full flex-col items-center justify-center space-y-8">
             
-            {userSubscription && userSubscription.status !== 'expired' && (
+             {userSubscription && (
                 <SubscriptionStatusCard userSubscription={userSubscription} />
             )}
 
@@ -644,3 +650,4 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
+
