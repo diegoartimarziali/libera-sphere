@@ -599,6 +599,12 @@ export default function SubscriptionsPage() {
 
     const showPurchaseOptions = !userSubscription || userSubscription.status === 'expired' || userSubscription.type === 'monthly';
 
+    // Logica di filtraggio per la mutua esclusività
+    let filteredSubscriptions = subscriptions;
+    if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending') && userSubscription.type === 'monthly') {
+        filteredSubscriptions = subscriptions.filter(sub => sub.type === 'monthly');
+    }
+
     return (
         <div className="flex w-full flex-col items-center justify-center space-y-8">
             
@@ -608,7 +614,7 @@ export default function SubscriptionsPage() {
 
             {step === 1 && showPurchaseOptions && (
                  <SubscriptionSelectionStep
-                    subscriptions={subscriptions}
+                    subscriptions={filteredSubscriptions}
                     onSelect={handleSelectSubscription}
                     onBack={() => router.push('/dashboard')}
                     userSubscription={userSubscription}
@@ -638,5 +644,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
-    
