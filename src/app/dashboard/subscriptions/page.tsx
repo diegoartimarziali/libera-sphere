@@ -467,9 +467,8 @@ export default function SubscriptionsPage() {
                                 isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
                             }
                         } else if (subData.type === 'monthly') {
-                            const seasonStartDate = activitySettingsData.startDate.toDate();
-                            const seasonEndDate = activitySettingsData.endDate.toDate();
-                            isAvailable = isWithinInterval(now, { start: seasonStartDate, end: seasonEndDate });
+                            // FORZATURA PER TEST: L'abbonamento mensile è sempre disponibile
+                            isAvailable = true;
                         }
 
                         return {
