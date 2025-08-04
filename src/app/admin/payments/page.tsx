@@ -106,26 +106,24 @@ export default function AdminPaymentsPage() {
 
                 // 2. Fetch all users
                 const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
-                const userIds = usersSnapshot.docs.map(doc => doc.id);
+                
+                // 3. For each user, fetch their payments and build the profile
+                const userProfiles = await Promise.all(usersSnapshot.docs.map(async (userDoc) => {
+                    const userData = userDoc.data();
+                    const userId = userDoc.id;
 
-                // 3. Fetch all payments for all users
-                const paymentsSnapshot = await getDocs(query(collectionGroup(db, 'payments'), orderBy('createdAt', 'desc')));
-                const paymentsByUserId = new Map<string, Payment[]>();
-                
-                paymentsSnapshot.forEach(doc => {
-                    const payment = { id: doc.id, ...doc.data() } as Payment;
-                    const userId = payment.userId;
-                    if (!paymentsByUserId.has(userId)) {
-                        paymentsByUserId.set(userId, []);
-                    }
-                    paymentsByUserId.get(userId)!.push(payment);
-                });
-                
-                // 4. Combine data into profiles
-                const userProfiles = usersSnapshot.docs.map(doc => {
-                    const userData = doc.data();
+                    const paymentsRef = collection(db, 'users', userId, 'payments');
+                    const paymentsQuery = query(paymentsRef, orderBy('createdAt', 'desc'));
+                    const paymentsSnapshot = await getDocs(paymentsQuery);
+
+                    const payments = paymentsSnapshot.docs.map(paymentDoc => ({
+                        id: paymentDoc.id,
+                        userId: userId, // Correctly assign userId
+                        ...paymentDoc.data()
+                    } as Payment));
+
                     return {
-                        uid: doc.id,
+                        uid: userId,
                         name: userData.name,
                         surname: userData.surname,
                         email: userData.email,
@@ -135,9 +133,9 @@ export default function AdminPaymentsPage() {
                         associationStatus: userData.associationStatus,
                         trialStatus: userData.trialStatus,
                         subscriptionAccessStatus: userData.subscriptionAccessStatus,
-                        payments: paymentsByUserId.get(doc.id) || []
+                        payments: payments
                     };
-                });
+                }));
                 
                 setProfiles(userProfiles);
 
@@ -153,7 +151,11 @@ export default function AdminPaymentsPage() {
             }
         };
 
-        fetchData();
+        if(user) {
+            fetchData();
+        } else {
+            setLoading(false);
+        }
     }, [toast, user]);
     
     const handlePaymentUpdate = async (payment: Payment, newStatus: 'completed' | 'failed') => {
@@ -427,3 +429,4 @@ export default function AdminPaymentsPage() {
 }
 
     
+
