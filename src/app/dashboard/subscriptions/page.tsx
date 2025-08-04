@@ -105,7 +105,7 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
             </CardContent>
             <CardFooter className="flex-col gap-4">
                 {userSubscription.status === 'pending' && (
-                     <Alert>
+                     <Alert variant="info">
                         <CalendarClock className="h-4 w-4" />
                         <AlertTitle>Pagamento in Verifica</AlertTitle>
                         <AlertDescription>
@@ -237,7 +237,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                     </CardContent>
                                     <CardFooter className="flex-col items-start space-y-2">
                                          {!isPurchasable && (
-                                            <Alert variant="default" className="w-full border-primary/50 text-center">
+                                            <Alert variant="info" className="w-full text-center">
                                                 <Info className="h-4 w-4" />
                                                 <AlertDescription>
                                                     {disabledReason}

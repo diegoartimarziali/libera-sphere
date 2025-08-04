@@ -241,7 +241,7 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
             </CardHeader>
             <CardContent className="space-y-6">
 
-                 <Alert variant="default" className="w-full border-primary/50 text-center">
+                 <Alert variant="info" className="w-full text-center">
                     <MessageSquareQuote className="h-4 w-4" />
                     <AlertTitle className="font-semibold">
                        Curioso di sapere cosa ne pensano gli altri?
@@ -254,7 +254,7 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
                 </Alert>
 
                 {isPreRegistrationPeriod() && (
-                    <Alert>
+                    <Alert variant="info">
                         <Info className="h-4 w-4" />
                         <AlertTitle>Periodo di Pre-iscrizione Attivo!</AlertTitle>
                         <AlertDescription>

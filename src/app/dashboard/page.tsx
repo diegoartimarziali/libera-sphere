@@ -123,7 +123,7 @@ export default function DashboardPage() {
             let subscriptionStatusLabel: string | undefined = undefined;
             let subscriptionValidityMonth: string | undefined = undefined;
 
-            if (data.subscriptionAccessStatus && data.activeSubscription) {
+            if (data.subscriptionAccessStatus && data.activeSubscription && data.activeSubscription.type === 'monthly') {
                  switch(data.subscriptionAccessStatus) {
                     case 'pending': 
                         subscriptionStatusLabel = 'In attesa di approvazione'; 
@@ -132,7 +132,7 @@ export default function DashboardPage() {
                         subscriptionStatusLabel = 'Scaduto'; 
                         break;
                     case 'active':
-                         if (data.activeSubscription.type === 'monthly' && data.activeSubscription.expiresAt) {
+                         if (data.activeSubscription.expiresAt) {
                             const expiryDate = startOfDay(data.activeSubscription.expiresAt.toDate());
                             const today = startOfDay(new Date());
                             const daysDiff = differenceInDays(expiryDate, today);
@@ -148,9 +148,21 @@ export default function DashboardPage() {
                         }
                         break;
                 }
-                 if (data.activeSubscription.type === 'monthly' && data.activeSubscription.expiresAt) {
+                 if (data.activeSubscription.expiresAt) {
                     subscriptionValidityMonth = format(data.activeSubscription.expiresAt.toDate(), "MMMM yyyy", { locale: it });
                 }
+            } else if (data.subscriptionAccessStatus && data.activeSubscription) { // Abbonamento non mensile
+                 switch(data.subscriptionAccessStatus) {
+                    case 'pending': 
+                        subscriptionStatusLabel = 'In attesa di approvazione'; 
+                        break;
+                    case 'expired': 
+                        subscriptionStatusLabel = 'Scaduto'; 
+                        break;
+                    case 'active':
+                        subscriptionStatusLabel = 'Attivo';
+                        break;
+                 }
             }
 
             setMemberCardProps({
@@ -208,7 +220,7 @@ export default function DashboardPage() {
       
       if (userData?.subscriptionAccessStatus === 'pending') {
           return (
-            <Alert className="mb-6 border-orange-500 text-orange-700 [&>svg]:text-orange-500">
+            <Alert variant="warning" className="mb-6">
               <DoorClosed className="h-4 w-4" />
               <AlertTitle>Abbonamento in Attesa</AlertTitle>
               <AlertDescription>
@@ -220,7 +232,7 @@ export default function DashboardPage() {
       
       if (userData?.associationStatus === 'pending') {
           return (
-            <Alert className="mb-6">
+            <Alert variant="info" className="mb-6">
               <Clock className="h-4 w-4" />
               <AlertTitle>Domanda di Associazione Inviata!</AlertTitle>
               <AlertDescription>
@@ -232,7 +244,7 @@ export default function DashboardPage() {
       
       if (userData?.trialStatus === 'pending_payment') {
            return (
-            <Alert className="mb-6">
+            <Alert variant="info" className="mb-6">
               <Clock className="h-4 w-4" />
               <AlertTitle>Richiesta Lezioni di Prova Inviata!</AlertTitle>
               <AlertDescription>
@@ -244,7 +256,7 @@ export default function DashboardPage() {
 
       if (userData?.trialOutcome === 'declined') {
           return (
-            <Alert className="mb-6 border-blue-500 text-blue-700 [&>svg]:text-blue-500">
+            <Alert variant="info" className="mb-6">
               <Frown className="h-4 w-4" />
               <AlertTitle>Ci dispiace vederti andare</AlertTitle>
               <AlertDescription>
@@ -268,7 +280,7 @@ export default function DashboardPage() {
       
       if (certificateStatus === 'expiring' && daysToExpire !== null) {
         return (
-          <Alert className="mb-6 border-yellow-500 text-yellow-700 [&>svg]:text-yellow-500">
+          <Alert variant="warning" className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Certificato Medico in Scadenza</AlertTitle>
             <AlertDescription>
@@ -325,4 +337,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
