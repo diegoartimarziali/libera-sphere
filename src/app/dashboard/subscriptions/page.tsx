@@ -460,7 +460,7 @@ export default function SubscriptionsPage() {
                             status: userData.subscriptionAccessStatus
                         };
                         setUserSubscription(subStatus);
-                        // Se l'abbonamento è STAGIONALE, blocchiamo tutto
+                        // Se l'abbonamento è STAGIONALE, blocchiamo la possibilità di nuovi acquisti
                         if (subStatus.type === 'seasonal') {
                             setLoading(false);
                             return; // Esce dalla funzione, mostrando solo la Status Card
@@ -619,7 +619,7 @@ export default function SubscriptionsPage() {
         );
     }
     
-    // Mostra solo la status card se l'abbonamento è STAGIONALE e attivo/pending
+    // Mostra solo la status card e blocca tutto se l'abbonamento è STAGIONALE e attivo/pending
     if (userSubscription && userSubscription.type === 'seasonal') {
         return (
              <div className="flex w-full flex-col items-center justify-center">
@@ -667,5 +667,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
-    
