@@ -121,6 +121,8 @@ export default function DashboardPage() {
             if(data.trialStatus === 'active') trialStatusLabel = "Attiva";
 
             let subscriptionStatusLabel: string | undefined = undefined;
+            let subscriptionValidityMonth: string | undefined = undefined;
+
             if (data.subscriptionAccessStatus && data.activeSubscription) {
                  switch(data.subscriptionAccessStatus) {
                     case 'pending': 
@@ -134,7 +136,9 @@ export default function DashboardPage() {
                             const expiryDate = startOfDay(data.activeSubscription.expiresAt.toDate());
                             const today = startOfDay(new Date());
                             const daysDiff = differenceInDays(expiryDate, today);
-                            if (daysDiff <= 4) {
+                            if (isPast(expiryDate)) {
+                                subscriptionStatusLabel = 'Scaduto';
+                            } else if (daysDiff <= 4) {
                                 subscriptionStatusLabel = 'In scadenza';
                             } else {
                                 subscriptionStatusLabel = 'Attivo';
@@ -143,6 +147,9 @@ export default function DashboardPage() {
                             subscriptionStatusLabel = 'Attivo';
                         }
                         break;
+                }
+                 if (data.activeSubscription.type === 'monthly' && data.activeSubscription.expiresAt) {
+                    subscriptionValidityMonth = format(data.activeSubscription.expiresAt.toDate(), "MMMM yyyy", { locale: it });
                 }
             }
 
@@ -162,6 +169,7 @@ export default function DashboardPage() {
                 trialStatus: trialStatusLabel,
                 subscriptionType: data.activeSubscription?.name,
                 subscriptionStatus: subscriptionStatusLabel,
+                subscriptionValidity: subscriptionValidityMonth,
             });
 
             if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
@@ -318,4 +326,3 @@ export default function DashboardPage() {
   )
 }
 
-    

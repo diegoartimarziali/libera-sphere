@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2, FileText, Activity, KeyRound, Repeat } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2, FileText, Activity, KeyRound, Repeat, CalendarClock } from "lucide-react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 
@@ -28,6 +28,7 @@ export interface MemberSummaryProps {
     trialStatus?: string;
     subscriptionType?: string;
     subscriptionStatus?: string;
+    subscriptionValidity?: string;
 }
 
 const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string | boolean | null }) => {
@@ -75,6 +76,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
                     <InfoRow icon={<Activity size={16} />} label="Stato Prova" value={props.trialStatus} />
                     <InfoRow icon={<Repeat size={16}/>} label="Abbonamento" value={props.subscriptionType} />
+                    <InfoRow icon={<CalendarClock size={16}/>} label="Valido per il mese di" value={props.subscriptionValidity} />
                     <InfoRow icon={<KeyRound size={16} />} label="Stato Abbonamento" value={props.subscriptionStatus} />
                  </div>
                  
