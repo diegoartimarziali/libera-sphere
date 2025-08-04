@@ -297,15 +297,6 @@ export default function AdminPaymentsPage() {
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                    <div className="relative flex-grow">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Cerca per nome o email..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10"
-                        />
-                    </div>
                      <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="w-full sm:w-[280px]">
                             <SelectValue placeholder="Filtra per stato pagamento" />
@@ -418,7 +409,7 @@ export default function AdminPaymentsPage() {
                              <div className="text-center py-16 text-muted-foreground">
                                 <Users className="mx-auto h-12 w-12" />
                                 <h3 className="mt-4 text-lg font-semibold">Nessun Utente Trovato</h3>
-                                <p className="mt-1 text-sm">Prova a modificare i filtri di ricerca o la chiave di ricerca.</p>
+                                <p className="mt-1 text-sm">Prova a modificare i filtri di ricerca.</p>
                             </div>
                         )}
                     </Accordion>
