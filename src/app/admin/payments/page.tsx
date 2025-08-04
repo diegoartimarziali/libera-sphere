@@ -299,6 +299,15 @@ export default function AdminPaymentsPage() {
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                     <div className="relative w-full sm:w-auto flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Cerca per nome o email..."
+                            className="pl-9 w-full"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                      <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="w-full sm:w-[280px]">
                             <SelectValue placeholder="Filtra per stato pagamento" />
@@ -422,5 +431,7 @@ export default function AdminPaymentsPage() {
         </Card>
     );
 }
+
+    
 
     
