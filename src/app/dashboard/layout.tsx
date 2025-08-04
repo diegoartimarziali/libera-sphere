@@ -252,52 +252,42 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     '/dashboard/liberasphere',
                     '/dashboard/trial-completed',
                  ];
-
-                const isUserOnboardingPage = onboardingPages.includes(pathname);
                 
                 const isUserWaiting = 
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.trialStatus === 'pending_payment';
 
-                // Se l'utente è in attesa o è già attivo o è socio scaduto, non reindirizzare e lascialo navigare.
+                // Se l'utente è in uno stato di attesa o ha già completato l'onboarding principale,
+                // non lo reindirizziamo forzatamente, permettendogli di navigare.
+                // La gestione di ciò che può vedere è delegata alle singole pagine.
                 if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired') {
-                     setLoadingData(false);
-                     return;
-                }
-                
-                // Se l'utente ha completato la prova e non ha ancora scelto cosa fare
-                 if (fetchedUserData.trialStatus === 'completed' && !fetchedUserData.trialOutcome) {
+                     // Non fare nulla, lascia che l'utente navighi
+                } else if (fetchedUserData.trialStatus === 'completed' && !fetchedUserData.trialOutcome) {
                     if (pathname !== '/dashboard/trial-completed') {
                          router.push('/dashboard/trial-completed');
                     }
-                     setLoadingData(false);
-                     return;
-                }
-
-                // Permetti la visualizzazione della pagina recensioni senza reindirizzamento
-                if (pathname === '/dashboard/reviews') {
-                    setLoadingData(false);
-                    return;
-                }
-
-                // Altrimenti, guida l'utente nel flusso di onboarding.
-                let targetPage = "";
-                if (!fetchedUserData.regulationsAccepted) {
-                    targetPage = "/dashboard/regulations";
-                } else if (!fetchedUserData.medicalCertificateSubmitted) {
-                    targetPage = "/dashboard/medical-certificate";
-                } else if (typeof fetchedUserData.isFormerMember !== 'string' || fetchedUserData.isFormerMember === "") {
-                    targetPage = "/dashboard/liberasphere";
-                } else if (fetchedUserData.isFormerMember === 'yes' && fetchedUserData.associationStatus !== 'active') {
-                    targetPage = "/dashboard/associates";
-                } else if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus !== 'active' && fetchedUserData.trialOutcome === 'accepted') {
-                     targetPage = "/dashboard/associates";
-                } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.trialStatus !== 'active' && fetchedUserData.trialStatus !== 'completed' && fetchedUserData.trialStatus !== 'pending_payment') {
-                    targetPage = "/dashboard/class-selection";
-                }
-                
-                if (targetPage && pathname !== targetPage) {
-                    router.push(targetPage);
+                } else if (pathname === '/dashboard/reviews') {
+                    // Permetti la visualizzazione della pagina recensioni senza reindirizzamento
+                } else {
+                    // Altrimenti, guida l'utente nel flusso di onboarding.
+                    let targetPage = "";
+                    if (!fetchedUserData.regulationsAccepted) {
+                        targetPage = "/dashboard/regulations";
+                    } else if (!fetchedUserData.medicalCertificateSubmitted) {
+                        targetPage = "/dashboard/medical-certificate";
+                    } else if (typeof fetchedUserData.isFormerMember !== 'string' || fetchedUserData.isFormerMember === "") {
+                        targetPage = "/dashboard/liberasphere";
+                    } else if (fetchedUserData.isFormerMember === 'yes' && fetchedUserData.associationStatus !== 'active') {
+                        targetPage = "/dashboard/associates";
+                    } else if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus !== 'active' && fetchedUserData.trialOutcome === 'accepted') {
+                         targetPage = "/dashboard/associates";
+                    } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.trialStatus !== 'active' && fetchedUserData.trialStatus !== 'completed' && fetchedUserData.trialStatus !== 'pending_payment') {
+                        targetPage = "/dashboard/class-selection";
+                    }
+                    
+                    if (targetPage && pathname !== targetPage) {
+                        router.push(targetPage);
+                    }
                 }
 
             } else {
@@ -308,7 +298,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             console.error("Errore nel caricamento dati:", error);
             toast({ title: "Errore di Caricamento", description: "Impossibile caricare i dati. Riprova.", variant: "destructive" });
         } finally {
-            // Spostato qui per assicurare che venga chiamato anche in caso di reindirizzamento
             setLoadingData(false);
         }
     };
