@@ -305,7 +305,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         console.error("Error checking attendance:", error);
         setShowAttendancePrompt(false);
     }
-  }, [user, userData]); // Rimosso gymData dalle dipendenze, verrà passato come argomento
+  }, [user, userData]);
 
 
   useEffect(() => {
@@ -330,7 +330,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     const gymDocSnap = await getDoc(gymDocRef);
                     if (gymDocSnap.exists()) {
                         const gymData = gymDocSnap.data();
-                         // Passa gymData direttamente per evitare problemi di stato
                         checkShowAttendance(gymData);
                     }
                 }
