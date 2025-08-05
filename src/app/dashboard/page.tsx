@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -14,6 +13,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
+import { AttendancePrompt } from "@/components/dashboard/AttendancePrompt"
 
 interface UserData {
   name: string
@@ -310,6 +310,8 @@ export default function DashboardPage() {
        <h1 className="text-3xl font-bold">
          {dataLoading ? <Skeleton className="h-9 w-64" /> : `Benvenuto, ${userData?.name?.split(' ')[0] || ''}!`}
       </h1>
+
+      <AttendancePrompt />
 
       {renderInfoAlert()}
       
