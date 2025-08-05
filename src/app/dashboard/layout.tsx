@@ -228,8 +228,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [loadingData, setLoadingData] = useState(true)
   const [showAttendancePrompt, setShowAttendancePrompt] = useState(false);
   const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
-  const [gymData, setGymData] = useState<any>(null);
-
 
   const { toast } = useToast()
   const router = useRouter()
@@ -254,7 +252,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         const attendanceData = {
             userId: user.uid,
             isPresent: isPresent,
-            lessonDate: Timestamp.fromDa(todayStart),
+            lessonDate: Timestamp.fromDate(todayStart),
             type: "lesson",
             submittedAt: serverTimestamp()
         };
@@ -273,8 +271,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
      }
   }
 
-  const checkShowAttendance = useCallback(async () => {
-    if (!user || !userData || !gymData || userData.associationStatus !== 'active') {
+  const checkShowAttendance = useCallback(async (currentGymData: any) => {
+    if (!user || !userData || !currentGymData || userData.associationStatus !== 'active') {
         setShowAttendancePrompt(false);
         return;
     }
@@ -284,7 +282,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const dayNames = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
     const todayDayName = dayNames[dayIndex];
 
-    const lessonDays = (gymData.regularLessons || []).map((l: Lesson) => l.dayOfWeek.toLowerCase());
+    const lessonDays = (currentGymData.regularLessons || []).map((l: Lesson) => l.dayOfWeek.toLowerCase());
 
     if (!lessonDays.includes(todayDayName)) {
         setShowAttendancePrompt(false);
@@ -307,13 +305,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         console.error("Error checking attendance:", error);
         setShowAttendancePrompt(false);
     }
-  }, [user, userData, gymData]);
-
-  useEffect(() => {
-    if(userData && gymData){
-        checkShowAttendance();
-    }
-  }, [userData, gymData, checkShowAttendance]);
+  }, [user, userData]); // Rimosso gymData dalle dipendenze, verrà passato come argomento
 
 
   useEffect(() => {
@@ -332,11 +324,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
             if (userDocSnap.exists()) {
                 
+                // Fetch gym data and call attendance check right after
                 if (fetchedUserData.gym) {
                     const gymDocRef = doc(db, "gyms", fetchedUserData.gym);
                     const gymDocSnap = await getDoc(gymDocRef);
                     if (gymDocSnap.exists()) {
-                        setGymData(gymDocSnap.data());
+                        const gymData = gymDocSnap.data();
+                         // Passa gymData direttamente per evitare problemi di stato
+                        await checkShowAttendance(gymData);
                     }
                 }
                 
@@ -441,7 +436,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
          redirect("/");
     }
 
-  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
+  }, [user, loadingAuth, pathname, router, toast, handleLogout, checkShowAttendance]);
 
   if (loadingAuth || loadingData) {
     return (
@@ -481,3 +476,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
