@@ -53,7 +53,7 @@ export function AttendancePrompt() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
     const [todaysLesson, setTodaysLesson] = useState<Lesson | null>(null);
-    const [gymName, setGymName] = useState<string | null>(null);
+    const [gymData, setGymData] = useState<Gym | null>(null);
     const [alreadyResponded, setAlreadyResponded] = useState(false);
 
     useEffect(() => {
@@ -106,12 +106,12 @@ export function AttendancePrompt() {
                     const gymDocSnap = await getDoc(gymDocRef);
 
                     if (gymDocSnap.exists()) {
-                        const gymData = gymDocSnap.data() as Gym;
-                        setGymName(gymData.name);
+                        const fetchedGymData = gymDocSnap.data() as Gym;
+                        setGymData(fetchedGymData);
 
                         const todayDayIndex = getDay(new Date());
 
-                        const lessonForToday = gymData.lessons.find(lesson => {
+                        const lessonForToday = fetchedGymData.lessons.find(lesson => {
                             const normalizedDay = normalizeString(lesson.dayOfWeek);
                             const lessonDayIndex = dayMapping[normalizedDay];
                             return lessonDayIndex === todayDayIndex;
@@ -134,7 +134,7 @@ export function AttendancePrompt() {
     }, [user, toast]);
 
     const handleRespond = async (status: 'presente' | 'assente') => {
-        if (!user || !userData || !todaysLesson || !gymName) return;
+        if (!user || !userData || !todaysLesson || !gymData) return;
 
         setIsSubmitting(true);
         try {
@@ -151,7 +151,7 @@ export function AttendancePrompt() {
                 userName: userData.name,
                 userSurname: userData.surname,
                 gymId: userData.gym,
-                gymName: gymName,
+                gymName: gymData.name,
                 discipline: userData.discipline,
                 lessonDate: Timestamp.fromDate(startOfToday),
                 lessonTime: todaysLesson.time,
@@ -162,8 +162,10 @@ export function AttendancePrompt() {
             // 2. Se l'utente è presente, incrementa il suo contatore
             if (status === 'presente') {
                 const userDocRef = doc(db, "users", user.uid);
+                // Calcola il moltiplicatore: 2 se c'è solo una lezione/settimana, altrimenti 1
+                const multiplier = gymData.lessons.length === 1 ? 2 : 1;
                 batch.update(userDocRef, {
-                    "progress.presences": increment(1)
+                    "progress.presences": increment(multiplier)
                 });
             }
 
