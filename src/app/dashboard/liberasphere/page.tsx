@@ -203,7 +203,18 @@ export default function LiberaSpherePage() {
                  dataToUpdate.pastExperience = { discipline, grade: lastGrade };
                  dataToUpdate.lastGrade = lastGrade;
             } else { // hasPracticedBefore === 'no'
-                const defaultGrade = discipline === 'Karate' ? 'Cintura bianca' : '6° Kyu';
+                let defaultGrade = '';
+                const docRef = doc(db, "config", (discipline as string).toLowerCase());
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
+                    const grade = docSnap.data().grades[0];
+                    defaultGrade = discipline === 'Karate' ? `Cintura ${grade}` : grade;
+                } else {
+                     toast({ title: "Errore", description: "Impossibile trovare il grado di default. Contatta il supporto.", variant: "destructive" });
+                     setIsLoading(false);
+                     return;
+                }
+
                 dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
                 dataToUpdate.lastGrade = defaultGrade;
             }

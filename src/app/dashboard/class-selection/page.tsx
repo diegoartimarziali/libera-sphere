@@ -441,11 +441,11 @@ function ConfirmationStep({
     onComplete: () => void,
     isSubmitting: boolean,
     fee: FeeData | null,
-    lastGrade: string
+    lastGrade: string | null
 }) {
     const [isConfirmed, setIsConfirmed] = useState(false);
     
-    if (!fee) {
+    if (!fee || !lastGrade) {
         return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
     }
 
@@ -549,6 +549,8 @@ export default function ClassSelectionPage() {
     const [user] = useAuthState(auth);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [userData, setUserData] = useState<any>(null);
+    const [finalGrade, setFinalGrade] = useState<string | null>(null);
+
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -579,8 +581,12 @@ export default function ClassSelectionPage() {
                 
                 if (feeDocSnap.exists()) setFeeData(feeDocSnap.data() as FeeData);
                 else toast({ title: "Errore", description: "Impossibile caricare i dati della quota.", variant: "destructive" });
-
-                if (userDocSnap.exists()) setUserData(userDocSnap.data());
+                
+                let fetchedUserData: any = null;
+                if (userDocSnap.exists()) {
+                    fetchedUserData = userDocSnap.data();
+                    setUserData(fetchedUserData);
+                }
                 
                 if (activityDocSnap.exists() && enrollmentDocSnap.exists()) {
                      const activityData = activityDocSnap.data();
@@ -598,8 +604,7 @@ export default function ClassSelectionPage() {
                 }
 
                 // LOGICA DI AVANZAMENTO STEP
-                if (userDocSnap.exists()) {
-                    const fetchedUserData = userDocSnap.data();
+                if (fetchedUserData) {
                      const prefilledData: PersonalDataSchemaType = {
                         name: fetchedUserData.name || "", surname: fetchedUserData.surname || "", taxCode: fetchedUserData.taxCode || "",
                         birthDate: fetchedUserData.birthDate?.toDate() || null, birthPlace: fetchedUserData.birthPlace || "",
@@ -621,6 +626,7 @@ export default function ClassSelectionPage() {
                              discipline: fetchedUserData.discipline || '',
                              trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, lessonDate: l.lessonDate.toDate()}))
                          });
+                         setFinalGrade(fetchedUserData.lastGrade || null);
                          setStep(5); // Vai al riepilogo
                     } else if (hasTrialLessons) { // Ha scelto le lezioni ma non il pagamento
                         setGymSelection({
@@ -629,6 +635,7 @@ export default function ClassSelectionPage() {
                              discipline: fetchedUserData.discipline || '',
                              trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, lessonDate: l.lessonDate.toDate()}))
                          });
+                         setFinalGrade(fetchedUserData.lastGrade || null);
                         setStep(3); // Vai alla scelta pagamento
                     } else if (hasPersonalData) { // Ha i dati personali ma non ha scelto le lezioni
                         setStep(2); // Vai alla scelta palestra/lezioni
@@ -676,11 +683,22 @@ export default function ClassSelectionPage() {
          setIsSubmitting(true);
         try {
              const userDocRef = doc(db, "users", user.uid);
+             const userDocSnap = await getDoc(userDocRef);
+             const fetchedUserData = userDocSnap.data();
+
+            const grade = await getFinalGrade(fetchedUserData, data.discipline);
+            if (!grade) {
+                toast({ title: "Errore", description: "Impossibile recuperare il grado di default da Firestore.", variant: "destructive" });
+                return;
+            }
+            setFinalGrade(grade);
+
              await updateDoc(userDocRef, {
                  trialLessons: data.trialLessons.map(lesson => ({
                     ...lesson,
                     lessonDate: Timestamp.fromDate(lesson.lessonDate)
                 })),
+                lastGrade: grade
              });
              setGymSelection(data);
              setStep(3);
@@ -733,29 +751,38 @@ export default function ClassSelectionPage() {
         setStep(5);
     }
 
-    const getFinalGrade = () => {
-        if (!gymSelection) return "Cintura bianca"; // Default
-        
+    const getFinalGrade = async (userData: any, currentDiscipline: string) => {
         const hasPracticed = userData?.hasPracticedBefore === 'yes';
         const pastDiscipline = userData?.pastExperience?.discipline;
         const pastGrade = userData?.pastExperience?.grade;
-        const currentDiscipline = gymSelection.discipline;
-
+    
         if (hasPracticed && pastDiscipline === currentDiscipline && pastGrade) {
             return pastGrade;
+        } else {
+            // Se non ha praticato o ha cambiato disciplina, prendi il grado di default da Firestore
+            try {
+                const docRef = doc(db, "config", currentDiscipline.toLowerCase());
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
+                    const grade = docSnap.data().grades[0];
+                    return currentDiscipline === 'Karate' ? `Cintura ${grade}` : grade;
+                } else {
+                    return null; // Errore o nessun grado trovato
+                }
+            } catch (e) {
+                console.error("Error fetching default grade:", e);
+                return null;
+            }
         }
-        
-        return "Cintura bianca";
     }
     
     const handleComplete = async () => {
-        if (!user || !paymentMethod || !formData || !gymSelection || !feeData) {
+        if (!user || !paymentMethod || !formData || !gymSelection || !feeData || !finalGrade) {
             toast({ title: "Errore", description: "Dati mancanti per completare l'iscrizione.", variant: "destructive" });
             return;
         }
         setIsSubmitting(true);
 
-        const finalGrade = getFinalGrade();
         const trialExpiryDate = gymSelection.trialLessons[2]?.lessonDate;
 
         try {
@@ -845,7 +872,7 @@ export default function ClassSelectionPage() {
                         fee={feeData}
                     />
                 )}
-                {step === 4 && paymentMethod === 'online' && (
+                {step === 4 && paymentMethod === 'online' && feeData && (
                     <OnlinePaymentStep
                         onBack={handleBackFromPayment}
                         onNext={handleNextStep4}
@@ -861,7 +888,7 @@ export default function ClassSelectionPage() {
                         onComplete={handleComplete} 
                         isSubmitting={isSubmitting}
                         fee={feeData}
-                        lastGrade={getFinalGrade()}
+                        lastGrade={finalGrade}
                     />
                 )}
             </div>
