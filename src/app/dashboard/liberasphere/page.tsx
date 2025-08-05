@@ -39,7 +39,6 @@ export default function LiberaSpherePage() {
   const [hasPracticedBefore, setHasPracticedBefore] = useState<'yes' | 'no' | null>(null);
   const [lastGrade, setLastGrade] = useState('');
   const [qualification, setQualification] = useState('');
-  const [aikidoGrade, setAikidoGrade] = useState('');
   const [firstYear, setFirstYear] = useState('');
   
 
@@ -128,7 +127,6 @@ export default function LiberaSpherePage() {
       setHasPracticedBefore(null);
       setLastGrade('');
       setQualification('');
-      setAikidoGrade('');
       setFirstYear('');
   };
   
@@ -139,7 +137,6 @@ export default function LiberaSpherePage() {
       setHasPracticedBefore(null);
       setLastGrade('');
       setQualification('');
-      setAikidoGrade('');
       // Se aikido, imposta automaticamente l'ID della palestra se ce n'è solo una
       const aikidoGyms = gyms.filter(g => g.disciplines.includes('Aikido'));
       if (value === 'Aikido' && aikidoGyms.length === 1) {
@@ -165,8 +162,7 @@ export default function LiberaSpherePage() {
         if (!hasPracticedBefore) return true;
         if (gradesLoading) return true;
         if (hasPracticedBefore === 'yes') {
-             const finalGrade = discipline === 'Karate' ? lastGrade : aikidoGrade.trim();
-             return !finalGrade;
+             return !lastGrade;
         }
     }
 
@@ -204,9 +200,8 @@ export default function LiberaSpherePage() {
             dataToUpdate.hasPracticedBefore = hasPracticedBefore;
 
             if (hasPracticedBefore === 'yes') {
-                 const finalGrade = discipline === 'Karate' ? `Cintura ${lastGrade}` : aikidoGrade.trim();
-                 dataToUpdate.pastExperience = { discipline, grade: finalGrade };
-                 dataToUpdate.lastGrade = finalGrade;
+                 dataToUpdate.pastExperience = { discipline, grade: lastGrade };
+                 dataToUpdate.lastGrade = lastGrade;
             } else { // hasPracticedBefore === 'no'
                 const defaultGrade = discipline === 'Karate' ? 'Cintura bianca' : '6° Kyu';
                 dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
@@ -272,11 +267,14 @@ export default function LiberaSpherePage() {
                     <SelectValue placeholder="Seleziona il grado" />
                 </SelectTrigger>
                 <SelectContent>
-                    {grades.map(grade => (
-                        <SelectItem key={grade} value={grade}>
-                            Cintura {grade}
-                        </SelectItem>
-                    ))}
+                    {grades.map(grade => {
+                        const displayGrade = discipline === 'Karate' ? `Cintura ${grade}` : grade;
+                        return (
+                            <SelectItem key={grade} value={displayGrade}>
+                                {displayGrade}
+                            </SelectItem>
+                        )
+                    })}
                 </SelectContent>
             </Select>
         );
@@ -364,23 +362,12 @@ export default function LiberaSpherePage() {
                 </div>
               )}
 
-              {hasPracticedBefore === 'yes' && (
+              {hasPracticedBefore === 'yes' && discipline && (
                   <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
                       <h4 className="font-semibold text-foreground">4. Qual è il tuo grado attuale?</h4>
-                      {discipline === 'Karate' && (
-                          <div className="space-y-2">
-                               {renderGradeSelect()}
-                          </div>
-                      )}
-                      {discipline === 'Aikido' && (
-                          <div className="space-y-2">
-                              <Input 
-                                value={aikidoGrade}
-                                onChange={(e) => setAikidoGrade(e.target.value)}
-                                placeholder="Es. 1° Kyu, Shodan, ecc."
-                              />
-                          </div>
-                      )}
+                      <div className="space-y-2">
+                           {renderGradeSelect()}
+                      </div>
                   </div>
               )}
             </div>
@@ -451,16 +438,7 @@ export default function LiberaSpherePage() {
                         </div>
                         <div className="pt-4">
                              <Label htmlFor="lastGrade">Il Tuo Grado Attuale</Label>
-                            {discipline === 'Karate' ? (
-                                renderGradeSelect()
-                             ) : (
-                                <Input
-                                    id="lastGrade"
-                                    value={aikidoGrade}
-                                    onChange={(e) => setAikidoGrade(e.target.value)}
-                                    placeholder="Es. 1° Kyu, Shodan, ecc."
-                                />
-                             )}
+                             {renderGradeSelect()}
                         </div>
                     </div>
                 )}
@@ -477,5 +455,3 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
-
-    
