@@ -159,7 +159,7 @@ export function AttendancePrompt() {
                 recordedAt: serverTimestamp()
             });
 
-            // 2. Se l'utente è presente, incrementa il suo contatore
+            // 2. Se l'utente è presente, incrementa il suo contatore con la logica del moltiplicatore
             if (status === 'presente') {
                 const userDocRef = doc(db, "users", user.uid);
                 // Calcola il moltiplicatore: 2 se c'è solo una lezione/settimana, altrimenti 1
