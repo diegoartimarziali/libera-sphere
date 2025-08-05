@@ -36,6 +36,15 @@ const dayMapping: { [key: string]: number } = {
     "lunedi": 1, "martedi": 2, "mercoledi": 3, "giovedi": 4, "venerdi": 5, "sabato": 6, "domenica": 0
 };
 
+// Funzione per normalizzare la stringa: rimuove accenti e converte in minuscolo
+const normalizeString = (str: string) => {
+    return str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+};
+
+
 export function AttendancePrompt() {
     const [user] = useAuthState(auth);
     const { toast } = useToast();
@@ -103,7 +112,8 @@ export function AttendancePrompt() {
                         const todayDayIndex = getDay(new Date());
 
                         const lessonForToday = gymData.lessons.find(lesson => {
-                            const lessonDayIndex = dayMapping[lesson.dayOfWeek.toLowerCase()];
+                            const normalizedDay = normalizeString(lesson.dayOfWeek);
+                            const lessonDayIndex = dayMapping[normalizedDay];
                             return lessonDayIndex === todayDayIndex;
                         });
 
