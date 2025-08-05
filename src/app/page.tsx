@@ -102,10 +102,6 @@ export default function AuthPage() {
         trialStatus: 'not_applicable',
         trialExpiryDate: null,
         isInsured: false, // Punto di partenza corretto
-        // Aggiungiamo il contenitore per i progressi
-        progress: {
-            presences: 0,
-        },
         // Altri campi inizializzati a valori sicuri
         birthPlace: "",
         birthDate: null,
