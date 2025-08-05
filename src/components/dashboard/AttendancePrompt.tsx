@@ -103,7 +103,7 @@ export function AttendancePrompt() {
                         const todayDayIndex = getDay(new Date());
 
                         const lessonForToday = gymData.lessons.find(lesson => {
-                            const lessonDayIndex = dayMapping[lesson.dayOfWeek];
+                            const lessonDayIndex = dayMapping[lesson.dayOfWeek.toLowerCase()];
                             return lessonDayIndex === todayDayIndex;
                         });
 
