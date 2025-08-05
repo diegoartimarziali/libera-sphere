@@ -5,30 +5,23 @@ import { useEffect, useState, ReactNode, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
-import { doc, getDoc, updateDoc, Timestamp, collection, addDoc, query, where, getDocs } from "firebase/firestore"
+import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { isPast, startOfDay, getDay } from "date-fns"
+import { isPast, startOfDay } from "date-fns"
 
 
-import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, Info, ThumbsUp, ThumbsDown } from "lucide-react"
+import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
-
-interface Lesson {
-    dayOfWeek: string;
-    time: string;
-}
 
 interface UserData {
   name: string
   email: string
   role?: 'admin' | 'user';
-  gym?: string;
   regulationsAccepted: boolean
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
@@ -119,26 +112,6 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
     );
 }
 
-// =================================================================
-// COMPONENTE APPELLO
-// =================================================================
-function AttendancePrompt({ onRespond, isSubmitting }: { onRespond: (isPresent: boolean) => void, isSubmitting: boolean }) {
-    return (
-        <div className="hidden md:flex items-center gap-4 bg-primary/10 border border-primary/20 p-2 rounded-lg">
-            <span className="text-sm font-semibold text-primary-foreground">Sei dei nostri stasera?</span>
-            <div className="flex gap-2">
-                 <Button size="sm" variant="success" onClick={() => onRespond(true)} disabled={isSubmitting}>
-                     {isSubmitting ? <Loader2 className="animate-spin" /> : <ThumbsUp />}
-                     <span className="ml-2">Sì</span>
-                 </Button>
-                 <Button size="sm" variant="destructive" onClick={() => onRespond(false)} disabled={isSubmitting}>
-                     {isSubmitting ? <Loader2 className="animate-spin" /> : <ThumbsDown />}
-                     <span className="ml-2">No</span>
-                 </Button>
-            </div>
-        </div>
-    )
-}
 
 // =================================================================
 // HEADER UNIFICATO
@@ -148,16 +121,10 @@ function DashboardHeader({
     onLogout, 
     userData, 
     showMenu,
-    showAttendancePrompt,
-    onAttendanceRespond,
-    isSubmittingAttendance,
 }: { 
     onLogout: () => void; 
     userData: UserData | null, 
     showMenu: boolean,
-    showAttendancePrompt: boolean,
-    onAttendanceRespond: (isPresent: boolean) => void,
-    isSubmittingAttendance: boolean
 }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -204,7 +171,6 @@ function DashboardHeader({
                         </SheetContent>
                     </Sheet>
                  )}
-                 {showAttendancePrompt && <AttendancePrompt onRespond={onAttendanceRespond} isSubmitting={isSubmittingAttendance} />}
             </div>
 
             <div className="flex items-center gap-4">
@@ -226,8 +192,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [user, loadingAuth] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loadingData, setLoadingData] = useState(true)
-  const [showAttendancePrompt, setShowAttendancePrompt] = useState(false);
-  const [isSubmittingAttendance, setIsSubmittingAttendance] = useState(false);
 
   const { toast } = useToast()
   const router = useRouter()
@@ -244,69 +208,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       }
   }, [router, toast]);
   
-  const handleAttendanceRespond = async (isPresent: boolean) => {
-     if (!user) return;
-     setIsSubmittingAttendance(true);
-     try {
-        const todayStart = startOfDay(new Date());
-        const attendanceData = {
-            userId: user.uid,
-            isPresent: isPresent,
-            lessonDate: Timestamp.fromDate(todayStart),
-            type: "lesson",
-            submittedAt: serverTimestamp()
-        };
-        await addDoc(collection(db, "attendances"), attendanceData);
-        setShowAttendancePrompt(false); // Nasconde il prompt dopo la risposta
-        toast({
-            title: "Risposta registrata!",
-            description: "Grazie per averci fatto sapere."
-        });
-
-     } catch(error) {
-         console.error("Error saving attendance:", error);
-         toast({ variant: "destructive", title: "Errore", description: "Impossibile salvare la tua presenza." });
-     } finally {
-         setIsSubmittingAttendance(false);
-     }
-  }
-
-  const checkShowAttendance = useCallback(async (currentGymData: any) => {
-    if (!user || !userData || !currentGymData || userData.associationStatus !== 'active') {
-        setShowAttendancePrompt(false);
-        return;
-    }
-
-    const today = new Date();
-    const dayIndex = getDay(today);
-    const dayNames = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
-    const todayDayName = dayNames[dayIndex];
-
-    const lessonDays = (currentGymData.regularLessons || []).map((l: Lesson) => l.dayOfWeek.toLowerCase());
-
-    if (!lessonDays.includes(todayDayName)) {
-        setShowAttendancePrompt(false);
-        return;
-    }
-
-    try {
-        const todayStart = startOfDay(today);
-        const attendancesRef = collection(db, "attendances");
-        const q = query(
-            attendancesRef,
-            where("userId", "==", user.uid),
-            where("lessonDate", "==", Timestamp.fromDate(todayStart))
-        );
-        const querySnapshot = await getDocs(q);
-        
-        setShowAttendancePrompt(querySnapshot.empty);
-        
-    } catch (error) {
-        console.error("Error checking attendance:", error);
-        setShowAttendancePrompt(false);
-    }
-  }, [user, userData]);
-
 
   useEffect(() => {
     const fetchAndRedirect = async () => {
@@ -323,17 +224,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             let fetchedUserData = userDocSnap.data() as UserData;
 
             if (userDocSnap.exists()) {
-                
-                // Fetch gym data and call attendance check right after
-                if (fetchedUserData.gym) {
-                    const gymDocRef = doc(db, "gyms", fetchedUserData.gym);
-                    const gymDocSnap = await getDoc(gymDocRef);
-                    if (gymDocSnap.exists()) {
-                        const gymData = gymDocSnap.data();
-                        checkShowAttendance(gymData);
-                    }
-                }
-                
+                                
                 const updates: { [key: string]: any } = {};
 
                 // Controllo scadenza prova
@@ -435,7 +326,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
          redirect("/");
     }
 
-  }, [user, loadingAuth, pathname, router, toast, handleLogout, checkShowAttendance]);
+  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
 
   if (loadingAuth || loadingData) {
     return (
@@ -467,9 +358,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             onLogout={handleLogout} 
             userData={userData} 
             showMenu={showMenu}
-            showAttendancePrompt={showAttendancePrompt}
-            onAttendanceRespond={handleAttendanceRespond}
-            isSubmittingAttendance={isSubmittingAttendance}
         />
         <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
