@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, collection, getDocs } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs, getDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 
@@ -30,6 +30,7 @@ export default function LiberaSpherePage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [gymsLoading, setGymsLoading] = useState(true);
+  const [gradesLoading, setGradesLoading] = useState(false);
   
   // Stati per il flusso unificato
   const [isFormerMember, setIsFormerMember] = useState<'yes' | 'no' | null>(null)
@@ -43,6 +44,7 @@ export default function LiberaSpherePage() {
   
 
   const [gyms, setGyms] = useState<Gym[]>([]);
+  const [grades, setGrades] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchGyms = async () => {
@@ -67,27 +69,49 @@ export default function LiberaSpherePage() {
     };
     fetchGyms();
   }, [toast]);
+  
+  useEffect(() => {
+        const fetchGrades = async () => {
+            if (!discipline) {
+                setGrades([]);
+                return;
+            }
+            setGradesLoading(true);
+            setLastGrade(''); // Resetta il grado selezionato quando cambia la disciplina
+
+            try {
+                const docRef = doc(db, "config", discipline.toLowerCase());
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists() && docSnap.data().grades) {
+                    setGrades(docSnap.data().grades);
+                } else {
+                    toast({
+                        variant: "destructive",
+                        title: `Gradi per ${discipline} non trovati`,
+                        description: "Assicurati di aver configurato i gradi in Firestore.",
+                    });
+                    setGrades([]);
+                }
+            } catch (error) {
+                 console.error("Error fetching grades:", error);
+                 toast({
+                    variant: "destructive",
+                    title: "Errore di caricamento",
+                    description: "Impossibile caricare i gradi dal database."
+                });
+            } finally {
+                setGradesLoading(false);
+            }
+        };
+
+        fetchGrades();
+    }, [discipline, toast]);
 
 
   const currentYear = new Date().getFullYear();
   const startYear = 2016;
   const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => (currentYear - i).toString());
-
-  const grades = [
-    "Cintura bianca",
-    "Cintura bianca gialla",
-    "Cintura gialla",
-    "Cintura arancio",
-    "Cintura verde",
-    "Cintura blu",
-    "Cintura viola",
-    "Cintura marrone 2° kyu",
-    "Cintura marrone 1° kyu",
-    "Cintura nera 1 dan",
-    "Cintura nera 2 dan",
-    "Cintura nera 3 dan",
-    "Cintura nera 4° dan"
-  ];
   
   const qualifications = [
       "Nessuna",
@@ -133,15 +157,16 @@ export default function LiberaSpherePage() {
     if (gymsLoading || !isFormerMember) return true;
 
     if (isFormerMember === 'yes') {
-        return !discipline || !gym || !firstYear || !lastGrade || !qualification;
+        return !discipline || !gym || !firstYear || !lastGrade || !qualification || gradesLoading;
     }
 
     if (isFormerMember === 'no') {
         if (!discipline || !gym) return true;
         if (!hasPracticedBefore) return true;
+        if (gradesLoading) return true;
         if (hasPracticedBefore === 'yes') {
-            const finalGrade = discipline === 'Karate' ? lastGrade : aikidoGrade.trim();
-            return !finalGrade;
+             const finalGrade = discipline === 'Karate' ? lastGrade : aikidoGrade.trim();
+             return !finalGrade;
         }
     }
 
@@ -179,12 +204,13 @@ export default function LiberaSpherePage() {
             dataToUpdate.hasPracticedBefore = hasPracticedBefore;
 
             if (hasPracticedBefore === 'yes') {
-                 const finalGrade = discipline === 'Karate' ? lastGrade : aikidoGrade.trim();
+                 const finalGrade = discipline === 'Karate' ? `Cintura ${lastGrade}` : aikidoGrade.trim();
                  dataToUpdate.pastExperience = { discipline, grade: finalGrade };
                  dataToUpdate.lastGrade = finalGrade;
             } else { // hasPracticedBefore === 'no'
-                dataToUpdate.pastExperience = { discipline, grade: "Cintura bianca" };
-                dataToUpdate.lastGrade = "Cintura bianca";
+                const defaultGrade = discipline === 'Karate' ? 'Cintura bianca' : '6° Kyu';
+                dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
+                dataToUpdate.lastGrade = defaultGrade;
             }
             destination = "/dashboard/class-selection";
         }
@@ -225,6 +251,36 @@ export default function LiberaSpherePage() {
         </Select>
     );
   };
+  
+  const renderGradeSelect = () => {
+     if (gradesLoading) {
+            return (
+                <Button variant="outline" disabled className="w-full justify-start">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Caricamento gradi...
+                </Button>
+            );
+        }
+
+        if (grades.length === 0) {
+            return <Input disabled value="Nessun grado disponibile" />;
+        }
+
+        return (
+            <Select value={lastGrade} onValueChange={setLastGrade}>
+                <SelectTrigger>
+                    <SelectValue placeholder="Seleziona il grado" />
+                </SelectTrigger>
+                <SelectContent>
+                    {grades.map(grade => (
+                        <SelectItem key={grade} value={grade}>
+                            Cintura {grade}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        );
+  }
 
 
   return (
@@ -313,16 +369,7 @@ export default function LiberaSpherePage() {
                       <h4 className="font-semibold text-foreground">4. Qual è il tuo grado attuale?</h4>
                       {discipline === 'Karate' && (
                           <div className="space-y-2">
-                               <Select value={lastGrade} onValueChange={setLastGrade}>
-                                  <SelectTrigger>
-                                      <SelectValue placeholder="Seleziona il grado" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                      {grades.map(grade => (
-                                          <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-                                      ))}
-                                  </SelectContent>
-                              </Select>
+                               {renderGradeSelect()}
                           </div>
                       )}
                       {discipline === 'Aikido' && (
@@ -403,17 +450,17 @@ export default function LiberaSpherePage() {
                             </div>
                         </div>
                         <div className="pt-4">
-                            <Label htmlFor="lastGrade">Il Tuo Grado Attuale</Label>
-                            <Select value={lastGrade} onValueChange={setLastGrade}>
-                                <SelectTrigger id="lastGrade">
-                                    <SelectValue placeholder="Seleziona il grado" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {grades.map(grade => (
-                                        <SelectItem key={grade} value={grade}>{grade}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                             <Label htmlFor="lastGrade">Il Tuo Grado Attuale</Label>
+                            {discipline === 'Karate' ? (
+                                renderGradeSelect()
+                             ) : (
+                                <Input
+                                    id="lastGrade"
+                                    value={aikidoGrade}
+                                    onChange={(e) => setAikidoGrade(e.target.value)}
+                                    placeholder="Es. 1° Kyu, Shodan, ecc."
+                                />
+                             )}
                         </div>
                     </div>
                 )}
