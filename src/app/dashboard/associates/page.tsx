@@ -494,7 +494,7 @@ export default function AssociatesPage() {
          } catch (error) {
             console.error("Errore durante l'invio della domanda:", error);
             toast({ title: "Errore", description: "Impossibile inviare la domanda. Riprova.", variant: "destructive" });
-            setIsSubmitting(false); // **CORREZIONE**
+            setIsSubmitting(false);
          }
     }
 
