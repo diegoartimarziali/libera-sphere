@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp, writeBatch, increment } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { format, getDay } from "date-fns";
 import { it } from "date-fns/locale";
@@ -141,7 +141,12 @@ export function AttendancePrompt() {
             const today = new Date();
             const startOfToday = new Date(today.setHours(0, 0, 0, 0));
 
-            await addDoc(collection(db, "attendances"), {
+            // Usa un batch per eseguire entrambe le scritture in modo atomico
+            const batch = writeBatch(db);
+
+            // 1. Crea il documento di presenza
+            const newAttendanceRef = doc(collection(db, "attendances"));
+            batch.set(newAttendanceRef, {
                 userId: user.uid,
                 userName: userData.name,
                 userSurname: userData.surname,
@@ -153,6 +158,16 @@ export function AttendancePrompt() {
                 status: status,
                 recordedAt: serverTimestamp()
             });
+
+            // 2. Se l'utente è presente, incrementa il suo contatore
+            if (status === 'presente') {
+                const userDocRef = doc(db, "users", user.uid);
+                batch.update(userDocRef, {
+                    "progress.presences": increment(1)
+                });
+            }
+
+            await batch.commit();
 
             setAlreadyResponded(true); // Nasconde il prompt dopo la risposta
             toast({
