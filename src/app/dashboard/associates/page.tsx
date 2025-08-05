@@ -16,7 +16,7 @@ import { it } from "date-fns/locale"
 import { Checkbox } from "@/components/ui/checkbox"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, getDoc, Timestamp, collection, addDoc, serverTimestamp, getDocs, query, where, limit } from "firebase/firestore"
+import { doc, updateDoc, getDoc, Timestamp, collection, addDoc, serverTimestamp, getDocs, query, where, limit, setDoc } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 
 interface FeeData {
@@ -466,16 +466,16 @@ export default function AssociatesPage() {
                 applicationSubmitted: true,
                 associationStatus: "pending",
                 associationExpiryDate: seasonSettings.endDate,
-                isInsured: false, // L'assicurazione sarà attivata solo dopo l'approvazione
-                // Aggiungiamo anche la qualifica per mantenerla aggiornata
-                qualification: qualification,
+                isInsured: false,
+                qualification: qualification || "Nessuna", // Imposta un default se non presente
             };
 
             if (formData.isMinor && formData.parentData) {
                 dataToUpdate.parentData = formData.parentData;
             }
 
-            await updateDoc(userDocRef, dataToUpdate);
+            // Usiamo set con merge:true per aggiornare o creare i campi in modo sicuro
+            await setDoc(userDocRef, dataToUpdate, { merge: true });
             
             // Create payment record
             const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
@@ -494,8 +494,7 @@ export default function AssociatesPage() {
          } catch (error) {
             console.error("Errore durante l'invio della domanda:", error);
             toast({ title: "Errore", description: "Impossibile inviare la domanda. Riprova.", variant: "destructive" });
-         } finally {
-            setIsSubmitting(false);
+            setIsSubmitting(false); // **CORREZIONE**
          }
     }
 
