@@ -49,6 +49,12 @@ interface ActivitySettings {
     endDate: Timestamp;
 }
 
+interface BankDetails {
+    recipientName: string;
+    bankName: string;
+    iban: string;
+}
+
 // Componente Card per lo stato dell'abbonamento
 function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSubscription }) {
     const router = useRouter();
@@ -385,7 +391,7 @@ function OnlinePaymentStep({
 }
 
 // Componente per il Popup del Bonifico
-function BankTransferDialog({ open, onOpenChange, onConfirm, subscription }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, subscription: Subscription | null }) {
+function BankTransferDialog({ open, onOpenChange, onConfirm, subscription, bankDetails }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, subscription: Subscription | null, bankDetails: BankDetails | null }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
@@ -396,18 +402,26 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, subscription }: { o
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4 text-sm">
-                    <div className="space-y-1">
-                        <p className="font-semibold text-foreground">Intestatario:</p>
-                        <p>ASD Libera Energia</p>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="font-semibold text-foreground">Banca:</p>
-                        <p>Banco BPM Verres</p>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="font-semibold text-foreground">IBAN:</p>
-                        <p className="font-mono bg-muted p-2 rounded-md">IT66R0503431690000000025476</p>
-                    </div>
+                    {bankDetails ? (
+                        <>
+                            <div className="space-y-1">
+                                <p className="font-semibold text-foreground">Intestatario:</p>
+                                <p>{bankDetails.recipientName}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="font-semibold text-foreground">Banca:</p>
+                                <p>{bankDetails.bankName}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="font-semibold text-foreground">IBAN:</p>
+                                <p className="font-mono bg-muted p-2 rounded-md">{bankDetails.iban}</p>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex justify-center items-center h-24">
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                        </div>
+                    )}
                      <div className="space-y-1">
                         <p className="font-semibold text-foreground">Importo:</p>
                         <p>{subscription ? `${subscription.price.toFixed(2)} €` : <Loader2 className="h-4 w-4 animate-spin" />}</p>
@@ -433,6 +447,7 @@ export default function SubscriptionsPage() {
     const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
     const [activitySettings, setActivitySettings] = useState<ActivitySettings | null>(null);
+    const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -449,13 +464,21 @@ export default function SubscriptionsPage() {
             try {
                 const userDocRef = doc(db, "users", user.uid);
                 const settingsDocRef = doc(db, "settings", "activity");
+                const bankDetailsRef = doc(db, "settings", "bankDetails");
                 const subsCollection = collection(db, 'subscriptions');
                 
-                const [userDocSnap, settingsDocSnap, subsSnapshot] = await Promise.all([
+                const [userDocSnap, settingsDocSnap, subsSnapshot, bankDetailsSnap] = await Promise.all([
                     getDoc(userDocRef),
                     getDoc(settingsDocRef),
-                    getDocs(subsCollection)
+                    getDocs(subsCollection),
+                    getDoc(bankDetailsRef)
                 ]);
+
+                if (bankDetailsSnap.exists()) {
+                    setBankDetails(bankDetailsSnap.data() as BankDetails);
+                } else {
+                     toast({ title: "Errore", description: "Impossibile caricare i dati per il bonifico.", variant: "destructive" });
+                }
 
                 let currentUserSubscription: UserSubscription | null = null;
                 if (userDocSnap.exists()) {
@@ -669,9 +692,8 @@ export default function SubscriptionsPage() {
                 onOpenChange={setIsBankTransferDialogOpen}
                 onConfirm={handleBankTransferConfirm}
                 subscription={selectedSubscription}
+                bankDetails={bankDetails}
             />
         </div>
     );
 }
-
-    

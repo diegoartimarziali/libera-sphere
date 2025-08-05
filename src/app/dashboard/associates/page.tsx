@@ -30,6 +30,12 @@ interface SeasonSettings {
     label?: string;
 }
 
+interface BankDetails {
+    recipientName: string;
+    bankName: string;
+    iban: string;
+}
+
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
 
 // Componente per visualizzare i dati in modo pulito
@@ -46,7 +52,7 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
 );
 
 // Componente per il Popup del Bonifico
-function BankTransferDialog({ open, onOpenChange, onConfirm, fee }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, fee: FeeData | null }) {
+function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, fee: FeeData | null, bankDetails: BankDetails | null }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
@@ -57,18 +63,26 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, fee }: { open: bool
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4 text-sm">
-                    <div className="space-y-1">
-                        <p className="font-semibold text-foreground">Intestatario:</p>
-                        <p>ASD Libera Energia</p>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="font-semibold text-foreground">Banca:</p>
-                        <p>Banco BPM Verres</p>
-                    </div>
-                    <div className="space-y-1">
-                        <p className="font-semibold text-foreground">IBAN:</p>
-                        <p className="font-mono bg-muted p-2 rounded-md">IT66R0503431690000000025476</p>
-                    </div>
+                    {bankDetails ? (
+                        <>
+                            <div className="space-y-1">
+                                <p className="font-semibold text-foreground">Intestatario:</p>
+                                <p>{bankDetails.recipientName}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="font-semibold text-foreground">Banca:</p>
+                                <p>{bankDetails.bankName}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <p className="font-semibold text-foreground">IBAN:</p>
+                                <p className="font-mono bg-muted p-2 rounded-md">{bankDetails.iban}</p>
+                            </div>
+                        </>
+                    ) : (
+                         <div className="flex justify-center items-center h-24">
+                            <Loader2 className="h-6 w-6 animate-spin" />
+                        </div>
+                    )}
                      <div className="space-y-1">
                         <p className="font-semibold text-foreground">Importo:</p>
                         <p>{fee ? `${fee.price.toFixed(2)} €` : <Loader2 className="h-4 w-4 animate-spin" />}</p>
@@ -323,6 +337,7 @@ export default function AssociatesPage() {
     const [discipline, setDiscipline] = useState<string | null>(null);
     const [lastGrade, setLastGrade] = useState<string | null>(null);
     const [qualification, setQualification] = useState<string | null>(null);
+    const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
 
 
     const { toast } = useToast()
@@ -335,6 +350,7 @@ export default function AssociatesPage() {
                 const userDocRef = doc(db, "users", user.uid);
                 const feeDocRef = doc(db, "fees", "association");
                 const seasonSettingsRef = doc(db, "settings", "season");
+                const bankDetailsRef = doc(db, "settings", "bankDetails");
                 const paymentsQuery = query(
                     collection(db, 'users', user.uid, 'payments'),
                     where('type', '==', 'association'),
@@ -342,12 +358,19 @@ export default function AssociatesPage() {
                     limit(1)
                 );
                 
-                const [userDocSnap, feeDocSnap, seasonDocSnap, paymentsSnapshot] = await Promise.all([
+                const [userDocSnap, feeDocSnap, seasonDocSnap, paymentsSnapshot, bankDetailsSnap] = await Promise.all([
                     getDoc(userDocRef),
                     getDoc(feeDocRef),
                     getDoc(seasonSettingsRef),
-                    getDocs(paymentsQuery)
+                    getDocs(paymentsQuery),
+                    getDoc(bankDetailsRef)
                 ]);
+
+                if (bankDetailsSnap.exists()) {
+                    setBankDetails(bankDetailsSnap.data() as BankDetails);
+                } else {
+                     toast({ title: "Errore", description: "Impossibile caricare i dati per il bonifico.", variant: "destructive" });
+                }
 
                 if (feeDocSnap.exists()) {
                     setFeeData(feeDocSnap.data() as FeeData);
@@ -575,6 +598,7 @@ export default function AssociatesPage() {
                 onOpenChange={setIsBankTransferDialogOpen}
                 onConfirm={handleBankTransferConfirm}
                 fee={feeData}
+                bankDetails={bankDetails}
             />
         </div>
     )
