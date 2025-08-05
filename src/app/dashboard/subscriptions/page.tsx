@@ -34,6 +34,11 @@ interface Subscription {
     isAvailable?: boolean;
 }
 
+interface UserData {
+    name: string;
+    surname: string;
+}
+
 interface UserSubscription {
     name: string;
     type: 'monthly' | 'seasonal';
@@ -391,7 +396,7 @@ function OnlinePaymentStep({
 }
 
 // Componente per il Popup del Bonifico
-function BankTransferDialog({ open, onOpenChange, onConfirm, subscription, bankDetails }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, subscription: Subscription | null, bankDetails: BankDetails | null }) {
+function BankTransferDialog({ open, onOpenChange, onConfirm, subscription, bankDetails, userName, userSurname }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, subscription: Subscription | null, bankDetails: BankDetails | null, userName?: string, userSurname?: string }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
@@ -428,7 +433,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, subscription, bankD
                     </div>
                      <div className="space-y-1">
                         <p className="font-semibold text-foreground">Causale:</p>
-                        <p className="font-mono bg-muted p-2 rounded-md">{`${subscription?.name} [Nome Cognome Socio]`}</p>
+                        <p className="font-mono bg-muted p-2 rounded-md">{`${subscription?.name} ${userName || ''} ${userSurname || ''}`.trim()}</p>
                     </div>
                 </div>
                 <DialogFooter>
@@ -443,6 +448,7 @@ export default function SubscriptionsPage() {
     const [user] = useAuthState(auth);
     const [step, setStep] = useState(1);
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+    const [userData, setUserData] = useState<UserData | null>(null);
     const [userSubscription, setUserSubscription] = useState<UserSubscription | null>(null);
     const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
@@ -482,14 +488,15 @@ export default function SubscriptionsPage() {
 
                 let currentUserSubscription: UserSubscription | null = null;
                 if (userDocSnap.exists()) {
-                    const userData = userDocSnap.data();
-                    if (userData.subscriptionAccessStatus && (userData.subscriptionAccessStatus === 'active' || userData.subscriptionAccessStatus === 'pending')) {
+                    const fetchedUserData = userDocSnap.data() as UserData;
+                    setUserData(fetchedUserData);
+                    if (fetchedUserData.subscriptionAccessStatus && (fetchedUserData.subscriptionAccessStatus === 'active' || fetchedUserData.subscriptionAccessStatus === 'pending')) {
                         const subStatus: UserSubscription = {
-                            name: userData.activeSubscription.name,
-                            type: userData.activeSubscription.type,
-                            purchasedAt: userData.activeSubscription.purchasedAt,
-                            expiresAt: userData.activeSubscription.expiresAt,
-                            status: userData.subscriptionAccessStatus
+                            name: fetchedUserData.activeSubscription.name,
+                            type: fetchedUserData.activeSubscription.type,
+                            purchasedAt: fetchedUserData.activeSubscription.purchasedAt,
+                            expiresAt: fetchedUserData.activeSubscription.expiresAt,
+                            status: fetchedUserData.subscriptionAccessStatus
                         };
                         setUserSubscription(subStatus);
                         currentUserSubscription = subStatus;
@@ -693,7 +700,11 @@ export default function SubscriptionsPage() {
                 onConfirm={handleBankTransferConfirm}
                 subscription={selectedSubscription}
                 bankDetails={bankDetails}
+                userName={userData?.name}
+                userSurname={userData?.surname}
             />
         </div>
     );
 }
+
+    

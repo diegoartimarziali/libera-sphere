@@ -52,7 +52,7 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
 );
 
 // Componente per il Popup del Bonifico
-function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, fee: FeeData | null, bankDetails: BankDetails | null }) {
+function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails, userName, userSurname }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, fee: FeeData | null, bankDetails: BankDetails | null, userName?: string, userSurname?: string }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
@@ -89,7 +89,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails }:
                     </div>
                      <div className="space-y-1">
                         <p className="font-semibold text-foreground">Causale:</p>
-                        <p className="font-mono bg-muted p-2 rounded-md">Quota Associativa [Nome Cognome Socio]</p>
+                        <p className="font-mono bg-muted p-2 rounded-md">{`Quota Associativa ${userName || ''} ${userSurname || ''}`.trim()}</p>
                     </div>
                 </div>
                 <DialogFooter>
@@ -599,7 +599,11 @@ export default function AssociatesPage() {
                 onConfirm={handleBankTransferConfirm}
                 fee={feeData}
                 bankDetails={bankDetails}
+                userName={formData?.name}
+                userSurname={formData?.surname}
             />
         </div>
     )
 }
+
+    
