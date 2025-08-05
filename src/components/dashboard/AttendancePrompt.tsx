@@ -103,6 +103,7 @@ export function AttendancePrompt() {
                         const todayDayIndex = getDay(new Date());
 
                         const lessonForToday = gymData.lessons.find(lesson => {
+                            // CORREZIONE: Converte il giorno in minuscolo prima del confronto
                             const lessonDayIndex = dayMapping[lesson.dayOfWeek.toLowerCase()];
                             return lessonDayIndex === todayDayIndex;
                         });
