@@ -331,7 +331,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     if (gymDocSnap.exists()) {
                         const gymData = gymDocSnap.data();
                          // Passa gymData direttamente per evitare problemi di stato
-                        await checkShowAttendance(gymData);
+                        checkShowAttendance(gymData);
                     }
                 }
                 
