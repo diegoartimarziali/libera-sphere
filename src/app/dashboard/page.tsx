@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -6,7 +7,6 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, Timestamp, collection, getDocs } from "firebase/firestore"
 import { differenceInDays, isPast, format, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
-import Link from "next/link"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
@@ -35,7 +35,7 @@ interface UserData {
     type: 'certificate';
     expiryDate?: Timestamp;
   };
-  trialLessons?: { lessonDate: Timestamp, time: string }[];
+  trialLessons?: { eventId: string, startTime: Timestamp, endTime: Timestamp }[];
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialOutcome?: 'declined' | 'accepted';
   subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
@@ -113,8 +113,8 @@ export default function DashboardPage() {
             const trialLessons: TrialLesson[] | undefined = 
                 (data.trialStatus === 'active' || data.trialStatus === 'pending_payment') && data.trialLessons
                 ? data.trialLessons.map(l => ({
-                    date: l.lessonDate.toDate(),
-                    time: l.time
+                    date: l.startTime.toDate(),
+                    time: format(l.startTime.toDate(), "HH:mm")
                 }))
                 : undefined;
                 
@@ -351,3 +351,5 @@ export default function DashboardPage() {
     </div>
   )
 }
+
+    

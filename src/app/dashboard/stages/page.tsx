@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, Timestamp, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -10,14 +10,15 @@ import { StageCard } from "@/components/dashboard/StageCard";
 
 export interface Stage {
     id: string;
-    name: string;
+    title: string;
     description: string;
-    date: Timestamp;
+    startTime: Timestamp;
+    endTime: Timestamp;
     location: string;
     price: number;
     imageUrl?: string;
     sumupLink: string;
-    type: 'internal' | 'external';
+    type: 'stage';
     open_to: string;
 }
 
@@ -29,18 +30,36 @@ export default function StagesPage() {
     useEffect(() => {
         const fetchStages = async () => {
             try {
-                const stagesCollection = collection(db, "stages");
-                const q = query(stagesCollection, orderBy("date", "asc"));
+                const eventsCollection = collection(db, "events");
+                const q = query(
+                    eventsCollection, 
+                    where("type", "==", "stage"),
+                    where("startTime", ">=", Timestamp.now()),
+                    orderBy("startTime", "asc")
+                );
                 const stagesSnapshot = await getDocs(q);
 
-                const stagesList = stagesSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                } as Stage));
+                const stagesList = stagesSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    // Assicurarsi che tutti i campi necessari per l'interfaccia Stage siano presenti
+                    return {
+                        id: doc.id,
+                        title: data.title || "Senza Titolo",
+                        description: data.description || "",
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                        location: data.location || "Luogo da definire",
+                        price: data.price || 0,
+                        imageUrl: data.imageUrl,
+                        sumupLink: data.sumupLink || "",
+                        open_to: data.open_to || "Non specificato",
+                        type: 'stage' // Aggiungiamo esplicitamente il tipo
+                    } as Stage;
+                });
                 
                 setStages(stagesList);
             } catch (error) {
-                console.error("Error fetching stages:", error);
+                console.error("Error fetching stages from events:", error);
                 toast({
                     title: "Errore",
                     description: "Impossibile caricare gli stage. Riprova più tardi.",
@@ -86,3 +105,5 @@ export default function StagesPage() {
         </div>
     );
 }
+
+    

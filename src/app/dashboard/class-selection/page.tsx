@@ -11,14 +11,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { format, getDay, addDays, startOfDay, nextDay } from "date-fns"
+import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles, MessageSquareQuote } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp, addDoc, limit } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp, addDoc, limit, orderBy } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
@@ -30,37 +29,28 @@ interface FeeData {
     sumupLink: string;
 }
 
-interface Lesson {
-    dayOfWeek: string; // Es. "Lunedì", "Martedì"
-    time: string;
+interface Event {
+    id: string;
+    startTime: Timestamp;
+    endTime: Timestamp;
+    title: string;
 }
 
 // Tipi di dati
 type PaymentMethod = "in_person" | "online"
-interface Gym {
-    id: string;
-    name: string;
-    lessons: Lesson[];
-    disciplines: string[];
-}
-
-interface TrialLesson {
-    lessonDate: Date;
-    time: string;
-}
 
 interface GymSelectionData {
     gymId: string;
     gymName: string;
-    trialLessons: TrialLesson[];
+    trialLessons: {
+        eventId: string;
+        startTime: Timestamp;
+        endTime: Timestamp;
+    }[];
     discipline: string;
 }
 
 interface Settings {
-    activity: {
-        startDate: Timestamp;
-        endDate: Timestamp;
-    };
     enrollment: {
         trialClassesOpenDate: Timestamp;
         trialClassesCloseDate: Timestamp;
@@ -81,43 +71,21 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
     ) : null
 );
 
-// Mappa per convertire il nome del giorno in numero (Domenica=0, Lunedì=1...)
-const dayNameToJsGetDay: { [key: string]: number } = {
-    'domenica': 0, 'lunedi': 1, 'martedi': 2, 'mercoledi': 3, 
-    'giovedi': 4, 'venerdi': 5, 'sabato': 6
-};
-
-
-function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; onNext: (data: GymSelectionData) => void, settings: Settings }) {
+function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (data: GymSelectionData) => void }) {
     const [user] = useAuthState(auth);
     const { toast } = useToast();
 
     const [loading, setLoading] = useState(true);
-    const [gym, setGym] = useState<Gym | null>(null);
     const [userDiscipline, setUserDiscipline] = useState<string | null>(null);
-    const [lessonTime, setLessonTime] = useState<string | null>(null);
-    const [sortedUpcomingLessons, setSortedUpcomingLessons] = useState<Date[]>([]);
+    const [userGymId, setUserGymId] = useState<string | null>(null);
+    const [userGymName, setUserGymName] = useState<string | null>(null);
+    const [upcomingLessons, setUpcomingLessons] = useState<Event[]>([]);
     const [selectedLessonValue, setSelectedLessonValue] = useState<string | null>(null);
-    const [highlightedLessons, setHighlightedLessons] = useState<Date[]>([]);
+    const [highlightedLessons, setHighlightedLessons] = useState<Event[]>([]);
     
-    // Funzioni che usano i settings
-    const isPreRegistrationPeriod = (): boolean => {
-        if (!settings) return false;
-        const today = startOfDay(new Date());
-        const activityStartDate = settings.activity.startDate.toDate();
-        return today < activityStartDate;
-    }
-
-    const getLessonSearchStartDate = (): Date => {
-        if (isPreRegistrationPeriod() && settings) {
-            return settings.activity.startDate.toDate();
-        }
-        return startOfDay(new Date());
-    }
-
     useEffect(() => {
-        const fetchGymData = async () => {
-            if (!user || !settings) return;
+        const fetchEventData = async () => {
+            if (!user) return;
             setLoading(true);
             try {
                 const userDocRef = doc(db, "users", user.uid);
@@ -128,63 +96,52 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
                     const discipline = userData.discipline;
                     const gymId = userData.gym;
                     setUserDiscipline(discipline);
+                    setUserGymId(gymId);
 
                     if (discipline && gymId) {
                         const gymDocRef = doc(db, "gyms", gymId);
                         const gymDocSnap = await getDoc(gymDocRef);
-
                         if (gymDocSnap.exists()) {
-                            const gymData = gymDocSnap.data() as Omit<Gym, 'id'>;
-                            
-                            if (gymData.disciplines.includes(discipline)) {
-                                setGym({ id: gymId, ...gymData });
-
-                                const currentLessonTime = gymData.lessons && gymData.lessons.length > 0 ? gymData.lessons[0].time : null;
-                                setLessonTime(currentLessonTime);
-                                
-                                const allDates: Date[] = [];
-                                const startDate = getLessonSearchStartDate();
-
-                                gymData.lessons.forEach(lesson => {
-                                    const dayIndex = dayNameToJsGetDay[lesson.dayOfWeek.toLowerCase()];
-                                    if (dayIndex !== undefined) {
-                                        let firstDate = nextDay(startDate, dayIndex);
-                                        // Generiamo più date per assicurarci di averne abbastanza
-                                        for (let i = 0; i < 8; i++) {
-                                            allDates.push(addDays(firstDate, i * 7));
-                                        }
-                                    }
-                                });
-
-                                allDates.sort((a, b) => a.getTime() - b.getTime());
-                                setSortedUpcomingLessons(allDates);
-
-                            } else {
-                                toast({ title: "Errore Disciplina", description: `La disciplina ${discipline} non è disponibile presso la palestra selezionata.`, variant: "destructive" });
-                            }
-                        } else {
-                            toast({ title: "Errore Palestra", description: `Nessuna palestra trovata con l'ID fornito.`, variant: "destructive" });
+                            setUserGymName(gymDocSnap.data().name);
                         }
+
+                        const eventsQuery = query(
+                            collection(db, "events"),
+                            where("gymId", "==", gymId),
+                            where("discipline", "==", discipline),
+                            where("type", "==", "lesson"),
+                            where("startTime", ">=", Timestamp.now()),
+                            orderBy("startTime", "asc")
+                        );
+                        
+                        const eventsSnapshot = await getDocs(eventsQuery);
+                        const eventsList = eventsSnapshot.docs.map(doc => ({
+                            id: doc.id,
+                            ...doc.data()
+                        } as Event));
+                        setUpcomingLessons(eventsList);
+
+                    } else {
+                         toast({ title: "Dati mancanti", description: "Disciplina o palestra non impostate nel tuo profilo.", variant: "destructive" });
                     }
                 }
             } catch (error) {
-                console.error("Error fetching gym data:", error);
-                toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati della palestra.", variant: "destructive" });
+                console.error("Error fetching event data:", error);
+                toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati delle lezioni.", variant: "destructive" });
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchGymData();
-    }, [user, toast, settings]); // Aggiunto settings alle dipendenze
+        fetchEventData();
+    }, [user, toast]);
 
     useEffect(() => {
         if (selectedLessonValue) {
-            const selectedDate = new Date(selectedLessonValue);
-            const selectedIndex = sortedUpcomingLessons.findIndex(d => d.getTime() === selectedDate.getTime());
+            const selectedIndex = upcomingLessons.findIndex(l => l.id === selectedLessonValue);
 
-            if (selectedIndex !== -1 && sortedUpcomingLessons.length >= selectedIndex + 3) {
-                const threeLessons = sortedUpcomingLessons.slice(selectedIndex, selectedIndex + 3);
+            if (selectedIndex !== -1 && upcomingLessons.length >= selectedIndex + 3) {
+                const threeLessons = upcomingLessons.slice(selectedIndex, selectedIndex + 3);
                 setHighlightedLessons(threeLessons);
             } else {
                  setHighlightedLessons([]);
@@ -192,23 +149,24 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
         } else {
             setHighlightedLessons([]);
         }
-    }, [selectedLessonValue, sortedUpcomingLessons]);
+    }, [selectedLessonValue, upcomingLessons]);
     
     const handleConfirm = () => {
-        if (!userDiscipline || !gym || !lessonTime || highlightedLessons.length < 3) return;
+        if (!userDiscipline || !userGymId || !userGymName || highlightedLessons.length < 3) return;
         
         onNext({
-            gymId: gym.id,
-            gymName: gym.name,
+            gymId: userGymId,
+            gymName: userGymName,
             discipline: userDiscipline,
-            trialLessons: highlightedLessons.map(date => ({
-                lessonDate: date,
-                time: lessonTime
+            trialLessons: highlightedLessons.map(event => ({
+                eventId: event.id,
+                startTime: event.startTime,
+                endTime: event.endTime
             })),
         });
     }
 
-    if (loading || !settings) {
+    if (loading) {
         return (
             <Card>
                 <CardHeader>
@@ -221,7 +179,7 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
         );
     }
     
-     if (!gym) {
+     if (!userGymName) {
         return (
             <Card>
                 <CardHeader><CardTitle>Dati non trovati</CardTitle></CardHeader>
@@ -253,22 +211,11 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
                     </AlertDescription>
                 </Alert>
 
-                {isPreRegistrationPeriod() && (
-                    <Alert variant="info">
-                        <Info className="h-4 w-4" />
-                        <AlertTitle>Periodo di Pre-iscrizione Attivo!</AlertTitle>
-                        <AlertDescription>
-                            Le lezioni inizieranno il {format(settings.activity.startDate.toDate(), "d MMMM", { locale: it })}. Le date disponibili sono calcolate a partire da quel giorno.
-                        </AlertDescription>
-                    </Alert>
-                )}
-
                 <div className="space-y-4 rounded-md border p-4">
                     <h3 className="text-lg font-semibold">La tua scelta</h3>
                      <dl className="space-y-2">
                         <DataRow label="Disciplina" value={userDiscipline} icon={<Sparkles size={16} />} />
-                        <DataRow label="Palestra" value={gym.name} icon={<Building size={16} />} />
-                        <DataRow label="Orario" value={lessonTime} icon={<Clock size={16} />} />
+                        <DataRow label="Palestra" value={userGymName} icon={<Building size={16} />} />
                      </dl>
                 </div>
                 
@@ -279,9 +226,9 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
                         onValueChange={setSelectedLessonValue}
                         className="grid grid-cols-2 gap-3 sm:grid-cols-4"
                     >
-                        {sortedUpcomingLessons.slice(0, -2).map((date) => { // slice per non permettere di scegliere date per cui non ce ne sono 2 successive
-                            const value = date.toISOString();
-                            const isHighlighted = highlightedLessons.some(h => h.getTime() === date.getTime());
+                        {upcomingLessons.slice(0, -2).map((event) => { // slice per non permettere di scegliere date per cui non ce ne sono 2 successive
+                            const value = event.id;
+                            const isHighlighted = highlightedLessons.some(h => h.id === event.id);
                             const isSelected = selectedLessonValue === value;
                             
                             return (
@@ -294,8 +241,9 @@ function GymSelectionStep({ onBack, onNext, settings }: { onBack: () => void; on
                                     )}
                                 >
                                     <RadioGroupItem value={value} id={value} className="sr-only" />
-                                    <span className="font-semibold capitalize">{format(date, "EEEE", { locale: it })}</span>
-                                    <span className="text-sm">{format(date, "dd MMMM yyyy", { locale: it })}</span>
+                                    <span className="font-semibold capitalize">{format(event.startTime.toDate(), "EEEE", { locale: it })}</span>
+                                    <span className="text-sm">{format(event.startTime.toDate(), "dd MMMM yyyy")}</span>
+                                    <span className="text-xs text-muted-foreground">{format(event.startTime.toDate(), "HH:mm")}</span>
                                 </Label>
                             )
                         })}
@@ -495,7 +443,7 @@ function ConfirmationStep({
                            <DataRow 
                                 key={index}
                                 label={`${index + 1}ª Lezione`} 
-                                value={`${format(lesson.lessonDate, "EEEE d MMMM", { locale: it })} ore ${lesson.time}`} 
+                                value={`${format(lesson.startTime.toDate(), "EEEE d MMMM", { locale: it })} ore ${format(lesson.startTime.toDate(), "HH:mm")}`} 
                                 icon={<CalendarIconDay size={16} />} 
                            />
                         ))}
@@ -548,7 +496,6 @@ export default function ClassSelectionPage() {
     const router = useRouter()
     const [user] = useAuthState(auth);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [userData, setUserData] = useState<any>(null);
     const [finalGrade, setFinalGrade] = useState<string | null>(null);
 
 
@@ -562,7 +509,6 @@ export default function ClassSelectionPage() {
             try {
                 const userDocRef = doc(db, "users", user.uid);
                 const feeDocRef = doc(db, "fees", "trial");
-                const activitySettingsRef = doc(db, "settings", "activity");
                 const enrollmentSettingsRef = doc(db, "settings", "enrollment");
                  const paymentsQuery = query(
                     collection(db, 'users', user.uid, 'payments'),
@@ -571,10 +517,9 @@ export default function ClassSelectionPage() {
                     limit(1)
                 );
                 
-                const [userDocSnap, feeDocSnap, activityDocSnap, enrollmentDocSnap, paymentsSnapshot] = await Promise.all([
+                const [userDocSnap, feeDocSnap, enrollmentDocSnap, paymentsSnapshot] = await Promise.all([
                     getDoc(userDocRef),
                     getDoc(feeDocRef),
-                    getDoc(activitySettingsRef),
                     getDoc(enrollmentSettingsRef),
                     getDocs(paymentsQuery)
                 ]);
@@ -585,22 +530,19 @@ export default function ClassSelectionPage() {
                 let fetchedUserData: any = null;
                 if (userDocSnap.exists()) {
                     fetchedUserData = userDocSnap.data();
-                    setUserData(fetchedUserData);
                 }
                 
-                if (activityDocSnap.exists() && enrollmentDocSnap.exists()) {
-                     const activityData = activityDocSnap.data();
+                if (enrollmentDocSnap.exists()) {
                      const enrollmentData = enrollmentDocSnap.data();
-                     if (activityData && enrollmentData) {
+                     if (enrollmentData) {
                         setSettings({
-                            activity: activityData as Settings['activity'],
                             enrollment: enrollmentData as Settings['enrollment']
                         });
                      } else {
                          toast({ title: "Errore di configurazione", description: "Dati di configurazione mancanti.", variant: "destructive" });
                      }
                 } else {
-                    toast({ title: "Errore di configurazione", description: "Impostazioni per le attività o le iscrizioni non trovate.", variant: "destructive" });
+                    toast({ title: "Errore di configurazione", description: "Impostazioni per le iscrizioni non trovate.", variant: "destructive" });
                 }
 
                 // LOGICA DI AVANZAMENTO STEP
@@ -619,21 +561,24 @@ export default function ClassSelectionPage() {
                     
                     if (!paymentsSnapshot.empty) { // C'è un pagamento in sospeso
                          const paymentData = paymentsSnapshot.docs[0].data();
+                         const gymDoc = await getDoc(doc(db, "gyms", fetchedUserData.gym));
+
                          setPaymentMethod(paymentData.paymentMethod as PaymentMethod);
                          setGymSelection({
                              gymId: fetchedUserData.gym || '',
-                             gymName: '', // Lo recuperiamo dopo, non critico per il riepilogo
+                             gymName: gymDoc.exists() ? gymDoc.data().name : '',
                              discipline: fetchedUserData.discipline || '',
-                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, lessonDate: l.lessonDate.toDate()}))
+                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, startTime: l.startTime.toDate(), endTime: l.endTime.toDate()}))
                          });
                          setFinalGrade(fetchedUserData.lastGrade || null);
                          setStep(5); // Vai al riepilogo
                     } else if (hasTrialLessons) { // Ha scelto le lezioni ma non il pagamento
+                        const gymDoc = await getDoc(doc(db, "gyms", fetchedUserData.gym));
                         setGymSelection({
                              gymId: fetchedUserData.gym || '',
-                             gymName: '', // Lo recuperiamo dopo
+                             gymName: gymDoc.exists() ? gymDoc.data().name : '',
                              discipline: fetchedUserData.discipline || '',
-                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, lessonDate: l.lessonDate.toDate()}))
+                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, startTime: l.startTime.toDate(), endTime: l.endTime.toDate()}))
                          });
                          setFinalGrade(fetchedUserData.lastGrade || null);
                         setStep(3); // Vai alla scelta pagamento
@@ -695,8 +640,9 @@ export default function ClassSelectionPage() {
 
              await updateDoc(userDocRef, {
                  trialLessons: data.trialLessons.map(lesson => ({
-                    ...lesson,
-                    lessonDate: Timestamp.fromDate(lesson.lessonDate)
+                    eventId: lesson.eventId,
+                    startTime: lesson.startTime,
+                    endTime: lesson.endTime
                 })),
                 lastGrade: grade
              });
@@ -765,7 +711,7 @@ export default function ClassSelectionPage() {
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
                     const grade = docSnap.data().grades[0];
-                    return currentDiscipline === 'Karate' ? `Cintura ${grade}` : grade;
+                    return discipline === 'Karate' ? `Cintura ${grade}` : grade;
                 } else {
                     return null; // Errore o nessun grado trovato
                 }
@@ -783,7 +729,7 @@ export default function ClassSelectionPage() {
         }
         setIsSubmitting(true);
 
-        const trialExpiryDate = gymSelection.trialLessons[2]?.lessonDate;
+        const trialExpiryDate = gymSelection.trialLessons[2]?.endTime;
 
         try {
             const userDocRef = doc(db, "users", user.uid);
@@ -793,7 +739,7 @@ export default function ClassSelectionPage() {
                 applicationSubmitted: true,
                 associationStatus: "not_associated",
                 trialStatus: 'pending_payment',
-                trialExpiryDate: trialExpiryDate ? Timestamp.fromDate(trialExpiryDate) : null,
+                trialExpiryDate: trialExpiryDate ? trialExpiryDate : null,
                 lastGrade: finalGrade,
             };
             
@@ -858,11 +804,10 @@ export default function ClassSelectionPage() {
                         onBack={() => router.push('/dashboard/liberasphere')}
                     />
                 )}
-                {step === 2 && settings && (
+                {step === 2 && (
                     <GymSelectionStep 
                         onBack={handleBack}
                         onNext={handleNextStep2}
-                        settings={settings}
                     />
                 )}
                 {step === 3 && gymSelection &&(
@@ -895,8 +840,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-
-    
 
     

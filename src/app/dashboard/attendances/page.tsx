@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils"
 // Definisco il tipo di dati per una presenza
 interface Attendance {
     id: string;
-    lessonDate: Timestamp;
-    lessonTime: string;
+    lessonDate: Timestamp; // Manteniamo questo per l'ordinamento e la visualizzazione semplice
+    lessonTime: string; // Ora di inizio
     discipline: string;
     gymName: string;
     status: 'presente' | 'assente';
@@ -59,6 +59,7 @@ export default function AttendancesPage() {
             }
 
             try {
+                // Qui la logica non cambia, la collezione "attendances" rimane separata per ora.
                 const attendancesRef = collection(db, 'attendances');
                 const q = query(
                     attendancesRef, 
@@ -142,3 +143,5 @@ export default function AttendancesPage() {
         </Card>
     );
 }
+
+    

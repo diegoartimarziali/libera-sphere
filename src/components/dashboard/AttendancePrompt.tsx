@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from "react";
 import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp, writeBatch, increment } from "firebase/firestore";
+import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp, writeBatch, increment, orderBy, limit } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { format, getDay } from "date-fns";
+import { format, isToday } from "date-fns";
 import { it } from "date-fns/locale";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -22,28 +22,15 @@ interface UserData {
     subscriptionAccessStatus?: 'active';
 }
 
-interface Lesson {
-    dayOfWeek: string;
-    time: string;
+interface LessonEvent {
+    id: string;
+    startTime: Timestamp;
+    endTime: Timestamp;
+    title: string;
+    discipline: string;
+    gymId: string;
+    gymName: string;
 }
-
-interface Gym {
-    name: string;
-    lessons: Lesson[];
-}
-
-const dayMapping: { [key: string]: number } = {
-    "lunedi": 1, "martedi": 2, "mercoledi": 3, "giovedi": 4, "venerdi": 5, "sabato": 6, "domenica": 0
-};
-
-// Funzione per normalizzare la stringa: rimuove accenti e converte in minuscolo
-const normalizeString = (str: string) => {
-    return str
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-};
-
 
 export function AttendancePrompt() {
     const [user] = useAuthState(auth);
@@ -52,8 +39,7 @@ export function AttendancePrompt() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [userData, setUserData] = useState<UserData | null>(null);
-    const [todaysLesson, setTodaysLesson] = useState<Lesson | null>(null);
-    const [gymData, setGymData] = useState<Gym | null>(null);
+    const [todaysLesson, setTodaysLesson] = useState<LessonEvent | null>(null);
     const [alreadyResponded, setAlreadyResponded] = useState(false);
 
     useEffect(() => {
@@ -64,16 +50,17 @@ export function AttendancePrompt() {
             }
 
             try {
-                // 1. Controlla se l'utente ha già risposto oggi
-                const today = new Date();
-                const startOfToday = new Date(today.setHours(0, 0, 0, 0));
-                const endOfToday = new Date(today.setHours(23, 59, 59, 999));
+                // 1. Controlla se l'utente ha già risposto oggi per una lezione
+                const today_start = new Date();
+                today_start.setHours(0, 0, 0, 0);
+                const today_end = new Date();
+                today_end.setHours(23, 59, 59, 999);
 
                 const attendanceQuery = query(
                     collection(db, "attendances"),
                     where("userId", "==", user.uid),
-                    where("lessonDate", ">=", startOfToday),
-                    where("lessonDate", "<=", endOfToday)
+                    where("lessonDate", ">=", Timestamp.fromDate(today_start)),
+                    where("lessonDate", "<=", Timestamp.fromDate(today_end))
                 );
                 const attendanceSnap = await getDocs(attendanceQuery);
 
@@ -100,26 +87,23 @@ export function AttendancePrompt() {
                 }
                 setUserData(fetchedUserData);
 
-                // 4. Recupera i dati della palestra e cerca la lezione di oggi
-                if (fetchedUserData.gym) {
-                    const gymDocRef = doc(db, "gyms", fetchedUserData.gym);
-                    const gymDocSnap = await getDoc(gymDocRef);
+                // 4. Recupera la lezione di oggi dalla collezione events
+                if (fetchedUserData.gym && fetchedUserData.discipline) {
+                    const eventsQuery = query(
+                        collection(db, "events"),
+                        where("type", "==", "lesson"),
+                        where("gymId", "==", fetchedUserData.gym),
+                        where("discipline", "==", fetchedUserData.discipline),
+                        where("startTime", ">=", Timestamp.fromDate(today_start)),
+                        where("startTime", "<=", Timestamp.fromDate(today_end)),
+                        orderBy("startTime"),
+                        limit(1)
+                    );
+                    const eventsSnap = await getDocs(eventsQuery);
 
-                    if (gymDocSnap.exists()) {
-                        const fetchedGymData = gymDocSnap.data() as Gym;
-                        setGymData(fetchedGymData);
-
-                        const todayDayIndex = getDay(new Date());
-
-                        const lessonForToday = fetchedGymData.lessons.find(lesson => {
-                            const normalizedDay = normalizeString(lesson.dayOfWeek);
-                            const lessonDayIndex = dayMapping[normalizedDay];
-                            return lessonDayIndex === todayDayIndex;
-                        });
-
-                        if (lessonForToday) {
-                            setTodaysLesson(lessonForToday);
-                        }
+                    if (!eventsSnap.empty) {
+                        const lessonDoc = eventsSnap.docs[0];
+                        setTodaysLesson({ id: lessonDoc.id, ...lessonDoc.data() } as LessonEvent);
                     }
                 }
             } catch (error) {
@@ -134,12 +118,12 @@ export function AttendancePrompt() {
     }, [user, toast]);
 
     const handleRespond = async (status: 'presente' | 'assente') => {
-        if (!user || !userData || !todaysLesson || !gymData) return;
+        if (!user || !userData || !todaysLesson) return;
 
         setIsSubmitting(true);
         try {
-            const today = new Date();
-            const startOfToday = new Date(today.setHours(0, 0, 0, 0));
+            const today_start = new Date();
+            today_start.setHours(0, 0, 0, 0);
 
             // Usa un batch per eseguire entrambe le scritture in modo atomico
             const batch = writeBatch(db);
@@ -150,22 +134,22 @@ export function AttendancePrompt() {
                 userId: user.uid,
                 userName: userData.name,
                 userSurname: userData.surname,
-                gymId: userData.gym,
-                gymName: gymData.name,
-                discipline: userData.discipline,
-                lessonDate: Timestamp.fromDate(startOfToday),
-                lessonTime: todaysLesson.time,
+                gymId: todaysLesson.gymId,
+                gymName: todaysLesson.gymName,
+                discipline: todaysLesson.discipline,
+                lessonDate: Timestamp.fromDate(today_start),
+                lessonTime: format(todaysLesson.startTime.toDate(), "HH:mm"),
                 status: status,
-                recordedAt: serverTimestamp()
+                recordedAt: serverTimestamp(),
+                eventId: todaysLesson.id
             });
 
-            // 2. Se l'utente è presente, incrementa il suo contatore con la logica del moltiplicatore
+            // 2. Se l'utente è presente, incrementa il suo contatore. 
+            // La logica del moltiplicatore non è più necessaria qui.
             if (status === 'presente') {
                 const userDocRef = doc(db, "users", user.uid);
-                // Calcola il moltiplicatore: 2 se c'è solo una lezione/settimana, altrimenti 1
-                const multiplier = gymData.lessons.length === 1 ? 2 : 1;
                 batch.update(userDocRef, {
-                    "progress.presences": increment(multiplier)
+                    "progress.presences": increment(1)
                 });
             }
 
@@ -198,7 +182,7 @@ export function AttendancePrompt() {
             <CalendarCheck className="h-4 w-4" />
             <AlertTitle>Appello per la lezione di oggi!</AlertTitle>
             <AlertDescription>
-                Sei dei nostri stasera per la lezione di {userData?.discipline} delle {todaysLesson.time}?
+                Sei dei nostri stasera per la lezione di {userData?.discipline} delle {format(todaysLesson.startTime.toDate(), "HH:mm", { locale: it })}?
             </AlertDescription>
             <div className="mt-4 flex gap-4">
                 <Button 
@@ -221,3 +205,5 @@ export function AttendancePrompt() {
         </Alert>
     );
 }
+
+    

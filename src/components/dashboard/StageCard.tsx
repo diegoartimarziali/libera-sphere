@@ -5,7 +5,7 @@ import type { Stage } from "@/app/dashboard/stages/page";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Tag, Users, ExternalLink } from "lucide-react";
+import { Calendar, MapPin, Tag, Users, ExternalLink, Clock } from "lucide-react";
 import Image from "next/image";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -22,7 +22,8 @@ const InfoRow = ({ icon: Icon, text }: { icon: React.ElementType, text: string }
 );
 
 export function StageCard({ stage }: StageCardProps) {
-    const formattedDate = stage.date ? format(stage.date.toDate(), "eeee d MMMM yyyy", { locale: it }) : "Data da definire";
+    const formattedDate = stage.startTime ? format(stage.startTime.toDate(), "eeee d MMMM yyyy", { locale: it }) : "Data da definire";
+    const formattedTime = stage.startTime && stage.endTime ? `${format(stage.startTime.toDate(), "HH:mm")} - ${format(stage.endTime.toDate(), "HH:mm")}` : "Orario da definire";
 
     const handleEnroll = () => {
         if (stage.sumupLink) {
@@ -36,7 +37,7 @@ export function StageCard({ stage }: StageCardProps) {
                 <div className="relative h-40 w-full">
                     <Image
                         src={stage.imageUrl}
-                        alt={`Immagine per ${stage.name}`}
+                        alt={`Immagine per ${stage.title}`}
                         layout="fill"
                         objectFit="cover"
                         data-ai-hint="event martial-arts"
@@ -44,16 +45,12 @@ export function StageCard({ stage }: StageCardProps) {
                 </div>
             )}
             <CardHeader>
-                <div className="flex justify-between items-start">
-                    <CardTitle className="text-xl capitalize">{stage.name}</CardTitle>
-                    <Badge variant={stage.type === 'internal' ? 'secondary' : 'default'}>
-                        {stage.type === 'internal' ? 'Interno' : 'Esterno'}
-                    </Badge>
-                </div>
+                <CardTitle className="text-xl capitalize">{stage.title}</CardTitle>
                 <CardDescription>{stage.description}</CardDescription>
             </CardHeader>
             <CardContent className="flex-grow space-y-3">
                 <InfoRow icon={Calendar} text={formattedDate} />
+                <InfoRow icon={Clock} text={formattedTime} />
                 <InfoRow icon={MapPin} text={stage.location} />
                 <InfoRow icon={Users} text={`Aperto a: ${stage.open_to}`} />
                 <InfoRow icon={Tag} text={`Costo: ${stage.price.toFixed(2)} €`} />
@@ -67,3 +64,5 @@ export function StageCard({ stage }: StageCardProps) {
         </Card>
     );
 }
+
+    
