@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval } from "date-fns";
+import { format, parse, addDays, eachDayOfInterval, isValid } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -218,8 +218,14 @@ export default function AdminCalendarPage() {
             const batch = writeBatch(db);
             const eventsCollectionRef = collection(db, "events");
 
-            const parsedHolidays = holidays.split('\n').map(h => h.trim()).filter(Boolean)
-              .map(h => format(parse(h, 'dd/MM/yyyy', new Date()), 'yyyy-MM-dd'));
+            const parsedHolidays = holidays.split('\n')
+              .map(h => h.trim())
+              .filter(Boolean)
+              .map(h => {
+                  const parsedDate = parse(h, 'dd/MM/yyyy', new Date());
+                  return isValid(parsedDate) ? format(parsedDate, 'yyyy-MM-dd') : null;
+              })
+              .filter(d => d !== null) as string[];
 
             const interval = eachDayOfInterval({ start: startDate, end: endDate });
 
