@@ -16,7 +16,7 @@ import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles, MessageSquareQuote } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp, addDoc, limit, orderBy } from "firebase/firestore"
+import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp, addDoc, limit, orderBy, writeBatch } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -151,25 +151,6 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                              generatedLessons.sort((a,b) => a.startTime.toMillis() - b.startTime.toMillis());
                              
                              setUpcomingLessons(generatedLessons);
-
-                             // --- LOGICA INTELLIGENTE PER AIKIDO ---
-                             if (generatedLessons.length >= 1 && discipline === 'Aikido') {
-                                 // Se c'è almeno una lezione di prova per Aikido, la preselezioniamo
-                                 // e andiamo avanti automaticamente.
-                                 const singleLesson = generatedLessons[0];
-                                 onNext({
-                                     gymId: gymId,
-                                     gymName: gymData.name,
-                                     discipline: discipline,
-                                     trialLessons: [{
-                                         eventId: singleLesson.id,
-                                         startTime: singleLesson.startTime,
-                                         endTime: singleLesson.endTime
-                                     }],
-                                 });
-                             }
-                             // Se ce n'è più di una (Karate), il flusso normale continuerà
-                             // e l'utente potrà scegliere
                         }
 
                     } else {
@@ -204,13 +185,23 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
     }, [selectedLessonValue, upcomingLessons]);
     
     const handleConfirm = () => {
-        if (!userDiscipline || !userGymId || !userGymName || highlightedLessons.length < 3) return;
+        if (!userDiscipline || !userGymId || !userGymName || highlightedLessons.length < 1) {
+            toast({ variant: "destructive", title: "Errore", description: "Devi selezionare almeno una lezione."})
+            return;
+        }
+        
+        // Per Karate, ci aspettiamo 3 lezioni. Per Aikido, solo 1.
+        const expectedLessons = userDiscipline === 'Karate' ? 3 : 1;
+        if (highlightedLessons.length < expectedLessons) {
+            toast({ variant: "destructive", title: "Lezioni insufficienti", description: `Non ci sono abbastanza lezioni disponibili per completare il ciclo di prova da questa data. Scegli un'altra data di inizio.`});
+            return;
+        }
         
         onNext({
             gymId: userGymId,
             gymName: userGymName,
             discipline: userDiscipline,
-            trialLessons: highlightedLessons.map(event => ({
+            trialLessons: highlightedLessons.slice(0, expectedLessons).map(event => ({
                 eventId: event.id,
                 startTime: event.startTime,
                 endTime: event.endTime
@@ -255,13 +246,17 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
         );
     }
     
-    // Questa vista viene mostrata solo se ci sono PIÙ lezioni di prova tra cui scegliere (caso Karate)
+    const lessonsToOffer = userDiscipline === 'Karate' ? 3 : 1;
+    
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Scegli la Prima lezione di {userDiscipline}</CardTitle>
                 <CardDescription>
-                    Selezionando la prima lezione, verranno automaticamente prenotate le due successive disponibili per la tua categoria.
+                   {lessonsToOffer > 1
+                        ? `Selezionando la prima lezione, verranno automaticamente prenotate le ${lessonsToOffer - 1} successive disponibili per la tua categoria.`
+                        : "Seleziona la lezione di prova per iniziare."
+                   }
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -293,7 +288,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                         onValueChange={setSelectedLessonValue}
                         className="grid grid-cols-2 gap-3 sm:grid-cols-4"
                     >
-                        {upcomingLessons.slice(0, -2).map((lesson) => { // slice per non permettere di scegliere date per cui non ce ne sono 2 successive
+                        {upcomingLessons.slice(0, -(lessonsToOffer - 1) || undefined).map((lesson) => { // slice per non permettere di scegliere date per cui non ce ne sono abbastanza successive
                             const value = lesson.id;
                             const isHighlighted = highlightedLessons.some(h => h.id === lesson.id);
                             const isSelected = selectedLessonValue === value;
@@ -600,34 +595,23 @@ export default function ClassSelectionPage() {
     }, [user, toast]);
 
     
-    const handleNextStep1 = async (data: PersonalDataSchemaType) => {
-        if (!user) return;
-        setIsSubmitting(true);
-        try {
-            const userDocRef = doc(db, "users", user.uid);
-            const dataToUpdate: any = {
-                name: data.name, surname: data.surname, birthPlace: data.birthPlace, birthDate: data.birthDate,
-                taxCode: data.taxCode, address: data.address, streetNumber: data.streetNumber, zipCode: data.zipCode,
-                city: data.city, province: data.province, phone: data.phone,
-            };
-            if (data.isMinor && data.parentData) { dataToUpdate.parentData = data.parentData; }
-            await updateDoc(userDocRef, dataToUpdate);
-
-            setFormData(data);
-            setStep(2);
-        } catch (error) {
-             toast({ title: "Errore", description: "Impossibile salvare i dati anagrafici.", variant: "destructive" });
-        } finally {
-            setIsSubmitting(false);
-        }
+    const handleNextStep1 = (data: PersonalDataSchemaType) => {
+        setFormData(data);
+        setStep(2);
     }
     
     const handleNextStep2 = async (data: GymSelectionData) => {
         if (!user) return;
-         setIsSubmitting(true);
+        setIsSubmitting(true);
         try {
              const userDocRef = doc(db, "users", user.uid);
              const userDocSnap = await getDoc(userDocRef);
+             
+             if (!userDocSnap.exists()) {
+                 toast({ title: "Errore", description: "Utente non trovato.", variant: "destructive" });
+                 setIsSubmitting(false);
+                 return;
+             }
              const fetchedUserData = userDocSnap.data();
 
             const grade = await getFinalGrade(fetchedUserData, data.discipline);
@@ -637,17 +621,8 @@ export default function ClassSelectionPage() {
                 return;
             }
             setFinalGrade(grade);
-
-             await updateDoc(userDocRef, {
-                 trialLessons: data.trialLessons.map(lesson => ({
-                    eventId: lesson.eventId,
-                    startTime: lesson.startTime,
-                    endTime: lesson.endTime
-                })),
-                lastGrade: grade
-             });
-             setGymSelection(data);
-             setStep(3);
+            setGymSelection(data);
+            setStep(3);
         } catch (error) {
              toast({ title: "Errore", description: "Impossibile salvare la scelta delle lezioni.", variant: "destructive" });
         } finally {
@@ -708,6 +683,16 @@ export default function ClassSelectionPage() {
             const batch = writeBatch(db);
             const userDocRef = doc(db, "users", user.uid);
             
+             const personalDataToUpdate: any = {
+                name: formData.name, surname: formData.surname, birthPlace: formData.birthPlace, birthDate: formData.birthDate,
+                taxCode: formData.taxCode, address: formData.address, streetNumber: formData.streetNumber, zipCode: formData.zipCode,
+                city: formData.city, province: formData.province, phone: formData.phone,
+            };
+            if (formData.isMinor && formData.parentData) { personalDataToUpdate.parentData = formData.parentData; }
+
+            batch.update(userDocRef, personalDataToUpdate);
+
+
             // Aggiorniamo lo stato dell'utente.
             const dataToUpdate: any = {
                 applicationSubmitted: true,
@@ -715,6 +700,11 @@ export default function ClassSelectionPage() {
                 trialStatus: 'pending_payment',
                 trialExpiryDate: trialExpiryDate ? trialExpiryDate : null,
                 lastGrade: finalGrade,
+                trialLessons: gymSelection.trialLessons.map(lesson => ({
+                    eventId: lesson.eventId,
+                    startTime: lesson.startTime,
+                    endTime: lesson.endTime
+                })),
             };
             batch.update(userDocRef, dataToUpdate);
 
@@ -744,18 +734,8 @@ export default function ClassSelectionPage() {
     }
 
     const handleBack = () => {
-        if (step === 5) { // Riepilogo
-             if (paymentMethod === 'online') {
-                setStep(4); // Torna all'iframe
-            } else {
-                setStep(3); // Torna alla scelta pagamento
-            }
-        } else if (step === 4) { // Iframe
-            setStep(3); // Torna alla scelta pagamento
-        } else if (step === 3) { // Scelta pagamento
-            setStep(2); // Torna alla scelta palestra
-        } else if (step === 2) { // Scelta palestra
-             setStep(1); // Torna ai dati anagrafici
+        if (step > 1) {
+            setStep(prev => prev - 1);
         } else {
             router.push('/dashboard/liberasphere');
         }
@@ -824,5 +804,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
