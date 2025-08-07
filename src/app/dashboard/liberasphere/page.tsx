@@ -154,11 +154,11 @@ export default function LiberaSpherePage() {
     if (gymsLoading || !isFormerMember) return true;
 
     if (isFormerMember === 'yes') {
-        return !discipline || !gym || !firstYear || !lastGrade || !qualification || gradesLoading;
+        return !discipline || !firstYear || !lastGrade || !qualification || gradesLoading;
     }
 
     if (isFormerMember === 'no') {
-        if (!discipline || !gym) return true;
+        if (!discipline) return true;
         if (discipline === 'Karate') {
             if (!hasPracticedBefore) return true;
             if (gradesLoading) return true;
@@ -190,7 +190,6 @@ export default function LiberaSpherePage() {
 
     try {
         dataToUpdate.discipline = discipline;
-        dataToUpdate.gym = gym; // Salviamo l'ID
         
         if (isFormerMember === 'yes') {
             dataToUpdate.firstYear = firstYear;
@@ -348,17 +347,8 @@ export default function LiberaSpherePage() {
                     </RadioGroup>
                  )}
               </div>
-
-               {discipline && (
-                    <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                         <div>
-                            <Label htmlFor="gym_new">In quale palestra vuoi fare le tue selezioni?</Label>
-                            {gymsLoading ? <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div> : renderGymSelect(discipline)}
-                         </div>
-                    </div>
-                )}
               
-              {gym && discipline === 'Karate' && (
+              {discipline === 'Karate' && (
                 <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
                     <h4 className="font-semibold text-foreground">3. Hai già praticato Karate in altre associazioni?</h4>
                     <RadioGroup
@@ -415,15 +405,6 @@ export default function LiberaSpherePage() {
                 
                 {discipline && (
                     <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                         <div>
-                            <Label htmlFor="gym">In quale palestra?</Label>
-                            {gymsLoading ? <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div> : renderGymSelect(discipline)}
-                         </div>
-                    </div>
-                )}
-                
-                {gym && (
-                    <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                              <div>
                                 <Label htmlFor="firstYear">Primo Anno di Associazione</Label>
@@ -471,5 +452,3 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
-
-    

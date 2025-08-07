@@ -8,7 +8,7 @@ import { z } from "zod"
 import { differenceInYears } from "date-fns"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, getDoc } from "firebase/firestore"
+import { doc, getDoc, collection, getDocs } from "firebase/firestore"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -17,7 +17,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { DatePicker } from "@/components/ui/date-picker"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 
+
+interface Gym {
+    id: string;
+    name: string;
+    disciplines: string[];
+}
 
 // Schema combinato
 const parentDataSchema = z.object({
@@ -38,6 +45,7 @@ const personalDataSchema = z.object({
   zipCode: z.string().length(5, "Il CAP deve essere di 5 cifre."),
   province: z.string().length(2, "La sigla della provincia è obbligatoria."),
   phone: z.string().min(1, "Il numero di telefono è obbligatorio."),
+  gym: z.string().min(1, "La palestra è obbligatoria."),
   isMinor: z.boolean(),
   parentData: parentDataSchema.optional(),
 }).superRefine((data, ctx) => {
@@ -96,6 +104,9 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMinor, setIsMinor] = useState<boolean | null>(null)
   const [user] = useAuthState(auth)
+  const [gyms, setGyms] = useState<Gym[]>([]);
+  const [availableGyms, setAvailableGyms] = useState<Gym[]>([]);
+  const [discipline, setDiscipline] = useState<string | null>(null);
   
   const form = useForm<PersonalDataSchemaType>({
     resolver: zodResolver(personalDataSchema),
@@ -112,6 +123,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
         zipCode: "",
         province: "",
         phone: "",
+        gym: "",
         isMinor: false,
         parentData: {
             parentName: "",
@@ -142,9 +154,22 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
 
   const memoizedUserDataFetch = useCallback(async (uid: string) => {
     const userDocRef = doc(db, "users", uid);
-    const userDocSnap = await getDoc(userDocRef);
+    const gymsCollection = collection(db, 'gyms');
+    
+    const [userDocSnap, gymsSnapshot] = await Promise.all([
+        getDoc(userDocRef),
+        getDocs(gymsCollection)
+    ]);
+    
+    const gymsList = gymsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+    })) as Gym[];
+    setGyms(gymsList);
+
     if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
+        setDiscipline(userData.discipline || null);
         
         const birthDateValue = userData.birthDate?.toDate() || undefined;
         let existingIsMinor = false;
@@ -165,6 +190,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
             zipCode: userData.zipCode || "",
             province: userData.province || "",
             phone: userData.phone || "",
+            gym: userData.gym || "",
             isMinor: existingIsMinor,
         };
         
@@ -197,6 +223,20 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
         setIsLoading(false);
     }
   }, [user, memoizedUserDataFetch]);
+  
+   useEffect(() => {
+        if (discipline && gyms.length > 0) {
+            const filteredGyms = gyms.filter(g => g.disciplines.includes(discipline));
+            setAvailableGyms(filteredGyms);
+
+            // Se c'è solo una palestra disponibile per quella disciplina, la preseleziono.
+            if (filteredGyms.length === 1 && !form.getValues('gym')) {
+                form.setValue('gym', filteredGyms[0].id, { shouldValidate: true });
+            }
+        } else {
+            setAvailableGyms([]);
+        }
+    }, [discipline, gyms, form]);
 
 
   const onSubmit = async (data: PersonalDataSchemaType) => {
@@ -408,6 +448,31 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                 </div>
             </div>
 
+             <FormField
+                control={form.control}
+                name="gym"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Palestra</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleziona la palestra dove farai le lezioni" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {availableGyms.map(gym => (
+                                    <SelectItem key={gym.id} value={gym.id}>
+                                        {gym.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
             {isMinor === true && (
                 <div className="space-y-4 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
                     <h4 className="font-semibold text-foreground">Dati del Genitore/Tutore</h4>
@@ -469,5 +534,3 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     </Card>
   )
 }
-
-    
