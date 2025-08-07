@@ -396,7 +396,7 @@ export default function AdminCalendarPage() {
                     </div>
                     <div className="space-y-2">
                         <Label>Festività da Escludere (una per riga, formato GG/MM/AAAA)</Label>
-                        <Textarea placeholder="25/12/2024&#x0a;01/01/2025" value={holidays} onChange={(e) => setHolidays(e.target.value)} />
+                        <Textarea placeholder={"25/12/2024\n01/01/2025"} value={holidays} onChange={(e) => setHolidays(e.target.value)} />
                     </div>
                 </CardContent>
                 <CardFooter>
@@ -460,5 +460,5 @@ export default function AdminCalendarPage() {
 
         </div>
     );
-}
 
+    
