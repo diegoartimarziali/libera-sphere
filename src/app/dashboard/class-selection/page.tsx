@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { format } from "date-fns"
+import { format, addDays, nextDay } from "date-fns"
 import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles, MessageSquareQuote } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
@@ -29,12 +29,11 @@ interface FeeData {
     sumupLink: string;
 }
 
-interface Event {
-    id: string;
+interface UpcomingLesson {
+    id: string; // "dayIndex-slotIndex-dateString"
     startTime: Timestamp;
     endTime: Timestamp;
     title: string;
-    category: string;
 }
 
 // Tipi di dati
@@ -81,10 +80,16 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
     const [userDiscipline, setUserDiscipline] = useState<string | null>(null);
     const [userGymId, setUserGymId] = useState<string | null>(null);
     const [userGymName, setUserGymName] = useState<string | null>(null);
-    const [upcomingLessons, setUpcomingLessons] = useState<Event[]>([]);
+    const [upcomingLessons, setUpcomingLessons] = useState<UpcomingLesson[]>([]);
     const [selectedLessonValue, setSelectedLessonValue] = useState<string | null>(null);
-    const [highlightedLessons, setHighlightedLessons] = useState<Event[]>([]);
+    const [highlightedLessons, setHighlightedLessons] = useState<UpcomingLesson[]>([]);
     
+    // Mappa per convertire il nome del giorno in un numero (0=Domenica, 1=Lunedì, ecc.)
+    const dayNameToIndex: { [key: string]: number } = {
+        'Domenica': 0, 'Lunedì': 1, 'Martedì': 2, 'Mercoledì': 3, 
+        'Giovedì': 4, 'Venerdì': 5, 'Sabato': 6
+    };
+
     useEffect(() => {
         const fetchEventData = async () => {
             if (!user) return;
@@ -104,53 +109,75 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                     if (discipline && gymId) {
                         const gymDocRef = doc(db, "gyms", gymId);
                         const gymDocSnap = await getDoc(gymDocRef);
+
                         if (gymDocSnap.exists()) {
-                            setUserGymName(gymDocSnap.data().name);
-                        }
+                             const gymData = gymDocSnap.data();
+                             setUserGymName(gymData.name);
+                             
+                             const today = new Date();
+                             const generatedLessons: UpcomingLesson[] = [];
 
-                        const eventsQuery = query(
-                            collection(db, "events"),
-                            where("gymId", "==", gymId),
-                            where("discipline", "==", discipline),
-                            where("type", "==", "lesson"),
-                            where("category", "==", "Lezioni Selezione"),
-                            where("startTime", ">=", Timestamp.now()),
-                            orderBy("startTime", "asc")
-                        );
-                        
-                        const eventsSnapshot = await getDocs(eventsQuery);
-                        const eventsList = eventsSnapshot.docs.map(doc => ({
-                            id: doc.id,
-                            ...doc.data()
-                        } as Event));
-                        
-                        setUpcomingLessons(eventsList);
+                            // Genera le lezioni per le prossime 4 settimane
+                             for (let week = 0; week < 4; week++) {
+                                gymData.weeklySchedule?.forEach((daySchedule: any) => {
+                                     const targetDayIndex = dayNameToIndex[daySchedule.dayOfWeek];
+                                     if (targetDayIndex === undefined) return;
 
-                        // --- LOGICA INTELLIGENTE PER AIKIDO ---
-                        if (eventsList.length === 1 && eventsList.length >= 1) {
-                            // Se c'è una sola lezione di prova, la preselezioniamo
-                            // e andiamo avanti automaticamente.
-                            const singleLesson = eventsList[0];
-                             onNext({
-                                gymId: gymId,
-                                gymName: gymDocSnap.exists() ? gymDocSnap.data().name : 'N/D',
-                                discipline: discipline,
-                                trialLessons: [{
-                                    eventId: singleLesson.id,
-                                    startTime: singleLesson.startTime,
-                                    endTime: singleLesson.endTime
-                                }],
-                            });
+                                     daySchedule.slots?.forEach((slot: any, slotIndex: number) => {
+                                        if (slot.category === "Lezioni Selezione" && slot.discipline === discipline) {
+                                            const lessonDate = nextDay(addDays(today, week * 7), targetDayIndex);
+                                            
+                                            const [startHour, startMinute] = slot.startTime.split(':').map(Number);
+                                            const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+
+                                            const startTime = new Date(lessonDate.setHours(startHour, startMinute, 0, 0));
+                                            const endTime = new Date(lessonDate.setHours(endHour, endMinute, 0, 0));
+
+                                            // Aggiungi solo se la lezione è futura
+                                            if(startTime > today) {
+                                                generatedLessons.push({
+                                                    id: `${targetDayIndex}-${slotIndex}-${startTime.toISOString()}`,
+                                                    startTime: Timestamp.fromDate(startTime),
+                                                    endTime: Timestamp.fromDate(endTime),
+                                                    title: `${discipline} - Lezione di Selezione`
+                                                });
+                                            }
+                                        }
+                                     });
+                                });
+                             }
+                             
+                             // Ordina le lezioni generate per data
+                             generatedLessons.sort((a,b) => a.startTime.toMillis() - b.startTime.toMillis());
+                             
+                             setUpcomingLessons(generatedLessons);
+
+                             // --- LOGICA INTELLIGENTE PER AIKIDO ---
+                             if (generatedLessons.length >= 1 && discipline === 'Aikido') {
+                                 // Se c'è almeno una lezione di prova per Aikido, la preselezioniamo
+                                 // e andiamo avanti automaticamente.
+                                 const singleLesson = generatedLessons[0];
+                                 onNext({
+                                     gymId: gymId,
+                                     gymName: gymData.name,
+                                     discipline: discipline,
+                                     trialLessons: [{
+                                         eventId: singleLesson.id,
+                                         startTime: singleLesson.startTime,
+                                         endTime: singleLesson.endTime
+                                     }],
+                                 });
+                             }
+                             // Se ce n'è più di una (Karate), il flusso normale continuerà
+                             // e l'utente potrà scegliere
                         }
-                        // Se ce n'è più di una (Karate), il flusso normale continuerà
-                        // e l'utente potrà scegliere
 
                     } else {
                          toast({ title: "Dati mancanti", description: "Disciplina o palestra non impostate nel tuo profilo.", variant: "destructive" });
                     }
                 }
             } catch (error) {
-                console.error("Error fetching event data:", error);
+                console.error("Error fetching gym/schedule data:", error);
                 toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati delle lezioni.", variant: "destructive" });
             } finally {
                 setLoading(false);
@@ -266,9 +293,9 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                         onValueChange={setSelectedLessonValue}
                         className="grid grid-cols-2 gap-3 sm:grid-cols-4"
                     >
-                        {upcomingLessons.slice(0, -2).map((event) => { // slice per non permettere di scegliere date per cui non ce ne sono 2 successive
-                            const value = event.id;
-                            const isHighlighted = highlightedLessons.some(h => h.id === event.id);
+                        {upcomingLessons.slice(0, -2).map((lesson) => { // slice per non permettere di scegliere date per cui non ce ne sono 2 successive
+                            const value = lesson.id;
+                            const isHighlighted = highlightedLessons.some(h => h.id === lesson.id);
                             const isSelected = selectedLessonValue === value;
                             
                             return (
@@ -281,9 +308,9 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                                     )}
                                 >
                                     <RadioGroupItem value={value} id={value} className="sr-only" />
-                                    <span className="font-semibold capitalize">{format(event.startTime.toDate(), "EEEE", { locale: it })}</span>
-                                    <span className="text-sm">{format(event.startTime.toDate(), "dd MMMM yyyy")}</span>
-                                    <span className="text-xs text-muted-foreground">{format(event.startTime.toDate(), "HH:mm")}</span>
+                                    <span className="font-semibold capitalize">{format(lesson.startTime.toDate(), "EEEE", { locale: it })}</span>
+                                    <span className="text-sm">{format(lesson.startTime.toDate(), "dd MMMM yyyy")}</span>
+                                    <span className="text-xs text-muted-foreground">{format(lesson.startTime.toDate(), "HH:mm")}</span>
                                 </Label>
                             )
                         })}
