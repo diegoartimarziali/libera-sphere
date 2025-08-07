@@ -34,6 +34,7 @@ interface Event {
     startTime: Timestamp;
     endTime: Timestamp;
     title: string;
+    category: string;
 }
 
 // Tipi di dati
@@ -74,6 +75,7 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
 function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (data: GymSelectionData) => void }) {
     const [user] = useAuthState(auth);
     const { toast } = useToast();
+    const router = useRouter();
 
     const [loading, setLoading] = useState(true);
     const [userDiscipline, setUserDiscipline] = useState<string | null>(null);
@@ -96,15 +98,6 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                     const discipline = userData.discipline;
                     const gymId = userData.gym;
 
-                    // This page is for Karate only
-                    if (discipline !== 'Karate') {
-                        toast({ title: "Disciplina errata", description: "Questa pagina è riservata all'iscrizione per il Karate.", variant: "destructive" });
-                        // Optionally redirect to a more appropriate page or dashboard
-                        // router.push('/dashboard'); 
-                        setLoading(false);
-                        return;
-                    }
-
                     setUserDiscipline(discipline);
                     setUserGymId(gymId);
 
@@ -120,6 +113,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                             where("gymId", "==", gymId),
                             where("discipline", "==", discipline),
                             where("type", "==", "lesson"),
+                            where("category", "==", "Lezioni Selezione"),
                             where("startTime", ">=", Timestamp.now()),
                             orderBy("startTime", "asc")
                         );
@@ -129,7 +123,27 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                             id: doc.id,
                             ...doc.data()
                         } as Event));
+                        
                         setUpcomingLessons(eventsList);
+
+                        // --- LOGICA INTELLIGENTE PER AIKIDO ---
+                        if (eventsList.length === 1 && eventsList.length >= 1) {
+                            // Se c'è una sola lezione di prova, la preselezioniamo
+                            // e andiamo avanti automaticamente.
+                            const singleLesson = eventsList[0];
+                             onNext({
+                                gymId: gymId,
+                                gymName: gymDocSnap.exists() ? gymDocSnap.data().name : 'N/D',
+                                discipline: discipline,
+                                trialLessons: [{
+                                    eventId: singleLesson.id,
+                                    startTime: singleLesson.startTime,
+                                    endTime: singleLesson.endTime
+                                }],
+                            });
+                        }
+                        // Se ce n'è più di una (Karate), il flusso normale continuerà
+                        // e l'utente potrà scegliere
 
                     } else {
                          toast({ title: "Dati mancanti", description: "Disciplina o palestra non impostate nel tuo profilo.", variant: "destructive" });
@@ -144,6 +158,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
         };
 
         fetchEventData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, toast]);
 
     useEffect(() => {
@@ -180,7 +195,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>Scegli la Prima lezione</CardTitle>
+                    <CardTitle>Caricamento Lezioni</CardTitle>
                 </CardHeader>
                 <CardContent className="flex h-64 items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin" />
@@ -199,10 +214,25 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
         );
     }
 
+    if (upcomingLessons.length === 0 && !loading) {
+         return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Lezioni non disponibili</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p>Al momento non ci sono lezioni di selezione disponibili per la disciplina e la palestra che hai scelto. Contatta la segreteria per maggiori informazioni.</p>
+                </CardContent>
+                 <CardFooter><Button variant="outline" onClick={onBack}>Indietro</Button></CardFooter>
+            </Card>
+        );
+    }
+    
+    // Questa vista viene mostrata solo se ci sono PIÙ lezioni di prova tra cui scegliere (caso Karate)
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Scegli la Prima lezione di Karate</CardTitle>
+                <CardTitle>Scegli la Prima lezione di {userDiscipline}</CardTitle>
                 <CardDescription>
                     Selezionando la prima lezione, verranno automaticamente prenotate le due successive disponibili per la tua categoria.
                 </CardDescription>
@@ -540,11 +570,6 @@ export default function ClassSelectionPage() {
                 let fetchedUserData: any = null;
                 if (userDocSnap.exists()) {
                     fetchedUserData = userDocSnap.data();
-                    if (fetchedUserData.discipline !== 'Karate') {
-                        toast({ title: "Disciplina Errata", description: "Questa pagina è per il Karate.", variant: "destructive"});
-                        router.push('/dashboard/aikido-selection');
-                        return;
-                    }
                 }
                 
                 if (enrollmentDocSnap.exists()) {
@@ -743,8 +768,11 @@ export default function ClassSelectionPage() {
             return;
         }
         setIsSubmitting(true);
-
-        const trialExpiryDate = gymSelection.trialLessons[2]?.endTime;
+        
+        // Per Aikido con una sola lezione, la data di scadenza è quella lezione.
+        // Per Karate, sono 3 lezioni.
+        const expiryLessonIndex = gymSelection.trialLessons.length > 1 ? 2 : 0;
+        const trialExpiryDate = gymSelection.trialLessons[expiryLessonIndex]?.endTime;
 
         try {
             const userDocRef = doc(db, "users", user.uid);
@@ -855,3 +883,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
