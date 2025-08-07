@@ -256,6 +256,11 @@ export default function LiberaSpherePage() {
     }
   };
 
+  const getGymDisplayString = (gym: Gym) => {
+    const parts = [gym.name, gym.address, gym.streetNumber, gym.city];
+    return parts.filter(Boolean).join(", ");
+  };
+
   const renderGymSelect = (currentDiscipline: 'Karate' | 'Aikido' | null) => {
     if (!currentDiscipline) return null;
 
@@ -266,7 +271,7 @@ export default function LiberaSpherePage() {
     }
     
     if (availableGyms.length === 1 && currentDiscipline === 'Aikido') {
-        return <Input value={`${availableGyms[0].name}, ${availableGyms[0].address} ${availableGyms[0].streetNumber}, ${availableGyms[0].city}`} disabled />
+        return <Input value={getGymDisplayString(availableGyms[0])} disabled />
     }
 
     return (
@@ -277,7 +282,7 @@ export default function LiberaSpherePage() {
             <SelectContent>
                 {availableGyms.map(g => (
                     <SelectItem key={g.id} value={g.id}>
-                        {`${g.name}, ${g.address} ${g.streetNumber}, ${g.city}`}
+                        {getGymDisplayString(g)}
                     </SelectItem>
                 ))}
             </SelectContent>
