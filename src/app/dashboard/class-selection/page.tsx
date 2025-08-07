@@ -95,6 +95,16 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                     const userData = userDocSnap.data();
                     const discipline = userData.discipline;
                     const gymId = userData.gym;
+
+                    // This page is for Karate only
+                    if (discipline !== 'Karate') {
+                        toast({ title: "Disciplina errata", description: "Questa pagina è riservata all'iscrizione per il Karate.", variant: "destructive" });
+                        // Optionally redirect to a more appropriate page or dashboard
+                        // router.push('/dashboard'); 
+                        setLoading(false);
+                        return;
+                    }
+
                     setUserDiscipline(discipline);
                     setUserGymId(gymId);
 
@@ -192,9 +202,9 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Scegli la Prima lezione</CardTitle>
+                <CardTitle>Scegli la Prima lezione di Karate</CardTitle>
                 <CardDescription>
-                    Selezionando la prima lezione, verranno automaticamente prenotate le due successive disponibili.
+                    Selezionando la prima lezione, verranno automaticamente prenotate le due successive disponibili per la tua categoria.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -521,7 +531,7 @@ export default function ClassSelectionPage() {
                     getDoc(userDocRef),
                     getDoc(feeDocRef),
                     getDoc(enrollmentSettingsRef),
-                    getDocs(paymentsQuery)
+                    getDocs(paymentsSnapshot)
                 ]);
                 
                 if (feeDocSnap.exists()) setFeeData(feeDocSnap.data() as FeeData);
@@ -840,5 +850,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    

@@ -159,10 +159,12 @@ export default function LiberaSpherePage() {
 
     if (isFormerMember === 'no') {
         if (!discipline || !gym) return true;
-        if (!hasPracticedBefore) return true;
-        if (gradesLoading) return true;
-        if (hasPracticedBefore === 'yes') {
-             return !lastGrade;
+        if (discipline === 'Karate') {
+            if (!hasPracticedBefore) return true;
+            if (gradesLoading) return true;
+            if (hasPracticedBefore === 'yes') {
+                 return !lastGrade;
+            }
         }
     }
 
@@ -197,28 +199,31 @@ export default function LiberaSpherePage() {
             destination = "/dashboard/associates";
         } else { // isFormerMember === 'no'
             dataToUpdate.firstYear = new Date().getFullYear().toString();
-            dataToUpdate.hasPracticedBefore = hasPracticedBefore;
-
-            if (hasPracticedBefore === 'yes') {
-                 dataToUpdate.pastExperience = { discipline, grade: lastGrade };
-                 dataToUpdate.lastGrade = lastGrade;
-            } else { // hasPracticedBefore === 'no'
-                let defaultGrade = '';
-                const docRef = doc(db, "config", (discipline as string).toLowerCase());
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
-                    const grade = docSnap.data().grades[0];
-                    defaultGrade = discipline === 'Karate' ? `Cintura ${grade}` : grade;
-                } else {
-                     toast({ title: "Errore", description: "Impossibile trovare il grado di default. Contatta il supporto.", variant: "destructive" });
-                     setIsLoading(false);
-                     return;
+            
+            if (discipline === 'Aikido') {
+                destination = "/dashboard/aikido-selection";
+            } else { // Karate
+                dataToUpdate.hasPracticedBefore = hasPracticedBefore;
+                if (hasPracticedBefore === 'yes') {
+                     dataToUpdate.pastExperience = { discipline, grade: lastGrade };
+                     dataToUpdate.lastGrade = lastGrade;
+                } else { // hasPracticedBefore === 'no'
+                    let defaultGrade = '';
+                    const docRef = doc(db, "config", (discipline as string).toLowerCase());
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
+                        const grade = docSnap.data().grades[0];
+                        defaultGrade = `Cintura ${grade}`;
+                    } else {
+                         toast({ title: "Errore", description: "Impossibile trovare il grado di default. Contatta il supporto.", variant: "destructive" });
+                         setIsLoading(false);
+                         return;
+                    }
+                    dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
+                    dataToUpdate.lastGrade = defaultGrade;
                 }
-
-                dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
-                dataToUpdate.lastGrade = defaultGrade;
+                destination = "/dashboard/class-selection";
             }
-            destination = "/dashboard/class-selection";
         }
 
         await updateDoc(userDocRef, dataToUpdate);
@@ -353,9 +358,9 @@ export default function LiberaSpherePage() {
                     </div>
                 )}
               
-              {gym && (
+              {gym && discipline === 'Karate' && (
                 <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                    <h4 className="font-semibold text-foreground">3. Hai già praticato {discipline === 'Karate' ? 'Karate' : 'Aikido'} in altre associazioni?</h4>
+                    <h4 className="font-semibold text-foreground">3. Hai già praticato Karate in altre associazioni?</h4>
                     <RadioGroup
                         value={hasPracticedBefore || ''}
                         onValueChange={(value) => setHasPracticedBefore(value as 'yes' | 'no')}
@@ -373,7 +378,7 @@ export default function LiberaSpherePage() {
                 </div>
               )}
 
-              {hasPracticedBefore === 'yes' && discipline && (
+              {hasPracticedBefore === 'yes' && discipline === 'Karate' && (
                   <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
                       <h4 className="font-semibold text-foreground">4. Qual è il tuo grado attuale?</h4>
                       <div className="space-y-2">
