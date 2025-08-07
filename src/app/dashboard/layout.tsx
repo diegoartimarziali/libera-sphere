@@ -273,20 +273,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
                  const onboardingPages = [
                     '/dashboard/regulations',
+                    '/dashboard/medical-certificate',
                     '/dashboard/liberasphere',
+                    '/dashboard/class-selection',
+                    '/dashboard/associates',
                     '/dashboard/trial-completed',
                  ];
+
+                // Se l'utente è già in una pagina di onboarding, non fare nulla per evitare loop.
+                if (onboardingPages.includes(pathname)) {
+                    return;
+                }
                 
                 const isUserWaiting = 
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.trialStatus === 'pending_payment';
 
                 if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired' || fetchedUserData.role === 'admin') {
+                     // L'utente è in uno stato "stabile" (attesa, attivo, scaduto, admin), lo lasciamo navigare.
                 } else if (fetchedUserData.trialStatus === 'completed' && !fetchedUserData.trialOutcome) {
-                    if (pathname !== '/dashboard/trial-completed') {
-                         router.push('/dashboard/trial-completed');
-                    }
+                    router.push('/dashboard/trial-completed');
                 } else if (pathname === '/dashboard/reviews') {
+                    // Lascia l'utente sulla pagina delle recensioni se ci va esplicitamente
                 } else {
                     let targetPage = "";
                     if (!fetchedUserData.regulationsAccepted) {
@@ -344,6 +352,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     '/dashboard/regulations',
     '/dashboard/liberasphere',
     '/dashboard/trial-completed',
+    '/dashboard/class-selection',
+    '/dashboard/associates'
   ];
   
   const isUserOnboarding = 
@@ -363,3 +373,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
