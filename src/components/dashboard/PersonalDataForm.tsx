@@ -453,15 +453,10 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
             )}
 
           </CardContent>
-          <CardFooter className="flex justify-between">
-            {onBack && (
-              <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
-                elimina da questa scheda
-              </Button>
-            )}
+          <CardFooter className="flex justify-end">
             <Button
               type="submit"
-              className={!onBack ? "w-full" : ""}
+              className="w-full"
               disabled={isSubmitting || !form.formState.isValid}
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
