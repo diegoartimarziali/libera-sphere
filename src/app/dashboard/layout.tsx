@@ -278,10 +278,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     '/dashboard/class-selection',
                     '/dashboard/associates',
                     '/dashboard/trial-completed',
+                    '/dashboard/reviews',
                  ];
 
                 // Se l'utente è già in una pagina di onboarding, non fare nulla per evitare loop.
                 if (onboardingPages.includes(pathname)) {
+                    setLoadingData(false);
                     return;
                 }
                 
@@ -291,29 +293,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                 if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired' || fetchedUserData.role === 'admin') {
                      // L'utente è in uno stato "stabile" (attesa, attivo, scaduto, admin), lo lasciamo navigare.
+                     setLoadingData(false);
+                     return;
+                } 
+                
+                // Se nessuna delle condizioni precedenti è vera, l'utente è in onboarding.
+                // Determiniamo la pagina corretta.
+                let targetPage = "";
+                if (!fetchedUserData.regulationsAccepted) {
+                    targetPage = "/dashboard/regulations";
+                } else if (!fetchedUserData.medicalCertificateSubmitted) {
+                    targetPage = "/dashboard/medical-certificate";
+                } else if (!fetchedUserData.isFormerMember) {
+                    targetPage = "/dashboard/liberasphere";
                 } else if (fetchedUserData.trialStatus === 'completed' && !fetchedUserData.trialOutcome) {
-                    router.push('/dashboard/trial-completed');
-                } else if (pathname === '/dashboard/reviews') {
-                    // Lascia l'utente sulla pagina delle recensioni se ci va esplicitamente
-                } else {
-                    let targetPage = "";
-                    if (!fetchedUserData.regulationsAccepted) {
-                        targetPage = "/dashboard/regulations";
-                    } else if (!fetchedUserData.medicalCertificateSubmitted) {
-                        targetPage = "/dashboard/medical-certificate";
-                    } else if (typeof fetchedUserData.isFormerMember !== 'string' || fetchedUserData.isFormerMember === "") {
-                        targetPage = "/dashboard/liberasphere";
-                    } else if (fetchedUserData.isFormerMember === 'yes' && fetchedUserData.associationStatus !== 'active') {
-                        targetPage = "/dashboard/associates";
-                    } else if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus !== 'active' && fetchedUserData.trialOutcome === 'accepted') {
-                         targetPage = "/dashboard/associates";
-                    } else if (fetchedUserData.isFormerMember === 'no' && fetchedUserData.trialStatus !== 'active' && fetchedUserData.trialStatus !== 'completed' && fetchedUserData.trialStatus !== 'pending_payment') {
-                        targetPage = "/dashboard/class-selection";
-                    }
-                    
-                    if (targetPage && pathname !== targetPage) {
-                        router.push(targetPage);
-                    }
+                    targetPage = "/dashboard/trial-completed";
+                } else if (
+                    fetchedUserData.isFormerMember === 'yes' || 
+                    (fetchedUserData.trialStatus === 'completed' && fetchedUserData.trialOutcome === 'accepted')
+                ) {
+                     targetPage = "/dashboard/associates";
+                } else if (fetchedUserData.isFormerMember === 'no' && !['active', 'completed', 'pending_payment'].includes(fetchedUserData.trialStatus as string)) {
+                    targetPage = "/dashboard/class-selection";
+                }
+                
+                if (targetPage && pathname !== targetPage) {
+                    router.push(targetPage);
                 }
 
             } else {
@@ -333,8 +338,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     } else if (!loadingAuth && !user) {
          redirect("/");
     }
-
-  }, [user, loadingAuth, pathname, router, toast, handleLogout]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loadingAuth, pathname, router, toast]);
 
   if (loadingAuth || loadingData) {
     return (

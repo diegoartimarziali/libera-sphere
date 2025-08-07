@@ -655,45 +655,17 @@ export default function ClassSelectionPage() {
         }
     }
 
-    const handleNextStep3 = async (method: PaymentMethod) => {
-        if (!user || !feeData) {
-             toast({ title: "Errore", description: "Dati mancanti per procedere.", variant: "destructive" });
-             return;
-        }
-        setIsSubmitting(true);
-        
-        try {
-            // Crea il record di pagamento PENDING immediatamente
-            const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
-            await addDoc(paymentsCollectionRef, {
-                userId: user.uid,
-                createdAt: serverTimestamp(),
-                amount: feeData.price,
-                description: feeData.name,
-                type: 'trial',
-                status: 'pending',
-                paymentMethod: method,
-            });
-
-            setPaymentMethod(method);
-
-            // Ora naviga allo step successivo
-            if (method === 'online') {
-                setStep(4);
-            } else {
-                setStep(5);
-            }
-        } catch (error) {
-            console.error("Errore durante la creazione del pagamento:", error);
-            toast({ title: "Errore", description: "Impossibile registrare la scelta del pagamento. Riprova.", variant: "destructive" });
-        } finally {
-            setIsSubmitting(false);
+    const handleNextStep3 = (method: PaymentMethod) => {
+        setPaymentMethod(method);
+        if (method === 'online') {
+            setStep(4);
+        } else {
+            setStep(5);
         }
     }
 
     const handleNextStep4 = () => {
-        // L'utente ha (presumibilmente) pagato, il record di pagamento pending esiste già.
-        // Lo mandiamo solo al riepilogo.
+        // L'utente ha (presumibilmente) pagato.
         setStep(5);
     }
 
@@ -729,15 +701,14 @@ export default function ClassSelectionPage() {
         }
         setIsSubmitting(true);
         
-        // Per Aikido con una sola lezione, la data di scadenza è quella lezione.
-        // Per Karate, sono 3 lezioni.
         const expiryLessonIndex = gymSelection.trialLessons.length > 1 ? 2 : 0;
         const trialExpiryDate = gymSelection.trialLessons[expiryLessonIndex]?.endTime;
 
         try {
+            const batch = writeBatch(db);
             const userDocRef = doc(db, "users", user.uid);
             
-            // Aggiorniamo lo stato dell'utente. Il record di pagamento è già stato creato.
+            // Aggiorniamo lo stato dell'utente.
             const dataToUpdate: any = {
                 applicationSubmitted: true,
                 associationStatus: "not_associated",
@@ -745,8 +716,22 @@ export default function ClassSelectionPage() {
                 trialExpiryDate: trialExpiryDate ? trialExpiryDate : null,
                 lastGrade: finalGrade,
             };
+            batch.update(userDocRef, dataToUpdate);
+
+            // Creiamo il record di pagamento PENDING
+            const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
+            const newPaymentRef = doc(paymentsCollectionRef);
+            batch.set(newPaymentRef, {
+                userId: user.uid,
+                createdAt: serverTimestamp(),
+                amount: feeData.price,
+                description: feeData.name,
+                type: 'trial',
+                status: 'pending',
+                paymentMethod: paymentMethod,
+            });
             
-            await updateDoc(userDocRef, dataToUpdate);
+            await batch.commit();
 
             toast({ title: "Iscrizione Completata!", description: "La tua richiesta è stata inviata. Verrai reindirizzato al prossimo passo."});
             router.push("/dashboard")
@@ -776,10 +761,6 @@ export default function ClassSelectionPage() {
         }
     }
     
-    const handleBackFromPayment = () => {
-         setStep(3); // Torna sempre alla selezione metodo di pagamento
-    }
-    
      if (loading) {
         return (
              <div className="flex h-full w-full items-center justify-center">
@@ -802,7 +783,7 @@ export default function ClassSelectionPage() {
                     <PersonalDataForm
                         title="Passo 1: Dati Anagrafici"
                         description="Completa le tue informazioni personali per procedere con l'iscrizione. Questi dati verranno salvati per future iscrizioni."
-                        buttonText="Prosegui alla Scelta della Palestra"
+                        buttonText="Prosegui alla Scelta delle Lezioni"
                         onFormSubmit={handleNextStep1}
                         onBack={() => router.push('/dashboard/liberasphere')}
                     />
@@ -822,7 +803,7 @@ export default function ClassSelectionPage() {
                 )}
                 {step === 4 && paymentMethod === 'online' && feeData && (
                     <OnlinePaymentStep
-                        onBack={handleBackFromPayment}
+                        onBack={() => setStep(3)}
                         onNext={handleNextStep4}
                         fee={feeData}
                     />
@@ -843,3 +824,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    

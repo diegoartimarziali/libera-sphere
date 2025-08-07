@@ -158,8 +158,8 @@ export default function MedicalCertificatePage() {
             description: "Le tue informazioni mediche sono state aggiornate.",
         });
         
-        // Reindirizza. Il layout gestirà il passo successivo.
-        router.push(isOnboarding ? '/dashboard/liberasphere' : '/dashboard');
+        // Non reindirizzare qui, il layout si occuperà di mandare al passo successivo
+        router.push('/dashboard/liberasphere');
 
     } catch (error) {
         console.error("Errore durante l'invio dei dati medici:", error);
@@ -306,3 +306,5 @@ export default function MedicalCertificatePage() {
     </div>
   )
 }
+
+    

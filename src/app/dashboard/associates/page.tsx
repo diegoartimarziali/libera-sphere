@@ -347,23 +347,18 @@ export default function AssociatesPage() {
         const fetchInitialData = async () => {
              if (!user) return;
             try {
-                const userDocRef = doc(db, "users", user.uid);
+                // Questa pagina ora carica solo i dati statici necessari.
+                // La gestione degli step è interamente locale.
                 const feeDocRef = doc(db, "fees", "association");
                 const seasonSettingsRef = doc(db, "settings", "season");
                 const bankDetailsRef = doc(db, "settings", "bankDetails");
-                const paymentsQuery = query(
-                    collection(db, 'users', user.uid, 'payments'),
-                    where('type', '==', 'association'),
-                    where('status', '==', 'pending'),
-                    limit(1)
-                );
+                const userDocRef = doc(db, "users", user.uid);
                 
-                const [userDocSnap, feeDocSnap, seasonDocSnap, paymentsSnapshot, bankDetailsSnap] = await Promise.all([
-                    getDoc(userDocRef),
+                const [feeDocSnap, seasonDocSnap, bankDetailsSnap, userDocSnap] = await Promise.all([
                     getDoc(feeDocRef),
                     getDoc(seasonSettingsRef),
-                    getDocs(paymentsQuery),
-                    getDoc(bankDetailsRef)
+                    getDoc(bankDetailsRef),
+                    getDoc(userDocRef)
                 ]);
 
                 if (bankDetailsSnap.exists()) {
@@ -386,41 +381,9 @@ export default function AssociatesPage() {
 
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
-                    
-                    // Set career data
                     setDiscipline(userData.discipline || null);
                     setLastGrade(userData.lastGrade || null);
                     setQualification(userData.qualification || null);
-
-                    const prefilledData: PersonalDataSchemaType = {
-                        name: userData.name || "",
-                        surname: userData.surname || "",
-                        taxCode: userData.taxCode || "",
-                        birthDate: userData.birthDate?.toDate() || new Date(),
-                        birthPlace: userData.birthPlace || "",
-                        address: userData.address || "",
-                        streetNumber: userData.streetNumber || "",
-                        city: userData.city || "",
-                        zipCode: userData.zipCode || "",
-                        province: userData.province || "",
-                        phone: userData.phone || "",
-                        isMinor: false,
-                        parentData: userData.parentData || undefined,
-                    };
-                    setFormData(prefilledData);
-
-                    // LOGICA DI AVANZAMENTO STEP
-                    const hasPersonalData = userData.taxCode && userData.birthDate;
-
-                    if (!paymentsSnapshot.empty) { // Se c'è un pagamento in sospeso
-                        const paymentData = paymentsSnapshot.docs[0].data();
-                        setPaymentMethod(paymentData.paymentMethod as PaymentMethod);
-                        setStep(4); // Vai direttamente al riepilogo
-                    } else if (hasPersonalData) { // Se ha dati ma non pagamento
-                        setStep(2); // Vai alla scelta del pagamento
-                    } else { // Altrimenti
-                        setStep(1); // Inizia dai dati anagrafici
-                    }
                 }
 
             } catch (error) {
@@ -496,11 +459,9 @@ export default function AssociatesPage() {
                 dataToUpdate.parentData = formData.parentData;
             }
 
-            await updateDoc(userDocRef, dataToUpdate);
-            
             // Create payment record
             const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
-            await addDoc(paymentsCollectionRef, {
+            const paymentDocPromise = addDoc(paymentsCollectionRef, {
                 userId: user.uid,
                 createdAt: serverTimestamp(),
                 amount: feeData.price,
@@ -510,11 +471,15 @@ export default function AssociatesPage() {
                 paymentMethod: paymentMethod,
             });
 
+            await Promise.all([updateDoc(userDocRef, dataToUpdate), paymentDocPromise]);
+
             toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo. Verrai reindirizzato al prossimo passo." });
             router.push("/dashboard");
          } catch (error) {
             console.error("Errore durante l'invio della domanda:", error);
             toast({ title: "Errore", description: "Impossibile inviare la domanda. Riprova.", variant: "destructive" });
+         } finally {
+            setIsSubmitting(false);
          }
     }
 
@@ -528,9 +493,11 @@ export default function AssociatesPage() {
         } else if (step === 3) { // Iframe
              setStep(2); // torna alla scelta del pagamento
         } else if (step === 2) { // Scelta pagamento
-             router.push('/dashboard'); // Dallo step 2, torna alla dashboard
+             setStep(1); // torna ai dati
+        } else if (step === 1){
+            router.push('/dashboard/liberasphere');
         } else {
-            router.push('/dashboard'); // Dallo step 1, torna alla dashboard
+            router.push('/dashboard'); 
         }
     }
 
@@ -565,7 +532,7 @@ export default function AssociatesPage() {
                         description="Assicurati che tutte le informazioni siano corrette prima di inviare la tua domanda di associazione."
                         buttonText="Prosegui alla Scelta del Pagamento"
                         onFormSubmit={handleNextStep1}
-                        onBack={() => router.push('/dashboard')}
+                        onBack={() => router.push('/dashboard/liberasphere')}
                     />
                 )}
                 {step === 2 && (
@@ -605,3 +572,5 @@ export default function AssociatesPage() {
         </div>
     )
 }
+
+    

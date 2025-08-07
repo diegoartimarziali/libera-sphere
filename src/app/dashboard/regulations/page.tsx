@@ -53,7 +53,6 @@ export default function RegulationsPage() {
         regulationsAccepted: true,
       })
       
-      // Il layout si occuperà del reindirizzamento al passo successivo
       router.push("/dashboard/medical-certificate")
 
     } catch (error) {
@@ -90,7 +89,7 @@ export default function RegulationsPage() {
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                   <a href={statutoUrl} target="_blank" rel="noopener noreferrer" aria-label="Scarica Statuto">
+                   <a href={statutoUrl} download="Statuto.pdf" aria-label="Scarica Statuto">
                     <Download className="h-4 w-4" />
                    </a>
                 </Button>
@@ -108,7 +107,7 @@ export default function RegulationsPage() {
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                   <a href={regolamentoUrl} target="_blank" rel="noopener noreferrer" aria-label="Scarica Regolamento">
+                   <a href={regolamentoUrl} download="Regolamento.pdf" aria-label="Scarica Regolamento">
                     <Download className="h-4 w-4" />
                    </a>
                 </Button>
@@ -126,7 +125,7 @@ export default function RegulationsPage() {
                   </a>
                 </Button>
                 <Button variant="outline" size="icon" asChild>
-                   <a href={privacyUrl} target="_blank" rel="noopener noreferrer" aria-label="Scarica Informativa Privacy">
+                   <a href={privacyUrl} download="InformativaPrivacy.pdf" aria-label="Scarica Informativa Privacy">
                     <Download className="h-4 w-4" />
                    </a>
                 </Button>
