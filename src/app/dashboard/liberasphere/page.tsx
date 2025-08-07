@@ -261,8 +261,12 @@ export default function LiberaSpherePage() {
 
     const availableGyms = getAvailableGymsForDiscipline(currentDiscipline);
 
-    if (availableGyms.length <= 1) {
-        return <Input value={availableGyms.length > 0 ? `${availableGyms[0].name}, ${availableGyms[0].address} ${availableGyms[0].streetNumber}, ${availableGyms[0].city}` : "Nessuna palestra disponibile"} disabled />
+    if (availableGyms.length === 0 && !gymsLoading) {
+      return <Input value="Nessuna palestra disponibile per questa disciplina" disabled />;
+    }
+    
+    if (availableGyms.length === 1 && currentDiscipline === 'Aikido') {
+        return <Input value={`${availableGyms[0].name}, ${availableGyms[0].address} ${availableGyms[0].streetNumber}, ${availableGyms[0].city}`} disabled />
     }
 
     return (
@@ -291,9 +295,14 @@ export default function LiberaSpherePage() {
             );
         }
 
+        if (grades.length === 0 && !discipline) {
+            return null;
+        }
+
         if (grades.length === 0) {
             return <Input disabled value="Nessun grado disponibile" />;
         }
+        
 
         return (
             <Select value={lastGrade} onValueChange={setLastGrade}>
