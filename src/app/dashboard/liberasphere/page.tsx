@@ -200,9 +200,10 @@ export default function LiberaSpherePage() {
         } else { // isFormerMember === 'no'
             dataToUpdate.firstYear = new Date().getFullYear().toString();
             
-            if (discipline === 'Aikido') {
-                destination = "/dashboard/aikido-selection";
-            } else { // Karate
+            // Indirizza sempre a class-selection, che ora è intelligente
+            destination = "/dashboard/class-selection";
+
+            if (discipline === 'Karate') {
                 dataToUpdate.hasPracticedBefore = hasPracticedBefore;
                 if (hasPracticedBefore === 'yes') {
                      dataToUpdate.pastExperience = { discipline, grade: lastGrade };
@@ -222,7 +223,6 @@ export default function LiberaSpherePage() {
                     dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
                     dataToUpdate.lastGrade = defaultGrade;
                 }
-                destination = "/dashboard/class-selection";
             }
         }
 
@@ -471,3 +471,5 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
+
+    
