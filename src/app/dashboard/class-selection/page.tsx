@@ -552,19 +552,18 @@ function ConfirmationStep({
 
 
 export default function ClassSelectionPage() {
-    const [step, setStep] = useState(1)
-    const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null)
+    const [step, setStep] = useState(1);
+    const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null);
     const [gymSelection, setGymSelection] = useState<GymSelectionData | null>(null);
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
     const [feeData, setFeeData] = useState<FeeData | null>(null);
     const [settings, setSettings] = useState<Settings | null>(null);
     const [loading, setLoading] = useState(true);
-    const { toast } = useToast()
-    const router = useRouter()
+    const { toast } = useToast();
+    const router = useRouter();
     const [user] = useAuthState(auth);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [finalGrade, setFinalGrade] = useState<string | null>(null);
-
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -577,44 +576,25 @@ export default function ClassSelectionPage() {
                 const userDocRef = doc(db, "users", user.uid);
                 const feeDocRef = doc(db, "fees", "trial");
                 const enrollmentSettingsRef = doc(db, "settings", "enrollment");
-                 const paymentsQuery = query(
-                    collection(db, 'users', user.uid, 'payments'),
-                    where('type', '==', 'trial'),
-                    where('status', '==', 'pending'),
-                    limit(1)
-                );
                 
-                const [userDocSnap, feeDocSnap, enrollmentDocSnap, paymentsSnapshot] = await Promise.all([
+                const [userDocSnap, feeDocSnap, enrollmentDocSnap] = await Promise.all([
                     getDoc(userDocRef),
                     getDoc(feeDocRef),
                     getDoc(enrollmentSettingsRef),
-                    getDocs(paymentsQuery)
                 ]);
-                
+
                 if (feeDocSnap.exists()) setFeeData(feeDocSnap.data() as FeeData);
                 else toast({ title: "Errore", description: "Impossibile caricare i dati della quota.", variant: "destructive" });
-                
-                let fetchedUserData: any = null;
-                if (userDocSnap.exists()) {
-                    fetchedUserData = userDocSnap.data();
-                }
-                
+
                 if (enrollmentDocSnap.exists()) {
-                     const enrollmentData = enrollmentDocSnap.data();
-                     if (enrollmentData) {
-                        setSettings({
-                            enrollment: enrollmentData as Settings['enrollment']
-                        });
-                     } else {
-                         toast({ title: "Errore di configurazione", description: "Dati di configurazione mancanti.", variant: "destructive" });
-                     }
+                    setSettings({ enrollment: enrollmentDocSnap.data() as Settings['enrollment'] });
                 } else {
                     toast({ title: "Errore di configurazione", description: "Impostazioni per le iscrizioni non trovate.", variant: "destructive" });
                 }
-
-                // LOGICA DI AVANZAMENTO STEP
-                if (fetchedUserData) {
-                     const prefilledData: PersonalDataSchemaType = {
+                
+                if (userDocSnap.exists()) {
+                    const fetchedUserData = userDocSnap.data();
+                    const prefilledData: PersonalDataSchemaType = {
                         name: fetchedUserData.name || "", surname: fetchedUserData.surname || "", taxCode: fetchedUserData.taxCode || "",
                         birthDate: fetchedUserData.birthDate?.toDate() || null, birthPlace: fetchedUserData.birthPlace || "",
                         address: fetchedUserData.address || "", streetNumber: fetchedUserData.streetNumber || "", city: fetchedUserData.city || "",
@@ -623,40 +603,46 @@ export default function ClassSelectionPage() {
                     };
                     setFormData(prefilledData);
 
+                    const paymentsQuery = query(
+                        collection(db, 'users', user.uid, 'payments'),
+                        where('type', '==', 'trial'),
+                        where('status', '==', 'pending'),
+                        limit(1)
+                    );
+                    const paymentsSnapshot = await getDocs(paymentsQuery);
+
                     const hasPersonalData = fetchedUserData.taxCode && fetchedUserData.birthDate;
                     const hasTrialLessons = fetchedUserData.trialLessons && fetchedUserData.trialLessons.length > 0;
-                    
-                    if (!paymentsSnapshot.empty) { // C'è un pagamento in sospeso
-                         const paymentData = paymentsSnapshot.docs[0].data();
-                         const gymDoc = await getDoc(doc(db, "gyms", fetchedUserData.gym));
 
-                         setPaymentMethod(paymentData.paymentMethod as PaymentMethod);
-                         setGymSelection({
-                             gymId: fetchedUserData.gym || '',
-                             gymName: gymDoc.exists() ? gymDoc.data().name : '',
-                             discipline: fetchedUserData.discipline || '',
-                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, startTime: l.startTime, endTime: l.endTime}))
-                         });
-                         setFinalGrade(fetchedUserData.lastGrade || null);
-                         setStep(5); // Vai al riepilogo
-                    } else if (hasTrialLessons) { // Ha scelto le lezioni ma non il pagamento
+                    if (!paymentsSnapshot.empty) {
+                        const paymentData = paymentsSnapshot.docs[0].data();
+                        const gymDoc = await getDoc(doc(db, "gyms", fetchedUserData.gym));
+
+                        setPaymentMethod(paymentData.paymentMethod as PaymentMethod);
+                        setGymSelection({
+                            gymId: fetchedUserData.gym || '',
+                            gymName: gymDoc.exists() ? gymDoc.data().name : '',
+                            discipline: fetchedUserData.discipline || '',
+                            trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({ ...l, startTime: l.startTime, endTime: l.endTime }))
+                        });
+                        setFinalGrade(fetchedUserData.lastGrade || null);
+                        setStep(5);
+                    } else if (hasTrialLessons) {
                         const gymDoc = await getDoc(doc(db, "gyms", fetchedUserData.gym));
                         setGymSelection({
-                             gymId: fetchedUserData.gym || '',
-                             gymName: gymDoc.exists() ? gymDoc.data().name : '',
-                             discipline: fetchedUserData.discipline || '',
-                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, startTime: l.startTime, endTime: l.endTime}))
-                         });
-                         setFinalGrade(fetchedUserData.lastGrade || null);
-                        setStep(3); // Vai alla scelta pagamento
-                    } else if (hasPersonalData) { // Ha i dati personali ma non ha scelto le lezioni
-                        setStep(2); // Vai alla scelta palestra/lezioni
-                    } else { // Non ha neanche i dati
-                        setStep(1); // Parti dall'inizio
+                            gymId: fetchedUserData.gym || '',
+                            gymName: gymDoc.exists() ? gymDoc.data().name : '',
+                            discipline: fetchedUserData.discipline || '',
+                            trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({ ...l, startTime: l.startTime, endTime: l.endTime }))
+                        });
+                        setFinalGrade(fetchedUserData.lastGrade || null);
+                        setStep(3);
+                    } else if (hasPersonalData) {
+                        setStep(2);
+                    } else {
+                        setStep(1);
                     }
                 }
-
-
             } catch (error) {
                 console.error("Error fetching initial data:", error);
                 toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati. Riprova.", variant: "destructive" });
@@ -701,6 +687,7 @@ export default function ClassSelectionPage() {
             const grade = await getFinalGrade(fetchedUserData, data.discipline);
             if (!grade) {
                 toast({ title: "Errore", description: "Impossibile recuperare il grado di default da Firestore.", variant: "destructive" });
+                setIsSubmitting(false);
                 return;
             }
             setFinalGrade(grade);
@@ -910,3 +897,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
