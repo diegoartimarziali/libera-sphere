@@ -161,7 +161,7 @@ export default function LiberaSpherePage() {
     }
 
     if (isFormerMember === 'no') {
-        if (!discipline) return true;
+        if (!discipline || !gym) return true;
         if (discipline === 'Karate') {
             if (!hasPracticedBefore) return true;
             if (gradesLoading) return true;
@@ -193,6 +193,7 @@ export default function LiberaSpherePage() {
 
     try {
         dataToUpdate.discipline = discipline;
+        dataToUpdate.gym = gym;
         
         if (isFormerMember === 'yes') {
             dataToUpdate.firstYear = firstYear;
@@ -202,7 +203,6 @@ export default function LiberaSpherePage() {
         } else { // isFormerMember === 'no'
             dataToUpdate.firstYear = new Date().getFullYear().toString();
             
-            // Indirizza sempre a class-selection, che ora è intelligente
             destination = "/dashboard/class-selection";
 
             if (discipline === 'Karate') {
@@ -225,6 +225,20 @@ export default function LiberaSpherePage() {
                     dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
                     dataToUpdate.lastGrade = defaultGrade;
                 }
+            } else if (discipline === 'Aikido') {
+                 dataToUpdate.hasPracticedBefore = 'no';
+                 let defaultGrade = '';
+                 const docRef = doc(db, "config", (discipline as string).toLowerCase());
+                 const docSnap = await getDoc(docRef);
+                 if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
+                    defaultGrade = docSnap.data().grades[0];
+                 } else {
+                     toast({ title: "Errore", description: "Impossibile trovare il grado di default. Contatta il supporto.", variant: "destructive" });
+                     setIsLoading(false);
+                     return;
+                 }
+                 dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
+                 dataToUpdate.lastGrade = defaultGrade;
             }
         }
 
@@ -248,7 +262,7 @@ export default function LiberaSpherePage() {
     const availableGyms = getAvailableGymsForDiscipline(currentDiscipline);
 
     if (availableGyms.length <= 1) {
-        return <Input value={availableGyms.length > 0 ? availableGyms[0].name : "Nessuna palestra disponibile"} disabled />
+        return <Input value={availableGyms.length > 0 ? `${availableGyms[0].name}, ${availableGyms[0].address} ${availableGyms[0].streetNumber}, ${availableGyms[0].city}` : "Nessuna palestra disponibile"} disabled />
     }
 
     return (
@@ -332,24 +346,29 @@ export default function LiberaSpherePage() {
           {isFormerMember === 'no' && (
             <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
               <div className="space-y-2">
-                <h4 className="font-semibold text-foreground">2. Quale disciplina vuoi praticare?</h4>
+                <h4 className="font-semibold text-foreground">2. Scegli la disciplina e la palestra</h4>
                  {gymsLoading ? (
                     <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
                  ) : (
-                    <RadioGroup
-                        value={discipline || ''}
-                        onValueChange={(value) => handleDisciplineChange(value as 'Karate' | 'Aikido')}
-                        className="grid grid-cols-2 gap-4"
-                    >
-                        <Label htmlFor="karate_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Karate' && "border-primary")}>
-                            <RadioGroupItem value="Karate" id="karate_new" className="sr-only" />
-                            <span>Karate</span>
-                        </Label>
-                        <Label htmlFor="aikido_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Aikido' && "border-primary")}>
-                            <RadioGroupItem value="Aikido" id="aikido_new" className="sr-only" />
-                            <span>Aikido</span>
-                        </Label>
-                    </RadioGroup>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <RadioGroup
+                            value={discipline || ''}
+                            onValueChange={(value) => handleDisciplineChange(value as 'Karate' | 'Aikido')}
+                            className="grid grid-cols-2 gap-4 col-span-2"
+                        >
+                            <Label htmlFor="karate_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Karate' && "border-primary")}>
+                                <RadioGroupItem value="Karate" id="karate_new" className="sr-only" />
+                                <span>Karate</span>
+                            </Label>
+                            <Label htmlFor="aikido_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Aikido' && "border-primary")}>
+                                <RadioGroupItem value="Aikido" id="aikido_new" className="sr-only" />
+                                <span>Aikido</span>
+                            </Label>
+                        </RadioGroup>
+                        <div className="col-span-2">
+                           {renderGymSelect(discipline)}
+                        </div>
+                    </div>
                  )}
               </div>
               
