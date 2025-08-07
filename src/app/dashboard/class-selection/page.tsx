@@ -176,6 +176,9 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
             if (selectedIndex !== -1 && upcomingLessons.length >= selectedIndex + 3) {
                 const threeLessons = upcomingLessons.slice(selectedIndex, selectedIndex + 3);
                 setHighlightedLessons(threeLessons);
+            } else if (selectedIndex !== -1) {
+                const oneLesson = upcomingLessons.slice(selectedIndex, selectedIndex + 1);
+                setHighlightedLessons(oneLesson);
             } else {
                  setHighlightedLessons([]);
             }
@@ -687,6 +690,7 @@ export default function ClassSelectionPage() {
                 name: formData.name, surname: formData.surname, birthPlace: formData.birthPlace, birthDate: formData.birthDate,
                 taxCode: formData.taxCode, address: formData.address, streetNumber: formData.streetNumber, zipCode: formData.zipCode,
                 city: formData.city, province: formData.province, phone: formData.phone,
+                gym: formData.gym,
             };
             if (formData.isMinor && formData.parentData) { personalDataToUpdate.parentData = formData.parentData; }
 

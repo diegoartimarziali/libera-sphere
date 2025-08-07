@@ -21,6 +21,9 @@ interface Gym {
     id: string;
     name: string;
     disciplines: string[];
+    address: string;
+    streetNumber: string;
+    city: string;
 }
 
 export default function LiberaSpherePage() {
@@ -255,7 +258,9 @@ export default function LiberaSpherePage() {
             </SelectTrigger>
             <SelectContent>
                 {availableGyms.map(g => (
-                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                    <SelectItem key={g.id} value={g.id}>
+                        {`${g.name}, ${g.address} ${g.streetNumber}, ${g.city}`}
+                    </SelectItem>
                 ))}
             </SelectContent>
         </Select>
