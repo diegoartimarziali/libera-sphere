@@ -456,7 +456,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
           <CardFooter className="flex justify-between">
             {onBack && (
               <Button type="button" variant="outline" onClick={onBack} disabled={isSubmitting}>
-                Indietro
+                elimina da questa scheda
               </Button>
             )}
             <Button
@@ -473,5 +473,3 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     </Card>
   )
 }
-
-    
