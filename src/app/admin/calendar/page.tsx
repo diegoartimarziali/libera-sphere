@@ -233,6 +233,32 @@ export default function AdminCalendarPage() {
             const batch = writeBatch(db);
             const eventsCollectionRef = collection(db, "events");
 
+            // 1. PULIZIA EVENTI ESISTENTI
+            const gymsToProcess = gyms.filter(g => selectedGyms[g.id]);
+            const gymIdsToProcess = gymsToProcess.map(g => g.id);
+
+            const q = query(eventsCollectionRef, 
+                where('type', '==', 'lesson'),
+                where('startTime', '>=', Timestamp.fromDate(startDate)),
+                where('startTime', '<=', Timestamp.fromDate(endDate)),
+                where('gymId', 'in', gymIdsToProcess)
+                // Non possiamo filtrare per disciplina qui se è "Tutte", lo faremo a mano
+            );
+
+            const existingEventsSnapshot = await getDocs(q);
+            let eventsToDelete = existingEventsSnapshot.docs;
+
+            // Filtro manuale per disciplina se non è "Tutte"
+            if (disciplineFilter !== 'Tutte le Discipline') {
+                 eventsToDelete = existingEventsSnapshot.docs.filter(doc => doc.data().discipline === disciplineFilter);
+            }
+
+            eventsToDelete.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+
+
+            // 2. GENERAZIONE NUOVI EVENTI
             const parsedHolidays = holidays.split('\n')
               .map(h => h.trim())
               .filter(Boolean)
@@ -242,7 +268,6 @@ export default function AdminCalendarPage() {
               })
               .filter(d => d !== null) as string[];
 
-            const gymsToProcess = gyms.filter(g => selectedGyms[g.id]);
             
             let currentDate = new Date(startDate);
             while (currentDate <= endDate) {
@@ -472,7 +497,9 @@ export default function AdminCalendarPage() {
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {lessonCategories.map(cat => {
-                                        if (disciplineFilter !== 'Karate' && cat === 'Tutti i corsi di Karate (Aggregato)') {
+                                        const isKarateAggregated = cat === 'Tutti i corsi di Karate (Aggregato)';
+                                        // Mostra l'opzione aggregata solo se la disciplina è Karate o Tutte le Discipline
+                                        if (isKarateAggregated && disciplineFilter !== 'Karate' && disciplineFilter !== 'Tutte le Discipline') {
                                             return null;
                                         }
                                         return <SelectItem key={cat} value={cat}>{cat}</SelectItem>
@@ -560,3 +587,4 @@ export default function AdminCalendarPage() {
     
 
     
+
