@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval, isValid } from "date-fns";
+import { format, parse, addDays, eachDayOfInterval, isValid, isBefore } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { it } from "date-fns/locale";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // =================================================================
 // TIPI E SCHEMI
@@ -70,6 +71,13 @@ const eventFormSchema = z.object({
 
 type EventFormData = z.infer<typeof eventFormSchema>;
 
+const lessonCategories = [
+    'Tutte le Categorie',
+    'Lezioni Selezione',
+    'Cinture da Bianca ad Arancio',
+    'Cinture da Verde a Nera',
+    'Cinture Nere'
+]
 
 // =================================================================
 // COMPONENTI
@@ -174,6 +182,8 @@ export default function AdminCalendarPage() {
     const [endDate, setEndDate] = useState<Date | undefined>();
     const [holidays, setHolidays] = useState('');
     const [selectedGyms, setSelectedGyms] = useState<Record<string, boolean>>({});
+    const [disciplineFilter, setDisciplineFilter] = useState('Tutte le Discipline');
+    const [categoryFilter, setCategoryFilter] = useState('Tutte le Categorie');
 
     // Stati per il form modale
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -213,6 +223,11 @@ export default function AdminCalendarPage() {
             return;
         }
 
+        if (isBefore(endDate, startDate)) {
+            toast({ variant: 'destructive', title: 'Periodo non valido', description: 'La data di fine non può essere precedente alla data di inizio.' });
+            return;
+        }
+
         setIsGenerating(true);
         try {
             const batch = writeBatch(db);
@@ -227,49 +242,47 @@ export default function AdminCalendarPage() {
               })
               .filter(d => d !== null) as string[];
 
-            const interval = eachDayOfInterval({ start: startDate, end: endDate });
-
             const gymsToProcess = gyms.filter(g => selectedGyms[g.id]);
+            
+            let currentDate = new Date(startDate);
+            while (currentDate <= endDate) {
+                const dayOfWeek = currentDate.getDay(); // 0 = Domenica
+                const dateString = format(currentDate, 'yyyy-MM-dd');
 
-            for (const gym of gymsToProcess) {
-                if (!gym.weeklySchedule) continue;
+                if (!parsedHolidays.includes(dateString)) {
+                    for (const gym of gymsToProcess) {
+                        const daySchedule = gym.weeklySchedule?.find(s => dayNameToIndex[s.dayOfWeek] === dayOfWeek);
 
-                for (const date of interval) {
-                    const dayOfWeek = date.getDay(); // 0 = Domenica
-                    const dateString = format(date, 'yyyy-MM-dd');
+                        if (daySchedule && daySchedule.slots) {
+                            for (const slot of daySchedule.slots) {
+                                // Applica i filtri
+                                if (disciplineFilter !== 'Tutte le Discipline' && slot.discipline !== disciplineFilter) continue;
+                                if (categoryFilter !== 'Tutte le Categorie' && slot.category !== categoryFilter) continue;
 
-                    if (parsedHolidays.includes(dateString)) {
-                        continue; // Salta festività
-                    }
-                    
-                    const daySchedule = gym.weeklySchedule.find(s => dayNameToIndex[s.dayOfWeek] === dayOfWeek);
+                                const [startH, startM] = slot.startTime.split(':').map(Number);
+                                const [endH, endM] = slot.endTime.split(':').map(Number);
+                                const startTime = new Date(currentDate);
+                                startTime.setHours(startH, startM, 0, 0);
+                                const endTime = new Date(currentDate);
+                                endTime.setHours(endH, endM, 0, 0);
 
-                    if (daySchedule && daySchedule.slots) {
-                        for (const slot of daySchedule.slots) {
-                            if(slot.category === 'Lezioni Selezione') continue; // Salta lezioni di selezione
-                            
-                            const [startH, startM] = slot.startTime.split(':').map(Number);
-                            const [endH, endM] = slot.endTime.split(':').map(Number);
-                            const startTime = new Date(date);
-                            startTime.setHours(startH, startM, 0, 0);
-                            const endTime = new Date(date);
-                            endTime.setHours(endH, endM, 0, 0);
+                                const newEvent = {
+                                    type: 'lesson',
+                                    title: `${slot.discipline} - ${slot.category}`,
+                                    startTime: Timestamp.fromDate(startTime),
+                                    endTime: Timestamp.fromDate(endTime),
+                                    discipline: slot.discipline,
+                                    gymId: gym.id,
+                                    gymName: gym.name,
+                                };
 
-                            const newEvent = {
-                                type: 'lesson',
-                                title: `${slot.discipline} - ${slot.category}`,
-                                startTime: Timestamp.fromDate(startTime),
-                                endTime: Timestamp.fromDate(endTime),
-                                discipline: slot.discipline,
-                                gymId: gym.id,
-                                gymName: gym.name,
-                            };
-
-                            const newDocRef = doc(eventsCollectionRef);
-                            batch.set(newDocRef, newEvent);
+                                const newDocRef = doc(eventsCollectionRef);
+                                batch.set(newDocRef, newEvent);
+                            }
                         }
                     }
                 }
+                currentDate = addDays(currentDate, 1);
             }
 
             await batch.commit();
@@ -372,7 +385,7 @@ export default function AdminCalendarPage() {
                     <CardTitle>Generatore Calendario Stagionale</CardTitle>
                     <CardDescription>Crea in massa le lezioni di routine per un periodo, escludendo le festività.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                              <Label>Data Inizio Periodo</Label>
@@ -381,6 +394,34 @@ export default function AdminCalendarPage() {
                          <div className="space-y-2">
                              <Label>Data Fine Periodo</Label>
                              <DatePicker value={endDate} onChange={setEndDate} />
+                        </div>
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Festività da Escludere (una per riga, formato GG/MM/AAAA)</Label>
+                        <Textarea placeholder={"25/12/2024\n01/01/2025"} value={holidays} onChange={(e) => setHolidays(e.target.value)} />
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <div className="space-y-2">
+                            <Label>Filtra per Disciplina</Label>
+                            <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="Tutte le Discipline">Tutte le Discipline</SelectItem>
+                                    <SelectItem value="Karate">Karate</SelectItem>
+                                    <SelectItem value="Aikido">Aikido</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div className="space-y-2">
+                            <Label>Filtra per Categoria</Label>
+                             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                    {lessonCategories.map(cat => (
+                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                      <div className="space-y-2">
@@ -393,10 +434,6 @@ export default function AdminCalendarPage() {
                                 </div>
                             ))}
                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Festività da Escludere (una per riga, formato GG/MM/AAAA)</Label>
-                        <Textarea placeholder={"25/12/2024\n01/01/2025"} value={holidays} onChange={(e) => setHolidays(e.target.value)} />
                     </div>
                 </CardContent>
                 <CardFooter>
@@ -460,5 +497,5 @@ export default function AdminCalendarPage() {
 
         </div>
     );
-
+}
     
