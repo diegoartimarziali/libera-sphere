@@ -361,7 +361,7 @@ export default function AikidoSelectionPage() {
                 const [userDocSnap, feeDocSnap, paymentsSnapshot] = await Promise.all([
                     getDoc(userDocRef),
                     getDoc(feeDocRef),
-                    getDocs(paymentsSnapshot)
+                    getDocs(paymentsQuery)
                 ]);
                 
                 if (feeDocSnap.exists()) setFeeData(feeDocSnap.data() as FeeData);
@@ -373,7 +373,7 @@ export default function AikidoSelectionPage() {
 
                     if (fetchedUserData.discipline !== 'Aikido') {
                         toast({ title: "Disciplina Errata", description: "Questa pagina è per l'Aikido.", variant: "destructive"});
-                        router.push('/dashboard/liberasphere');
+                        router.push('/dashboard/class-selection');
                         return;
                     }
 
@@ -566,3 +566,5 @@ export default function AikidoSelectionPage() {
         </div>
     )
 }
+
+    

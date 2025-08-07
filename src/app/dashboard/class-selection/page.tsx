@@ -540,6 +540,11 @@ export default function ClassSelectionPage() {
                 let fetchedUserData: any = null;
                 if (userDocSnap.exists()) {
                     fetchedUserData = userDocSnap.data();
+                    if (fetchedUserData.discipline !== 'Karate') {
+                        toast({ title: "Disciplina Errata", description: "Questa pagina è per il Karate.", variant: "destructive"});
+                        router.push('/dashboard/aikido-selection');
+                        return;
+                    }
                 }
                 
                 if (enrollmentDocSnap.exists()) {
@@ -608,7 +613,7 @@ export default function ClassSelectionPage() {
             }
         };
         fetchInitialData();
-    }, [user, toast]);
+    }, [user, toast, router]);
 
     
     const handleNextStep1 = async (data: PersonalDataSchemaType) => {
@@ -721,7 +726,7 @@ export default function ClassSelectionPage() {
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
                     const grade = docSnap.data().grades[0];
-                    return discipline === 'Karate' ? `Cintura ${grade}` : grade;
+                    return `Cintura ${grade}`;
                 } else {
                     return null; // Errore o nessun grado trovato
                 }
@@ -850,3 +855,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
