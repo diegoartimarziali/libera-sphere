@@ -73,6 +73,7 @@ type EventFormData = z.infer<typeof eventFormSchema>;
 
 const lessonCategories = [
     'Tutte le Categorie',
+    'Tutti i corsi di Karate (Aggregato)',
     'Lezioni Selezione',
     'Cinture da Bianca ad Arancio',
     'Cinture da Verde a Nera',
@@ -191,7 +192,6 @@ export default function AdminCalendarPage() {
 
     // Mappa per convertire il nome del giorno in un numero (0=Domenica, 1=Lunedì, ecc.)
     const dayNameToIndex: { [key: string]: number } = { 'Domenica': 0, 'Lunedì': 1, 'Martedì': 2, 'Mercoledì': 3, 'Giovedì': 4, 'Venerdì': 5, 'Sabato': 6 };
-    const dayIndexToName: { [key: number]: string } = { 0: 'Domenica', 1: 'Lunedì', 2: 'Martedì', 3: 'Mercoledì', 4: 'Giovedì', 5: 'Venerdì', 6: 'Sabato' };
 
     const fetchAllData = async () => {
         setLoading(true);
@@ -255,29 +255,83 @@ export default function AdminCalendarPage() {
 
                         if (daySchedule && daySchedule.slots) {
                             for (const slot of daySchedule.slots) {
-                                // Applica i filtri
+                                // Filtra per disciplina
                                 if (disciplineFilter !== 'Tutte le Discipline' && slot.discipline !== disciplineFilter) continue;
-                                if (categoryFilter !== 'Tutte le Categorie' && slot.category !== categoryFilter) continue;
 
-                                const [startH, startM] = slot.startTime.split(':').map(Number);
-                                const [endH, endM] = slot.endTime.split(':').map(Number);
-                                const startTime = new Date(currentDate);
-                                startTime.setHours(startH, startM, 0, 0);
-                                const endTime = new Date(currentDate);
-                                endTime.setHours(endH, endM, 0, 0);
+                                // Logica per Aikido (ignora categorie)
+                                if (disciplineFilter === 'Aikido') {
+                                     const [startH, startM] = slot.startTime.split(':').map(Number);
+                                    const [endH, endM] = slot.endTime.split(':').map(Number);
+                                    const startTime = new Date(currentDate);
+                                    startTime.setHours(startH, startM, 0, 0);
+                                    const endTime = new Date(currentDate);
+                                    endTime.setHours(endH, endM, 0, 0);
 
-                                const newEvent = {
-                                    type: 'lesson',
-                                    title: `${slot.discipline} - ${slot.category}`,
-                                    startTime: Timestamp.fromDate(startTime),
-                                    endTime: Timestamp.fromDate(endTime),
-                                    discipline: slot.discipline,
-                                    gymId: gym.id,
-                                    gymName: gym.name,
-                                };
+                                    const newEvent = {
+                                        type: 'lesson',
+                                        title: `${slot.discipline} - Tutti i Gradi`,
+                                        startTime: Timestamp.fromDate(startTime),
+                                        endTime: Timestamp.fromDate(endTime),
+                                        discipline: slot.discipline,
+                                        gymId: gym.id,
+                                        gymName: gym.name,
+                                    };
+                                    const newDocRef = doc(eventsCollectionRef);
+                                    batch.set(newDocRef, newEvent);
+                                    continue; // Prossimo slot
+                                }
 
-                                const newDocRef = doc(eventsCollectionRef);
-                                batch.set(newDocRef, newEvent);
+                                // Logica per Karate
+                                if (disciplineFilter === 'Karate' || disciplineFilter === 'Tutte le Discipline') {
+                                    if (categoryFilter === 'Tutti i corsi di Karate (Aggregato)') {
+                                        // Usa 'Lezioni Selezione' come àncora per creare un singolo evento giornaliero
+                                        if (slot.category === 'Lezioni Selezione' && slot.discipline === 'Karate') {
+                                            const [startH, startM] = slot.startTime.split(':').map(Number);
+                                            const [endH, endM] = slot.endTime.split(':').map(Number);
+                                            const startTime = new Date(currentDate);
+                                            startTime.setHours(startH, startM, 0, 0);
+                                            const endTime = new Date(currentDate);
+                                            endTime.setHours(endH, endM, 0, 0);
+
+                                            const newEvent = {
+                                                type: 'lesson',
+                                                title: `Allenamento Karate`,
+                                                startTime: Timestamp.fromDate(startTime),
+                                                endTime: Timestamp.fromDate(endTime),
+                                                discipline: slot.discipline,
+                                                gymId: gym.id,
+                                                gymName: gym.name,
+                                            };
+                                            const newDocRef = doc(eventsCollectionRef);
+                                            batch.set(newDocRef, newEvent);
+                                            break; // Interrompi il ciclo degli slot per questo giorno e palestra
+                                        }
+                                    } else {
+                                         // Logica per le categorie specifiche o 'Tutte le Categorie'
+                                        if (categoryFilter !== 'Tutte le Categorie' && slot.category !== categoryFilter) continue;
+                                        if (slot.discipline !== 'Karate') continue;
+
+                                         const [startH, startM] = slot.startTime.split(':').map(Number);
+                                         const [endH, endM] = slot.endTime.split(':').map(Number);
+                                         const startTime = new Date(currentDate);
+                                         startTime.setHours(startH, startM, 0, 0);
+                                         const endTime = new Date(currentDate);
+                                         endTime.setHours(endH, endM, 0, 0);
+
+                                         const newEvent = {
+                                             type: 'lesson',
+                                             title: `${slot.discipline} - ${slot.category}`,
+                                             startTime: Timestamp.fromDate(startTime),
+                                             endTime: Timestamp.fromDate(endTime),
+                                             discipline: slot.discipline,
+                                             gymId: gym.id,
+                                             gymName: gym.name,
+                                         };
+
+                                         const newDocRef = doc(eventsCollectionRef);
+                                         batch.set(newDocRef, newEvent);
+                                    }
+                                }
                             }
                         }
                     }
@@ -414,12 +468,15 @@ export default function AdminCalendarPage() {
                         </div>
                          <div className="space-y-2">
                             <Label>Filtra per Categoria</Label>
-                             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                             <Select value={categoryFilter} onValueChange={setCategoryFilter} disabled={disciplineFilter === 'Aikido'}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    {lessonCategories.map(cat => (
-                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                    ))}
+                                    {lessonCategories.map(cat => {
+                                        if (disciplineFilter !== 'Karate' && cat === 'Tutti i corsi di Karate (Aggregato)') {
+                                            return null;
+                                        }
+                                        return <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    })}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -471,6 +528,7 @@ export default function AdminCalendarPage() {
                                 <TableRow>
                                     <TableHead>Titolo</TableHead>
                                     <TableHead>Tipo</TableHead>
+                                    <TableHead>Giorno</TableHead>
                                     <TableHead>Data</TableHead>
                                     <TableHead>Luogo/Palestra</TableHead>
                                     <TableHead className="text-right">Azioni</TableHead>
@@ -480,7 +538,8 @@ export default function AdminCalendarPage() {
                                 {events.map(event => (
                                     <TableRow key={event.id}>
                                         <TableCell className="font-medium">{event.title}</TableCell>
-                                        <TableCell>{event.type}</TableCell>
+                                        <TableCell className="capitalize">{event.type}</TableCell>
+                                        <TableCell className="capitalize">{format(event.startTime.toDate(), "eeee", {locale: it})}</TableCell>
                                         <TableCell>{format(event.startTime.toDate(), "dd/MM/yy HH:mm", {locale: it})}</TableCell>
                                         <TableCell>{event.gymName || event.location}</TableCell>
                                         <TableCell className="text-right">
@@ -498,4 +557,6 @@ export default function AdminCalendarPage() {
         </div>
     );
 }
+    
+
     
