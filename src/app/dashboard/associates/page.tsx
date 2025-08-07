@@ -605,5 +605,3 @@ export default function AssociatesPage() {
         </div>
     )
 }
-
-    

@@ -561,7 +561,7 @@ export default function ClassSelectionPage() {
                     getDoc(userDocRef),
                     getDoc(feeDocRef),
                     getDoc(enrollmentSettingsRef),
-                    getDocs(paymentsSnapshot)
+                    getDocs(paymentsQuery)
                 ]);
                 
                 if (feeDocSnap.exists()) setFeeData(feeDocSnap.data() as FeeData);
@@ -608,7 +608,7 @@ export default function ClassSelectionPage() {
                              gymId: fetchedUserData.gym || '',
                              gymName: gymDoc.exists() ? gymDoc.data().name : '',
                              discipline: fetchedUserData.discipline || '',
-                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, startTime: l.startTime.toDate(), endTime: l.endTime.toDate()}))
+                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, startTime: l.startTime, endTime: l.endTime}))
                          });
                          setFinalGrade(fetchedUserData.lastGrade || null);
                          setStep(5); // Vai al riepilogo
@@ -618,7 +618,7 @@ export default function ClassSelectionPage() {
                              gymId: fetchedUserData.gym || '',
                              gymName: gymDoc.exists() ? gymDoc.data().name : '',
                              discipline: fetchedUserData.discipline || '',
-                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, startTime: l.startTime.toDate(), endTime: l.endTime.toDate()}))
+                             trialLessons: (fetchedUserData.trialLessons || []).map((l: any) => ({...l, startTime: l.startTime, endTime: l.endTime}))
                          });
                          setFinalGrade(fetchedUserData.lastGrade || null);
                         setStep(3); // Vai alla scelta pagamento
@@ -883,5 +883,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
