@@ -60,6 +60,35 @@ const stageFormSchema = z.object({
 type StageFormData = z.infer<typeof stageFormSchema>;
 
 // =================================================================
+// FUNZIONI HELPER
+// =================================================================
+
+const getEventTypeIcon = (type: Stage['type']) => {
+    switch (type) {
+        case 'stage': return <Award className="h-4 w-4 mr-2 flex-shrink-0" />;
+        case 'exam': return <FileText className="h-4 w-4 mr-2 flex-shrink-0" />;
+        case 'course': return <Users className="h-4 w-4 mr-2 flex-shrink-0" />;
+        default: return <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />;
+    }
+}
+
+const getEventTypeLabel = (type: Stage['type']) => {
+    switch (type) {
+        case 'stage': return 'Stage';
+        case 'exam': return 'Esame';
+        case 'course': return 'Corso';
+        default: return 'Evento';
+    }
+}
+
+const InfoRow = ({ icon: Icon, text }: { icon: React.ElementType, text: string }) => (
+    <div className="flex items-center text-sm text-muted-foreground">
+        <Icon className="h-4 w-4 mr-2 flex-shrink-0" />
+        <span>{text}</span>
+    </div>
+);
+
+// =================================================================
 // COMPONENTI
 // =================================================================
 
@@ -89,11 +118,7 @@ function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave:
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField control={form.control} name="title" render={({ field }) => (
-                    <FormItem><FormLabel>Titolo Evento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-
-                <FormField control={form.control} name="type" render={({ field }) => (
+                 <FormField control={form.control} name="type" render={({ field }) => (
                     <FormItem><FormLabel>Tipologia Evento</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Seleziona una tipologia..." /></SelectTrigger></FormControl>
@@ -105,6 +130,10 @@ function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave:
                             </SelectContent>
                         </Select>
                     <FormMessage /></FormItem>
+                )} />
+
+                <FormField control={form.control} name="title" render={({ field }) => (
+                    <FormItem><FormLabel>Titolo Evento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -157,30 +186,6 @@ function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave:
     );
 }
 
-const getEventTypeIcon = (type: Stage['type']) => {
-    switch (type) {
-        case 'stage': return <Award className="h-4 w-4 mr-2 flex-shrink-0" />;
-        case 'exam': return <FileText className="h-4 w-4 mr-2 flex-shrink-0" />;
-        case 'course': return <Users className="h-4 w-4 mr-2 flex-shrink-0" />;
-        default: return <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />;
-    }
-}
-
-const getEventTypeLabel = (type: Stage['type']) => {
-    switch (type) {
-        case 'stage': return 'Stage';
-        case 'exam': return 'Esame';
-        case 'course': return 'Corso';
-        default: return 'Evento';
-    }
-}
-
-const InfoRow = ({ icon: Icon, text }: { icon: React.ElementType, text: string }) => (
-    <div className="flex items-center text-sm text-muted-foreground">
-        <Icon className="h-4 w-4 mr-2 flex-shrink-0" />
-        <span>{text}</span>
-    </div>
-);
 
 // =================================================================
 // PAGINA PRINCIPALE
@@ -388,5 +393,3 @@ export default function AdminStagesPage() {
         </div>
     );
 }
-
-    
