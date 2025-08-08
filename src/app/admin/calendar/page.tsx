@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth } from "date-fns";
+import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -195,6 +195,7 @@ export default function AdminCalendarPage() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [gyms, setGyms] = useState<Gym[]>([]);
     const [events, setEvents] = useState<Event[]>([]);
+    const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
     
     // Stati per il generatore
     const [startDate, setStartDate] = useState<Date | undefined>();
@@ -204,7 +205,6 @@ export default function AdminCalendarPage() {
 
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
     const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('none');
-    const [selectedDates, setSelectedDates] = useState<Timestamp[] | null>([]);
     
     const [gymFilter, setGymFilter] = useState('all');
     const [disciplineFilter, setDisciplineFilter] = useState('Karate');
@@ -216,7 +216,7 @@ export default function AdminCalendarPage() {
     // Mappa per convertire il nome del giorno in un numero (0=Domenica, 1=Lunedì, ecc.)
     const dayNameToIndex: { [key: string]: number } = { 'Domenica': 0, 'Lunedì': 1, 'Martedì': 2, 'Mercoledì': 3, 'Giovedì': 4, 'Venerdì': 5, 'Sabato': 6 };
 
-    const fetchAllData = async () => {
+    const fetchInitialData = async () => {
         setLoading(true);
         try {
             const gymsSnapshot = await getDocs(collection(db, "gyms"));
@@ -227,11 +227,6 @@ export default function AdminCalendarPage() {
             const dateGroupsList = dateGroupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DateGroup));
             setDateGroups(dateGroupsList);
 
-            const eventsQuery = query(collection(db, "events"), where("startTime", ">=", Timestamp.now()), orderBy("startTime", "asc"));
-            const eventsSnapshot = await getDocs(eventsQuery);
-            const eventsList = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()} as Event));
-            setEvents(eventsList);
-
         } catch (error) {
             console.error(error);
             toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare dati." });
@@ -241,7 +236,7 @@ export default function AdminCalendarPage() {
     };
 
     useEffect(() => {
-        fetchAllData();
+        fetchInitialData();
     }, [toast]);
 
     useEffect(() => {
@@ -262,12 +257,98 @@ export default function AdminCalendarPage() {
     }, [startDate, endDate]);
     
     const handleGenerateCalendar = async () => {
-        toast({
-            title: "Generatore Disabilitato",
-            description: "La logica di generazione del calendario è temporaneamente disattivata per modifiche all'interfaccia.",
-            variant: "info"
-        });
-        return;
+        setIsGenerating(true);
+        setEvents([]); // Pulisce gli eventi precedenti
+        setGeneratedTitle(null);
+
+        // --- VALIDAZIONE ---
+        if (!startDate || !endDate || isBefore(endDate, startDate)) {
+            toast({ variant: "destructive", title: "Date non valide", description: "Seleziona un intervallo di date valido." });
+            setIsGenerating(false);
+            return;
+        }
+         if (gymFilter === 'all') {
+            toast({ variant: "destructive", title: "Palestra non selezionata", description: "Devi selezionare una palestra specifica per generare il calendario." });
+            setIsGenerating(false);
+            return;
+        }
+
+        const selectedGym = gyms.find(g => g.id === gymFilter);
+        if (!selectedGym || !selectedGym.weeklySchedule) {
+            toast({ variant: "destructive", title: "Dati palestra incompleti", description: "La palestra selezionata non ha un orario settimanale definito." });
+            setIsGenerating(false);
+            return;
+        }
+        
+        // SIMULAZIONE - Creazione eventi in memoria
+        try {
+            const allDates = eachDayOfInterval({ start: startDate, end: endDate });
+            const excludedDates = dateGroups.find(g => g.id === selectedDateGroupId)?.dates.map(ts => startOfDay(ts.toDate()).getTime()) || [];
+            
+            let filteredDates = allDates;
+            
+            // Filtra per mese se non è 'all'
+            if (selectedMonth !== 'all') {
+                const [year, month] = selectedMonth.split('-').map(Number);
+                const monthStart = startOfMonth(new Date(year, month - 1));
+                const monthEnd = endOfMonth(new Date(year, month - 1));
+                filteredDates = filteredDates.filter(date => isWithinInterval(date, { start: monthStart, end: monthEnd }));
+            }
+            
+            const newEvents: Event[] = [];
+
+            filteredDates.forEach(date => {
+                // Salta i giorni esclusi
+                if (excludedDates.includes(startOfDay(date).getTime())) {
+                    return;
+                }
+                
+                const dayOfWeekIndex = getDay(date); // 0 per Domenica, 1 per Lunedì...
+                const dayOfWeekName = format(date, "EEEE", { locale: it });
+
+                selectedGym.weeklySchedule
+                    .filter(schedule => schedule.dayOfWeek === dayOfWeekName && schedule.discipline === disciplineFilter)
+                    .forEach((scheduleSlot, index) => {
+                        scheduleSlot.slots.forEach((slot: any, slotIndex: number) => {
+                            const [startHour, startMinute] = slot.startTime.split(':').map(Number);
+                            const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+
+                            const eventStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), startHour, startMinute);
+                            const eventEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), endHour, endMinute);
+
+                            newEvents.push({
+                                id: `${format(date, 'yyyy-MM-dd')}-${slotIndex}-${index}`,
+                                title: slot.category,
+                                type: 'lesson',
+                                startTime: Timestamp.fromDate(eventStart),
+                                endTime: Timestamp.fromDate(eventEnd),
+                                gymId: selectedGym.id,
+                                gymName: selectedGym.name,
+                                discipline: disciplineFilter,
+                            });
+                        });
+                    });
+            });
+            
+            setEvents(newEvents);
+            
+            // Creazione titolo di resoconto
+            const monthLabel = availableMonths.find(m => m.value === selectedMonth)?.label || "Tutti i mesi";
+            const gymLabel = selectedGym.name;
+            const title = `Calendario stagione ${format(startDate, "dd/MM/yy")} - ${format(endDate, "dd/MM/yy")} ${selectedMonth !== 'all' ? `mese di ${monthLabel}` : ''} Palestra: ${gymLabel}`;
+            setGeneratedTitle(title);
+
+            toast({
+                title: "Calendario Generato (Simulazione)",
+                description: `Sono state create ${newEvents.length} lezioni in memoria. Nessun dato è stato salvato.`
+            });
+
+        } catch (error) {
+             console.error("Error during calendar generation simulation:", error);
+             toast({ variant: "destructive", title: "Errore di Simulazione", description: "Si è verificato un errore durante la generazione." });
+        } finally {
+            setIsGenerating(false);
+        }
     };
     
     const handleDeleteEvent = async (eventId: string) => {
@@ -314,12 +395,6 @@ export default function AdminCalendarPage() {
     
     const handleDateGroupChange = (groupId: string) => {
         setSelectedDateGroupId(groupId);
-        if (groupId === "none") {
-            setSelectedDates([]);
-            return;
-        }
-        const selectedGroup = dateGroups.find(g => g.id === groupId);
-        setSelectedDates(selectedGroup ? selectedGroup.dates : []);
     };
 
 
@@ -400,9 +475,9 @@ export default function AdminCalendarPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleGenerateCalendar} disabled={true}>
+                    <Button onClick={handleGenerateCalendar} disabled={isGenerating}>
                         {isGenerating ? <Loader2 className="animate-spin mr-2" /> : null}
-                        Genera Calendario (Logica Disabilitata)
+                        Genera Calendario
                     </Button>
                 </CardFooter>
             </Card>
@@ -412,7 +487,11 @@ export default function AdminCalendarPage() {
                     <div className="flex justify-between items-center">
                         <div>
                             <CardTitle>Gestione Eventi</CardTitle>
-                            <CardDescription>Gestisci manualmente eventi singoli come stage o lezioni extra.</CardDescription>
+                            {generatedTitle ? (
+                                <CardDescription>{generatedTitle}</CardDescription>
+                            ) : (
+                                <CardDescription>Gestisci manualmente eventi singoli come stage o lezioni extra.</CardDescription>
+                            )}
                         </div>
                          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                             <DialogTrigger asChild>
@@ -454,6 +533,13 @@ export default function AdminCalendarPage() {
                                         </TableCell>
                                     </TableRow>
                                 ))}
+                                {events.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                            Nessun evento da mostrare. Genera il calendario o creane uno manualmente.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                          </Table>
                     )}
@@ -486,3 +572,4 @@ export default function AdminCalendarPage() {
 
     
 
+    
