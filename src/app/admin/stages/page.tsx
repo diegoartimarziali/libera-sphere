@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, writeBatch, query, orderBy, Timestamp, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData, where } from "firebase/firestore";
+import { collection, getDocs, doc, writeBatch, query, where, orderBy, Timestamp, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -13,7 +13,7 @@ import { it } from "date-fns/locale";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, Save, Calendar, MapPin, Tag, Users, ExternalLink, Clock, Image as ImageIcon, Award } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Save, Calendar, MapPin, Tag, Users, ExternalLink, Clock, Image as ImageIcon, Award, FileText, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -175,14 +175,12 @@ const getEventTypeLabel = (type: Stage['type']) => {
     }
 }
 
-
 const InfoRow = ({ icon: Icon, text }: { icon: React.ElementType, text: string }) => (
     <div className="flex items-center text-sm text-muted-foreground">
         <Icon className="h-4 w-4 mr-2 flex-shrink-0" />
         <span>{text}</span>
     </div>
 );
-
 
 // =================================================================
 // PAGINA PRINCIPALE
@@ -262,7 +260,7 @@ export default function AdminStagesPage() {
     const handleDeleteStage = async (stageId: string) => {
         try {
             await deleteDoc(doc(db, "events", stageId));
-            toast({ title: "Evento Eliminato", variant="success" });
+            toast({ title: "Evento Eliminato", variant: "success" });
             await fetchStages();
         } catch (error) {
             console.error("Error deleting stage:", error);
