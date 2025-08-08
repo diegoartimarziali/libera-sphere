@@ -17,7 +17,7 @@ export interface Stage {
     location: string;
     price: number;
     imageUrl?: string;
-    type: 'stage';
+    type: 'stage' | 'exam' | 'course' | 'other';
     open_to: string;
 }
 
@@ -32,7 +32,7 @@ export default function StagesPage() {
                 const eventsCollection = collection(db, "events");
                 const q = query(
                     eventsCollection, 
-                    where("type", "==", "stage"),
+                    where("type", "in", ["stage", "exam", "course", "other"]),
                     where("startTime", ">=", Timestamp.now()),
                     orderBy("startTime", "asc")
                 );
@@ -51,7 +51,7 @@ export default function StagesPage() {
                         price: data.price || 0,
                         imageUrl: data.imageUrl,
                         open_to: data.open_to || "Non specificato",
-                        type: 'stage' // Aggiungiamo esplicitamente il tipo
+                        type: data.type || 'other'
                     } as Stage;
                 });
                 

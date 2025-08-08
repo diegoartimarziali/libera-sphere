@@ -5,13 +5,31 @@ import type { Stage } from "@/app/dashboard/stages/page";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Tag, Users, ExternalLink, Clock } from "lucide-react";
+import { Calendar, MapPin, Tag, Users, ExternalLink, Clock, Award, FileText, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
 interface StageCardProps {
     stage: Stage;
+}
+
+const getEventTypeIcon = (type: Stage['type']) => {
+    switch (type) {
+        case 'stage': return <Award className="h-4 w-4 mr-2 flex-shrink-0" />;
+        case 'exam': return <FileText className="h-4 w-4 mr-2 flex-shrink-0" />;
+        case 'course': return <Users className="h-4 w-4 mr-2 flex-shrink-0" />;
+        default: return <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />;
+    }
+}
+
+const getEventTypeLabel = (type: Stage['type']) => {
+    switch (type) {
+        case 'stage': return 'Stage';
+        case 'exam': return 'Esame';
+        case 'course': return 'Corso';
+        default: return 'Evento';
+    }
 }
 
 const InfoRow = ({ icon: Icon, text }: { icon: React.ElementType, text: string }) => (
@@ -45,6 +63,10 @@ export function StageCard({ stage }: StageCardProps) {
                 </div>
             )}
             <CardHeader>
+                <div className="flex items-center text-sm text-primary font-semibold">
+                    {getEventTypeIcon(stage.type)}
+                    {getEventTypeLabel(stage.type)}
+                </div>
                 <CardTitle className="text-xl capitalize">{stage.title}</CardTitle>
                 <CardDescription>{stage.description}</CardDescription>
             </CardHeader>
