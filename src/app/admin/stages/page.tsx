@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, writeBatch, query, orderBy, Timestamp, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData } from "firebase/firestore";
+import { collection, getDocs, doc, writeBatch, query, orderBy, Timestamp, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData, where } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -13,13 +13,14 @@ import { it } from "date-fns/locale";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, Save, Calendar, MapPin, Tag, Users, ExternalLink, Clock, Image as ImageIcon } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Save, Calendar, MapPin, Tag, Users, ExternalLink, Clock, Image as ImageIcon, Award } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
 
 // =================================================================
@@ -37,12 +38,13 @@ export interface Stage {
     imageUrl?: string;
     sumupLink: string;
     open_to: string;
-    type: 'stage';
+    type: 'stage' | 'exam' | 'course' | 'other';
 }
 
 const stageFormSchema = z.object({
     id: z.string().optional(),
     title: z.string().min(3, "Il titolo è obbligatorio."),
+    type: z.enum(['stage', 'exam', 'course', 'other'], { required_error: "La tipologia è obbligatoria." }),
     startDate: z.date({ required_error: "La data di inizio è obbligatoria." }),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
     endDate: z.date({ required_error: "La data di fine è obbligatoria." }),
@@ -66,6 +68,7 @@ function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave:
         resolver: zodResolver(stageFormSchema),
         defaultValues: stage || {
             title: '',
+            type: 'stage',
             startDate: new Date(),
             endDate: new Date(),
             startTime: '09:00',
@@ -88,6 +91,20 @@ function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave:
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField control={form.control} name="title" render={({ field }) => (
                     <FormItem><FormLabel>Titolo Evento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+
+                <FormField control={form.control} name="type" render={({ field }) => (
+                    <FormItem><FormLabel>Tipologia Evento</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Seleziona una tipologia..." /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                <SelectItem value="stage">Stage</SelectItem>
+                                <SelectItem value="exam">Esami</SelectItem>
+                                <SelectItem value="course">Corso</SelectItem>
+                                <SelectItem value="other">Altro</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    <FormMessage /></FormItem>
                 )} />
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -140,6 +157,25 @@ function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave:
     );
 }
 
+const getEventTypeIcon = (type: Stage['type']) => {
+    switch (type) {
+        case 'stage': return <Award className="h-4 w-4 mr-2 flex-shrink-0" />;
+        case 'exam': return <FileText className="h-4 w-4 mr-2 flex-shrink-0" />;
+        case 'course': return <Users className="h-4 w-4 mr-2 flex-shrink-0" />;
+        default: return <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />;
+    }
+}
+
+const getEventTypeLabel = (type: Stage['type']) => {
+    switch (type) {
+        case 'stage': return 'Stage';
+        case 'exam': return 'Esame';
+        case 'course': return 'Corso';
+        default: return 'Evento';
+    }
+}
+
+
 const InfoRow = ({ icon: Icon, text }: { icon: React.ElementType, text: string }) => (
     <div className="flex items-center text-sm text-muted-foreground">
         <Icon className="h-4 w-4 mr-2 flex-shrink-0" />
@@ -165,9 +201,10 @@ export default function AdminStagesPage() {
         setLoading(true);
         try {
             const eventsCollection = collection(db, "events");
+            // Filtra per tutti i tipi che non sono 'lesson'
             const q = query(
                 eventsCollection,
-                where("type", "==", "stage"),
+                where("type", "in", ["stage", "exam", "course", "other"]),
                 orderBy("startTime", "desc")
             );
             const stagesSnapshot = await getDocs(q);
@@ -195,7 +232,6 @@ export default function AdminStagesPage() {
         
         const stageData = {
             ...restData,
-            type: 'stage' as const,
             startTime: Timestamp.fromDate(startDateTime),
             endTime: Timestamp.fromDate(endDateTime),
         };
@@ -226,7 +262,7 @@ export default function AdminStagesPage() {
     const handleDeleteStage = async (stageId: string) => {
         try {
             await deleteDoc(doc(db, "events", stageId));
-            toast({ title: "Evento Eliminato", variant: "success" });
+            toast({ title: "Evento Eliminato", variant="success" });
             await fetchStages();
         } catch (error) {
             console.error("Error deleting stage:", error);
@@ -240,6 +276,7 @@ export default function AdminStagesPage() {
         setEditingStage({
             id: stage.id,
             title: stage.title,
+            type: stage.type,
             startDate: start,
             startTime: format(start, 'HH:mm'),
             endDate: end,
@@ -293,6 +330,10 @@ export default function AdminStagesPage() {
                                         </div>
                                     )}
                                     <CardHeader>
+                                        <div className="flex items-center text-sm text-primary font-semibold">
+                                            {getEventTypeIcon(stage.type)}
+                                            {getEventTypeLabel(stage.type)}
+                                        </div>
                                         <CardTitle className="text-xl capitalize">{stage.title}</CardTitle>
                                         <CardDescription>{stage.description}</CardDescription>
                                     </CardHeader>
@@ -349,3 +390,5 @@ export default function AdminStagesPage() {
         </div>
     );
 }
+
+    
