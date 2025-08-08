@@ -3,12 +3,12 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, writeBatch, query, where, Timestamp, orderBy, deleteDoc, addDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, doc, writeBatch, query, where, Timestamp, orderBy, deleteDoc, addDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay, isWithinInterval, getMonth } from "date-fns";
+import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay, isWithinInterval, getMonth, getYear } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -341,24 +341,44 @@ export default function AdminCalendarPage() {
 
 
     const handleSaveCalendar = async () => {
-        if (events.length === 0) {
-            toast({ variant: "destructive", title: "Nessun evento", description: "Non ci sono eventi nell'anteprima da salvare." });
+        if (events.length === 0 || !gymFilter || !disciplineFilter || !startDate) {
+            toast({ variant: "destructive", title: "Dati insufficienti", description: "Non ci sono eventi nell'anteprima o mancano i filtri per salvare." });
             return;
         }
         setIsSaving(true);
         try {
-            const batch = writeBatch(db);
-            events.forEach(event => {
-                const newEventRef = doc(collection(db, "events"));
-                const { id, ...eventData } = event; // Escludi l'ID di anteprima
-                batch.set(newEventRef, eventData);
+            const selectedGym = gyms.find(g => g.id === gymFilter);
+            if (!selectedGym) {
+                 toast({ variant: "destructive", title: "Palestra non trovata", description: "La palestra selezionata non è valida." });
+                 setIsSaving(false);
+                 return;
+            }
+
+            const calendarDocRef = doc(collection(db, "calendars"));
+
+            const lessonsToSave = events.map(event => {
+                const { id, ...lessonData } = event; // Escludi l'ID di anteprima
+                return lessonData;
             });
-            await batch.commit();
+            
+            const calendarData = {
+                gymId: selectedGym.id,
+                gymName: selectedGym.name,
+                year: getYear(startDate),
+                discipline: disciplineFilter,
+                calendarName: `${disciplineFilter} - ${selectedGym.name} - ${getYear(startDate)}`,
+                createdAt: serverTimestamp(),
+                lessons: lessonsToSave
+            };
+
+            await addDoc(collection(db, "calendars"), calendarData);
+
             toast({
                 title: "Calendario Salvato!",
-                description: `${events.length} eventi sono stati salvati con successo su Firebase.`,
+                description: `Il calendario con ${events.length} eventi è stato salvato con successo.`,
                 variant: "success",
             });
+
             // Svuota l'anteprima dopo il salvataggio
             setEvents([]);
             setGeneratedTitle(null);
@@ -601,6 +621,9 @@ export default function AdminCalendarPage() {
 
     
 
+
+
+    
 
 
     
