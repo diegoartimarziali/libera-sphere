@@ -270,7 +270,10 @@ export default function AdminCalendarPage() {
         
         try {
             const allDates = eachDayOfInterval({ start: startDate, end: endDate });
-            const excludedDates = dateGroups.find(g => g.id === selectedDateGroupId)?.dates.map(ts => startOfDay(ts.toDate()).getTime()) || [];
+            const selectedGroup = dateGroups.find(g => g.id === selectedDateGroupId);
+            const excludedDates = selectedGroup && Array.isArray(selectedGroup.dates)
+                ? selectedGroup.dates.map(ts => startOfDay(ts.toDate()).getTime())
+                : [];
             
             let filteredDates = allDates;
             
@@ -589,6 +592,8 @@ export default function AdminCalendarPage() {
         </div>
     );
 }
+    
+
     
 
     
