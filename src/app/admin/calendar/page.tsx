@@ -373,7 +373,7 @@ export default function AdminCalendarPage() {
                         </div>
                     </div>
 
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Filtra per Palestra</Label>
                             <Select value={gymFilter} onValueChange={setGymFilter}>
@@ -396,22 +396,6 @@ export default function AdminCalendarPage() {
                                     <SelectItem value="Tutte le Discipline">Tutte le Discipline</SelectItem>
                                     <SelectItem value="Karate">Karate</SelectItem>
                                     <SelectItem value="Aikido">Aikido</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div className="space-y-2">
-                            <Label>Filtra per Categoria</Label>
-                             <Select value={categoryFilter} onValueChange={(value) => {
-                                 setCategoryFilter(value)
-                                 if (value === 'Tutti i corsi') {
-                                     setDisciplineFilter('Tutte le Discipline');
-                                 }
-                             }}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {lessonCategories.map(cat => (
-                                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
