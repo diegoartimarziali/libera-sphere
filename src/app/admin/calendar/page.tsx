@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay } from "date-fns";
+import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,11 @@ interface DateGroup {
     id: string;
     name: string;
     dates: Timestamp[];
+}
+
+interface MonthOption {
+    value: string; // 'all' or 'YYYY-MM'
+    label: string; // 'Tutti i mesi' or 'Mese Anno'
 }
 
 
@@ -193,8 +198,11 @@ export default function AdminCalendarPage() {
     // Stati per il generatore
     const [startDate, setStartDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
+    const [availableMonths, setAvailableMonths] = useState<MonthOption[]>([]);
+    const [selectedMonth, setSelectedMonth] = useState('all');
+
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
-    const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('');
+    const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('none');
     const [selectedDates, setSelectedDates] = useState<Timestamp[]>([]);
     
     const [selectedGymIds, setSelectedGymIds] = useState<string[]>([]);
@@ -235,6 +243,23 @@ export default function AdminCalendarPage() {
     useEffect(() => {
         fetchAllData();
     }, [toast]);
+
+    useEffect(() => {
+        if (startDate && endDate && isBefore(endDate, startDate) === false) {
+            const months = eachMonthOfInterval({ start: startDate, end: endDate });
+            const monthOptions: MonthOption[] = months.map(monthStart => ({
+                value: format(monthStart, 'yyyy-MM'),
+                label: format(monthStart, 'MMMM yyyy', { locale: it })
+            }));
+            setAvailableMonths([
+                { value: 'all', label: 'Tutti i mesi' },
+                ...monthOptions
+            ]);
+            setSelectedMonth('all');
+        } else {
+            setAvailableMonths([]);
+        }
+    }, [startDate, endDate]);
     
     const handleGenerateCalendar = async () => {
         if (!startDate || !endDate || selectedGymIds.length === 0) {
@@ -250,7 +275,21 @@ export default function AdminCalendarPage() {
         const batch = writeBatch(db);
 
         try {
-            const allDates = eachDayOfInterval({ start: startDate, end: endDate });
+            let generationStartDate = startDate;
+            let generationEndDate = endDate;
+
+            if (selectedMonth !== 'all') {
+                const [year, month] = selectedMonth.split('-').map(Number);
+                const monthDate = new Date(year, month - 1);
+                
+                const monthStart = startOfMonth(monthDate);
+                const monthEnd = endOfMonth(monthDate);
+
+                generationStartDate = startDate > monthStart ? startDate : monthStart;
+                generationEndDate = endDate < monthEnd ? endDate : monthEnd;
+            }
+
+            const allDates = eachDayOfInterval({ start: generationStartDate, end: generationEndDate });
             const holidayDateStrings = selectedDates.map(ts => format(ts.toDate(), 'yyyy-MM-dd'));
             const selectedGymsData = gyms.filter(g => selectedGymIds.includes(g.id));
 
@@ -269,7 +308,6 @@ export default function AdminCalendarPage() {
                         
                          if (disciplineFilter === 'Tutte le Discipline' || disciplineFilter === discipline) {
                             if (categoryFilter === 'Tutti i corsi') {
-                                // Logica speciale per "Tutti i corsi"
                                 if (discipline === 'Karate') {
                                     const anchorSlot = daySchedule.slots.find((s: any) => s.discipline === 'Karate' && s.category === "Lezioni Selezione");
                                     if (anchorSlot) slotsToProcess = [anchorSlot];
@@ -451,7 +489,7 @@ export default function AdminCalendarPage() {
                     <CardDescription>Crea in massa le lezioni di routine per un periodo, escludendo le festività.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div className="space-y-2">
                              <Label>Data Inizio Periodo</Label>
                              <DatePicker value={startDate} onChange={setStartDate} />
@@ -459,6 +497,19 @@ export default function AdminCalendarPage() {
                          <div className="space-y-2">
                              <Label>Data Fine Periodo</Label>
                              <DatePicker value={endDate} onChange={setEndDate} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Filtra per Mese (Opzionale)</Label>
+                             <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={availableMonths.length === 0}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleziona un mese..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableMonths.map(month => (
+                                        <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 
