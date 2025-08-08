@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, writeBatch, query, where, Timestamp, orderBy, deleteDoc, addDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, doc, writeBatch, query, where, Timestamp, orderBy, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
@@ -12,13 +12,13 @@ import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, X, Save, MessageSquareWarning, FileWarning } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, X, Save, MessageSquareWarning, FileWarning, Upload, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -52,6 +52,16 @@ interface Event {
     status: 'confermata' | 'annullata';
     notes?: string;
 }
+
+interface SavedCalendar {
+    id: string;
+    calendarName: string;
+    gymName: string;
+    discipline: string;
+    createdAt: Timestamp;
+    lessons: Event[]; // Usiamo Event per consistenza
+}
+
 
 interface DateGroup {
     id: string;
@@ -198,7 +208,9 @@ export default function AdminCalendarPage() {
     const [loading, setLoading] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [gyms, setGyms] = useState<Gym[]>([]);
+    const [savedCalendars, setSavedCalendars] = useState<SavedCalendar[]>([]);
     const [events, setEvents] = useState<Event[]>([]); // Contiene gli eventi dell'anteprima o quelli salvati
     const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
     
@@ -232,11 +244,12 @@ export default function AdminCalendarPage() {
                  return {
                     id: doc.id,
                     name: data.name,
-                    // Assicura che le date siano oggetti Timestamp
                     dates: datesArray.map((d: any) => d instanceof Timestamp ? d : new Timestamp(d.seconds, d.nanoseconds))
                  } as DateGroup
             });
             setDateGroups(dateGroupsList);
+            
+            await fetchSavedCalendars();
 
         } catch (error) {
             console.error(error);
@@ -245,6 +258,24 @@ export default function AdminCalendarPage() {
             setLoading(false);
         }
     };
+    
+     const fetchSavedCalendars = async () => {
+        try {
+            const calendarsSnapshot = await getDocs(query(collection(db, "calendars"), orderBy("createdAt", "desc")));
+            const calendarsList = calendarsSnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data
+                } as SavedCalendar;
+            });
+            setSavedCalendars(calendarsList);
+        } catch (error) {
+            console.error("Error fetching saved calendars:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i calendari salvati." });
+        }
+    };
+
 
     useEffect(() => {
         fetchInitialData();
@@ -391,6 +422,8 @@ export default function AdminCalendarPage() {
             };
 
             await addDoc(collection(db, "calendars"), calendarData);
+            
+            await fetchSavedCalendars();
 
             toast({
                 title: "Calendario Salvato!",
@@ -474,6 +507,26 @@ export default function AdminCalendarPage() {
     const handleDateGroupChange = (groupId: string) => {
         setSelectedDateGroupId(groupId);
     };
+    
+    const handleLoadCalendar = (calendar: SavedCalendar) => {
+        setEvents(calendar.lessons);
+        setGeneratedTitle(`Calendario Caricato: ${calendar.calendarName}`);
+        toast({ title: "Calendario Caricato", description: `Hai caricato ${calendar.lessons.length} lezioni nell'area di anteprima.`});
+    };
+    
+    const handleDeleteCalendar = async (calendarId: string) => {
+        setIsDeleting(calendarId);
+        try {
+            await deleteDoc(doc(db, "calendars", calendarId));
+            await fetchSavedCalendars(); // Ricarica la lista
+            toast({ title: "Calendario Eliminato", description: "Il calendario selezionato è stato rimosso con successo.", variant: "success" });
+        } catch (error) {
+            console.error("Error deleting calendar:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare il calendario." });
+        } finally {
+            setIsDeleting(null);
+        }
+    };
 
 
     return (
@@ -534,7 +587,7 @@ export default function AdminCalendarPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {gyms.map(gym => (
-                                        <SelectItem key={gym.id} value={gym.id}>{gym.id} {gym.name}</SelectItem>
+                                        <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -559,6 +612,74 @@ export default function AdminCalendarPage() {
                 </CardFooter>
             </Card>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle>Gestione Calendari Salvati</CardTitle>
+                    <CardDescription>Carica, modifica o elimina i calendari che hai già creato e salvato su Firebase.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Nome Calendario</TableHead>
+                                <TableHead>Disciplina</TableHead>
+                                <TableHead>Palestra</TableHead>
+                                <TableHead>Creato il</TableHead>
+                                <TableHead className="text-right">Azioni</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                            ) : savedCalendars.length > 0 ? (
+                                savedCalendars.map(cal => (
+                                    <TableRow key={cal.id}>
+                                        <TableCell className="font-medium">{cal.calendarName}</TableCell>
+                                        <TableCell>{cal.discipline}</TableCell>
+                                        <TableCell>{cal.gymName}</TableCell>
+                                        <TableCell>{cal.createdAt ? format(cal.createdAt.toDate(), 'dd/MM/yy HH:mm') : 'N/D'}</TableCell>
+                                        <TableCell className="text-right space-x-2">
+                                            <Button variant="outline" size="sm" onClick={() => handleLoadCalendar(cal)} disabled={isDeleting === cal.id}>
+                                                <Upload className="h-4 w-4 mr-2" />
+                                                Carica
+                                            </Button>
+                                            
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" size="sm" disabled={isDeleting === cal.id}>
+                                                        {isDeleting === cal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Sei assolutamente sicuro?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Questa azione non può essere annullata. Questo eliminerà permanentemente il calendario
+                                                            <strong className="mx-1">{cal.calendarName}</strong>
+                                                            dal database.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteCalendar(cal.id)}>
+                                                            Sì, elimina
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow><TableCell colSpan={5} className="text-center h-24">Nessun calendario salvato trovato.</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+
              <Card>
                 <CardHeader>
                     <div className="flex justify-between items-start sm:items-center flex-col sm:flex-row gap-4">
@@ -567,7 +688,7 @@ export default function AdminCalendarPage() {
                             {generatedTitle ? (
                                 <CardDescription className="mt-2">{generatedTitle}</CardDescription>
                             ) : (
-                                <CardDescription className="mt-2">Genera un'anteprima per visualizzare gli eventi. Potrai modificarli o salvarli su Firebase.</CardDescription>
+                                <CardDescription className="mt-2">Genera o carica un calendario per visualizzare gli eventi. Potrai modificarli o salvarli su Firebase.</CardDescription>
                             )}
                         </div>
                         <div className="flex w-full sm:w-auto gap-2">
@@ -667,5 +788,7 @@ export default function AdminCalendarPage() {
 
     
 
+
+    
 
     
