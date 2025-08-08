@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, writeBatch, query, where, Timestamp, orderBy, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
@@ -571,6 +571,15 @@ export default function AdminCalendarPage() {
             setIsDeleting(null);
         }
     };
+    
+    const groupedEvents = events.reduce((acc, event) => {
+        const monthYear = format(event.startTime.toDate(), 'MMMM yyyy', { locale: it });
+        if (!acc[monthYear]) {
+            acc[monthYear] = [];
+        }
+        acc[monthYear].push(event);
+        return acc;
+    }, {} as Record<string, Event[]>);
 
 
     return (
@@ -769,40 +778,50 @@ export default function AdminCalendarPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {events.map(event => (
-                                    <TableRow key={event.id} className={cn(event.status === 'annullata' && 'bg-destructive/10 text-muted-foreground')}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                 <Badge variant={event.status === 'annullata' ? 'destructive' : 'success'}>
-                                                    {event.status === 'annullata' ? 'Annullata' : 'OK'}
-                                                 </Badge>
-                                                 {event.notes && (
-                                                     <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                                                                <MessageSquareWarning className="h-4 w-4 text-amber-500" />
-                                                            </Button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="text-sm w-80">
-                                                            <p className="font-bold mb-2">Note lezione:</p>
-                                                            {event.notes}
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                 )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{format(event.startTime.toDate(), "dd/MM/yy", {locale: it})}</TableCell>
-                                        <TableCell className="capitalize">{format(event.startTime.toDate(), "eeee", {locale: it})}</TableCell>
-                                        <TableCell>{`${format(event.startTime.toDate(), "HH:mm")} - ${format(event.endTime.toDate(), "HH:mm")}`}</TableCell>
-                                        <TableCell className="font-medium capitalize">{event.discipline}</TableCell>
-                                        <TableCell>{event.gymName || event.location}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="sm" onClick={() => openEditForm(event)}>Modifica</Button>
-                                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteEvent(event.id)}><Trash2 className="w-4 h-4"/></Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {events.length === 0 && (
+                                {Object.entries(groupedEvents).length > 0 ? (
+                                    Object.entries(groupedEvents).map(([monthYear, monthEvents]) => (
+                                        <Fragment key={monthYear}>
+                                            <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                                <TableCell colSpan={7} className="font-bold text-lg capitalize text-primary py-3">
+                                                    {monthYear}
+                                                </TableCell>
+                                            </TableRow>
+                                            {monthEvents.map(event => (
+                                                <TableRow key={event.id} className={cn(event.status === 'annullata' && 'bg-destructive/10 text-muted-foreground')}>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge variant={event.status === 'annullata' ? 'destructive' : 'success'}>
+                                                                {event.status === 'annullata' ? 'Annullata' : 'OK'}
+                                                            </Badge>
+                                                            {event.notes && (
+                                                                <Popover>
+                                                                    <PopoverTrigger asChild>
+                                                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                                            <MessageSquareWarning className="h-4 w-4 text-amber-500" />
+                                                                        </Button>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent className="text-sm w-80">
+                                                                        <p className="font-bold mb-2">Note lezione:</p>
+                                                                        {event.notes}
+                                                                    </PopoverContent>
+                                                                </Popover>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>{format(event.startTime.toDate(), "dd/MM/yy", {locale: it})}</TableCell>
+                                                    <TableCell className="capitalize">{format(event.startTime.toDate(), "eeee", {locale: it})}</TableCell>
+                                                    <TableCell>{`${format(event.startTime.toDate(), "HH:mm")} - ${format(event.endTime.toDate(), "HH:mm")}`}</TableCell>
+                                                    <TableCell className="font-medium capitalize">{event.discipline}</TableCell>
+                                                    <TableCell>{event.gymName || event.location}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button variant="ghost" size="sm" onClick={() => openEditForm(event)}>Modifica</Button>
+                                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteEvent(event.id)}><Trash2 className="w-4 h-4"/></Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </Fragment>
+                                    ))
+                                ) : (
                                     <TableRow>
                                         <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
                                             Nessun evento da mostrare. Genera un'anteprima o aggiungine uno manualmente.
