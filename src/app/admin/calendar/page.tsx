@@ -356,7 +356,7 @@ export default function AdminCalendarPage() {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Gruppo di Festività da Escludere</Label>
+                            <Label>Periodo da escludere</Label>
                             <Select value={selectedDateGroupId} onValueChange={handleDateGroupChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Seleziona un gruppo di date..." />
@@ -541,6 +541,8 @@ export default function AdminCalendarPage() {
 
 
 
+
+    
 
     
 
