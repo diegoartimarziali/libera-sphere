@@ -403,11 +403,7 @@ export default function AdminCalendarPage() {
                  return;
             }
 
-            // Escludi l'ID di anteprima da ogni lezione
-            const lessonsToSave = events.map(event => {
-                const { id, ...lessonData } = event; 
-                return lessonData;
-            });
+            const lessonsToSave = events.map(({ id, ...lessonData }) => lessonData);
             
             const now = new Date();
             const calendarName = `${disciplineFilter} - ${selectedGym.name} - ${getYear(startDate)} (${format(now, "dd/MM/yy HH:mm")})`;
@@ -432,7 +428,6 @@ export default function AdminCalendarPage() {
                 variant: "success",
             });
 
-            // Svuota l'anteprima dopo il salvataggio
             setEvents([]);
             setGeneratedTitle(null);
         } catch (error) {
@@ -510,8 +505,6 @@ export default function AdminCalendarPage() {
     };
     
     const handleLoadCalendar = (calendar: SavedCalendar) => {
-        // Assegnamo un ID temporaneo univoco per la sessione di modifica,
-        // che non verrà salvato su Firestore.
         const eventsWithTempIds = calendar.lessons.map((lesson, index) => ({
             ...lesson,
             id: `${calendar.id}-${index}`
@@ -795,6 +788,8 @@ export default function AdminCalendarPage() {
 
     
 
+
+    
 
     
 
