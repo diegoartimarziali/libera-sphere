@@ -290,7 +290,7 @@ export default function AdminCalendarPage() {
             }
 
             const allDates = eachDayOfInterval({ start: generationStartDate, end: generationEndDate });
-            const holidayDateStrings = selectedDates.map(ts => format(ts.toDate(), 'yyyy-MM-dd'));
+            const holidayDateStrings = (selectedDates || []).map(ts => format(ts.toDate(), 'yyyy-MM-dd'));
             const selectedGymsData = gyms.filter(g => selectedGymIds.includes(g.id));
 
             for (const date of allDates) {
