@@ -577,7 +577,7 @@ export default function AdminCalendarPage() {
         <div className="space-y-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>Generatore Calendario Stagionale</CardTitle>
+                    <CardTitle>Generatore Calendario Allenamenti</CardTitle>
                     <CardDescription>Crea in massa le lezioni di routine per un periodo, escludendo le festività.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
