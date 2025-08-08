@@ -12,7 +12,7 @@ import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, X, Save } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, X, Save, MessageSquareWarning, FileWarning } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -49,6 +49,8 @@ interface Event {
     gymId?: string;
     gymName?: string;
     discipline?: string;
+    status: 'confermata' | 'annullata';
+    notes?: string;
 }
 
 interface DateGroup {
@@ -61,7 +63,6 @@ interface MonthOption {
     value: string; // 'all' or 'YYYY-MM'
     label: string; // 'Tutti i mesi' or 'Mese Anno'
 }
-
 
 const eventFormSchema = z.object({
     id: z.string().optional(),
@@ -78,12 +79,15 @@ const eventFormSchema = z.object({
     open_to: z.string().optional(),
     description: z.string().optional(),
     imageUrl: z.string().url("URL non valido.").optional().or(z.literal('')),
+    status: z.enum(['confermata', 'annullata']).default('confermata'),
+    notes: z.string().optional(),
 }).refine(data => {
     if (data.type === 'stage' && !data.location) {
         return false;
     }
     return true;
 }, { message: "Il luogo è obbligatorio per gli stage", path: ["location"] });
+
 
 type EventFormData = z.infer<typeof eventFormSchema>;
 
@@ -101,6 +105,7 @@ function EventForm({ event, gyms, onSave, onCancel }: { event?: EventFormData, g
             endDate: new Date(),
             startTime: '00:00',
             endTime: '00:00',
+            status: 'confermata'
         }
     });
 
@@ -142,9 +147,19 @@ function EventForm({ event, gyms, onSave, onCancel }: { event?: EventFormData, g
                 )} />
                 
                 {type === 'lesson' && (
-                     <FormField control={form.control} name="gymId" render={({ field }) => (
-                        <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                    )} />
+                    <>
+                        <FormField control={form.control} name="gymId" render={({ field }) => (
+                            <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                        )} />
+                        
+                        <FormField control={form.control} name="status" render={({ field }) => (
+                            <FormItem><FormLabel>Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                        )} />
+
+                        <FormField control={form.control} name="notes" render={({ field }) => (
+                            <FormItem><FormLabel>Note / Avvisi</FormLabel><FormControl><Textarea {...field} placeholder="Es. Portare protezioni, lezione annullata per maltempo..." /></FormControl><FormMessage /></FormItem>
+                        )} />
+                    </>
                 )}
 
                 {type === 'stage' && (
@@ -313,6 +328,8 @@ export default function AdminCalendarPage() {
                                 gymId: selectedGym.id,
                                 gymName: selectedGym.name,
                                 discipline: disciplineFilter,
+                                status: 'confermata',
+                                notes: ''
                             });
                         }
                     });
@@ -354,19 +371,21 @@ export default function AdminCalendarPage() {
                  return;
             }
 
-            const calendarDocRef = doc(collection(db, "calendars"));
-
+            // Escludi l'ID di anteprima da ogni lezione
             const lessonsToSave = events.map(event => {
-                const { id, ...lessonData } = event; // Escludi l'ID di anteprima
+                const { id, ...lessonData } = event; 
                 return lessonData;
             });
             
+            const now = new Date();
+            const calendarName = `${disciplineFilter} - ${selectedGym.name} - ${getYear(startDate)} (${format(now, "dd/MM/yy HH:mm")})`;
+
             const calendarData = {
                 gymId: selectedGym.id,
                 gymName: selectedGym.name,
                 year: getYear(startDate),
                 discipline: disciplineFilter,
-                calendarName: `${disciplineFilter} - ${selectedGym.name} - ${getYear(startDate)}`,
+                calendarName: calendarName,
                 createdAt: serverTimestamp(),
                 lessons: lessonsToSave
             };
@@ -375,7 +394,7 @@ export default function AdminCalendarPage() {
 
             toast({
                 title: "Calendario Salvato!",
-                description: `Il calendario con ${events.length} eventi è stato salvato con successo.`,
+                description: `Una nuova versione del calendario con ${events.length} eventi è stata salvata con successo.`,
                 variant: "success",
             });
 
@@ -391,16 +410,14 @@ export default function AdminCalendarPage() {
     };
     
     const handleDeleteEvent = async (eventId: string) => {
-        // Questa funzione ora gestisce solo l'eliminazione dall'anteprima in memoria
         setEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
         toast({
             title: "Lezione Rimossa dall'Anteprima",
-            description: "La lezione è stata eliminata solo dalla visualizzazione corrente. Per salvare le modifiche, clicca su 'Salva Calendario'."
+            description: "La lezione è stata eliminata solo dalla visualizzazione corrente. Per salvare le modifiche, clicca su 'Salva su DB'."
         });
     }
     
     const handleSaveEvent = async (data: EventFormData) => {
-        // Questa funzione ora gestisce solo aggiunta/modifica nell'anteprima in memoria
         const { startDate, startTime, endDate, endTime, ...restData } = data;
         const startDateTime = new Date(`${format(startDate, 'yyyy-MM-dd')}T${startTime}`);
         const endDateTime = new Date(`${format(endDate, 'yyyy-MM-dd')}T${endTime}`);
@@ -415,15 +432,18 @@ export default function AdminCalendarPage() {
             gymId: restData.gymId,
             gymName: gyms.find(g => g.id === restData.gymId)?.name,
             location: restData.location,
+            status: restData.status,
+            notes: restData.notes,
         };
 
         if (data.id) { // Modifica
             setEvents(prev => prev.map(e => e.id === data.id ? newOrUpdatedEvent : e));
         } else { // Creazione
-            setEvents(prev => [...prev, newOrUpdatedEvent]);
+            setEvents(prev => [...prev, newOrUpdatedEvent].sort((a, b) => a.startTime.toMillis() - b.startTime.toMillis()));
         }
         toast({ title: "Evento Aggiornato nell'Anteprima", description: "Salva il calendario per rendere la modifica permanente." });
         setIsFormOpen(false);
+        setEditingEvent(undefined);
     }
 
     const openEditForm = (event: Event) => {
@@ -440,7 +460,8 @@ export default function AdminCalendarPage() {
             discipline: event.discipline,
             gymId: event.gymId,
             location: event.location,
-            // ...altri campi da mappare se necessario
+            status: event.status,
+            notes: event.notes,
         });
         setIsFormOpen(true);
     };
@@ -563,21 +584,42 @@ export default function AdminCalendarPage() {
                          <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Disciplina</TableHead>
-                                    <TableHead>Giorno</TableHead>
+                                    <TableHead>Stato</TableHead>
                                     <TableHead>Data</TableHead>
+                                    <TableHead>Giorno</TableHead>
                                     <TableHead>Orario</TableHead>
+                                    <TableHead>Disciplina</TableHead>
                                     <TableHead>Luogo/Palestra</TableHead>
                                     <TableHead className="text-right">Azioni</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {events.map(event => (
-                                    <TableRow key={event.id}>
-                                        <TableCell className="font-medium capitalize">{event.discipline}</TableCell>
-                                        <TableCell className="capitalize">{format(event.startTime.toDate(), "eeee", {locale: it})}</TableCell>
+                                    <TableRow key={event.id} className={cn(event.status === 'annullata' && 'bg-destructive/10 text-muted-foreground')}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                 <Badge variant={event.status === 'annullata' ? 'destructive' : 'success'}>
+                                                    {event.status === 'annullata' ? 'Annullata' : 'OK'}
+                                                 </Badge>
+                                                 {event.notes && (
+                                                     <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-6 w-6">
+                                                                <MessageSquareWarning className="h-4 w-4 text-amber-500" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="text-sm w-80">
+                                                            <p className="font-bold mb-2">Note lezione:</p>
+                                                            {event.notes}
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                 )}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>{format(event.startTime.toDate(), "dd/MM/yy", {locale: it})}</TableCell>
+                                        <TableCell className="capitalize">{format(event.startTime.toDate(), "eeee", {locale: it})}</TableCell>
                                         <TableCell>{`${format(event.startTime.toDate(), "HH:mm")} - ${format(event.endTime.toDate(), "HH:mm")}`}</TableCell>
+                                        <TableCell className="font-medium capitalize">{event.discipline}</TableCell>
                                         <TableCell>{event.gymName || event.location}</TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="sm" onClick={() => openEditForm(event)}>Modifica</Button>
@@ -587,7 +629,7 @@ export default function AdminCalendarPage() {
                                 ))}
                                 {events.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                        <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
                                             Nessun evento da mostrare. Genera un'anteprima o aggiungine uno manualmente.
                                         </TableCell>
                                     </TableRow>
@@ -598,7 +640,7 @@ export default function AdminCalendarPage() {
                 </CardContent>
              </Card>
 
-              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setEditingEvent(undefined); }}>
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>{editingEvent ? "Modifica Evento" : "Crea Nuovo Evento"}</DialogTitle>
