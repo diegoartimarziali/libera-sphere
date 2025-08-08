@@ -282,24 +282,18 @@ export default function AdminCalendarPage() {
             const dayNames = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
             let generatedEvents: Event[] = [];
 
-            // Correzione: Filtra i giorni della settimana per evitare duplicati
-            const uniqueDaysSchedule = selectedGym.weeklySchedule.filter(
-                (day, index, self) => index === self.findIndex((d) => d.dayOfWeek === day.dayOfWeek)
-            );
-
             allDates.forEach(date => {
                 const dateString = format(date, 'yyyy-MM-dd');
                 if (exclusionDates.has(dateString)) {
-                    return; // Salta la data se è tra quelle da escludere
+                    return;
                 }
 
                 const dayOfWeekName = dayNames[getDay(date)];
-                const scheduleForDay = uniqueDaysSchedule.find(d => d.dayOfWeek === dayOfWeekName);
+                
+                const scheduleForDay = selectedGym.weeklySchedule?.find(d => d.dayOfWeek === dayOfWeekName);
 
                 if (scheduleForDay && scheduleForDay.slots) {
                     scheduleForDay.slots.forEach((slot: any, index: number) => {
-                        // **LA CONDIZIONE CHIAVE**
-                        // Crea la lezione solo se la disciplina dello slot corrisponde a quella selezionata nel filtro
                         if (slot.discipline === disciplineFilter) {
                             const [startHour, startMinute] = slot.startTime.split(':').map(Number);
                             const [endHour, endMinute] = slot.endTime.split(':').map(Number);
@@ -311,8 +305,8 @@ export default function AdminCalendarPage() {
                             eventEnd.setHours(endHour, endMinute, 0, 0);
                             
                             generatedEvents.push({
-                                id: `${dateString}-${disciplineFilter}-${index}`, // ID univoco per l'anteprima
-                                title: disciplineFilter, // Il titolo è la disciplina stessa
+                                id: `${dateString}-${disciplineFilter}-${index}`,
+                                title: disciplineFilter, 
                                 type: 'lesson',
                                 startTime: Timestamp.fromDate(eventStart),
                                 endTime: Timestamp.fromDate(eventEnd),
@@ -325,7 +319,6 @@ export default function AdminCalendarPage() {
                 }
             });
 
-            // Filtra per mese se un mese è stato selezionato
             if (selectedMonth !== 'all') {
                 const [year, month] = selectedMonth.split('-').map(Number);
                 generatedEvents = generatedEvents.filter(event => {
@@ -550,8 +543,7 @@ export default function AdminCalendarPage() {
                          <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Titolo</TableHead>
-                                    <TableHead>Tipo</TableHead>
+                                    <TableHead>Disciplina</TableHead>
                                     <TableHead>Giorno</TableHead>
                                     <TableHead>Data</TableHead>
                                     <TableHead>Luogo/Palestra</TableHead>
@@ -561,8 +553,7 @@ export default function AdminCalendarPage() {
                             <TableBody>
                                 {events.map(event => (
                                     <TableRow key={event.id}>
-                                        <TableCell className="font-medium">{event.title}</TableCell>
-                                        <TableCell className="capitalize">{event.type}</TableCell>
+                                        <TableCell className="font-medium capitalize">{event.discipline}</TableCell>
                                         <TableCell className="capitalize">{format(event.startTime.toDate(), "eeee", {locale: it})}</TableCell>
                                         <TableCell>{format(event.startTime.toDate(), "dd/MM/yy HH:mm", {locale: it})}</TableCell>
                                         <TableCell>{event.gymName || event.location}</TableCell>
@@ -574,7 +565,7 @@ export default function AdminCalendarPage() {
                                 ))}
                                 {events.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                             Nessun evento da mostrare. Genera un'anteprima o aggiungine uno manualmente.
                                         </TableCell>
                                     </TableRow>
