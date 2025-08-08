@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay, isWithinInterval } from "date-fns";
+import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay, isWithinInterval, getMonth } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -254,7 +254,91 @@ export default function AdminCalendarPage() {
     }, [startDate, endDate]);
     
     const handlePreviewCalendar = async () => {
-        // Funzione cancellata in attesa di ricostruzione
+        if (!startDate || !endDate || !gymFilter || !disciplineFilter) {
+            toast({ variant: "destructive", title: "Dati Mancanti", description: "Seleziona data di inizio, fine, palestra e disciplina." });
+            return;
+        }
+
+        setIsGenerating(true);
+        setEvents([]); // Pulisce l'anteprima precedente
+
+        try {
+            const selectedGym = gyms.find(g => g.id === gymFilter);
+            if (!selectedGym || !selectedGym.weeklySchedule) {
+                toast({ variant: "destructive", title: "Dati Palestra Mancanti", description: "La palestra selezionata non ha un orario settimanale configurato." });
+                setIsGenerating(false);
+                return;
+            }
+
+            const exclusionDates = new Set<string>();
+            if (selectedDateGroupId !== 'none') {
+                const group = dateGroups.find(g => g.id === selectedDateGroupId);
+                group?.dates.forEach(d => {
+                    exclusionDates.add(format(d.toDate(), 'yyyy-MM-dd'));
+                });
+            }
+
+            const allDates = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
+
+            let generatedEvents: Event[] = [];
+            const dayNames = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+
+            allDates.forEach(date => {
+                const dateString = format(date, 'yyyy-MM-dd');
+                if (exclusionDates.has(dateString)) {
+                    return; // Salta la data se è tra quelle da escludere
+                }
+
+                const dayOfWeekName = dayNames[getDay(date)];
+                const scheduleForDay = selectedGym.weeklySchedule?.find(d => d.dayOfWeek === dayOfWeekName);
+
+                if (scheduleForDay && scheduleForDay.slots) {
+                    scheduleForDay.slots.forEach((slot: any, index: number) => {
+                        const [startHour, startMinute] = slot.startTime.split(':').map(Number);
+                        const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+                        
+                        const eventStart = new Date(date);
+                        eventStart.setHours(startHour, startMinute, 0, 0);
+
+                        const eventEnd = new Date(date);
+                        eventEnd.setHours(endHour, endMinute, 0, 0);
+                        
+                        // Genera evento solo se la disciplina dello slot corrisponde a quella filtrata
+                        if (slot.discipline === disciplineFilter) {
+                            generatedEvents.push({
+                                id: `${dateString}-${index}`,
+                                title: disciplineFilter,
+                                type: 'lesson',
+                                startTime: Timestamp.fromDate(eventStart),
+                                endTime: Timestamp.fromDate(eventEnd),
+                                gymId: selectedGym.id,
+                                gymName: selectedGym.name,
+                                discipline: disciplineFilter,
+                            });
+                        }
+                    });
+                }
+            });
+
+            // Filtra per mese se un mese è stato selezionato
+            if (selectedMonth !== 'all') {
+                const [year, month] = selectedMonth.split('-').map(Number);
+                generatedEvents = generatedEvents.filter(event => {
+                    const eventDate = event.startTime.toDate();
+                    return eventDate.getFullYear() === year && eventDate.getMonth() === month - 1;
+                });
+            }
+
+            setEvents(generatedEvents);
+            setGeneratedTitle(`Anteprima per ${selectedGym.name} - ${disciplineFilter} (${generatedEvents.length} lezioni)`);
+            toast({ title: "Anteprima Generata", description: `Sono state trovate ${generatedEvents.length} lezioni per i criteri selezionati.` });
+
+        } catch (error) {
+            console.error("Error generating preview:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Si è verificato un errore durante la generazione dell'anteprima." });
+        } finally {
+            setIsGenerating(false);
+        }
     };
 
     const handleSaveCalendar = async () => {
@@ -410,7 +494,7 @@ export default function AdminCalendarPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {gyms.map(gym => (
-                                        <SelectItem key={gym.id} value={gym.id}>{gym.id}, {gym.name}</SelectItem>
+                                        <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -517,3 +601,4 @@ export default function AdminCalendarPage() {
     
 
     
+
