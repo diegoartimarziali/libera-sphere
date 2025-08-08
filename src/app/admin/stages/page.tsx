@@ -201,11 +201,13 @@ export default function AdminStagesPage() {
             // Filtra per tutti i tipi che non sono 'lesson'
             const q = query(
                 eventsCollection,
-                where("type", "in", ["stage", "exam", "course", "other"]),
-                orderBy("startTime", "desc")
+                where("type", "in", ["stage", "exam", "course", "other"])
             );
             const stagesSnapshot = await getDocs(q);
-            const stagesList = stagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Stage));
+            const stagesList = stagesSnapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() } as Stage))
+                .sort((a,b) => b.startTime.toMillis() - a.startTime.toMillis()); // Ordina qui
+            
             setStages(stagesList);
         } catch (error) {
             console.error("Error fetching stages:", error);
