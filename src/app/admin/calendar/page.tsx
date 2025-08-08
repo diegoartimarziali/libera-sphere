@@ -203,7 +203,7 @@ export default function AdminCalendarPage() {
 
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
     const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('none');
-    const [selectedDates, setSelectedDates] = useState<Timestamp[]>([]);
+    const [selectedDates, setSelectedDates] = useState<Timestamp[] | null>(null);
     
     const [selectedGymIds, setSelectedGymIds] = useState<string[]>([]);
     const [disciplineFilter, setDisciplineFilter] = useState('Tutte le Discipline');
@@ -223,7 +223,7 @@ export default function AdminCalendarPage() {
             const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
             setGyms(gymsList);
             
-            const dateGroupsSnapshot = await getDocs(collection(db, "dateGroups"));
+            const dateGroupsSnapshot = await getDocs(query(collection(db, "dateGroups"), orderBy("name")));
             const dateGroupsList = dateGroupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DateGroup));
             setDateGroups(dateGroupsList);
 
@@ -262,115 +262,13 @@ export default function AdminCalendarPage() {
     }, [startDate, endDate]);
     
     const handleGenerateCalendar = async () => {
-        if (!startDate || !endDate || selectedGymIds.length === 0) {
-            toast({ variant: "destructive", title: "Dati mancanti", description: "Seleziona le date e almeno una palestra." });
-            return;
-        }
-        if (isBefore(endDate, startDate)) {
-             toast({ variant: "destructive", title: "Date non valide", description: "La data di fine non può precedere quella di inizio." });
-            return;
-        }
-
-        setIsGenerating(true);
-        const batch = writeBatch(db);
-
-        try {
-            let generationStartDate = startDate;
-            let generationEndDate = endDate;
-
-            if (selectedMonth !== 'all') {
-                const [year, month] = selectedMonth.split('-').map(Number);
-                const monthDate = new Date(year, month - 1);
-                
-                const monthStart = startOfMonth(monthDate);
-                const monthEnd = endOfMonth(monthDate);
-
-                generationStartDate = startDate > monthStart ? startDate : monthStart;
-                generationEndDate = endDate < monthEnd ? endDate : monthEnd;
-            }
-
-            const allDates = eachDayOfInterval({ start: generationStartDate, end: generationEndDate });
-            const holidayDateStrings = (selectedDates || []).map(ts => format(ts.toDate(), 'yyyy-MM-dd'));
-            const selectedGymsData = gyms.filter(g => selectedGymIds.includes(g.id));
-
-            for (const date of allDates) {
-                const dayOfWeek = date.getDay();
-                const dateString = format(date, 'yyyy-MM-dd');
-                
-                if (holidayDateStrings.includes(dateString)) continue;
-
-                for (const gym of selectedGymsData) {
-                    const daySchedule = gym.weeklySchedule?.find(s => s.dayOfWeek === Object.keys(dayNameToIndex).find(key => dayNameToIndex[key] === dayOfWeek));
-                    if (!daySchedule) continue;
-
-                    const processDiscipline = (discipline: 'Karate' | 'Aikido') => {
-                        let slotsToProcess: any[] = [];
-                        
-                         if (disciplineFilter === 'Tutte le Discipline' || disciplineFilter === discipline) {
-                            if (categoryFilter === 'Tutti i corsi') {
-                                if (discipline === 'Karate') {
-                                    const anchorSlot = daySchedule.slots.find((s: any) => s.discipline === 'Karate' && s.category === "Lezioni Selezione");
-                                    if (anchorSlot) slotsToProcess = [anchorSlot];
-                                } else if (discipline === 'Aikido') {
-                                    const anchorSlot = daySchedule.slots.find((s: any) => s.discipline === 'Aikido' && s.category === "Tutti i Gradi");
-                                    if (anchorSlot) slotsToProcess = [anchorSlot];
-                                }
-                            } else if (categoryFilter === 'Tutti i corsi di Karate (Aggregato)' && discipline === 'Karate') {
-                                const anchorSlot = daySchedule.slots.find((s: any) => s.discipline === 'Karate' && s.category === "Lezioni Selezione");
-                                if (anchorSlot) slotsToProcess = [anchorSlot];
-                            } else if (categoryFilter === 'Tutti i Gradi' && discipline === 'Aikido') {
-                                const anchorSlot = daySchedule.slots.find((s: any) => s.discipline === 'Aikido' && s.category === "Tutti i Gradi");
-                                if (anchorSlot) slotsToProcess = [anchorSlot];
-                            } else if (categoryFilter !== 'Tutte le Categorie') {
-                                slotsToProcess = daySchedule.slots.filter((s: any) => s.discipline === discipline && s.category === categoryFilter);
-                            } else { // Tutte le categorie per una disciplina specifica
-                                slotsToProcess = daySchedule.slots.filter((s: any) => s.discipline === discipline);
-                            }
-                        }
-
-                        slotsToProcess.forEach((slot: any) => {
-                             const [startHour, startMinute] = slot.startTime.split(':').map(Number);
-                             const [endHour, endMinute] = slot.endTime.split(':').map(Number);
-
-                             const lessonStart = new Date(date);
-                             lessonStart.setHours(startHour, startMinute, 0, 0);
-                             const lessonEnd = new Date(date);
-                             lessonEnd.setHours(endHour, endMinute, 0, 0);
-
-                             const newEventRef = doc(collection(db, "events"));
-                             batch.set(newEventRef, {
-                                title: slot.title || `${discipline} - ${slot.category}`,
-                                type: 'lesson',
-                                startTime: Timestamp.fromDate(lessonStart),
-                                endTime: Timestamp.fromDate(lessonEnd),
-                                discipline: discipline,
-                                gymId: gym.id,
-                                gymName: gym.name,
-                             });
-                        });
-                    };
-
-                    if (disciplineFilter === 'Tutte le Discipline') {
-                        processDiscipline('Karate');
-                        processDiscipline('Aikido');
-                    } else if (disciplineFilter === 'Karate') {
-                        processDiscipline('Karate');
-                    } else if (disciplineFilter === 'Aikido') {
-                        processDiscipline('Aikido');
-                    }
-                }
-            }
-
-            await batch.commit();
-            toast({ title: "Calendario generato con successo!", description: `Creati nuovi eventi.` });
-            await fetchAllData();
-
-        } catch (error) {
-            console.error(error);
-            toast({ variant: "destructive", title: "Errore", description: "Impossibile generare il calendario." });
-        } finally {
-            setIsGenerating(false);
-        }
+        // Logica del generatore temporaneamente disabilitata per lavorare sulla UI
+        toast({
+            title: "Generatore Disabilitato",
+            description: "La logica di generazione del calendario è temporaneamente disattivata per modifiche all'interfaccia.",
+            variant: "info"
+        });
+        return;
     };
     
     const handleDeleteEvent = async (eventId: string) => {
@@ -556,12 +454,17 @@ export default function AdminCalendarPage() {
                                 <div className="p-2 space-y-1">
                                     <div
                                         className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                        onClick={() => handleSelectAllGyms(!selectedGymIds.length || selectedGymIds.length < gyms.length)}
+                                        onClick={(e) => {
+                                            // Prevenire la chiusura del popover
+                                            e.stopPropagation();
+                                            const isChecked = selectedGymIds.length === gyms.length;
+                                            handleSelectAllGyms(!isChecked);
+                                        }}
                                     >
                                         <Checkbox 
                                             id="gym-all" 
-                                            checked={selectedGymIds.length === gyms.length}
-                                            onCheckedChange={(checked) => handleSelectAllGyms(checked as boolean)}
+                                            checked={gyms.length > 0 && selectedGymIds.length === gyms.length}
+                                            onCheckedChange={handleSelectAllGyms}
                                         />
                                         <Label htmlFor="gym-all" className="flex-1 cursor-pointer font-semibold">Tutte le palestre</Label>
                                     </div>
@@ -614,9 +517,9 @@ export default function AdminCalendarPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleGenerateCalendar} disabled={isGenerating}>
+                    <Button onClick={handleGenerateCalendar} disabled={true}>
                         {isGenerating ? <Loader2 className="animate-spin mr-2" /> : null}
-                        Genera Calendario
+                        Genera Calendario (Logica Disabilitata)
                     </Button>
                 </CardFooter>
             </Card>
