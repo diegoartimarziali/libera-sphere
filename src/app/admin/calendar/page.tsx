@@ -253,21 +253,31 @@ export default function AdminCalendarPage() {
                     const processDiscipline = (discipline: 'Karate' | 'Aikido') => {
                         let slotsToProcess = daySchedule.slots.filter((slot: any) => slot.discipline === discipline);
                         
-                        if (discipline === 'Karate') {
-                            if (categoryFilter === 'Tutti i corsi di Karate (Aggregato)' || (categoryFilter === 'Tutti i corsi' && disciplineFilter === 'Tutte le Discipline')) {
+                        if (disciplineFilter === 'Tutte le Discipline' && categoryFilter === 'Tutti i corsi') {
+                            if (discipline === 'Karate') {
                                 const anchorSlot = slotsToProcess.find((s: any) => s.category === "Lezioni Selezione");
                                 if (anchorSlot) slotsToProcess = [anchorSlot]; else slotsToProcess = [];
-                            } else if (categoryFilter !== 'Tutte le Categorie' && categoryFilter !== 'Tutti i corsi') {
-                                slotsToProcess = slotsToProcess.filter((s: any) => s.category === categoryFilter);
-                            }
-                        }
-
-                        if(discipline === 'Aikido') {
-                            if (categoryFilter === 'Tutti i corsi' || categoryFilter === 'Tutti i Gradi') {
+                            } else if (discipline === 'Aikido') {
                                 const anchorSlot = slotsToProcess.find((s: any) => s.category === "Tutti i Gradi");
                                 if (anchorSlot) slotsToProcess = [anchorSlot]; else slotsToProcess = [];
-                            } else if (categoryFilter !== 'Tutte le Categorie' && categoryFilter !== 'Tutti i corsi') {
-                                slotsToProcess = slotsToProcess.filter((s:any) => s.category === categoryFilter);
+                            }
+                        } else {
+                            if (discipline === 'Karate') {
+                                if (categoryFilter === 'Tutti i corsi di Karate (Aggregato)') {
+                                    const anchorSlot = slotsToProcess.find((s: any) => s.category === "Lezioni Selezione");
+                                    if (anchorSlot) slotsToProcess = [anchorSlot]; else slotsToProcess = [];
+                                } else if (categoryFilter !== 'Tutte le Categorie' && categoryFilter !== 'Tutti i corsi') {
+                                    slotsToProcess = slotsToProcess.filter((s: any) => s.category === categoryFilter);
+                                }
+                            }
+    
+                            if(discipline === 'Aikido') {
+                                if (categoryFilter === 'Tutti i Gradi') {
+                                    const anchorSlot = slotsToProcess.find((s: any) => s.category === "Tutti i Gradi");
+                                    if (anchorSlot) slotsToProcess = [anchorSlot]; else slotsToProcess = [];
+                                } else if (categoryFilter !== 'Tutte le Categorie' && categoryFilter !== 'Tutti i corsi') {
+                                    slotsToProcess = slotsToProcess.filter((s:any) => s.category === categoryFilter);
+                                }
                             }
                         }
 
@@ -294,13 +304,8 @@ export default function AdminCalendarPage() {
                     };
 
                     if (disciplineFilter === 'Tutte le Discipline') {
-                         if (categoryFilter === 'Tutti i corsi') {
-                            processDiscipline('Karate');
-                            processDiscipline('Aikido');
-                        } else {
-                            processDiscipline('Karate');
-                            processDiscipline('Aikido');
-                        }
+                        processDiscipline('Karate');
+                        processDiscipline('Aikido');
                     } else if (disciplineFilter === 'Karate') {
                         processDiscipline('Karate');
                     } else if (disciplineFilter === 'Aikido') {
@@ -433,6 +438,52 @@ export default function AdminCalendarPage() {
                         <Label>Festività da Escludere (una per riga, formato GG/MM/AAAA)</Label>
                         <Textarea placeholder={"25/12/2024\n01/01/2025"} value={holidays} onChange={(e) => setHolidays(e.target.value)} />
                     </div>
+                     <div className="space-y-2">
+                        <Label>Palestre da includere</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start font-normal"
+                                >
+                                    {selectedGymIds.length > 0 ? (
+                                        <div className="flex gap-1 flex-wrap">
+                                            {selectedGymIds.map(gymId => {
+                                                const gym = gyms.find(g => g.id === gymId);
+                                                return <Badge key={gymId} variant="secondary">{gym?.name}</Badge>;
+                                            })}
+                                        </div>
+                                    ) : (
+                                        "Seleziona palestre..."
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <div className="p-2 space-y-1">
+                                    <div
+                                        className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                    >
+                                        <Checkbox id="gym-all" />
+                                        <Label htmlFor="gym-all" className="flex-1 cursor-pointer font-semibold">Tutte le palestre</Label>
+                                    </div>
+                                    {gyms.map(gym => (
+                                        <div
+                                            key={gym.id}
+                                            className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                            onClick={() => handleGymSelection(gym.id)}
+                                        >
+                                            <Checkbox
+                                                id={`gym-${gym.id}`}
+                                                checked={selectedGymIds.includes(gym.id)}
+                                                onCheckedChange={() => handleGymSelection(gym.id)}
+                                            />
+                                            <Label htmlFor={`gym-${gym.id}`} className="flex-1 cursor-pointer">{gym.name}</Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <Label>Filtra per Disciplina</Label>
@@ -461,46 +512,6 @@ export default function AdminCalendarPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Palestre da includere</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className="w-full justify-start font-normal"
-                                >
-                                    {selectedGymIds.length > 0 ? (
-                                        <div className="flex gap-1 flex-wrap">
-                                            {selectedGymIds.map(gymId => {
-                                                const gym = gyms.find(g => g.id === gymId);
-                                                return <Badge key={gymId} variant="secondary">{gym?.name}</Badge>;
-                                            })}
-                                        </div>
-                                    ) : (
-                                        "Seleziona palestre..."
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <div className="p-2 space-y-1">
-                                    {gyms.map(gym => (
-                                        <div
-                                            key={gym.id}
-                                            className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                            onClick={() => handleGymSelection(gym.id)}
-                                        >
-                                            <Checkbox
-                                                id={`gym-${gym.id}`}
-                                                checked={selectedGymIds.includes(gym.id)}
-                                                onCheckedChange={() => handleGymSelection(gym.id)}
-                                            />
-                                            <Label htmlFor={`gym-${gym.id}`} className="flex-1 cursor-pointer">{gym.name}</Label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </PopoverContent>
-                        </Popover>
                     </div>
                 </CardContent>
                 <CardFooter>
@@ -574,4 +585,5 @@ export default function AdminCalendarPage() {
 
 
     
+
 
