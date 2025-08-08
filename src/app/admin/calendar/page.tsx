@@ -204,7 +204,7 @@ export default function AdminCalendarPage() {
 
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
     const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('none');
-    const [selectedDates, setSelectedDates] = useState<Timestamp[]>([]);
+    const [selectedDates, setSelectedDates] = useState<Timestamp[] | null>([]);
     
     const [gymFilter, setGymFilter] = useState('all');
     const [disciplineFilter, setDisciplineFilter] = useState('Karate');
@@ -333,11 +333,11 @@ export default function AdminCalendarPage() {
                 <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                             <Label>Data Inizio Periodo</Label>
+                             <Label>Data Inizio Calendario</Label>
                              <DatePicker value={startDate} onChange={setStartDate} />
                         </div>
                          <div className="space-y-2">
-                             <Label>Data Fine Periodo</Label>
+                             <Label>Data Fine Calendario</Label>
                              <DatePicker value={endDate} onChange={setEndDate} />
                         </div>
                     </div>
@@ -485,3 +485,4 @@ export default function AdminCalendarPage() {
     
 
     
+
