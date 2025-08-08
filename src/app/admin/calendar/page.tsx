@@ -203,7 +203,7 @@ export default function AdminCalendarPage() {
 
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
     const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('none');
-    const [selectedDates, setSelectedDates] = useState<Timestamp[] | null>(null);
+    const [selectedDates, setSelectedDates] = useState<Timestamp[]>([]);
     
     const [selectedGymIds, setSelectedGymIds] = useState<string[]>([]);
     const [disciplineFilter, setDisciplineFilter] = useState('Tutte le Discipline');
@@ -327,11 +327,11 @@ export default function AdminCalendarPage() {
     const handleDateGroupChange = (groupId: string) => {
         setSelectedDateGroupId(groupId);
         if (groupId === "none") {
-            setSelectedDates(null);
+            setSelectedDates([]);
             return;
         }
         const selectedGroup = dateGroups.find(g => g.id === groupId);
-        setSelectedDates(selectedGroup ? selectedGroup.dates : null);
+        setSelectedDates(selectedGroup ? selectedGroup.dates : []);
     };
 
 
@@ -343,7 +343,7 @@ export default function AdminCalendarPage() {
                     <CardDescription>Crea in massa le lezioni di routine per un periodo, escludendo le festività.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                              <Label>Data Inizio Periodo</Label>
                              <DatePicker value={startDate} onChange={setStartDate} />
@@ -352,8 +352,25 @@ export default function AdminCalendarPage() {
                              <Label>Data Fine Periodo</Label>
                              <DatePicker value={endDate} onChange={setEndDate} />
                         </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Filtra per Mese (Opzionale)</Label>
+                            <Label>Gruppo di Festività da Escludere</Label>
+                            <Select value={selectedDateGroupId} onValueChange={handleDateGroupChange}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleziona un gruppo di date..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Nessuna esclusione</SelectItem>
+                                    {dateGroups.map(group => (
+                                        <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Filtra per Mese</Label>
                              <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={availableMonths.length === 0}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Seleziona un mese..." />
@@ -366,23 +383,8 @@ export default function AdminCalendarPage() {
                             </Select>
                         </div>
                     </div>
-
+                    
                     <div className="space-y-2">
-                        <Label>Gruppo di Festività da Escludere</Label>
-                        <Select value={selectedDateGroupId} onValueChange={handleDateGroupChange}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleziona un gruppo di date..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="none">Nessuna esclusione</SelectItem>
-                                {dateGroups.map(group => (
-                                    <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                     <div className="space-y-2">
                         <Label>Palestre da includere</Label>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -434,6 +436,7 @@ export default function AdminCalendarPage() {
                             </PopoverContent>
                         </Popover>
                     </div>
+
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <Label>Filtra per Disciplina</Label>
@@ -538,6 +541,8 @@ export default function AdminCalendarPage() {
 
 
 
+
+    
 
     
 
