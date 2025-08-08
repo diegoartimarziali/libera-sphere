@@ -383,59 +383,6 @@ export default function AdminCalendarPage() {
                             </Select>
                         </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                        <Label>Palestre da includere</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className="w-full justify-start font-normal"
-                                >
-                                    {selectedGymIds.length > 0 ? (
-                                        <div className="flex gap-1 flex-wrap">
-                                            {selectedGymIds.length === gyms.length ? (
-                                                <Badge variant="secondary">Tutte le palestre</Badge>
-                                            ) : (
-                                                selectedGymIds.map(gymId => {
-                                                    const gym = gyms.find(g => g.id === gymId);
-                                                    return <Badge key={gymId} variant="secondary">{gym?.name}</Badge>;
-                                                })
-                                            )}
-                                        </div>
-                                    ) : (
-                                        "Seleziona palestre..."
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <div className="p-2 space-y-1">
-                                    <div
-                                        className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                    >
-                                        <Checkbox 
-                                            id="gym-all" 
-                                        />
-                                        <Label htmlFor="gym-all" className="flex-1 cursor-pointer font-semibold">Tutte le palestre</Label>
-                                    </div>
-                                    {gyms.map(gym => (
-                                        <div
-                                            key={gym.id}
-                                            className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                            onClick={() => handleGymSelection(gym.id)}
-                                        >
-                                            <Checkbox
-                                                id={`gym-${gym.id}`}
-                                                checked={selectedGymIds.includes(gym.id)}
-                                                onCheckedChange={() => handleGymSelection(gym.id)}
-                                            />
-                                            <Label htmlFor={`gym-${gym.id}`} className="flex-1 cursor-pointer">{gym.name}</Label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </PopoverContent>
-                        </Popover>
-                    </div>
 
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <div className="space-y-2">
@@ -541,6 +488,8 @@ export default function AdminCalendarPage() {
 
 
 
+
+    
 
     
 
