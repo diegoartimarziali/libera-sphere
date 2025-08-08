@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 interface Gym {
   id: string;
   name: string;
+  address?: string;
   weeklySchedule?: any[];
 }
 
@@ -203,9 +204,9 @@ export default function AdminCalendarPage() {
 
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
     const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('none');
-    const [selectedDates, setSelectedDates] = useState<Timestamp[]>([]);
+    const [selectedDates, setSelectedDates] = useState<Timestamp[] | null>([]);
     
-    const [selectedGymIds, setSelectedGymIds] = useState<string[]>([]);
+    const [gymFilter, setGymFilter] = useState('all');
     const [disciplineFilter, setDisciplineFilter] = useState('Tutte le Discipline');
     const [categoryFilter, setCategoryFilter] = useState('Tutte le Categorie');
 
@@ -255,10 +256,10 @@ export default function AdminCalendarPage() {
                 { value: 'all', label: 'Tutti i mesi' },
                 ...monthOptions
             ]);
-            setSelectedMonth('all');
         } else {
             setAvailableMonths([]);
         }
+        setSelectedMonth('all');
     }, [startDate, endDate]);
     
     const handleGenerateCalendar = async () => {
@@ -311,18 +312,6 @@ export default function AdminCalendarPage() {
         setEditingEvent(undefined);
         setIsFormOpen(true);
     }
-    
-    const handleGymSelection = (gymId: string) => {
-        setSelectedGymIds(prev =>
-            prev.includes(gymId)
-                ? prev.filter(id => id !== gymId)
-                : [...prev, gymId]
-        );
-    };
-
-    const handleSelectAllGyms = (checked: boolean) => {
-        // Logica temporaneamente disabilitata
-    };
     
     const handleDateGroupChange = (groupId: string) => {
         setSelectedDateGroupId(groupId);
@@ -384,7 +373,21 @@ export default function AdminCalendarPage() {
                         </div>
                     </div>
 
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label>Filtra per Palestra</Label>
+                            <Select value={gymFilter} onValueChange={setGymFilter}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleziona palestra..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tutte le Palestre</SelectItem>
+                                    {gyms.map(gym => (
+                                        <SelectItem key={gym.id} value={gym.id}>{gym.name} - {gym.address}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                          <div className="space-y-2">
                             <Label>Filtra per Disciplina</Label>
                             <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
