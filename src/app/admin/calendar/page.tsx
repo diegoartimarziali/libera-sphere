@@ -260,7 +260,7 @@ export default function AdminCalendarPage() {
         }
 
         setIsGenerating(true);
-        setEvents([]); // Pulisce l'anteprima precedente
+        setEvents([]); 
 
         try {
             const selectedGym = gyms.find(g => g.id === gymFilter);
@@ -279,9 +279,8 @@ export default function AdminCalendarPage() {
             }
 
             const allDates = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
-
-            let generatedEvents: Event[] = [];
             const dayNames = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+            let generatedEvents: Event[] = [];
 
             allDates.forEach(date => {
                 const dateString = format(date, 'yyyy-MM-dd');
@@ -294,20 +293,21 @@ export default function AdminCalendarPage() {
 
                 if (scheduleForDay && scheduleForDay.slots) {
                     scheduleForDay.slots.forEach((slot: any, index: number) => {
-                        const [startHour, startMinute] = slot.startTime.split(':').map(Number);
-                        const [endHour, endMinute] = slot.endTime.split(':').map(Number);
-                        
-                        const eventStart = new Date(date);
-                        eventStart.setHours(startHour, startMinute, 0, 0);
-
-                        const eventEnd = new Date(date);
-                        eventEnd.setHours(endHour, endMinute, 0, 0);
-                        
-                        // Genera evento solo se la disciplina dello slot corrisponde a quella filtrata
+                        // **LA CONDIZIONE CHIAVE**
+                        // Crea la lezione solo se la disciplina dello slot corrisponde a quella selezionata nel filtro
                         if (slot.discipline === disciplineFilter) {
+                            const [startHour, startMinute] = slot.startTime.split(':').map(Number);
+                            const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+                            
+                            const eventStart = new Date(date);
+                            eventStart.setHours(startHour, startMinute, 0, 0);
+
+                            const eventEnd = new Date(date);
+                            eventEnd.setHours(endHour, endMinute, 0, 0);
+                            
                             generatedEvents.push({
-                                id: `${dateString}-${index}`,
-                                title: disciplineFilter,
+                                id: `${dateString}-${disciplineFilter}-${index}`, // ID univoco per l'anteprima
+                                title: disciplineFilter, // Il titolo è la disciplina stessa
                                 type: 'lesson',
                                 startTime: Timestamp.fromDate(eventStart),
                                 endTime: Timestamp.fromDate(eventEnd),
@@ -331,7 +331,7 @@ export default function AdminCalendarPage() {
 
             setEvents(generatedEvents);
             setGeneratedTitle(`Anteprima per ${selectedGym.name} - ${disciplineFilter} (${generatedEvents.length} lezioni)`);
-            toast({ title: "Anteprima Generata", description: `Sono state trovate ${generatedEvents.length} lezioni per i criteri selezionati.` });
+            toast({ title: "Anteprima Generata", description: `Trovate ${generatedEvents.length} lezioni per i criteri selezionati.` });
 
         } catch (error) {
             console.error("Error generating preview:", error);
@@ -340,6 +340,7 @@ export default function AdminCalendarPage() {
             setIsGenerating(false);
         }
     };
+
 
     const handleSaveCalendar = async () => {
         if (events.length === 0) {
@@ -602,3 +603,6 @@ export default function AdminCalendarPage() {
 
     
 
+
+
+    
