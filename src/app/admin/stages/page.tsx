@@ -36,15 +36,14 @@ export interface Stage {
     location: string;
     price: number;
     imageUrl?: string;
-    sumupLink: string;
     open_to: string;
     type: 'stage' | 'exam' | 'course' | 'other';
 }
 
 const stageFormSchema = z.object({
     id: z.string().optional(),
-    title: z.string().min(3, "Il titolo è obbligatorio."),
     type: z.enum(['stage', 'exam', 'course', 'other'], { required_error: "La tipologia è obbligatoria." }),
+    title: z.string().min(3, "Il titolo è obbligatorio."),
     startDate: z.date({ required_error: "La data di inizio è obbligatoria." }),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
     endDate: z.date({ required_error: "La data di fine è obbligatoria." }),
@@ -52,7 +51,6 @@ const stageFormSchema = z.object({
     location: z.string().min(3, "Il luogo è obbligatorio."),
     description: z.string().optional(),
     price: z.preprocess((val) => Number(val), z.number().min(0, "Il prezzo non può essere negativo.")),
-    sumupLink: z.string().url("Deve essere un URL valido.").optional().or(z.literal('')),
     open_to: z.string().min(2, "Specifica a chi è rivolto l'evento."),
     imageUrl: z.string().url("Deve essere un URL valido.").optional().or(z.literal('')),
 });
@@ -105,7 +103,6 @@ function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave:
             location: '',
             description: '',
             price: 0,
-            sumupLink: '',
             open_to: '',
             imageUrl: ''
         }
@@ -169,9 +166,6 @@ function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave:
                     )} />
                 </div>
 
-                 <FormField control={form.control} name="sumupLink" render={({ field }) => (
-                    <FormItem><FormLabel>Link Pagamento (SumUp)</FormLabel><FormControl><Input {...field} placeholder="https://" /></FormControl><FormMessage /></FormItem>
-                )} />
                  <FormField control={form.control} name="imageUrl" render={({ field }) => (
                     <FormItem><FormLabel>URL Immagine</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
                 )} />
@@ -287,7 +281,6 @@ export default function AdminStagesPage() {
             location: stage.location,
             description: stage.description,
             price: stage.price,
-            sumupLink: stage.sumupLink,
             open_to: stage.open_to,
             imageUrl: stage.imageUrl,
         });

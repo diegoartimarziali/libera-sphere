@@ -26,9 +26,9 @@ export function StageCard({ stage }: StageCardProps) {
     const formattedTime = stage.startTime && stage.endTime ? `${format(stage.startTime.toDate(), "HH:mm")} - ${format(stage.endTime.toDate(), "HH:mm")}` : "Orario da definire";
 
     const handleEnroll = () => {
-        if (stage.sumupLink) {
-            window.open(stage.sumupLink, '_blank', 'noopener,noreferrer');
-        }
+        // Placeholder for future enrollment logic, e.g., navigating to a detailed page or opening a modal.
+        // For now, it does nothing since sumupLink is removed.
+        console.log("Enrollment for stage:", stage.id);
     };
 
     return (
@@ -56,13 +56,10 @@ export function StageCard({ stage }: StageCardProps) {
                 <InfoRow icon={Tag} text={`Costo: ${stage.price.toFixed(2)} €`} />
             </CardContent>
             <CardFooter>
-                <Button className="w-full" onClick={handleEnroll} disabled={!stage.sumupLink}>
-                    <ExternalLink className="mr-2" />
-                    Iscriviti Ora
+                 <Button className="w-full" onClick={handleEnroll}>
+                    Maggiori Dettagli
                 </Button>
             </CardFooter>
         </Card>
     );
 }
-
-    

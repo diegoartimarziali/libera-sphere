@@ -17,7 +17,6 @@ export interface Stage {
     location: string;
     price: number;
     imageUrl?: string;
-    sumupLink: string;
     type: 'stage';
     open_to: string;
 }
@@ -51,7 +50,6 @@ export default function StagesPage() {
                         location: data.location || "Luogo da definire",
                         price: data.price || 0,
                         imageUrl: data.imageUrl,
-                        sumupLink: data.sumupLink || "",
                         open_to: data.open_to || "Non specificato",
                         type: 'stage' // Aggiungiamo esplicitamente il tipo
                     } as Stage;
@@ -105,5 +103,3 @@ export default function StagesPage() {
         </div>
     );
 }
-
-    
