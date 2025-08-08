@@ -8,11 +8,11 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay } from "date-fns";
+import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay, isWithinInterval } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, X } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, X, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -86,17 +86,6 @@ const eventFormSchema = z.object({
 }, { message: "Il luogo è obbligatorio per gli stage", path: ["location"] });
 
 type EventFormData = z.infer<typeof eventFormSchema>;
-
-const lessonCategories = [
-    'Tutti i corsi',
-    'Tutte le Categorie',
-    'Tutti i corsi di Karate (Aggregato)',
-    'Lezioni Selezione',
-    'Cinture da Bianca ad Arancio',
-    'Cinture da Verde a Nera',
-    'Cinture Nere',
-    'Tutti i Gradi'
-]
 
 // =================================================================
 // COMPONENTI
@@ -193,8 +182,9 @@ export default function AdminCalendarPage() {
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [gyms, setGyms] = useState<Gym[]>([]);
-    const [events, setEvents] = useState<Event[]>([]);
+    const [events, setEvents] = useState<Event[]>([]); // Contiene gli eventi dell'anteprima o quelli salvati
     const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
     
     // Stati per il generatore
@@ -206,20 +196,17 @@ export default function AdminCalendarPage() {
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
     const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('none');
     
-    const [gymFilter, setGymFilter] = useState('all');
+    const [gymFilter, setGymFilter] = useState<string>('');
     const [disciplineFilter, setDisciplineFilter] = useState('Karate');
 
     // Stati per il form modale
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<EventFormData | undefined>(undefined);
 
-    // Mappa per convertire il nome del giorno in un numero (0=Domenica, 1=Lunedì, ecc.)
-    const dayNameToIndex: { [key: string]: number } = { 'Domenica': 0, 'Lunedì': 1, 'Martedì': 2, 'Mercoledì': 3, 'Giovedì': 4, 'Venerdì': 5, 'Sabato': 6 };
-
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            const gymsSnapshot = await getDocs(collection(db, "gyms"));
+            const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
             const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
             setGyms(gymsList);
             
@@ -237,7 +224,8 @@ export default function AdminCalendarPage() {
 
     useEffect(() => {
         fetchInitialData();
-    }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         if (startDate && endDate && isBefore(endDate, startDate) === false) {
@@ -256,9 +244,9 @@ export default function AdminCalendarPage() {
         setSelectedMonth('all');
     }, [startDate, endDate]);
     
-    const handleGenerateCalendar = async () => {
+    const handlePreviewCalendar = async () => {
         setIsGenerating(true);
-        setEvents([]); // Pulisce gli eventi precedenti
+        setEvents([]); 
         setGeneratedTitle(null);
 
         // --- VALIDAZIONE ---
@@ -267,7 +255,7 @@ export default function AdminCalendarPage() {
             setIsGenerating(false);
             return;
         }
-         if (gymFilter === 'all') {
+         if (!gymFilter) {
             toast({ variant: "destructive", title: "Palestra non selezionata", description: "Devi selezionare una palestra specifica per generare il calendario." });
             setIsGenerating(false);
             return;
@@ -280,14 +268,12 @@ export default function AdminCalendarPage() {
             return;
         }
         
-        // SIMULAZIONE - Creazione eventi in memoria
         try {
             const allDates = eachDayOfInterval({ start: startDate, end: endDate });
             const excludedDates = dateGroups.find(g => g.id === selectedDateGroupId)?.dates.map(ts => startOfDay(ts.toDate()).getTime()) || [];
             
             let filteredDates = allDates;
             
-            // Filtra per mese se non è 'all'
             if (selectedMonth !== 'all') {
                 const [year, month] = selectedMonth.split('-').map(Number);
                 const monthStart = startOfMonth(new Date(year, month - 1));
@@ -298,16 +284,14 @@ export default function AdminCalendarPage() {
             const newEvents: Event[] = [];
 
             filteredDates.forEach(date => {
-                // Salta i giorni esclusi
                 if (excludedDates.includes(startOfDay(date).getTime())) {
                     return;
                 }
                 
-                const dayOfWeekIndex = getDay(date); // 0 per Domenica, 1 per Lunedì...
                 const dayOfWeekName = format(date, "EEEE", { locale: it });
 
                 selectedGym.weeklySchedule
-                    .filter(schedule => schedule.dayOfWeek === dayOfWeekName && schedule.discipline === disciplineFilter)
+                    ?.filter(schedule => schedule.dayOfWeek === dayOfWeekName && schedule.discipline === disciplineFilter)
                     .forEach((scheduleSlot, index) => {
                         scheduleSlot.slots.forEach((slot: any, slotIndex: number) => {
                             const [startHour, startMinute] = slot.startTime.split(':').map(Number);
@@ -317,7 +301,7 @@ export default function AdminCalendarPage() {
                             const eventEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), endHour, endMinute);
 
                             newEvents.push({
-                                id: `${format(date, 'yyyy-MM-dd')}-${slotIndex}-${index}`,
+                                id: `preview-${format(date, 'yyyy-MM-dd')}-${slotIndex}-${index}`,
                                 title: slot.category,
                                 type: 'lesson',
                                 startTime: Timestamp.fromDate(eventStart),
@@ -332,41 +316,88 @@ export default function AdminCalendarPage() {
             
             setEvents(newEvents);
             
-            // Creazione titolo di resoconto
             const monthLabel = availableMonths.find(m => m.value === selectedMonth)?.label || "Tutti i mesi";
             const gymLabel = selectedGym.name;
-            const title = `Calendario stagione ${format(startDate, "dd/MM/yy")} - ${format(endDate, "dd/MM/yy")} ${selectedMonth !== 'all' ? `mese di ${monthLabel}` : ''} Palestra: ${gymLabel}`;
+            const title = `Calendario stagione ${format(startDate, "dd/MM/yy")} - ${format(endDate, "dd/MM/yy")} ${selectedMonth !== 'all' ? `(${monthLabel})` : ''} | Palestra: ${gymLabel}`;
             setGeneratedTitle(title);
 
             toast({
-                title: "Calendario Generato (Simulazione)",
-                description: `Sono state create ${newEvents.length} lezioni in memoria. Nessun dato è stato salvato.`
+                title: "Anteprima Generata",
+                description: `Sono state create ${newEvents.length} lezioni in memoria. Controlla e salva per renderle permanenti.`
             });
 
         } catch (error) {
-             console.error("Error during calendar generation simulation:", error);
-             toast({ variant: "destructive", title: "Errore di Simulazione", description: "Si è verificato un errore durante la generazione." });
+             console.error("Error during calendar preview generation:", error);
+             toast({ variant: "destructive", title: "Errore di Anteprima", description: "Si è verificato un errore durante la generazione." });
         } finally {
             setIsGenerating(false);
         }
     };
+
+    const handleSaveCalendar = async () => {
+        if (events.length === 0) {
+            toast({ variant: "destructive", title: "Nessun evento", description: "Non ci sono eventi nell'anteprima da salvare." });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            const batch = writeBatch(db);
+            events.forEach(event => {
+                const newEventRef = doc(collection(db, "events"));
+                const { id, ...eventData } = event; // Escludi l'ID di anteprima
+                batch.set(newEventRef, eventData);
+            });
+            await batch.commit();
+            toast({
+                title: "Calendario Salvato!",
+                description: `${events.length} eventi sono stati salvati con successo su Firebase.`,
+                variant: "success",
+            });
+            // Svuota l'anteprima dopo il salvataggio
+            setEvents([]);
+            setGeneratedTitle(null);
+        } catch (error) {
+            console.error("Error saving calendar to Firebase:", error);
+            toast({ variant: "destructive", title: "Errore di Salvataggio", description: "Impossibile salvare il calendario. Riprova." });
+        } finally {
+            setIsSaving(false);
+        }
+    };
     
     const handleDeleteEvent = async (eventId: string) => {
+        // Questa funzione ora gestisce solo l'eliminazione dall'anteprima in memoria
+        setEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
         toast({
-            title: "Gestione Eventi Disabilitata",
-            description: "La logica di eliminazione degli eventi è temporaneamente disattivata.",
-            variant: "info"
+            title: "Lezione Rimossa dall'Anteprima",
+            description: "La lezione è stata eliminata solo dalla visualizzazione corrente. Per salvare le modifiche, clicca su 'Salva Calendario'."
         });
-        return;
     }
     
     const handleSaveEvent = async (data: EventFormData) => {
-         toast({
-            title: "Gestione Eventi Disabilitata",
-            description: "La logica di creazione/modifica degli eventi è temporaneamente disattivata.",
-            variant: "info"
-        });
-        return;
+        // Questa funzione ora gestisce solo aggiunta/modifica nell'anteprima in memoria
+        const { startDate, startTime, endDate, endTime, ...restData } = data;
+        const startDateTime = new Date(`${format(startDate, 'yyyy-MM-dd')}T${startTime}`);
+        const endDateTime = new Date(`${format(endDate, 'yyyy-MM-dd')}T${endTime}`);
+        
+        const newOrUpdatedEvent: Event = {
+            id: data.id || `manual-${new Date().getTime()}`,
+            title: restData.title,
+            type: restData.type,
+            startTime: Timestamp.fromDate(startDateTime),
+            endTime: Timestamp.fromDate(endDateTime),
+            discipline: restData.discipline,
+            gymId: restData.gymId,
+            gymName: gyms.find(g => g.id === restData.gymId)?.name,
+            location: restData.location,
+        };
+
+        if (data.id) { // Modifica
+            setEvents(prev => prev.map(e => e.id === data.id ? newOrUpdatedEvent : e));
+        } else { // Creazione
+            setEvents(prev => [...prev, newOrUpdatedEvent]);
+        }
+        toast({ title: "Evento Aggiornato nell'Anteprima", description: "Salva il calendario per rendere la modifica permanente." });
+        setIsFormOpen(false);
     }
 
     const openEditForm = (event: Event) => {
@@ -448,14 +479,13 @@ export default function AdminCalendarPage() {
                     </div>
 
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                         <div className="space-y-2">
                             <Label>Filtra per Palestra</Label>
                             <Select value={gymFilter} onValueChange={setGymFilter}>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Seleziona palestra..." />
+                                    <SelectValue placeholder="Seleziona una palestra..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Tutte le Palestre</SelectItem>
                                     {gyms.map(gym => (
                                         <SelectItem key={gym.id} value={gym.id}>{gym.name} - {gym.address}</SelectItem>
                                     ))}
@@ -475,35 +505,31 @@ export default function AdminCalendarPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleGenerateCalendar} disabled={isGenerating}>
+                    <Button onClick={handlePreviewCalendar} disabled={isGenerating || isSaving}>
                         {isGenerating ? <Loader2 className="animate-spin mr-2" /> : null}
-                        Genera Calendario
+                        Genera Anteprima
                     </Button>
                 </CardFooter>
             </Card>
 
              <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <CardTitle>Gestione Eventi</CardTitle>
+                    <div className="flex justify-between items-start sm:items-center flex-col sm:flex-row gap-4">
+                        <div className="flex-1">
+                            <CardTitle>Anteprima Calendario</CardTitle>
                             {generatedTitle ? (
-                                <CardDescription>{generatedTitle}</CardDescription>
+                                <CardDescription className="mt-2">{generatedTitle}</CardDescription>
                             ) : (
-                                <CardDescription>Gestisci manualmente eventi singoli come stage o lezioni extra.</CardDescription>
+                                <CardDescription className="mt-2">Genera un'anteprima per visualizzare gli eventi. Potrai modificarli o salvarli su Firebase.</CardDescription>
                             )}
                         </div>
-                         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                            <DialogTrigger asChild>
-                                 <Button onClick={openCreateForm}><PlusCircle className="mr-2"/>Crea Evento</Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-2xl">
-                                <DialogHeader>
-                                    <DialogTitle>{editingEvent ? "Modifica Evento" : "Crea Nuovo Evento"}</DialogTitle>
-                                </DialogHeader>
-                                <EventForm event={editingEvent} gyms={gyms} onSave={handleSaveEvent} onCancel={() => setIsFormOpen(false)} />
-                            </DialogContent>
-                        </Dialog>
+                        <div className="flex w-full sm:w-auto gap-2">
+                             <Button onClick={openCreateForm} variant="outline" className="w-full sm:w-auto"><PlusCircle className="mr-2"/>Aggiungi</Button>
+                             <Button onClick={handleSaveCalendar} disabled={isSaving || isGenerating || events.length === 0} className="w-full sm:w-auto">
+                                {isSaving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2" />}
+                                Salva su DB
+                             </Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -529,14 +555,14 @@ export default function AdminCalendarPage() {
                                         <TableCell>{event.gymName || event.location}</TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="sm" onClick={() => openEditForm(event)}>Modifica</Button>
-                                            <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteEvent(event.id)}><Trash2 className="w-4 h-4"/></Button>
+                                            <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteEvent(event.id)}><Trash2 className="w-4 h-4"/></Button>
                                         </TableCell>
                                     </TableRow>
                                 ))}
                                 {events.length === 0 && (
                                     <TableRow>
                                         <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                                            Nessun evento da mostrare. Genera il calendario o creane uno manualmente.
+                                            Nessun evento da mostrare. Genera un'anteprima o aggiungine uno manualmente.
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -546,30 +572,23 @@ export default function AdminCalendarPage() {
                 </CardContent>
              </Card>
 
+              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>{editingEvent ? "Modifica Evento" : "Crea Nuovo Evento"}</DialogTitle>
+                    </DialogHeader>
+                    <EventForm 
+                        event={editingEvent} 
+                        gyms={gyms} 
+                        onSave={handleSaveEvent} 
+                        onCancel={() => setIsFormOpen(false)} 
+                    />
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 }
-    
-
-    
-
-
-
-    
-
-
-
-
-    
-
-    
-
-    
-
-    
-
-    
-
     
 
     
