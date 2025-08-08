@@ -72,6 +72,7 @@ const eventFormSchema = z.object({
 type EventFormData = z.infer<typeof eventFormSchema>;
 
 const lessonCategories = [
+    'Tutti i corsi',
     'Tutte le Categorie',
     'Tutti i corsi di Karate (Aggregato)',
     'Lezioni Selezione',
@@ -184,7 +185,7 @@ export default function AdminCalendarPage() {
     const [holidays, setHolidays] = useState('');
     const [selectedGyms, setSelectedGyms] = useState<Record<string, boolean>>({});
     const [disciplineFilter, setDisciplineFilter] = useState('Tutte le Discipline');
-    const [categoryFilter, setCategoryFilter] = useState('Tutte le Categorie');
+    const [categoryFilter, setCategoryFilter] = useState('Tutti i corsi');
 
     // Stati per il form modale
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -233,32 +234,7 @@ export default function AdminCalendarPage() {
             const batch = writeBatch(db);
             const eventsCollectionRef = collection(db, "events");
 
-            // 1. PULIZIA EVENTI ESISTENTI
-            const gymsToProcess = gyms.filter(g => selectedGyms[g.id]);
-            const gymIdsToProcess = gymsToProcess.map(g => g.id);
-
-            const q = query(eventsCollectionRef, 
-                where('type', '==', 'lesson'),
-                where('startTime', '>=', Timestamp.fromDate(startDate)),
-                where('startTime', '<=', Timestamp.fromDate(endDate)),
-                where('gymId', 'in', gymIdsToProcess)
-                // Non possiamo filtrare per disciplina qui se è "Tutte", lo faremo a mano
-            );
-
-            const existingEventsSnapshot = await getDocs(q);
-            let eventsToDelete = existingEventsSnapshot.docs;
-
-            // Filtro manuale per disciplina se non è "Tutte"
-            if (disciplineFilter !== 'Tutte le Discipline') {
-                 eventsToDelete = existingEventsSnapshot.docs.filter(doc => doc.data().discipline === disciplineFilter);
-            }
-
-            eventsToDelete.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-
-
-            // 2. GENERAZIONE NUOVI EVENTI
+            // 1. GENERAZIONE NUOVI EVENTI
             const parsedHolidays = holidays.split('\n')
               .map(h => h.trim())
               .filter(Boolean)
@@ -268,6 +244,7 @@ export default function AdminCalendarPage() {
               })
               .filter(d => d !== null) as string[];
 
+            const gymsToProcess = gyms.filter(g => selectedGyms[g.id]);
             
             let currentDate = new Date(startDate);
             while (currentDate <= endDate) {
@@ -279,62 +256,66 @@ export default function AdminCalendarPage() {
                         const daySchedule = gym.weeklySchedule?.find(s => dayNameToIndex[s.dayOfWeek] === dayOfWeek);
 
                         if (daySchedule && daySchedule.slots) {
-                            for (const slot of daySchedule.slots) {
-                                // Filtra per disciplina
-                                if (disciplineFilter !== 'Tutte le Discipline' && slot.discipline !== disciplineFilter) continue;
+                            
+                            const shouldGenerateForDiscipline = (discipline: string) => {
+                                return disciplineFilter === 'Tutte le Discipline' || disciplineFilter === discipline || categoryFilter === 'Tutti i corsi';
+                            };
 
-                                // Logica per Aikido (ignora categorie)
-                                if (disciplineFilter === 'Aikido') {
+                            // Logica per Aikido
+                            if (shouldGenerateForDiscipline('Aikido')) {
+                                for (const slot of daySchedule.slots) {
+                                     if (slot.discipline !== 'Aikido') continue;
+
                                      const [startH, startM] = slot.startTime.split(':').map(Number);
-                                    const [endH, endM] = slot.endTime.split(':').map(Number);
-                                    const startTime = new Date(currentDate);
-                                    startTime.setHours(startH, startM, 0, 0);
-                                    const endTime = new Date(currentDate);
-                                    endTime.setHours(endH, endM, 0, 0);
+                                     const [endH, endM] = slot.endTime.split(':').map(Number);
+                                     const startTime = new Date(currentDate);
+                                     startTime.setHours(startH, startM, 0, 0);
+                                     const endTime = new Date(currentDate);
+                                     endTime.setHours(endH, endM, 0, 0);
 
-                                    const newEvent = {
-                                        type: 'lesson',
-                                        title: `${slot.discipline} - Tutti i Gradi`,
-                                        startTime: Timestamp.fromDate(startTime),
-                                        endTime: Timestamp.fromDate(endTime),
-                                        discipline: slot.discipline,
-                                        gymId: gym.id,
-                                        gymName: gym.name,
-                                    };
-                                    const newDocRef = doc(eventsCollectionRef);
-                                    batch.set(newDocRef, newEvent);
-                                    continue; // Prossimo slot
+                                     const newEvent = {
+                                         type: 'lesson' as const,
+                                         title: `${slot.discipline} - Tutti i Gradi`,
+                                         startTime: Timestamp.fromDate(startTime),
+                                         endTime: Timestamp.fromDate(endTime),
+                                         discipline: slot.discipline,
+                                         gymId: gym.id,
+                                         gymName: gym.name,
+                                     };
+                                     const newDocRef = doc(eventsCollectionRef);
+                                     batch.set(newDocRef, newEvent);
                                 }
+                            }
 
-                                // Logica per Karate
-                                if (disciplineFilter === 'Karate' || disciplineFilter === 'Tutte le Discipline') {
-                                    if (categoryFilter === 'Tutti i corsi di Karate (Aggregato)') {
-                                        // Usa 'Lezioni Selezione' come àncora per creare un singolo evento giornaliero
-                                        if (slot.category === 'Lezioni Selezione' && slot.discipline === 'Karate') {
-                                            const [startH, startM] = slot.startTime.split(':').map(Number);
-                                            const [endH, endM] = slot.endTime.split(':').map(Number);
-                                            const startTime = new Date(currentDate);
-                                            startTime.setHours(startH, startM, 0, 0);
-                                            const endTime = new Date(currentDate);
-                                            endTime.setHours(endH, endM, 0, 0);
+                            // Logica per Karate
+                            if (shouldGenerateForDiscipline('Karate')) {
+                                if (categoryFilter === 'Tutti i corsi di Karate (Aggregato)' || categoryFilter === 'Tutti i corsi') {
+                                    // Usa 'Lezioni Selezione' come àncora per creare un singolo evento giornaliero
+                                    const selectionSlot = daySchedule.slots.find((s:any) => s.category === 'Lezioni Selezione' && s.discipline === 'Karate');
+                                    if (selectionSlot) {
+                                        const [startH, startM] = selectionSlot.startTime.split(':').map(Number);
+                                        const [endH, endM] = selectionSlot.endTime.split(':').map(Number);
+                                        const startTime = new Date(currentDate);
+                                        startTime.setHours(startH, startM, 0, 0);
+                                        const endTime = new Date(currentDate);
+                                        endTime.setHours(endH, endM, 0, 0);
 
-                                            const newEvent = {
-                                                type: 'lesson',
-                                                title: `Allenamento Karate`,
-                                                startTime: Timestamp.fromDate(startTime),
-                                                endTime: Timestamp.fromDate(endTime),
-                                                discipline: slot.discipline,
-                                                gymId: gym.id,
-                                                gymName: gym.name,
-                                            };
-                                            const newDocRef = doc(eventsCollectionRef);
-                                            batch.set(newDocRef, newEvent);
-                                            break; // Interrompi il ciclo degli slot per questo giorno e palestra
-                                        }
-                                    } else {
-                                         // Logica per le categorie specifiche o 'Tutte le Categorie'
-                                        if (categoryFilter !== 'Tutte le Categorie' && slot.category !== categoryFilter) continue;
+                                        const newEvent = {
+                                            type: 'lesson' as const,
+                                            title: `Allenamento Karate`,
+                                            startTime: Timestamp.fromDate(startTime),
+                                            endTime: Timestamp.fromDate(endTime),
+                                            discipline: selectionSlot.discipline,
+                                            gymId: gym.id,
+                                            gymName: gym.name,
+                                        };
+                                        const newDocRef = doc(eventsCollectionRef);
+                                        batch.set(newDocRef, newEvent);
+                                    }
+                                } else { // Logica per le categorie specifiche o 'Tutte le Categorie'
+                                    for (const slot of daySchedule.slots) {
                                         if (slot.discipline !== 'Karate') continue;
+                                        if (categoryFilter !== 'Tutte le Categorie' && slot.category !== categoryFilter) continue;
 
                                          const [startH, startM] = slot.startTime.split(':').map(Number);
                                          const [endH, endM] = slot.endTime.split(':').map(Number);
@@ -344,7 +325,7 @@ export default function AdminCalendarPage() {
                                          endTime.setHours(endH, endM, 0, 0);
 
                                          const newEvent = {
-                                             type: 'lesson',
+                                             type: 'lesson' as const,
                                              title: `${slot.discipline} - ${slot.category}`,
                                              startTime: Timestamp.fromDate(startTime),
                                              endTime: Timestamp.fromDate(endTime),
@@ -497,11 +478,19 @@ export default function AdminCalendarPage() {
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {lessonCategories.map(cat => {
-                                        const isKarateAggregated = cat === 'Tutti i corsi di Karate (Aggregato)';
                                         // Mostra l'opzione aggregata solo se la disciplina è Karate o Tutte le Discipline
-                                        if (isKarateAggregated && disciplineFilter !== 'Karate' && disciplineFilter !== 'Tutte le Discipline') {
+                                        if (cat === 'Tutti i corsi di Karate (Aggregato)' && disciplineFilter !== 'Karate' && disciplineFilter !== 'Tutte le Discipline') {
                                             return null;
                                         }
+                                        // Mostra 'Tutti i corsi' solo se la disciplina è 'Tutte le Discipline'
+                                         if (cat === 'Tutti i corsi' && disciplineFilter !== 'Tutte le Discipline') {
+                                            return null;
+                                        }
+                                         // Nascondi le opzioni specifiche di Karate se non è selezionato Karate
+                                        if (disciplineFilter !== 'Karate' && disciplineFilter !== 'Tutte le Discipline' && cat !== 'Tutte le Categorie' && cat !== 'Tutti i corsi') {
+                                            return null;
+                                        }
+                                        
                                         return <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                                     })}
                                 </SelectContent>
@@ -588,3 +577,6 @@ export default function AdminCalendarPage() {
 
     
 
+
+
+    
