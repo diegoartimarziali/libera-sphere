@@ -211,7 +211,15 @@ export default function AdminCalendarPage() {
             setGyms(gymsList);
             
             const dateGroupsSnapshot = await getDocs(query(collection(db, "dateGroups"), orderBy("name")));
-            const dateGroupsList = dateGroupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DateGroup));
+            const dateGroupsList = dateGroupsSnapshot.docs.map(doc => {
+                 const data = doc.data();
+                 return {
+                    id: doc.id,
+                    name: data.name,
+                    // Assicura che le date siano oggetti Timestamp
+                    dates: (data.dates || []).map((d: any) => d instanceof Timestamp ? d : new Timestamp(d.seconds, d.nanoseconds))
+                 } as DateGroup
+            });
             setDateGroups(dateGroupsList);
 
         } catch (error) {
@@ -263,13 +271,14 @@ export default function AdminCalendarPage() {
 
         const selectedGym = gyms.find(g => g.id === gymFilter);
         if (!selectedGym || !selectedGym.weeklySchedule) {
-            toast({ variant: "destructive", title: "Dati palestra incompleti", description: "La palestra selezionata non ha un orario settimanale definito." });
+            toast({ variant: "destructive", title: "Dati palestra incompleti", description: "La palestra selezionata non ha un orario settimanale definito. Controlla e aggiorna i dati della palestra." });
             setIsGenerating(false);
             return;
         }
         
         try {
             const allDates = eachDayOfInterval({ start: startDate, end: endDate });
+            
             const selectedGroup = dateGroups.find(g => g.id === selectedDateGroupId);
             const excludedDates = selectedGroup && Array.isArray(selectedGroup.dates)
                 ? selectedGroup.dates.map(ts => startOfDay(ts.toDate()).getTime())
