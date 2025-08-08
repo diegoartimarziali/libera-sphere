@@ -52,6 +52,10 @@ interface Event {
     discipline?: string;
     status: 'confermata' | 'annullata';
     notes?: string;
+    price?: number;
+    open_to?: string;
+    description?: string;
+    imageUrl?: string;
 }
 
 interface SavedCalendar {
@@ -118,7 +122,13 @@ function EventForm({ event, gyms, onSave, onCancel }: { event?: EventFormData, g
             endDate: new Date(),
             startTime: '00:00',
             endTime: '00:00',
-            status: 'confermata'
+            status: 'confermata',
+            notes: '',
+            location: '',
+            price: 0,
+            open_to: '',
+            description: '',
+            imageUrl: '',
         }
     });
 
@@ -388,7 +398,7 @@ export default function AdminCalendarPage() {
             });
 
             setEvents(generatedEvents);
-            const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
+            const gymDisplayName = `${selectedGym.name}`;
             setGeneratedTitle(`Anteprima per ${gymDisplayName} - ${disciplineFilter} (${generatedEvents.length} lezioni)`);
             toast({ title: "Anteprima Generata", description: `Trovate ${generatedEvents.length} lezioni per i criteri selezionati.` });
 
@@ -414,30 +424,40 @@ export default function AdminCalendarPage() {
                  setIsSaving(false);
                  return;
             }
-
-            const lessonsToSave = events.map(({ id, ...lessonData }) => lessonData);
             
-            const now = new Date();
             const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
-            const calendarName = `${disciplineFilter} - ${gymDisplayName} - ${selectedPeriod.label} (${format(now, "dd/MM/yy HH:mm")})`;
 
             const calendarData = {
                 gymId: selectedGym.id,
                 gymName: gymDisplayName,
                 year: getYear(selectedPeriod.startDate),
                 discipline: disciplineFilter,
-                calendarName: calendarName,
+                calendarName: `Calendario per ${gymDisplayName} - ${disciplineFilter} (${selectedPeriod.label})`,
                 createdAt: serverTimestamp(),
-                lessons: lessonsToSave
             };
+            
+            const calendarRef = await addDoc(collection(db, "calendars"), calendarData);
 
-            await addDoc(collection(db, "calendars"), calendarData);
+            const batch = writeBatch(db);
+            const eventsCollectionRef = collection(db, "events");
+
+            events.forEach(event => {
+                const { id, ...eventData } = event; // Escludiamo l'ID temporaneo
+                const newEventRef = doc(eventsCollectionRef); 
+                batch.set(newEventRef, {
+                    ...eventData,
+                    calendarId: calendarRef.id, // Colleghiamo l'evento al calendario
+                    createdAt: serverTimestamp()
+                });
+            });
+
+            await batch.commit();
             
             await fetchSavedCalendars();
 
             toast({
                 title: "Calendario Salvato!",
-                description: `Una nuova versione del calendario con ${events.length} eventi è stata salvata con successo.`,
+                description: `Un nuovo calendario con ${events.length} eventi è stato salvato con successo.`,
                 variant: "success",
             });
 
@@ -476,12 +496,25 @@ export default function AdminCalendarPage() {
             location: restData.location,
             status: restData.status,
             notes: restData.notes,
+            price: restData.price,
+            open_to: restData.open_to,
+            description: restData.description,
+            imageUrl: restData.imageUrl,
         };
 
-        if (data.id) { // Modifica
+        if (data.id && !data.id.startsWith('manual-')) { // Modifica
             setEvents(prev => prev.map(e => e.id === data.id ? newOrUpdatedEvent : e));
-        } else { // Creazione
-            setEvents(prev => [...prev, newOrUpdatedEvent].sort((a, b) => a.startTime.toMillis() - b.startTime.toMillis()));
+        } else { // Creazione o modifica di un evento manuale
+            const existingIndex = events.findIndex(e => e.id === newOrUpdatedEvent.id);
+            if (existingIndex > -1) {
+                 setEvents(prev => {
+                    const newEvents = [...prev];
+                    newEvents[existingIndex] = newOrUpdatedEvent;
+                    return newEvents;
+                 });
+            } else {
+                setEvents(prev => [...prev, newOrUpdatedEvent].sort((a, b) => a.startTime.toMillis() - b.startTime.toMillis()));
+            }
         }
         toast({ title: "Evento Aggiornato nell'Anteprima", description: "Salva il calendario per rendere la modifica permanente." });
         setIsFormOpen(false);
@@ -504,6 +537,10 @@ export default function AdminCalendarPage() {
             location: event.location,
             status: event.status,
             notes: event.notes,
+            price: event.price || 0,
+            open_to: event.open_to || '',
+            description: event.description || '',
+            imageUrl: event.imageUrl || '',
         });
         setIsFormOpen(true);
     };
@@ -517,19 +554,26 @@ export default function AdminCalendarPage() {
         setSelectedDateGroupId(groupId);
     };
     
-    const handleLoadCalendar = (calendar: SavedCalendar) => {
-        const eventsWithTempIds = calendar.lessons.map((lesson, index) => ({
-            ...lesson,
-            id: `${calendar.id}-${index}`
-        }));
-        setEvents(eventsWithTempIds);
-        setGeneratedTitle(`Calendario Caricato: ${calendar.calendarName}`);
-        toast({ title: "Calendario Caricato", description: `Hai caricato ${calendar.lessons.length} lezioni nell'area di anteprima.`});
+    const handleLoadCalendar = async (calendar: SavedCalendar) => {
+        try {
+            const eventsQuery = query(collection(db, "events"), where("calendarId", "==", calendar.id), orderBy("startTime", "asc"));
+            const eventsSnapshot = await getDocs(eventsQuery);
+            const eventsList = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()} as Event));
+
+            setEvents(eventsList);
+            setGeneratedTitle(`Calendario Caricato: ${calendar.calendarName}`);
+            toast({ title: "Calendario Caricato", description: `Hai caricato ${eventsList.length} eventi nell'area di anteprima.`});
+
+        } catch (error) {
+            console.error("Error loading events for calendar:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare gli eventi del calendario." });
+        }
     };
     
     const handleDeleteCalendar = async (calendarId: string) => {
         setIsDeleting(calendarId);
         try {
+            // Potremmo voler eliminare anche tutti gli eventi associati, ma per ora eliminiamo solo il calendario.
             await deleteDoc(doc(db, "calendars", calendarId));
             await fetchSavedCalendars(); // Ricarica la lista
             toast({ title: "Calendario Eliminato", description: "Il calendario selezionato è stato rimosso con successo.", variant: "success" });
