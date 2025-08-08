@@ -323,7 +323,7 @@ export default function AdminCalendarPage() {
                                 endTime: Timestamp.fromDate(eventEnd),
                                 gymId: selectedGym.id,
                                 gymName: selectedGym.name,
-                                discipline: disciplineFilter,
+                                discipline: slot.discipline,
                             });
                         });
                     });
