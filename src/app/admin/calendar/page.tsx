@@ -282,6 +282,11 @@ export default function AdminCalendarPage() {
             const dayNames = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
             let generatedEvents: Event[] = [];
 
+            // Correzione: Filtra i giorni della settimana per evitare duplicati
+            const uniqueDaysSchedule = selectedGym.weeklySchedule.filter(
+                (day, index, self) => index === self.findIndex((d) => d.dayOfWeek === day.dayOfWeek)
+            );
+
             allDates.forEach(date => {
                 const dateString = format(date, 'yyyy-MM-dd');
                 if (exclusionDates.has(dateString)) {
@@ -289,7 +294,7 @@ export default function AdminCalendarPage() {
                 }
 
                 const dayOfWeekName = dayNames[getDay(date)];
-                const scheduleForDay = selectedGym.weeklySchedule?.find(d => d.dayOfWeek === dayOfWeekName);
+                const scheduleForDay = uniqueDaysSchedule.find(d => d.dayOfWeek === dayOfWeekName);
 
                 if (scheduleForDay && scheduleForDay.slots) {
                     scheduleForDay.slots.forEach((slot: any, index: number) => {
