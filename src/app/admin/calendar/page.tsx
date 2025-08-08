@@ -3,12 +3,12 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, writeBatch, query, where, Timestamp, orderBy, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData } from "firebase/firestore";
+import { collection, getDocs, doc, writeBatch, query, where, Timestamp, orderBy, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay, isWithinInterval, getMonth, getYear } from "date-fns";
+import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay, isWithinInterval, getYear, startOfYear, endOfYear } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,6 +73,13 @@ interface DateGroup {
 interface MonthOption {
     value: string; // 'all' or 'YYYY-MM'
     label: string; // 'Tutti i mesi' or 'Mese Anno'
+}
+
+interface PeriodOption {
+    id: string;
+    label: string;
+    startDate: Date;
+    endDate: Date;
 }
 
 const eventFormSchema = z.object({
@@ -216,8 +223,9 @@ export default function AdminCalendarPage() {
     const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
     
     // Stati per il generatore
-    const [startDate, setStartDate] = useState<Date | undefined>();
-    const [endDate, setEndDate] = useState<Date | undefined>();
+    const [periodOptions, setPeriodOptions] = useState<PeriodOption[]>([]);
+    const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
+
     const [availableMonths, setAvailableMonths] = useState<MonthOption[]>([]);
     const [selectedMonth, setSelectedMonth] = useState('all');
 
@@ -249,6 +257,38 @@ export default function AdminCalendarPage() {
                  } as DateGroup
             });
             setDateGroups(dateGroupsList);
+
+            // Fetch period options
+            const activitySettingsSnap = await getDoc(doc(db, "settings", "activity"));
+            const seasonSettingsSnap = await getDoc(doc(db, "settings", "season"));
+            
+            const newPeriodOptions: PeriodOption[] = [];
+            if(activitySettingsSnap.exists()) {
+                const data = activitySettingsSnap.data();
+                newPeriodOptions.push({
+                    id: 'activity',
+                    label: 'Stagione Allenamenti',
+                    startDate: data.startDate.toDate(),
+                    endDate: data.endDate.toDate()
+                });
+            }
+             if(seasonSettingsSnap.exists()) {
+                const data = seasonSettingsSnap.data();
+                newPeriodOptions.push({
+                    id: 'season',
+                    label: data.label || 'Stagione Sportiva',
+                    startDate: data.startDate.toDate(),
+                    endDate: data.endDate.toDate()
+                });
+            }
+            const currentYear = new Date();
+            newPeriodOptions.push({
+                id: 'solar',
+                label: `Anno Solare ${getYear(currentYear)}`,
+                startDate: startOfYear(currentYear),
+                endDate: endOfYear(currentYear)
+            });
+            setPeriodOptions(newPeriodOptions);
             
             await fetchSavedCalendars();
 
@@ -283,8 +323,11 @@ export default function AdminCalendarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const selectedPeriod = periodOptions.find(p => p.id === selectedPeriodId);
+
     useEffect(() => {
-        if (startDate && endDate && isBefore(endDate, startDate) === false) {
+        if (selectedPeriod) {
+            const { startDate, endDate } = selectedPeriod;
             const months = eachMonthOfInterval({ start: startDate, end: endDate });
             const monthOptions: MonthOption[] = months.map(monthStart => ({
                 value: format(monthStart, 'yyyy-MM'),
@@ -298,11 +341,11 @@ export default function AdminCalendarPage() {
             setAvailableMonths([]);
         }
         setSelectedMonth('all');
-    }, [startDate, endDate]);
+    }, [selectedPeriod]);
     
     const handlePreviewCalendar = async () => {
-        if (!startDate || !endDate || !gymFilter || !disciplineFilter) {
-            toast({ variant: "destructive", title: "Dati Mancanti", description: "Seleziona data di inizio, fine, palestra e disciplina." });
+        if (!selectedPeriod || !gymFilter || !disciplineFilter) {
+            toast({ variant: "destructive", title: "Dati Mancanti", description: "Seleziona periodo, palestra e disciplina." });
             return;
         }
 
@@ -310,6 +353,7 @@ export default function AdminCalendarPage() {
         setEvents([]); 
 
         try {
+            const { startDate, endDate } = selectedPeriod;
             const selectedGym = gyms.find(g => g.id === gymFilter);
             if (!selectedGym || !selectedGym.weeklySchedule) {
                 toast({ variant: "destructive", title: "Dati Palestra Mancanti", description: "La palestra selezionata non ha un orario settimanale configurato." });
@@ -390,7 +434,7 @@ export default function AdminCalendarPage() {
 
 
     const handleSaveCalendar = async () => {
-        if (events.length === 0 || !gymFilter || !disciplineFilter || !startDate) {
+        if (events.length === 0 || !gymFilter || !disciplineFilter || !selectedPeriod) {
             toast({ variant: "destructive", title: "Dati insufficienti", description: "Non ci sono eventi nell'anteprima o mancano i filtri per salvare." });
             return;
         }
@@ -406,12 +450,12 @@ export default function AdminCalendarPage() {
             const lessonsToSave = events.map(({ id, ...lessonData }) => lessonData);
             
             const now = new Date();
-            const calendarName = `${disciplineFilter} - ${selectedGym.name} - ${getYear(startDate)} (${format(now, "dd/MM/yy HH:mm")})`;
+            const calendarName = `${disciplineFilter} - ${selectedGym.name} - ${selectedPeriod.label} (${format(now, "dd/MM/yy HH:mm")})`;
 
             const calendarData = {
                 gymId: selectedGym.id,
                 gymName: selectedGym.name,
-                year: getYear(startDate),
+                year: getYear(selectedPeriod.startDate),
                 discipline: disciplineFilter,
                 calendarName: calendarName,
                 createdAt: serverTimestamp(),
@@ -537,19 +581,23 @@ export default function AdminCalendarPage() {
                     <CardDescription>Crea in massa le lezioni di routine per un periodo, escludendo le festività.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                             <Label>Data Inizio Calendario</Label>
-                             <DatePicker value={startDate} onChange={setStartDate} />
+                            <Label>Periodo Calendario</Label>
+                            <Select value={selectedPeriodId} onValueChange={setSelectedPeriodId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Seleziona un periodo..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {periodOptions.map(option => (
+                                        <SelectItem key={option.id} value={option.id}>
+                                            {option.label} ({format(option.startDate, 'dd/MM/yy')} - {format(option.endDate, 'dd/MM/yy')})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                          <div className="space-y-2">
-                             <Label>Data Fine Calendario</Label>
-                             <DatePicker value={endDate} onChange={setEndDate} />
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
                             <Label>Periodo da escludere</Label>
                             <Select value={selectedDateGroupId} onValueChange={handleDateGroupChange}>
                                 <SelectTrigger>
@@ -563,6 +611,9 @@ export default function AdminCalendarPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Filtra per Mese</Label>
                              <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={availableMonths.length === 0}>
@@ -575,6 +626,9 @@ export default function AdminCalendarPage() {
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </div>
+                        <div className="space-y-2">
+                             {/* Placeholder for alignment */}
                         </div>
                     </div>
 
@@ -778,21 +832,4 @@ export default function AdminCalendarPage() {
         </div>
     );
 }
-    
-
-    
-
-    
-
-
-
-    
-
-
-    
-
-    
-
-    
-
     
