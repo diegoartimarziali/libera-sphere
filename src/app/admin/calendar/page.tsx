@@ -388,7 +388,8 @@ export default function AdminCalendarPage() {
             });
 
             setEvents(generatedEvents);
-            setGeneratedTitle(`Anteprima per ${selectedGym.name} - ${disciplineFilter} (${generatedEvents.length} lezioni)`);
+            const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
+            setGeneratedTitle(`Anteprima per ${gymDisplayName} - ${disciplineFilter} (${generatedEvents.length} lezioni)`);
             toast({ title: "Anteprima Generata", description: `Trovate ${generatedEvents.length} lezioni per i criteri selezionati.` });
 
         } catch (error) {
@@ -417,11 +418,12 @@ export default function AdminCalendarPage() {
             const lessonsToSave = events.map(({ id, ...lessonData }) => lessonData);
             
             const now = new Date();
-            const calendarName = `${disciplineFilter} - ${selectedGym.name} - ${selectedPeriod.label} (${format(now, "dd/MM/yy HH:mm")})`;
+            const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
+            const calendarName = `${disciplineFilter} - ${gymDisplayName} - ${selectedPeriod.label} (${format(now, "dd/MM/yy HH:mm")})`;
 
             const calendarData = {
                 gymId: selectedGym.id,
-                gymName: selectedGym.name,
+                gymName: gymDisplayName,
                 year: getYear(selectedPeriod.startDate),
                 discipline: disciplineFilter,
                 calendarName: calendarName,
