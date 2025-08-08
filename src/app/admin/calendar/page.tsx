@@ -546,6 +546,7 @@ export default function AdminCalendarPage() {
                                     <TableHead>Disciplina</TableHead>
                                     <TableHead>Giorno</TableHead>
                                     <TableHead>Data</TableHead>
+                                    <TableHead>Orario</TableHead>
                                     <TableHead>Luogo/Palestra</TableHead>
                                     <TableHead className="text-right">Azioni</TableHead>
                                 </TableRow>
@@ -555,7 +556,8 @@ export default function AdminCalendarPage() {
                                     <TableRow key={event.id}>
                                         <TableCell className="font-medium capitalize">{event.discipline}</TableCell>
                                         <TableCell className="capitalize">{format(event.startTime.toDate(), "eeee", {locale: it})}</TableCell>
-                                        <TableCell>{format(event.startTime.toDate(), "dd/MM/yy HH:mm", {locale: it})}</TableCell>
+                                        <TableCell>{format(event.startTime.toDate(), "dd/MM/yy", {locale: it})}</TableCell>
+                                        <TableCell>{`${format(event.startTime.toDate(), "HH:mm")} - ${format(event.endTime.toDate(), "HH:mm")}`}</TableCell>
                                         <TableCell>{event.gymName || event.location}</TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="sm" onClick={() => openEditForm(event)}>Modifica</Button>
@@ -565,7 +567,7 @@ export default function AdminCalendarPage() {
                                 ))}
                                 {events.length === 0 && (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                                             Nessun evento da mostrare. Genera un'anteprima o aggiungine uno manualmente.
                                         </TableCell>
                                     </TableRow>
