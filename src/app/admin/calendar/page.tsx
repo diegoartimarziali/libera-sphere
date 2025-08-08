@@ -219,123 +219,12 @@ export default function AdminCalendarPage() {
     }, [toast]);
     
     const handleGenerateCalendar = async () => {
-        if (!startDate || !endDate || Object.values(selectedGyms).every(v => !v)) {
-            toast({ variant: 'destructive', title: 'Dati mancanti', description: 'Seleziona un periodo e almeno una palestra.' });
-            return;
-        }
-
-        if (isBefore(endDate, startDate)) {
-            toast({ variant: 'destructive', title: 'Periodo non valido', description: 'La data di fine non può essere precedente alla data di inizio.' });
-            return;
-        }
-
-        setIsGenerating(true);
-        try {
-            const batch = writeBatch(db);
-            const eventsCollectionRef = collection(db, "events");
-
-            const parsedHolidays = holidays.split('\n')
-              .map(h => h.trim())
-              .filter(Boolean)
-              .map(h => {
-                  const parsedDate = parse(h, 'dd/MM/yyyy', new Date());
-                  return isValid(parsedDate) ? format(parsedDate, 'yyyy-MM-dd') : null;
-              })
-              .filter(d => d !== null) as string[];
-
-            const gymsToProcess = gyms.filter(g => selectedGyms[g.id]);
-            
-            const allDates = eachDayOfInterval({ start: startDate, end: endDate });
-
-            for (const currentDate of allDates) {
-                const dayOfWeek = currentDate.getDay(); // 0 = Domenica
-                const dateString = format(currentDate, 'yyyy-MM-dd');
-
-                if (parsedHolidays.includes(dateString)) {
-                    continue;
-                }
-
-                for (const gym of gymsToProcess) {
-                    const daySchedule = gym.weeklySchedule?.find(s => dayNameToIndex[s.dayOfWeek] === dayOfWeek);
-                    if (!daySchedule || !daySchedule.slots) continue;
-                    
-                    const shouldGenerateKarate = disciplineFilter === 'Tutte le Discipline' || disciplineFilter === 'Karate';
-                    const shouldGenerateAikido = disciplineFilter === 'Tutte le Discipline' || disciplineFilter === 'Aikido';
-
-                    // --- LOGICA KARATE ---
-                    if (shouldGenerateKarate) {
-                        const isAggregateMode = categoryFilter === 'Tutti i corsi di Karate (Aggregato)' || categoryFilter === 'Tutti i corsi';
-
-                        if (isAggregateMode) {
-                            const anchorSlot = daySchedule.slots.find((s:any) => s.category === 'Lezioni Selezione' && s.discipline === 'Karate');
-                            if (anchorSlot) {
-                                const [startH, startM] = anchorSlot.startTime.split(':').map(Number);
-                                const [endH, endM] = anchorSlot.endTime.split(':').map(Number);
-                                const startTime = new Date(currentDate); startTime.setHours(startH, startM, 0, 0);
-                                const endTime = new Date(currentDate); endTime.setHours(endH, endM, 0, 0);
-
-                                const newEvent = {
-                                    type: 'lesson' as const, title: `Allenamento Karate`,
-                                    startTime: Timestamp.fromDate(startTime), endTime: Timestamp.fromDate(endTime),
-                                    discipline: 'Karate', gymId: gym.id, gymName: gym.name,
-                                };
-                                batch.set(doc(eventsCollectionRef), newEvent);
-                            }
-                        } else { // Logica per categorie specifiche
-                            for (const slot of daySchedule.slots) {
-                                if (slot.discipline !== 'Karate') continue;
-                                if (categoryFilter !== 'Tutte le Categorie' && slot.category !== categoryFilter) continue;
-                                if (slot.category === 'Lezioni Selezione') continue; // Escludi la selezione se non in modalità aggregata
-
-                                const [startH, startM] = slot.startTime.split(':').map(Number);
-                                const [endH, endM] = slot.endTime.split(':').map(Number);
-                                const startTime = new Date(currentDate); startTime.setHours(startH, startM, 0, 0);
-                                const endTime = new Date(currentDate); endTime.setHours(endH, endM, 0, 0);
-
-                                const newEvent = {
-                                    type: 'lesson' as const, title: `${slot.discipline} - ${slot.category}`,
-                                    startTime: Timestamp.fromDate(startTime), endTime: Timestamp.fromDate(endTime),
-                                    discipline: slot.discipline, gymId: gym.id, gymName: gym.name,
-                                };
-                                batch.set(doc(eventsCollectionRef), newEvent);
-                            }
-                        }
-                    }
-                    
-                    // --- LOGICA AIKIDO ---
-                    if (shouldGenerateAikido) {
-                         const isAikidoAggregateMode = categoryFilter === 'Tutti i corsi' || disciplineFilter === 'Aikido';
-                         if (isAikidoAggregateMode) {
-                            // Cerca l'ancora "Tutti i Gradi" per creare un singolo evento giornaliero
-                            const anchorSlot = daySchedule.slots.find((s:any) => s.category === 'Tutti i Gradi' && s.discipline === 'Aikido');
-                             if (anchorSlot) {
-                                const [startH, startM] = anchorSlot.startTime.split(':').map(Number);
-                                const [endH, endM] = anchorSlot.endTime.split(':').map(Number);
-                                const startTime = new Date(currentDate); startTime.setHours(startH, startM, 0, 0);
-                                const endTime = new Date(currentDate); endTime.setHours(endH, endM, 0, 0);
-                                
-                                const newEvent = {
-                                    type: 'lesson' as const, title: `Allenamento Aikido`,
-                                    startTime: Timestamp.fromDate(startTime), endTime: Timestamp.fromDate(endTime),
-                                    discipline: 'Aikido', gymId: gym.id, gymName: gym.name,
-                                };
-                                batch.set(doc(eventsCollectionRef), newEvent);
-                             }
-                         }
-                    }
-                }
-            }
-
-            await batch.commit();
-            toast({ title: 'Successo!', description: `Calendario generato per il periodo selezionato.` });
-            await fetchAllData();
-
-        } catch (error) {
-            console.error(error);
-            toast({ variant: 'destructive', title: 'Errore', description: 'Impossibile generare il calendario.' });
-        } finally {
-            setIsGenerating(false);
-        }
+        toast({
+            variant: "destructive",
+            title: "Funzione Disabilitata",
+            description: "La generazione di massa del calendario è stata disabilitata dall'amministratore.",
+        });
+        return;
     }
     
     const handleDeleteEvent = async (eventId: string) => {
@@ -486,9 +375,9 @@ export default function AdminCalendarPage() {
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleGenerateCalendar} disabled={isGenerating}>
+                    <Button onClick={handleGenerateCalendar} disabled={true}>
                         {isGenerating ? <Loader2 className="animate-spin mr-2" /> : null}
-                        Genera Calendario
+                        Genera Calendario (Disabilitato)
                     </Button>
                 </CardFooter>
             </Card>
@@ -556,4 +445,3 @@ export default function AdminCalendarPage() {
 
 
     
-
