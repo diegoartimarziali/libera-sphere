@@ -304,7 +304,7 @@ export default function AdminCalendarPage() {
                 const dayOfWeekName = format(date, "EEEE", { locale: it });
 
                 selectedGym.weeklySchedule
-                    ?.filter(schedule => schedule.dayOfWeek.toLowerCase() === dayOfWeekName.toLowerCase())
+                    ?.filter(schedule => schedule.dayOfWeek === dayOfWeekName)
                     .forEach((scheduleSlot, index) => {
                         scheduleSlot.slots
                         .filter((slot: any) => slot.discipline === disciplineFilter)
@@ -502,7 +502,7 @@ export default function AdminCalendarPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {gyms.map(gym => (
-                                        <SelectItem key={gym.id} value={gym.id}>{gym.id} - {gym.name}</SelectItem>
+                                        <SelectItem key={gym.id} value={gym.id}>{gym.id}, {gym.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
