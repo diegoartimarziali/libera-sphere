@@ -500,7 +500,7 @@ export default function AdminCalendarPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {gyms.map(gym => (
-                                        <SelectItem key={gym.id} value={gym.id}>{gym.name} - {gym.address}</SelectItem>
+                                        <SelectItem key={gym.id} value={gym.id}>{gym.id} - {gym.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
