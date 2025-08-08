@@ -207,7 +207,7 @@ export default function AdminCalendarPage() {
         setLoading(true);
         try {
             const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
-            const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
+            const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), address: doc.data().address || '' } as Gym));
             setGyms(gymsList);
             
             const dateGroupsSnapshot = await getDocs(query(collection(db, "dateGroups"), orderBy("name")));
@@ -304,9 +304,11 @@ export default function AdminCalendarPage() {
                 const dayOfWeekName = format(date, "EEEE", { locale: it });
 
                 selectedGym.weeklySchedule
-                    ?.filter(schedule => schedule.dayOfWeek === dayOfWeekName && schedule.discipline === disciplineFilter)
+                    ?.filter(schedule => schedule.dayOfWeek === dayOfWeekName)
                     .forEach((scheduleSlot, index) => {
-                        scheduleSlot.slots.forEach((slot: any, slotIndex: number) => {
+                        scheduleSlot.slots
+                        .filter((slot: any) => slot.discipline === disciplineFilter)
+                        .forEach((slot: any, slotIndex: number) => {
                             const [startHour, startMinute] = slot.startTime.split(':').map(Number);
                             const [endHour, endMinute] = slot.endTime.split(':').map(Number);
 
