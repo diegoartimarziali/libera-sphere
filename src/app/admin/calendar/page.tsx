@@ -305,6 +305,8 @@ export default function AdminCalendarPage() {
         } catch (error) {
             console.error("Error fetching saved calendars:", error);
             toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i calendari salvati." });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -386,7 +388,7 @@ export default function AdminCalendarPage() {
             });
 
             setEvents(generatedEvents);
-            setGeneratedTitle(`Anteprima per ${selectedGym.name} - ${disciplineFilter} (${generatedEvents.length} lezioni)`);
+            setGeneratedTitle(`Anteprima per Id (${selectedGym.id}) name (${selectedGym.name}) - ${disciplineFilter} (${generatedEvents.length} lezioni)`);
             toast({ title: "Anteprima Generata", description: `Trovate ${generatedEvents.length} lezioni per i criteri selezionati.` });
 
         } catch (error) {
@@ -796,4 +798,6 @@ export default function AdminCalendarPage() {
         </div>
     );
 }
+    
+
     
