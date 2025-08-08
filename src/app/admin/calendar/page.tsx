@@ -213,11 +213,12 @@ export default function AdminCalendarPage() {
             const dateGroupsSnapshot = await getDocs(query(collection(db, "dateGroups"), orderBy("name")));
             const dateGroupsList = dateGroupsSnapshot.docs.map(doc => {
                  const data = doc.data();
+                 const datesArray = Array.isArray(data.dates) ? data.dates : [];
                  return {
                     id: doc.id,
                     name: data.name,
                     // Assicura che le date siano oggetti Timestamp
-                    dates: (data.dates || []).map((d: any) => d instanceof Timestamp ? d : new Timestamp(d.seconds, d.nanoseconds))
+                    dates: datesArray.map((d: any) => d instanceof Timestamp ? d : new Timestamp(d.seconds, d.nanoseconds))
                  } as DateGroup
             });
             setDateGroups(dateGroupsList);
