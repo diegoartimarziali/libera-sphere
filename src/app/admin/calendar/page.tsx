@@ -262,7 +262,6 @@ export default function AdminCalendarPage() {
     }, [startDate, endDate]);
     
     const handleGenerateCalendar = async () => {
-        // Logica del generatore temporaneamente disabilitata per lavorare sulla UI
         toast({
             title: "Generatore Disabilitato",
             description: "La logica di generazione del calendario è temporaneamente disattivata per modifiche all'interfaccia.",
@@ -272,60 +271,21 @@ export default function AdminCalendarPage() {
     };
     
     const handleDeleteEvent = async (eventId: string) => {
-        if (!window.confirm("Sei sicuro di voler eliminare questo evento? L'azione è irreversibile.")) return;
-        try {
-            await deleteDoc(doc(db, "events", eventId));
-            toast({ title: "Evento eliminato" });
-            await fetchAllData();
-        } catch (error) {
-            toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare l'evento." });
-        }
+        toast({
+            title: "Gestione Eventi Disabilitata",
+            description: "La logica di eliminazione degli eventi è temporaneamente disattivata.",
+            variant: "info"
+        });
+        return;
     }
     
     const handleSaveEvent = async (data: EventFormData) => {
-        try {
-            const [startH, startM] = data.startTime.split(':').map(Number);
-            const [endH, endM] = data.endTime.split(':').map(Number);
-            const startTime = new Date(data.startDate);
-            startTime.setHours(startH, startM, 0, 0);
-            const endTime = new Date(data.endDate);
-            endTime.setHours(endH, endM, 0, 0);
-
-            const eventData: any = {
-                title: data.title,
-                type: data.type,
-                startTime: Timestamp.fromDate(startTime),
-                endTime: Timestamp.fromDate(endTime),
-                discipline: data.discipline || null,
-            };
-            
-            if (data.type === 'lesson') {
-                const gym = gyms.find(g => g.id === data.gymId);
-                eventData.gymId = data.gymId;
-                eventData.gymName = gym?.name;
-            } else { // stage
-                 eventData.location = data.location;
-                 eventData.price = data.price;
-                 eventData.open_to = data.open_to;
-                 eventData.description = data.description;
-                 eventData.imageUrl = data.imageUrl;
-            }
-
-            if(data.id) { // Update
-                await updateDoc(doc(db, "events", data.id), eventData);
-                toast({ title: "Evento aggiornato!" });
-            } else { // Create
-                await addDoc(collection(db, "events"), eventData);
-                toast({ title: "Evento creato!" });
-            }
-
-            setIsFormOpen(false);
-            setEditingEvent(undefined);
-            await fetchAllData();
-        } catch (error) {
-            console.error(error);
-             toast({ variant: "destructive", title: "Errore", description: "Impossibile salvare l'evento." });
-        }
+         toast({
+            title: "Gestione Eventi Disabilitata",
+            description: "La logica di creazione/modifica degli eventi è temporaneamente disattivata.",
+            variant: "info"
+        });
+        return;
     }
 
     const openEditForm = (event: Event) => {
@@ -361,21 +321,17 @@ export default function AdminCalendarPage() {
     };
 
     const handleSelectAllGyms = (checked: boolean) => {
-        if (checked) {
-            setSelectedGymIds(gyms.map(g => g.id));
-        } else {
-            setSelectedGymIds([]);
-        }
+        // Logica temporaneamente disabilitata
     };
     
     const handleDateGroupChange = (groupId: string) => {
         setSelectedDateGroupId(groupId);
         if (groupId === "none") {
-            setSelectedDates([]);
+            setSelectedDates(null);
             return;
         }
         const selectedGroup = dateGroups.find(g => g.id === groupId);
-        setSelectedDates(selectedGroup ? selectedGroup.dates : []);
+        setSelectedDates(selectedGroup ? selectedGroup.dates : null);
     };
 
 
@@ -454,17 +410,9 @@ export default function AdminCalendarPage() {
                                 <div className="p-2 space-y-1">
                                     <div
                                         className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
-                                        onClick={(e) => {
-                                            // Prevenire la chiusura del popover
-                                            e.stopPropagation();
-                                            const isChecked = selectedGymIds.length === gyms.length;
-                                            handleSelectAllGyms(!isChecked);
-                                        }}
                                     >
                                         <Checkbox 
                                             id="gym-all" 
-                                            checked={gyms.length > 0 && selectedGymIds.length === gyms.length}
-                                            onCheckedChange={handleSelectAllGyms}
                                         />
                                         <Label htmlFor="gym-all" className="flex-1 cursor-pointer font-semibold">Tutte le palestre</Label>
                                     </div>
@@ -590,6 +538,8 @@ export default function AdminCalendarPage() {
 
 
 
+
+    
 
     
 
