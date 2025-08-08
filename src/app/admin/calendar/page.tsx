@@ -40,22 +40,16 @@ interface Gym {
   weeklySchedule?: any[];
 }
 
-interface Event {
+interface Lesson {
     id: string;
     title: string;
-    type: 'lesson' | 'stage';
     startTime: Timestamp;
     endTime: Timestamp;
-    location?: string;
     gymId?: string;
     gymName?: string;
     discipline?: string;
     status: 'confermata' | 'annullata';
     notes?: string;
-    price?: number;
-    open_to?: string;
-    description?: string;
-    imageUrl?: string;
 }
 
 interface SavedCalendar {
@@ -64,7 +58,7 @@ interface SavedCalendar {
     gymName: string;
     discipline: string;
     createdAt: Timestamp;
-    lessons: Event[]; // Usiamo Event per consistenza
+    lessons: Lesson[]; 
 }
 
 
@@ -81,42 +75,30 @@ interface PeriodOption {
     endDate: Date;
 }
 
-const eventFormSchema = z.object({
+const lessonFormSchema = z.object({
     id: z.string().optional(),
     title: z.string().min(3, "Il titolo è obbligatorio."),
-    type: z.enum(['lesson', 'stage'], { required_error: "Il tipo è obbligatorio." }),
     startDate: z.date({ required_error: "La data di inizio è obbligatoria." }),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
     endDate: z.date({ required_error: "La data di fine è obbligatoria." }),
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
     discipline: z.string().optional(),
     gymId: z.string().optional(),
-    location: z.string().optional(),
-    price: z.number().optional(),
-    open_to: z.string().optional(),
-    description: z.string().optional(),
-    imageUrl: z.string().url("URL non valido.").optional().or(z.literal('')),
     status: z.enum(['confermata', 'annullata']).default('confermata'),
     notes: z.string().optional(),
-}).refine(data => {
-    if (data.type === 'stage' && !data.location) {
-        return false;
-    }
-    return true;
-}, { message: "Il luogo è obbligatorio per gli stage", path: ["location"] });
+});
 
 
-type EventFormData = z.infer<typeof eventFormSchema>;
+type LessonFormData = z.infer<typeof lessonFormSchema>;
 
 // =================================================================
 // COMPONENTI
 // =================================================================
 
-function EventForm({ event, gyms, onSave, onCancel }: { event?: EventFormData, gyms: Gym[], onSave: (data: EventFormData) => void, onCancel: () => void }) {
-    const form = useForm<EventFormData>({
-        resolver: zodResolver(eventFormSchema),
-        defaultValues: event || {
-            type: 'lesson',
+function LessonForm({ lesson, gyms, onSave, onCancel }: { lesson?: LessonFormData, gyms: Gym[], onSave: (data: LessonFormData) => void, onCancel: () => void }) {
+    const form = useForm<LessonFormData>({
+        resolver: zodResolver(lessonFormSchema),
+        defaultValues: lesson || {
             title: '',
             startDate: new Date(),
             endDate: new Date(),
@@ -124,28 +106,18 @@ function EventForm({ event, gyms, onSave, onCancel }: { event?: EventFormData, g
             endTime: '00:00',
             status: 'confermata',
             notes: '',
-            location: '',
-            price: 0,
-            open_to: '',
-            description: '',
-            imageUrl: '',
         }
     });
 
-    const onSubmit = (data: EventFormData) => {
+    const onSubmit = (data: LessonFormData) => {
         onSave(data);
     };
-
-    const type = form.watch("type");
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField control={form.control} name="title" render={({ field }) => (
                     <FormItem><FormLabel>Titolo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="type" render={({ field }) => (
-                    <FormItem><FormLabel>Tipo Evento</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="lesson">Lezione</SelectItem><SelectItem value="stage">Stage</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
 
                 <div className="grid grid-cols-2 gap-4">
@@ -169,46 +141,21 @@ function EventForm({ event, gyms, onSave, onCancel }: { event?: EventFormData, g
                     <FormItem><FormLabel>Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 
-                {type === 'lesson' && (
-                    <>
-                        <FormField control={form.control} name="gymId" render={({ field }) => (
-                            <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
-                        )} />
-                        
-                        <FormField control={form.control} name="status" render={({ field }) => (
-                            <FormItem><FormLabel>Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem></SelectContent></Select><FormMessage /></FormItem>
-                        )} />
+                <FormField control={form.control} name="gymId" render={({ field }) => (
+                    <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                )} />
+                
+                <FormField control={form.control} name="status" render={({ field }) => (
+                    <FormItem><FormLabel>Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                )} />
 
-                        <FormField control={form.control} name="notes" render={({ field }) => (
-                            <FormItem><FormLabel>Note / Avvisi</FormLabel><FormControl><Textarea {...field} placeholder="Es. Portare protezioni, lezione annullata per maltempo..." /></FormControl><FormMessage /></FormItem>
-                        )} />
-                    </>
-                )}
-
-                {type === 'stage' && (
-                    <>
-                         <FormField control={form.control} name="location" render={({ field }) => (
-                            <FormItem><FormLabel>Luogo</FormLabel><FormControl><Input {...field} placeholder="Es. Palazzetto dello Sport, Milano" /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name="price" render={({ field }) => (
-                            <FormItem><FormLabel>Prezzo</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value) || 0)} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                         <FormField control={form.control} name="open_to" render={({ field }) => (
-                            <FormItem><FormLabel>Aperto a</FormLabel><FormControl><Input {...field} placeholder="Es. Cinture Nere, Tutti i soci" /></FormControl><FormMessage /></FormItem>
-                        )} />
-                         <FormField control={form.control} name="description" render={({ field }) => (
-                            <FormItem><FormLabel>Descrizione</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                         <FormField control={form.control} name="imageUrl" render={({ field }) => (
-                            <FormItem><FormLabel>URL Immagine</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                    </>
-                )}
-
+                <FormField control={form.control} name="notes" render={({ field }) => (
+                    <FormItem><FormLabel>Note / Avvisi</FormLabel><FormControl><Textarea {...field} placeholder="Es. Portare protezioni, lezione annullata per maltempo..." /></FormControl><FormMessage /></FormItem>
+                )} />
 
                 <DialogFooter>
                     <Button type="button" variant="ghost" onClick={onCancel}>Annulla</Button>
-                    <Button type="submit">Salva Evento</Button>
+                    <Button type="submit">Salva Lezione</Button>
                 </DialogFooter>
             </form>
         </Form>
@@ -224,7 +171,7 @@ export default function AdminCalendarPage() {
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [gyms, setGyms] = useState<Gym[]>([]);
     const [savedCalendars, setSavedCalendars] = useState<SavedCalendar[]>([]);
-    const [events, setEvents] = useState<Event[]>([]); // Contiene gli eventi dell'anteprima o quelli salvati
+    const [lessons, setLessons] = useState<Lesson[]>([]); // Contiene le lezioni dell'anteprima o quelle salvate
     const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
     
     // Stati per il generatore
@@ -238,7 +185,7 @@ export default function AdminCalendarPage() {
 
     // Stati per il form modale
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const [editingEvent, setEditingEvent] = useState<EventFormData | undefined>(undefined);
+    const [editingLesson, setEditingLesson] = useState<LessonFormData | undefined>(undefined);
 
     const fetchInitialData = async () => {
         setLoading(true);
@@ -335,7 +282,7 @@ export default function AdminCalendarPage() {
         }
 
         setIsGenerating(true);
-        setEvents([]); 
+        setLessons([]); 
 
         try {
             const { startDate, endDate } = selectedPeriod;
@@ -356,7 +303,7 @@ export default function AdminCalendarPage() {
 
             const allDates = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
             const dayNames = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
-            let generatedEvents: Event[] = [];
+            let generatedLessons: Lesson[] = [];
 
             allDates.forEach(date => {
                 const dateString = format(date, 'yyyy-MM-dd');
@@ -380,10 +327,9 @@ export default function AdminCalendarPage() {
                             const eventEnd = new Date(date);
                             eventEnd.setHours(endHour, endMinute, 0, 0);
                             
-                            generatedEvents.push({
+                            generatedLessons.push({
                                 id: `${dateString}-${disciplineFilter}-${index}`,
                                 title: disciplineFilter, 
-                                type: 'lesson',
                                 startTime: Timestamp.fromDate(eventStart),
                                 endTime: Timestamp.fromDate(eventEnd),
                                 gymId: selectedGym.id,
@@ -397,10 +343,10 @@ export default function AdminCalendarPage() {
                 }
             });
 
-            setEvents(generatedEvents);
+            setLessons(generatedLessons);
             const gymDisplayName = `${selectedGym.name}`;
-            setGeneratedTitle(`Anteprima per ${gymDisplayName} - ${disciplineFilter} (${generatedEvents.length} lezioni)`);
-            toast({ title: "Anteprima Generata", description: `Trovate ${generatedEvents.length} lezioni per i criteri selezionati.` });
+            setGeneratedTitle(`Anteprima per ${gymDisplayName} - ${disciplineFilter} (${generatedLessons.length} lezioni)`);
+            toast({ title: "Anteprima Generata", description: `Trovate ${generatedLessons.length} lezioni per i criteri selezionati.` });
 
         } catch (error) {
             console.error("Error generating preview:", error);
@@ -412,8 +358,8 @@ export default function AdminCalendarPage() {
 
 
     const handleSaveCalendar = async () => {
-        if (events.length === 0 || !gymFilter || !disciplineFilter || !selectedPeriod) {
-            toast({ variant: "destructive", title: "Dati insufficienti", description: "Non ci sono eventi nell'anteprima o mancano i filtri per salvare." });
+        if (lessons.length === 0 || !gymFilter || !disciplineFilter || !selectedPeriod) {
+            toast({ variant: "destructive", title: "Dati insufficienti", description: "Non ci sono lezioni nell'anteprima o mancano i filtri per salvare." });
             return;
         }
         setIsSaving(true);
@@ -441,11 +387,12 @@ export default function AdminCalendarPage() {
             const batch = writeBatch(db);
             const eventsCollectionRef = collection(db, "events");
 
-            events.forEach(event => {
-                const { id, ...eventData } = event; // Escludiamo l'ID temporaneo
+            lessons.forEach(lesson => {
+                const { id, ...lessonData } = lesson; // Escludiamo l'ID temporaneo
                 const newEventRef = doc(eventsCollectionRef); 
                 batch.set(newEventRef, {
-                    ...eventData,
+                    ...lessonData,
+                    type: 'lesson', // Aggiungiamo il tipo per distinguerli
                     calendarId: calendarRef.id, // Colleghiamo l'evento al calendario
                     createdAt: serverTimestamp()
                 });
@@ -457,11 +404,11 @@ export default function AdminCalendarPage() {
 
             toast({
                 title: "Calendario Salvato!",
-                description: `Un nuovo calendario con ${events.length} eventi è stato salvato con successo.`,
+                description: `Un nuovo calendario con ${lessons.length} lezioni è stato salvato con successo.`,
                 variant: "success",
             });
 
-            setEvents([]);
+            setLessons([]);
             setGeneratedTitle(null);
         } catch (error) {
             console.error("Error saving calendar to Firebase:", error);
@@ -471,82 +418,70 @@ export default function AdminCalendarPage() {
         }
     };
     
-    const handleDeleteEvent = async (eventId: string) => {
-        setEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+    const handleDeleteLesson = async (lessonId: string) => {
+        setLessons(prevLessons => prevLessons.filter(lesson => lesson.id !== lessonId));
         toast({
             title: "Lezione Rimossa dall'Anteprima",
             description: "La lezione è stata eliminata solo dalla visualizzazione corrente. Per salvare le modifiche, clicca su 'Salva su DB'."
         });
     }
     
-    const handleSaveEvent = async (data: EventFormData) => {
+    const handleSaveLesson = async (data: LessonFormData) => {
         const { startDate, startTime, endDate, endTime, ...restData } = data;
         const startDateTime = new Date(`${format(startDate, 'yyyy-MM-dd')}T${startTime}`);
         const endDateTime = new Date(`${format(endDate, 'yyyy-MM-dd')}T${endTime}`);
         
-        const newOrUpdatedEvent: Event = {
+        const newOrUpdatedLesson: Lesson = {
             id: data.id || `manual-${new Date().getTime()}`,
             title: restData.title,
-            type: restData.type,
             startTime: Timestamp.fromDate(startDateTime),
             endTime: Timestamp.fromDate(endDateTime),
             discipline: restData.discipline,
             gymId: restData.gymId,
             gymName: gyms.find(g => g.id === restData.gymId)?.name,
-            location: restData.location,
             status: restData.status,
             notes: restData.notes,
-            price: restData.price,
-            open_to: restData.open_to,
-            description: restData.description,
-            imageUrl: restData.imageUrl,
         };
 
         if (data.id && !data.id.startsWith('manual-')) { // Modifica
-            setEvents(prev => prev.map(e => e.id === data.id ? newOrUpdatedEvent : e));
-        } else { // Creazione o modifica di un evento manuale
-            const existingIndex = events.findIndex(e => e.id === newOrUpdatedEvent.id);
+            setLessons(prev => prev.map(e => e.id === data.id ? newOrUpdatedLesson : e));
+        } else { // Creazione o modifica di una lezione manuale
+            const existingIndex = lessons.findIndex(e => e.id === newOrUpdatedLesson.id);
             if (existingIndex > -1) {
-                 setEvents(prev => {
-                    const newEvents = [...prev];
-                    newEvents[existingIndex] = newOrUpdatedEvent;
-                    return newEvents;
+                 setLessons(prev => {
+                    const newLessons = [...prev];
+                    newLessons[existingIndex] = newOrUpdatedLesson;
+                    return newLessons;
                  });
             } else {
-                setEvents(prev => [...prev, newOrUpdatedEvent].sort((a, b) => a.startTime.toMillis() - b.startTime.toMillis()));
+                setLessons(prev => [...prev, newOrUpdatedLesson].sort((a, b) => a.startTime.toMillis() - b.startTime.toMillis()));
             }
         }
-        toast({ title: "Evento Aggiornato nell'Anteprima", description: "Salva il calendario per rendere la modifica permanente." });
+        toast({ title: "Lezione Aggiornata nell'Anteprima", description: "Salva il calendario per rendere la modifica permanente." });
         setIsFormOpen(false);
-        setEditingEvent(undefined);
+        setEditingLesson(undefined);
     }
 
-    const openEditForm = (event: Event) => {
-        const start = event.startTime.toDate();
-        const end = event.endTime.toDate();
-        setEditingEvent({
-            id: event.id,
-            title: event.title,
-            type: event.type,
+    const openEditForm = (lesson: Lesson) => {
+        const start = lesson.startTime.toDate();
+        const end = lesson.endTime.toDate();
+        setEditingLesson({
+            id: lesson.id,
+            title: lesson.title,
             startDate: start,
             startTime: format(start, 'HH:mm'),
             endDate: end,
             endTime: format(end, 'HH:mm'),
-            discipline: event.discipline,
-            gymId: event.gymId,
-            location: event.location,
-            status: event.status,
-            notes: event.notes,
-            price: event.price || 0,
-            open_to: event.open_to || '',
-            description: event.description || '',
-            imageUrl: event.imageUrl || '',
+            discipline: lesson.discipline,
+            gymId: lesson.gymId,
+            status: lesson.status,
+            notes: lesson.notes,
         });
         setIsFormOpen(true);
     };
 
     const openCreateForm = () => {
-        setEditingEvent(undefined);
+        setEditingLesson(undefined);
         setIsFormOpen(true);
     }
     
@@ -558,15 +493,15 @@ export default function AdminCalendarPage() {
         try {
             const eventsQuery = query(collection(db, "events"), where("calendarId", "==", calendar.id), orderBy("startTime", "asc"));
             const eventsSnapshot = await getDocs(eventsQuery);
-            const eventsList = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()} as Event));
+            const lessonsList = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()} as Lesson));
 
-            setEvents(eventsList);
+            setLessons(lessonsList);
             setGeneratedTitle(`Calendario Caricato: ${calendar.calendarName}`);
-            toast({ title: "Calendario Caricato", description: `Hai caricato ${eventsList.length} eventi nell'area di anteprima.`});
+            toast({ title: "Calendario Caricato", description: `Hai caricato ${lessonsList.length} lezioni nell'area di anteprima.`});
 
         } catch (error) {
-            console.error("Error loading events for calendar:", error);
-            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare gli eventi del calendario." });
+            console.error("Error loading lessons for calendar:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare le lezioni del calendario." });
         }
     };
     
@@ -585,14 +520,14 @@ export default function AdminCalendarPage() {
         }
     };
     
-    const groupedEvents = events.reduce((acc, event) => {
-        const monthYear = format(event.startTime.toDate(), 'MMMM yyyy', { locale: it });
+    const groupedLessons = lessons.reduce((acc, lesson) => {
+        const monthYear = format(lesson.startTime.toDate(), 'MMMM yyyy', { locale: it });
         if (!acc[monthYear]) {
             acc[monthYear] = [];
         }
-        acc[monthYear].push(event);
+        acc[monthYear].push(lesson);
         return acc;
-    }, {} as Record<string, Event[]>);
+    }, {} as Record<string, Lesson[]>);
 
 
     return (
@@ -744,12 +679,12 @@ export default function AdminCalendarPage() {
                             {generatedTitle ? (
                                 <CardDescription className="mt-2">{generatedTitle}</CardDescription>
                             ) : (
-                                <CardDescription className="mt-2">Genera o carica un calendario per visualizzare gli eventi. Potrai modificarli o salvarli su Firebase.</CardDescription>
+                                <CardDescription className="mt-2">Genera o carica un calendario per visualizzare le lezioni. Potrai modificarle o salvarle su Firebase.</CardDescription>
                             )}
                         </div>
                         <div className="flex w-full sm:w-auto gap-2">
-                             <Button onClick={openCreateForm} variant="outline" className="w-full sm:w-auto"><PlusCircle className="mr-2"/>Aggiungi</Button>
-                             <Button onClick={handleSaveCalendar} disabled={isSaving || isGenerating || events.length === 0} className="w-full sm:w-auto">
+                             <Button onClick={openCreateForm} variant="outline" className="w-full sm:w-auto"><PlusCircle className="mr-2"/>Aggiungi Lezione</Button>
+                             <Button onClick={handleSaveCalendar} disabled={isSaving || isGenerating || lessons.length === 0} className="w-full sm:w-auto">
                                 {isSaving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2" />}
                                 Salva su DB
                              </Button>
@@ -771,22 +706,22 @@ export default function AdminCalendarPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {Object.entries(groupedEvents).length > 0 ? (
-                                    Object.entries(groupedEvents).map(([monthYear, monthEvents]) => (
+                                {Object.entries(groupedLessons).length > 0 ? (
+                                    Object.entries(groupedLessons).map(([monthYear, monthLessons]) => (
                                         <Fragment key={monthYear}>
                                             <TableRow className="bg-muted/50 hover:bg-muted/50">
                                                 <TableCell colSpan={7} className="font-bold text-lg capitalize text-primary py-3">
                                                     {monthYear}
                                                 </TableCell>
                                             </TableRow>
-                                            {monthEvents.map(event => (
-                                                <TableRow key={event.id} className={cn(event.status === 'annullata' && 'bg-destructive/10 text-muted-foreground')}>
+                                            {monthLessons.map(lesson => (
+                                                <TableRow key={lesson.id} className={cn(lesson.status === 'annullata' && 'bg-destructive/10 text-muted-foreground')}>
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
-                                                            <Badge variant={event.status === 'annullata' ? 'destructive' : 'success'}>
-                                                                {event.status === 'annullata' ? 'Annullata' : 'OK'}
+                                                            <Badge variant={lesson.status === 'annullata' ? 'destructive' : 'success'}>
+                                                                {lesson.status === 'annullata' ? 'Annullata' : 'OK'}
                                                             </Badge>
-                                                            {event.notes && (
+                                                            {lesson.notes && (
                                                                 <Popover>
                                                                     <PopoverTrigger asChild>
                                                                         <Button variant="ghost" size="icon" className="h-6 w-6">
@@ -795,20 +730,20 @@ export default function AdminCalendarPage() {
                                                                     </PopoverTrigger>
                                                                     <PopoverContent className="text-sm w-80">
                                                                         <p className="font-bold mb-2">Note lezione:</p>
-                                                                        {event.notes}
+                                                                        {lesson.notes}
                                                                     </PopoverContent>
                                                                 </Popover>
                                                             )}
                                                         </div>
                                                     </TableCell>
-                                                    <TableCell>{format(event.startTime.toDate(), "dd/MM/yy", {locale: it})}</TableCell>
-                                                    <TableCell className="capitalize">{format(event.startTime.toDate(), "eeee", {locale: it})}</TableCell>
-                                                    <TableCell>{`${format(event.startTime.toDate(), "HH:mm")} - ${format(event.endTime.toDate(), "HH:mm")}`}</TableCell>
-                                                    <TableCell className="font-medium capitalize">{event.discipline}</TableCell>
-                                                    <TableCell>{event.gymName || event.location}</TableCell>
+                                                    <TableCell>{format(lesson.startTime.toDate(), "dd/MM/yy", {locale: it})}</TableCell>
+                                                    <TableCell className="capitalize">{format(lesson.startTime.toDate(), "eeee", {locale: it})}</TableCell>
+                                                    <TableCell>{`${format(lesson.startTime.toDate(), "HH:mm")} - ${format(lesson.endTime.toDate(), "HH:mm")}`}</TableCell>
+                                                    <TableCell className="font-medium capitalize">{lesson.discipline}</TableCell>
+                                                    <TableCell>{lesson.gymName}</TableCell>
                                                     <TableCell className="text-right">
-                                                        <Button variant="ghost" size="sm" onClick={() => openEditForm(event)}>Modifica</Button>
-                                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteEvent(event.id)}><Trash2 className="w-4 h-4"/></Button>
+                                                        <Button variant="ghost" size="sm" onClick={() => openEditForm(lesson)}>Modifica</Button>
+                                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteLesson(lesson.id)}><Trash2 className="w-4 h-4"/></Button>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
@@ -817,7 +752,7 @@ export default function AdminCalendarPage() {
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                                            Nessun evento da mostrare. Genera un'anteprima o aggiungine uno manualmente.
+                                            Nessuna lezione da mostrare. Genera un'anteprima o aggiungine una manualmente.
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -827,15 +762,15 @@ export default function AdminCalendarPage() {
                 </CardContent>
              </Card>
 
-              <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setEditingEvent(undefined); }}>
+              <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setEditingLesson(undefined); }}>
                 <DialogContent className="sm:max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>{editingEvent ? "Modifica Evento" : "Crea Nuovo Evento"}</DialogTitle>
+                        <DialogTitle>{editingLesson ? "Modifica Lezione" : "Crea Nuova Lezione"}</DialogTitle>
                     </DialogHeader>
-                    <EventForm 
-                        event={editingEvent} 
+                    <LessonForm 
+                        lesson={editingLesson} 
                         gyms={gyms} 
-                        onSave={handleSaveEvent} 
+                        onSave={handleSaveLesson} 
                         onCancel={() => setIsFormOpen(false)} 
                     />
                 </DialogContent>
@@ -844,8 +779,5 @@ export default function AdminCalendarPage() {
         </div>
     );
 }
-    
-
-    
 
     
