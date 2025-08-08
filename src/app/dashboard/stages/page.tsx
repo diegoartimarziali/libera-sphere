@@ -33,8 +33,7 @@ export default function StagesPage() {
                 const q = query(
                     eventsCollection, 
                     where("type", "in", ["stage", "exam", "course", "other"]),
-                    where("startTime", ">=", Timestamp.now()),
-                    orderBy("startTime", "asc")
+                    where("startTime", ">=", Timestamp.now())
                 );
                 const stagesSnapshot = await getDocs(q);
 
@@ -54,6 +53,9 @@ export default function StagesPage() {
                         type: data.type || 'other'
                     } as Stage;
                 });
+                
+                // Ordina gli eventi client-side
+                stagesList.sort((a, b) => a.startTime.toMillis() - b.startTime.toMillis());
                 
                 setStages(stagesList);
             } catch (error) {
