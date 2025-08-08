@@ -70,11 +70,6 @@ interface DateGroup {
     dates: Timestamp[];
 }
 
-interface MonthOption {
-    value: string; // 'all' or 'YYYY-MM'
-    label: string; // 'Tutti i mesi' or 'Mese Anno'
-}
-
 interface PeriodOption {
     id: string;
     label: string;
@@ -225,10 +220,6 @@ export default function AdminCalendarPage() {
     // Stati per il generatore
     const [periodOptions, setPeriodOptions] = useState<PeriodOption[]>([]);
     const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
-
-    const [availableMonths, setAvailableMonths] = useState<MonthOption[]>([]);
-    const [selectedMonth, setSelectedMonth] = useState('all');
-
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
     const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('none');
     
@@ -324,24 +315,6 @@ export default function AdminCalendarPage() {
     }, []);
 
     const selectedPeriod = periodOptions.find(p => p.id === selectedPeriodId);
-
-    useEffect(() => {
-        if (selectedPeriod) {
-            const { startDate, endDate } = selectedPeriod;
-            const months = eachMonthOfInterval({ start: startDate, end: endDate });
-            const monthOptions: MonthOption[] = months.map(monthStart => ({
-                value: format(monthStart, 'yyyy-MM'),
-                label: format(monthStart, 'MMMM yyyy', { locale: it })
-            }));
-            setAvailableMonths([
-                { value: 'all', label: 'Tutti i mesi' },
-                ...monthOptions
-            ]);
-        } else {
-            setAvailableMonths([]);
-        }
-        setSelectedMonth('all');
-    }, [selectedPeriod]);
     
     const handlePreviewCalendar = async () => {
         if (!selectedPeriod || !gymFilter || !disciplineFilter) {
@@ -411,14 +384,6 @@ export default function AdminCalendarPage() {
                     });
                 }
             });
-
-            if (selectedMonth !== 'all') {
-                const [year, month] = selectedMonth.split('-').map(Number);
-                generatedEvents = generatedEvents.filter(event => {
-                    const eventDate = event.startTime.toDate();
-                    return eventDate.getFullYear() === year && eventDate.getMonth() === month - 1;
-                });
-            }
 
             setEvents(generatedEvents);
             setGeneratedTitle(`Anteprima per ${selectedGym.name} - ${disciplineFilter} (${generatedEvents.length} lezioni)`);
@@ -621,26 +586,6 @@ export default function AdminCalendarPage() {
                             </Select>
                         </div>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Filtra per Mese</Label>
-                             <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={availableMonths.length === 0}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleziona un mese..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableMonths.map(month => (
-                                        <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                             {/* Placeholder for alignment */}
-                        </div>
-                    </div>
-
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <Label>Filtra per Palestra</Label>
