@@ -434,6 +434,10 @@ export default function AdminCalendarPage() {
     
     const handleDateGroupChange = (groupId: string) => {
         setSelectedDateGroupId(groupId);
+        if (groupId === "none") {
+            setSelectedDates([]);
+            return;
+        }
         const selectedGroup = dateGroups.find(g => g.id === groupId);
         setSelectedDates(selectedGroup ? selectedGroup.dates : []);
     };
@@ -465,7 +469,7 @@ export default function AdminCalendarPage() {
                                 <SelectValue placeholder="Seleziona un gruppo di date..." />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Nessuna esclusione</SelectItem>
+                                <SelectItem value="none">Nessuna esclusione</SelectItem>
                                 {dateGroups.map(group => (
                                     <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
                                 ))}
@@ -632,5 +636,7 @@ export default function AdminCalendarPage() {
 
 
 
+
+    
 
     
