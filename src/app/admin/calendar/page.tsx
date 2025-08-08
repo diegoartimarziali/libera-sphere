@@ -304,7 +304,7 @@ export default function AdminCalendarPage() {
                 const dayOfWeekName = format(date, "EEEE", { locale: it });
 
                 selectedGym.weeklySchedule
-                    ?.filter(schedule => schedule.dayOfWeek === dayOfWeekName)
+                    ?.filter(schedule => schedule.dayOfWeek.toLowerCase() === dayOfWeekName.toLowerCase())
                     .forEach((scheduleSlot, index) => {
                         scheduleSlot.slots
                         .filter((slot: any) => slot.discipline === disciplineFilter)
