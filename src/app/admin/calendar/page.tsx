@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay } from "date-fns";
+import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,13 @@ interface Event {
     gymName?: string;
     discipline?: string;
 }
+
+interface DateGroup {
+    id: string;
+    name: string;
+    dates: Timestamp[];
+}
+
 
 const eventFormSchema = z.object({
     id: z.string().optional(),
@@ -186,7 +193,10 @@ export default function AdminCalendarPage() {
     // Stati per il generatore
     const [startDate, setStartDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
-    const [holidays, setHolidays] = useState('');
+    const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
+    const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('');
+    const [selectedDates, setSelectedDates] = useState<Timestamp[]>([]);
+    
     const [selectedGymIds, setSelectedGymIds] = useState<string[]>([]);
     const [disciplineFilter, setDisciplineFilter] = useState('Tutte le Discipline');
     const [categoryFilter, setCategoryFilter] = useState('Tutte le Categorie');
@@ -205,6 +215,10 @@ export default function AdminCalendarPage() {
             const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
             setGyms(gymsList);
             
+            const dateGroupsSnapshot = await getDocs(collection(db, "dateGroups"));
+            const dateGroupsList = dateGroupsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DateGroup));
+            setDateGroups(dateGroupsList);
+
             const eventsQuery = query(collection(db, "events"), where("startTime", ">=", Timestamp.now()), orderBy("startTime", "asc"));
             const eventsSnapshot = await getDocs(eventsQuery);
             const eventsList = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()} as Event));
@@ -237,47 +251,42 @@ export default function AdminCalendarPage() {
 
         try {
             const allDates = eachDayOfInterval({ start: startDate, end: endDate });
-            const holidayDates = holidays.split('\n').map(h => h.trim()).filter(Boolean);
+            const holidayDateStrings = selectedDates.map(ts => format(ts.toDate(), 'yyyy-MM-dd'));
             const selectedGymsData = gyms.filter(g => selectedGymIds.includes(g.id));
 
             for (const date of allDates) {
                 const dayOfWeek = date.getDay();
-                const dateString = format(date, 'dd/MM/yyyy');
-
-                if (holidayDates.includes(dateString)) continue;
+                const dateString = format(date, 'yyyy-MM-dd');
+                
+                if (holidayDateStrings.includes(dateString)) continue;
 
                 for (const gym of selectedGymsData) {
                     const daySchedule = gym.weeklySchedule?.find(s => s.dayOfWeek === Object.keys(dayNameToIndex).find(key => dayNameToIndex[key] === dayOfWeek));
                     if (!daySchedule) continue;
 
                     const processDiscipline = (discipline: 'Karate' | 'Aikido') => {
-                        let slotsToProcess = daySchedule.slots.filter((slot: any) => slot.discipline === discipline);
+                        let slotsToProcess: any[] = [];
                         
-                        if (disciplineFilter === 'Tutte le Discipline' && categoryFilter === 'Tutti i corsi') {
-                            if (discipline === 'Karate') {
-                                const anchorSlot = slotsToProcess.find((s: any) => s.category === "Lezioni Selezione");
-                                if (anchorSlot) slotsToProcess = [anchorSlot]; else slotsToProcess = [];
-                            } else if (discipline === 'Aikido') {
-                                const anchorSlot = slotsToProcess.find((s: any) => s.category === "Tutti i Gradi");
-                                if (anchorSlot) slotsToProcess = [anchorSlot]; else slotsToProcess = [];
-                            }
-                        } else {
-                            if (discipline === 'Karate') {
-                                if (categoryFilter === 'Tutti i corsi di Karate (Aggregato)') {
-                                    const anchorSlot = slotsToProcess.find((s: any) => s.category === "Lezioni Selezione");
-                                    if (anchorSlot) slotsToProcess = [anchorSlot]; else slotsToProcess = [];
-                                } else if (categoryFilter !== 'Tutte le Categorie' && categoryFilter !== 'Tutti i corsi') {
-                                    slotsToProcess = slotsToProcess.filter((s: any) => s.category === categoryFilter);
+                         if (disciplineFilter === 'Tutte le Discipline' || disciplineFilter === discipline) {
+                            if (categoryFilter === 'Tutti i corsi') {
+                                // Logica speciale per "Tutti i corsi"
+                                if (discipline === 'Karate') {
+                                    const anchorSlot = daySchedule.slots.find((s: any) => s.discipline === 'Karate' && s.category === "Lezioni Selezione");
+                                    if (anchorSlot) slotsToProcess = [anchorSlot];
+                                } else if (discipline === 'Aikido') {
+                                    const anchorSlot = daySchedule.slots.find((s: any) => s.discipline === 'Aikido' && s.category === "Tutti i Gradi");
+                                    if (anchorSlot) slotsToProcess = [anchorSlot];
                                 }
-                            }
-    
-                            if(discipline === 'Aikido') {
-                                if (categoryFilter === 'Tutti i Gradi') {
-                                    const anchorSlot = slotsToProcess.find((s: any) => s.category === "Tutti i Gradi");
-                                    if (anchorSlot) slotsToProcess = [anchorSlot]; else slotsToProcess = [];
-                                } else if (categoryFilter !== 'Tutte le Categorie' && categoryFilter !== 'Tutti i corsi') {
-                                    slotsToProcess = slotsToProcess.filter((s:any) => s.category === categoryFilter);
-                                }
+                            } else if (categoryFilter === 'Tutti i corsi di Karate (Aggregato)' && discipline === 'Karate') {
+                                const anchorSlot = daySchedule.slots.find((s: any) => s.discipline === 'Karate' && s.category === "Lezioni Selezione");
+                                if (anchorSlot) slotsToProcess = [anchorSlot];
+                            } else if (categoryFilter === 'Tutti i Gradi' && discipline === 'Aikido') {
+                                const anchorSlot = daySchedule.slots.find((s: any) => s.discipline === 'Aikido' && s.category === "Tutti i Gradi");
+                                if (anchorSlot) slotsToProcess = [anchorSlot];
+                            } else if (categoryFilter !== 'Tutte le Categorie') {
+                                slotsToProcess = daySchedule.slots.filter((s: any) => s.discipline === discipline && s.category === categoryFilter);
+                            } else { // Tutte le categorie per una disciplina specifica
+                                slotsToProcess = daySchedule.slots.filter((s: any) => s.discipline === discipline);
                             }
                         }
 
@@ -292,7 +301,7 @@ export default function AdminCalendarPage() {
 
                              const newEventRef = doc(collection(db, "events"));
                              batch.set(newEventRef, {
-                                title: discipline === 'Karate' ? "Allenamento Karate" : "Allenamento Aikido",
+                                title: slot.title || `${discipline} - ${slot.category}`,
                                 type: 'lesson',
                                 startTime: Timestamp.fromDate(lessonStart),
                                 endTime: Timestamp.fromDate(lessonEnd),
@@ -315,8 +324,8 @@ export default function AdminCalendarPage() {
             }
 
             await batch.commit();
-            toast({ title: "Calendario generato con successo!", description: `${batch.set.length} eventi creati.` });
-            fetchAllData();
+            toast({ title: "Calendario generato con successo!", description: `Creati nuovi eventi.` });
+            await fetchAllData();
 
         } catch (error) {
             console.error(error);
@@ -415,6 +424,20 @@ export default function AdminCalendarPage() {
         );
     };
 
+    const handleSelectAllGyms = (checked: boolean) => {
+        if (checked) {
+            setSelectedGymIds(gyms.map(g => g.id));
+        } else {
+            setSelectedGymIds([]);
+        }
+    };
+    
+    const handleDateGroupChange = (groupId: string) => {
+        setSelectedDateGroupId(groupId);
+        const selectedGroup = dateGroups.find(g => g.id === groupId);
+        setSelectedDates(selectedGroup ? selectedGroup.dates : []);
+    };
+
 
     return (
         <div className="space-y-8">
@@ -434,10 +457,22 @@ export default function AdminCalendarPage() {
                              <DatePicker value={endDate} onChange={setEndDate} />
                         </div>
                     </div>
-                     <div className="space-y-2">
-                        <Label>Festività da Escludere (una per riga, formato GG/MM/AAAA)</Label>
-                        <Textarea placeholder={"25/12/2024\n01/01/2025"} value={holidays} onChange={(e) => setHolidays(e.target.value)} />
+
+                    <div className="space-y-2">
+                        <Label>Gruppo di Festività da Escludere</Label>
+                        <Select value={selectedDateGroupId} onValueChange={handleDateGroupChange}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Seleziona un gruppo di date..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">Nessuna esclusione</SelectItem>
+                                {dateGroups.map(group => (
+                                    <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
+
                      <div className="space-y-2">
                         <Label>Palestre da includere</Label>
                         <Popover>
@@ -448,10 +483,14 @@ export default function AdminCalendarPage() {
                                 >
                                     {selectedGymIds.length > 0 ? (
                                         <div className="flex gap-1 flex-wrap">
-                                            {selectedGymIds.map(gymId => {
-                                                const gym = gyms.find(g => g.id === gymId);
-                                                return <Badge key={gymId} variant="secondary">{gym?.name}</Badge>;
-                                            })}
+                                            {selectedGymIds.length === gyms.length ? (
+                                                <Badge variant="secondary">Tutte le palestre</Badge>
+                                            ) : (
+                                                selectedGymIds.map(gymId => {
+                                                    const gym = gyms.find(g => g.id === gymId);
+                                                    return <Badge key={gymId} variant="secondary">{gym?.name}</Badge>;
+                                                })
+                                            )}
                                         </div>
                                     ) : (
                                         "Seleziona palestre..."
@@ -462,8 +501,13 @@ export default function AdminCalendarPage() {
                                 <div className="p-2 space-y-1">
                                     <div
                                         className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                        onClick={() => handleSelectAllGyms(!selectedGymIds.length || selectedGymIds.length < gyms.length)}
                                     >
-                                        <Checkbox id="gym-all" />
+                                        <Checkbox 
+                                            id="gym-all" 
+                                            checked={selectedGymIds.length === gyms.length}
+                                            onCheckedChange={(checked) => handleSelectAllGyms(checked as boolean)}
+                                        />
                                         <Label htmlFor="gym-all" className="flex-1 cursor-pointer font-semibold">Tutte le palestre</Label>
                                     </div>
                                     {gyms.map(gym => (
@@ -587,3 +631,6 @@ export default function AdminCalendarPage() {
     
 
 
+
+
+    
