@@ -204,11 +204,10 @@ export default function AdminCalendarPage() {
 
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
     const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('none');
-    const [selectedDates, setSelectedDates] = useState<Timestamp[] | null>([]);
+    const [selectedDates, setSelectedDates] = useState<Timestamp[]>([]);
     
     const [gymFilter, setGymFilter] = useState('all');
-    const [disciplineFilter, setDisciplineFilter] = useState('Tutte le Discipline');
-    const [categoryFilter, setCategoryFilter] = useState('Tutte le Categorie');
+    const [disciplineFilter, setDisciplineFilter] = useState('Karate');
 
     // Stati per il form modale
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -393,7 +392,6 @@ export default function AdminCalendarPage() {
                             <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Tutte le Discipline">Tutte le Discipline</SelectItem>
                                     <SelectItem value="Karate">Karate</SelectItem>
                                     <SelectItem value="Aikido">Aikido</SelectItem>
                                 </SelectContent>
