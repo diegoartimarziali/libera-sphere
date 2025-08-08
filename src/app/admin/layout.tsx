@@ -98,6 +98,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <AdminNavLink href="/admin/payments">Pagamenti</AdminNavLink>
                     <AdminNavLink href="/admin/attendances">Presenze</AdminNavLink>
                     <AdminNavLink href="/admin/calendar">Calendario</AdminNavLink>
+                    <AdminNavLink href="/admin/stages">Stage</AdminNavLink>
                 </nav>
                  <div className="flex items-center gap-4">
                     <Button asChild variant="outline">
