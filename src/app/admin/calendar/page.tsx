@@ -8,11 +8,11 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval, isValid, isBefore } from "date-fns";
+import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2 } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,6 +24,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { it } from "date-fns/locale";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 // =================================================================
 // TIPI E SCHEMI
@@ -78,7 +81,8 @@ const lessonCategories = [
     'Lezioni Selezione',
     'Cinture da Bianca ad Arancio',
     'Cinture da Verde a Nera',
-    'Cinture Nere'
+    'Cinture Nere',
+    'Tutti i Gradi'
 ]
 
 // =================================================================
@@ -183,9 +187,9 @@ export default function AdminCalendarPage() {
     const [startDate, setStartDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
     const [holidays, setHolidays] = useState('');
-    const [selectedGyms, setSelectedGyms] = useState<Record<string, boolean>>({});
+    const [selectedGymIds, setSelectedGymIds] = useState<string[]>([]);
     const [disciplineFilter, setDisciplineFilter] = useState('Tutte le Discipline');
-    const [categoryFilter, setCategoryFilter] = useState('Tutti i corsi');
+    const [categoryFilter, setCategoryFilter] = useState('Tutte le Categorie');
 
     // Stati per il form modale
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -219,13 +223,103 @@ export default function AdminCalendarPage() {
     }, [toast]);
     
     const handleGenerateCalendar = async () => {
-        toast({
-            variant: "destructive",
-            title: "Funzione Disabilitata",
-            description: "La generazione di massa del calendario è stata disabilitata dall'amministratore.",
-        });
-        return;
-    }
+        if (!startDate || !endDate || selectedGymIds.length === 0) {
+            toast({ variant: "destructive", title: "Dati mancanti", description: "Seleziona le date e almeno una palestra." });
+            return;
+        }
+        if (isBefore(endDate, startDate)) {
+             toast({ variant: "destructive", title: "Date non valide", description: "La data di fine non può precedere quella di inizio." });
+            return;
+        }
+
+        setIsGenerating(true);
+        const batch = writeBatch(db);
+
+        try {
+            const allDates = eachDayOfInterval({ start: startDate, end: endDate });
+            const holidayDates = holidays.split('\n').map(h => h.trim()).filter(Boolean);
+            const selectedGymsData = gyms.filter(g => selectedGymIds.includes(g.id));
+
+            for (const date of allDates) {
+                const dayOfWeek = date.getDay();
+                const dateString = format(date, 'dd/MM/yyyy');
+
+                if (holidayDates.includes(dateString)) continue;
+
+                for (const gym of selectedGymsData) {
+                    const daySchedule = gym.weeklySchedule?.find(s => s.dayOfWeek === Object.keys(dayNameToIndex).find(key => dayNameToIndex[key] === dayOfWeek));
+                    if (!daySchedule) continue;
+
+                    const processDiscipline = (discipline: 'Karate' | 'Aikido') => {
+                        let slotsToProcess = daySchedule.slots.filter((slot: any) => slot.discipline === discipline);
+                        
+                        if (discipline === 'Karate') {
+                            if (categoryFilter === 'Tutti i corsi di Karate (Aggregato)' || (categoryFilter === 'Tutti i corsi' && disciplineFilter === 'Tutte le Discipline')) {
+                                const anchorSlot = slotsToProcess.find((s: any) => s.category === "Lezioni Selezione");
+                                if (anchorSlot) slotsToProcess = [anchorSlot]; else slotsToProcess = [];
+                            } else if (categoryFilter !== 'Tutte le Categorie' && categoryFilter !== 'Tutti i corsi') {
+                                slotsToProcess = slotsToProcess.filter((s: any) => s.category === categoryFilter);
+                            }
+                        }
+
+                        if(discipline === 'Aikido') {
+                            if (categoryFilter === 'Tutti i corsi' || categoryFilter === 'Tutti i Gradi') {
+                                const anchorSlot = slotsToProcess.find((s: any) => s.category === "Tutti i Gradi");
+                                if (anchorSlot) slotsToProcess = [anchorSlot]; else slotsToProcess = [];
+                            } else if (categoryFilter !== 'Tutte le Categorie' && categoryFilter !== 'Tutti i corsi') {
+                                slotsToProcess = slotsToProcess.filter((s:any) => s.category === categoryFilter);
+                            }
+                        }
+
+                        slotsToProcess.forEach((slot: any) => {
+                             const [startHour, startMinute] = slot.startTime.split(':').map(Number);
+                             const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+
+                             const lessonStart = new Date(date);
+                             lessonStart.setHours(startHour, startMinute, 0, 0);
+                             const lessonEnd = new Date(date);
+                             lessonEnd.setHours(endHour, endMinute, 0, 0);
+
+                             const newEventRef = doc(collection(db, "events"));
+                             batch.set(newEventRef, {
+                                title: discipline === 'Karate' ? "Allenamento Karate" : "Allenamento Aikido",
+                                type: 'lesson',
+                                startTime: Timestamp.fromDate(lessonStart),
+                                endTime: Timestamp.fromDate(lessonEnd),
+                                discipline: discipline,
+                                gymId: gym.id,
+                                gymName: gym.name,
+                             });
+                        });
+                    };
+
+                    if (disciplineFilter === 'Tutte le Discipline') {
+                         if (categoryFilter === 'Tutti i corsi') {
+                            processDiscipline('Karate');
+                            processDiscipline('Aikido');
+                        } else {
+                            processDiscipline('Karate');
+                            processDiscipline('Aikido');
+                        }
+                    } else if (disciplineFilter === 'Karate') {
+                        processDiscipline('Karate');
+                    } else if (disciplineFilter === 'Aikido') {
+                        processDiscipline('Aikido');
+                    }
+                }
+            }
+
+            await batch.commit();
+            toast({ title: "Calendario generato con successo!", description: `${batch.set.length} eventi creati.` });
+            fetchAllData();
+
+        } catch (error) {
+            console.error(error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile generare il calendario." });
+        } finally {
+            setIsGenerating(false);
+        }
+    };
     
     const handleDeleteEvent = async (eventId: string) => {
         if (!window.confirm("Sei sicuro di voler eliminare questo evento? L'azione è irreversibile.")) return;
@@ -307,6 +401,15 @@ export default function AdminCalendarPage() {
         setEditingEvent(undefined);
         setIsFormOpen(true);
     }
+    
+    const handleGymSelection = (gymId: string) => {
+        setSelectedGymIds(prev =>
+            prev.includes(gymId)
+                ? prev.filter(id => id !== gymId)
+                : [...prev, gymId]
+        );
+    };
+
 
     return (
         <div className="space-y-8">
@@ -344,40 +447,66 @@ export default function AdminCalendarPage() {
                         </div>
                          <div className="space-y-2">
                             <Label>Filtra per Categoria</Label>
-                             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                             <Select value={categoryFilter} onValueChange={(value) => {
+                                 setCategoryFilter(value)
+                                 if (value === 'Tutti i corsi') {
+                                     setDisciplineFilter('Tutte le Discipline');
+                                 }
+                             }}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    {lessonCategories.map(cat => {
-                                         // Mostra 'Tutti i corsi' solo se la disciplina è 'Tutte le Discipline'
-                                         if (cat === 'Tutti i corsi' && disciplineFilter !== 'Tutte le Discipline') {
-                                            return null;
-                                        }
-                                         // Nascondi le opzioni specifiche di Karate se non è selezionato Karate o Tutte le Discipline
-                                        if (disciplineFilter === 'Aikido' && (cat !== 'Tutte le Categorie' && cat !== 'Tutti i corsi')) {
-                                            return null;
-                                        }
-                                        return <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                    })}
+                                    {lessonCategories.map(cat => (
+                                         <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
-                     <div className="space-y-2">
+                    <div className="space-y-2">
                         <Label>Palestre da includere</Label>
-                        <div className="flex flex-wrap gap-4">
-                           {gyms.map(gym => (
-                                <div key={gym.id} className="flex items-center space-x-2">
-                                    <Checkbox id={gym.id} checked={selectedGyms[gym.id] || false} onCheckedChange={(checked) => setSelectedGyms(prev => ({...prev, [gym.id]: !!checked}))} />
-                                    <Label htmlFor={gym.id}>{gym.name}</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start font-normal"
+                                >
+                                    {selectedGymIds.length > 0 ? (
+                                        <div className="flex gap-1 flex-wrap">
+                                            {selectedGymIds.map(gymId => {
+                                                const gym = gyms.find(g => g.id === gymId);
+                                                return <Badge key={gymId} variant="secondary">{gym?.name}</Badge>;
+                                            })}
+                                        </div>
+                                    ) : (
+                                        "Seleziona palestre..."
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <div className="p-2 space-y-1">
+                                    {gyms.map(gym => (
+                                        <div
+                                            key={gym.id}
+                                            className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent cursor-pointer"
+                                            onClick={() => handleGymSelection(gym.id)}
+                                        >
+                                            <Checkbox
+                                                id={`gym-${gym.id}`}
+                                                checked={selectedGymIds.includes(gym.id)}
+                                                onCheckedChange={() => handleGymSelection(gym.id)}
+                                            />
+                                            <Label htmlFor={`gym-${gym.id}`} className="flex-1 cursor-pointer">{gym.name}</Label>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </CardContent>
                 <CardFooter>
-                    <Button onClick={handleGenerateCalendar} disabled={true}>
+                    <Button onClick={handleGenerateCalendar} disabled={isGenerating}>
                         {isGenerating ? <Loader2 className="animate-spin mr-2" /> : null}
-                        Genera Calendario (Disabilitato)
+                        Genera Calendario
                     </Button>
                 </CardFooter>
             </Card>
@@ -445,3 +574,4 @@ export default function AdminCalendarPage() {
 
 
     
+
