@@ -30,7 +30,7 @@ interface FeeData {
 }
 
 interface UpcomingLesson {
-    id: string; // "dayIndex-slotIndex-dateString"
+    id: string; // eventId from firestore
     startTime: Timestamp;
     endTime: Timestamp;
     title: string;
@@ -83,12 +83,6 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
     const [upcomingLessons, setUpcomingLessons] = useState<UpcomingLesson[]>([]);
     const [selectedLessonValue, setSelectedLessonValue] = useState<string | null>(null);
     const [highlightedLessons, setHighlightedLessons] = useState<UpcomingLesson[]>([]);
-    
-    // Mappa per convertire il nome del giorno in un numero (0=Domenica, 1=Lunedì, ecc.)
-    const dayNameToIndex: { [key: string]: number } = {
-        'Domenica': 0, 'Lunedì': 1, 'Martedì': 2, 'Mercoledì': 3, 
-        'Giovedì': 4, 'Venerdì': 5, 'Sabato': 6
-    };
 
     useEffect(() => {
         const fetchEventData = async () => {
@@ -113,45 +107,30 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                         if (gymDocSnap.exists()) {
                              const gymData = gymDocSnap.data();
                              setUserGymName(gymData.name);
-                             
-                             const today = new Date();
-                             const generatedLessons: UpcomingLesson[] = [];
-
-                            // Genera le lezioni per le prossime 4 settimane
-                             for (let week = 0; week < 4; week++) {
-                                gymData.weeklySchedule?.forEach((daySchedule: any) => {
-                                     const targetDayIndex = dayNameToIndex[daySchedule.dayOfWeek];
-                                     if (targetDayIndex === undefined) return;
-
-                                     daySchedule.slots?.forEach((slot: any, slotIndex: number) => {
-                                        if (slot.category === "Lezioni Selezione" && slot.discipline === discipline) {
-                                            const lessonDate = nextDay(addDays(today, week * 7), targetDayIndex);
-                                            
-                                            const [startHour, startMinute] = slot.startTime.split(':').map(Number);
-                                            const [endHour, endMinute] = slot.endTime.split(':').map(Number);
-
-                                            const startTime = new Date(lessonDate.setHours(startHour, startMinute, 0, 0));
-                                            const endTime = new Date(lessonDate.setHours(endHour, endMinute, 0, 0));
-
-                                            // Aggiungi solo se la lezione è futura
-                                            if(startTime > today) {
-                                                generatedLessons.push({
-                                                    id: `${targetDayIndex}-${slotIndex}-${startTime.toISOString()}`,
-                                                    startTime: Timestamp.fromDate(startTime),
-                                                    endTime: Timestamp.fromDate(endTime),
-                                                    title: `${discipline} - Lezione di Selezione`
-                                                });
-                                            }
-                                        }
-                                     });
-                                });
-                             }
-                             
-                             // Ordina le lezioni generate per data
-                             generatedLessons.sort((a,b) => a.startTime.toMillis() - b.startTime.toMillis());
-                             
-                             setUpcomingLessons(generatedLessons);
                         }
+                        
+                        // NUOVA LOGICA: Fetch da 'events' collection
+                        const now = Timestamp.now();
+                        const eventsQuery = query(
+                            collection(db, "events"),
+                            where("type", "==", "lesson"),
+                            where("gymId", "==", gymId),
+                            where("discipline", "==", discipline),
+                            where("status", "==", "confermata"),
+                            where("startTime", ">=", now),
+                            orderBy("startTime", "asc"),
+                            limit(20) // Limitiamo il numero di lezioni future da caricare
+                        );
+                        
+                        const eventsSnapshot = await getDocs(eventsQuery);
+                        const lessonsList = eventsSnapshot.docs.map(doc => ({
+                            id: doc.id,
+                            title: doc.data().title,
+                            startTime: doc.data().startTime,
+                            endTime: doc.data().endTime,
+                        } as UpcomingLesson));
+                        
+                        setUpcomingLessons(lessonsList);
 
                     } else {
                          toast({ title: "Dati mancanti", description: "Disciplina o palestra non impostate nel tuo profilo.", variant: "destructive" });
@@ -170,30 +149,35 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
     }, [user, toast]);
 
     useEffect(() => {
-        if (selectedLessonValue) {
+        if (selectedLessonValue && userDiscipline) {
             const selectedIndex = upcomingLessons.findIndex(l => l.id === selectedLessonValue);
+            const lessonsToTake = userDiscipline === 'Karate' ? 3 : 1;
 
-            if (selectedIndex !== -1 && upcomingLessons.length >= selectedIndex + 3) {
-                const threeLessons = upcomingLessons.slice(selectedIndex, selectedIndex + 3);
-                setHighlightedLessons(threeLessons);
+            if (selectedIndex !== -1 && upcomingLessons.length >= selectedIndex + lessonsToTake) {
+                const lessonsBundle = upcomingLessons.slice(selectedIndex, selectedIndex + lessonsToTake);
+                setHighlightedLessons(lessonsBundle);
             } else if (selectedIndex !== -1) {
-                const oneLesson = upcomingLessons.slice(selectedIndex, selectedIndex + 1);
-                setHighlightedLessons(oneLesson);
+                // Se non ci sono abbastanza lezioni per il bundle completo
+                setHighlightedLessons([]); // Resetta per indicare una scelta non valida
+                 toast({ 
+                    variant: "destructive", 
+                    title: "Lezioni insufficienti", 
+                    description: `Non ci sono abbastanza lezioni consecutive disponibili a partire da questa data per completare il pacchetto di prova. Scegli una data di inizio precedente.`
+                });
             } else {
                  setHighlightedLessons([]);
             }
         } else {
             setHighlightedLessons([]);
         }
-    }, [selectedLessonValue, upcomingLessons]);
+    }, [selectedLessonValue, upcomingLessons, userDiscipline, toast]);
     
     const handleConfirm = () => {
-        if (!userDiscipline || !userGymId || !userGymName || highlightedLessons.length < 1) {
-            toast({ variant: "destructive", title: "Errore", description: "Devi selezionare almeno una lezione."})
+        if (!userDiscipline || !userGymId || !userGymName || highlightedLessons.length === 0) {
+            toast({ variant: "destructive", title: "Selezione Incompleta", description: "Devi selezionare una lezione valida per cui ci siano abbastanza prove disponibili."})
             return;
         }
         
-        // Per Karate, ci aspettiamo 3 lezioni. Per Aikido, solo 1.
         const expectedLessons = userDiscipline === 'Karate' ? 3 : 1;
         if (highlightedLessons.length < expectedLessons) {
             toast({ variant: "destructive", title: "Lezioni insufficienti", description: `Non ci sono abbastanza lezioni disponibili per completare il ciclo di prova da questa data. Scegli un'altra data di inizio.`});
@@ -204,7 +188,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
             gymId: userGymId,
             gymName: userGymName,
             discipline: userDiscipline,
-            trialLessons: highlightedLessons.slice(0, expectedLessons).map(event => ({
+            trialLessons: highlightedLessons.map(event => ({
                 eventId: event.id,
                 startTime: event.startTime,
                 endTime: event.endTime
@@ -291,7 +275,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                         onValueChange={setSelectedLessonValue}
                         className="grid grid-cols-2 gap-3 sm:grid-cols-4"
                     >
-                        {upcomingLessons.slice(0, -(lessonsToOffer - 1) || undefined).map((lesson) => { // slice per non permettere di scegliere date per cui non ce ne sono abbastanza successive
+                        {upcomingLessons.map((lesson) => {
                             const value = lesson.id;
                             const isHighlighted = highlightedLessons.some(h => h.id === lesson.id);
                             const isSelected = selectedLessonValue === value;
@@ -318,7 +302,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
             </CardContent>
             <CardFooter className="justify-between">
                  <Button variant="outline" onClick={onBack}>Indietro</Button>
-                 <Button onClick={handleConfirm} disabled={!selectedLessonValue}>Scegli il Pagamento</Button>
+                 <Button onClick={handleConfirm} disabled={!selectedLessonValue || highlightedLessons.length === 0}>Scegli il Pagamento</Button>
             </CardFooter>
         </Card>
     )
