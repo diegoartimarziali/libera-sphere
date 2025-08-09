@@ -91,6 +91,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                 return
             };
             setLoading(true);
+            setUpcomingLessons([]); // Svuota le lezioni precedenti
             try {
                 const userDocRef = doc(db, "users", user.uid);
                 const userDocSnap = await getDoc(userDocRef);
@@ -149,7 +150,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
             fetchEventData();
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [user]);
 
     useEffect(() => {
         if (selectedLessonValue && userDiscipline) {
@@ -794,3 +795,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
