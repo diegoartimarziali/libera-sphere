@@ -332,7 +332,7 @@ export default function LiberaSpherePage() {
               >
                 <Label htmlFor="no" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground", isFormerMember === 'no' && 'border-primary')}>
                   <RadioGroupItem value="no" id="no" className="sr-only" />
-                  <span className="text-center font-semibold">No, è la mia prima volta</span>
+                  <span className="text-center font-semibold">No, non sono mai stato socio</span>
                 </Label>
                 <Label htmlFor="yes" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground", isFormerMember === 'yes' && 'border-primary')}>
                   <RadioGroupItem value="yes" id="yes" className="sr-only" />
@@ -465,7 +465,7 @@ export default function LiberaSpherePage() {
                             </div>
                         </div>
                         <div className="pt-4">
-                             <Label htmlFor="lastGrade">Il Tuo Grado Attuale</Label>
+                             <Label>Con quale grado?</Label>
                              {renderGradeSelect()}
                         </div>
                     </div>
