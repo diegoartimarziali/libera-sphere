@@ -26,6 +26,7 @@ export interface MemberSummaryProps {
     grade?: string;
     qualifica?: string;
     membershipStatus: string;
+    membershipStatusState?: 'pending' | 'active' | 'expired' | 'not_associated';
     isInsured?: boolean;
     trialLessons?: TrialLesson[];
     trialStatus?: string;
@@ -81,6 +82,12 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         'text-muted-foreground': props.trialStatusState === 'completed',
     });
 
+    const membershipStatusClassName = cn('font-bold', {
+        'text-orange-500': props.membershipStatusState === 'pending',
+        'text-green-600': props.membershipStatusState === 'active',
+        'text-destructive': props.membershipStatusState === 'expired',
+    });
+
     return (
         <Card className="flex flex-col">
             <CardHeader className="flex flex-col items-center text-center p-4">
@@ -110,7 +117,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <div className="space-y-3">
                     
                     <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />
-                    <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
+                    <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} valueClassName={membershipStatusClassName} />
                     <InfoRow icon={<Activity size={16} />} label="Stato Prova" value={props.trialStatus} valueClassName={trialStatusClassName} />
                     <InfoRow icon={<Repeat size={16}/>} label="Abbonamento" value={props.subscriptionType} />
                     <InfoRow icon={<CalendarClock size={16}/>} label="Valido per il mese di" value={props.subscriptionValidity} />

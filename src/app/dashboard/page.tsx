@@ -206,6 +206,7 @@ export default function DashboardPage() {
                 grade: data.lastGrade,
                 qualifica: data.qualification,
                 membershipStatus: membershipStatusLabel,
+                membershipStatusState: data.associationStatus,
                 isInsured: data.isInsured,
                 trialLessons: trialLessons,
                 trialStatus: trialStatusLabel,
