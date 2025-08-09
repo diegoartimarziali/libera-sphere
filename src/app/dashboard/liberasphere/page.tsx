@@ -392,7 +392,7 @@ export default function LiberaSpherePage() {
 
               {hasPracticedBefore === 'yes' && discipline && (
                   <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                      <h4 className="font-semibold text-foreground">4. Qual è il tuo grado attuale?</h4>
+                      <h4 className="font-semibold text-foreground">Con quale grado?</h4>
                       <div className="space-y-2">
                            {renderGradeSelect()}
                       </div>
