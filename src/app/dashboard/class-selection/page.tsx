@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { format, addDays, nextDay } from "date-fns"
 import { it } from "date-fns/locale"
-import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles, MessageSquareQuote } from "lucide-react"
+import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles, MessageSquareQuote, CalendarClock } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp, addDoc, limit, orderBy, writeBatch } from "firebase/firestore"
@@ -80,6 +80,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
     const [userDiscipline, setUserDiscipline] = useState<string | null>(null);
     const [userGymId, setUserGymId] = useState<string | null>(null);
     const [userGymName, setUserGymName] = useState<string | null>(null);
+    const [selectionLessonsSchedule, setSelectionLessonsSchedule] = useState<string | null>(null);
     const [upcomingLessons, setUpcomingLessons] = useState<UpcomingLesson[]>([]);
     const [selectedLessonValue, setSelectedLessonValue] = useState<string | null>(null);
     const [highlightedLessons, setHighlightedLessons] = useState<UpcomingLesson[]>([]);
@@ -111,6 +112,19 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
                         if (gymDocSnap.exists()) {
                              const gymData = gymDocSnap.data();
                              setUserGymName(gymData.name);
+                        }
+                        
+                         // Fetch lesson schedule
+                        const scheduleCollectionRef = collection(db, `orarigruppi/${gymId}/lezioniselezione`);
+                        const scheduleSnapshot = await getDocs(query(scheduleCollectionRef, limit(1))); // Assuming one doc holds the schedule
+                        if (!scheduleSnapshot.empty) {
+                            const scheduleData = scheduleSnapshot.docs[0].data();
+                            // This part is flexible depending on your data structure.
+                            // Let's assume the schedule is in a field called 'summary'.
+                            const scheduleSummary = scheduleData.lezioni?.map((l: any) => `${l.giorno} ${l.orario}`).join('; ');
+                            setSelectionLessonsSchedule(scheduleSummary || "Orario non disponibile");
+                        } else {
+                            setSelectionLessonsSchedule("Orario non disponibile");
                         }
                         
                         const now = Timestamp.now();
@@ -266,6 +280,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
                      <dl className="space-y-2">
                         <DataRow label="Disciplina" value={userDiscipline} icon={<Sparkles size={16} />} />
                         <DataRow label="Palestra" value={`${userGymId}, ${userGymName}`} icon={<Building size={16} />} />
+                        <DataRow label="Orario Lezioni" value={selectionLessonsSchedule} icon={<CalendarClock size={16} />} />
                      </dl>
                 </div>
                 
@@ -361,8 +376,7 @@ function PaymentStep({
                     </Label>
                 </RadioGroup>
             </CardContent>
-            <CardFooter className="justify-between">
-                <Button variant="outline" onClick={() => setStep(2)}>Indietro</Button>
+            <CardFooter className="justify-end">
                 <Button onClick={() => onNext(paymentMethod!)} disabled={!paymentMethod}>Prosegui</Button>
             </CardFooter>
         </Card>
@@ -519,8 +533,7 @@ function ConfirmationStep({
                 </div>
 
             </CardContent>
-            <CardFooter className="justify-between">
-                <Button variant="outline" onClick={onBack}>Indietro</Button>
+            <CardFooter className="justify-end">
                 <Button onClick={onComplete} disabled={!isConfirmed || isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Completa Iscrizione
@@ -787,7 +800,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
-
-    
