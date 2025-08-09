@@ -114,12 +114,11 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
                              setUserGymName(gymData.name);
                         }
                         
-                         // Fetch lesson schedule
+                        // Fetch lesson schedule
                         const scheduleDocRef = doc(db, "orarigruppi", gymId);
                         const scheduleDocSnap = await getDoc(scheduleDocRef);
                         if (scheduleDocSnap.exists()) {
-                            const scheduleData = scheduleDocSnap.data();
-                            setSelectionLessonsSchedule(scheduleData.lezioniselezione || "Orario non disponibile");
+                            setSelectionLessonsSchedule(scheduleDocSnap.data().lezioniselezione || "Orario non disponibile");
                         } else {
                             setSelectionLessonsSchedule("Orario non disponibile");
                         }
@@ -323,9 +322,11 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
 // Componente per lo Step di Pagamento
 function PaymentStep({ 
     onNext,
+    onBack,
     fee
 }: { 
     onNext: (method: PaymentMethod) => void,
+    onBack: () => void,
     fee: FeeData | null
 }) {
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
@@ -366,7 +367,7 @@ function PaymentStep({
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Online (Carta di Credito)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Paga in modo sicuro e veloce la quota di {fee ? `${fee.price}€` : "..."} con la tua carta tramite SumUp.
+                                Paga in modo sicuro e veloce la quota di {fee ? `${fee.price}€` : "..."} con la tua carta tramite SumUp. Verrai indirizzato al sito sumup, quando hai effettuato il pagamento torna qui per concludere l'iscrizione.
                             </p>
                         </div>
                          <CreditCard className="h-6 w-6 text-muted-foreground" />
@@ -374,61 +375,12 @@ function PaymentStep({
                 </RadioGroup>
             </CardContent>
             <CardFooter className="justify-between">
-                <Button variant="outline" onClick={() => (window.location.href = '/dashboard/class-selection')}>Indietro</Button>
+                <Button variant="outline" onClick={onBack}>Indietro</Button>
                 <Button onClick={() => onNext(paymentMethod!)} disabled={!paymentMethod}>Prosegui</Button>
             </CardFooter>
         </Card>
     )
 }
-
-// Componente per lo Step di Pagamento Online con iFrame
-function OnlinePaymentStep({ 
-    onBack, 
-    onNext,
-    fee
-}: { 
-    onBack: () => void, 
-    onNext: () => void,
-    fee: FeeData | null
-}) {
-    if (!fee) {
-        return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
-    }
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Passo 4: Pagamento Online</CardTitle>
-                <CardDescription>
-                    Completa il pagamento di {fee.price}€ tramite il portale sicuro di SumUp qui sotto. Una volta terminato, clicca sul pulsante per procedere.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                 <div className="aspect-video w-full">
-                    <iframe 
-                        src={fee.sumupLink}
-                        className="h-full w-full rounded-md border"
-                        title="Pagamento SumUp"
-                    ></iframe>
-                </div>
-                 <p className="text-sm text-muted-foreground">
-                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href={fee.sumupLink} target="_blank" rel="noopener noreferrer" className="underline">clicca qui</a>.
-                </p>
-            </CardContent>
-            <CardFooter className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-                <Button variant="outline" onClick={onBack}>
-                    <ArrowLeft />
-                    Non posso pagare ora
-                </Button>
-                <Button onClick={onNext}>
-                    <CheckCircle />
-                    Ho effettuato il pagamento
-                </Button>
-            </CardFooter>
-        </Card>
-    )
-}
-
 
 // Componente per lo Step Finale: Riepilogo e Conferma
 function ConfirmationStep({ 
@@ -629,16 +581,10 @@ export default function ClassSelectionPage() {
 
     const handleNextStep3 = (method: PaymentMethod) => {
         setPaymentMethod(method);
-        if (method === 'online') {
-            setStep(4);
-        } else {
-            setStep(5);
+        if (method === 'online' && feeData?.sumupLink) {
+            window.open(feeData.sumupLink, '_blank');
         }
-    }
-
-    const handleNextStep4 = () => {
-        // L'utente ha (presumibilmente) pagato.
-        setStep(5);
+        setStep(4);
     }
 
     const getFinalGrade = async (userData: any, currentDiscipline: string) => {
@@ -773,22 +719,16 @@ export default function ClassSelectionPage() {
                 {step === 3 && gymSelection &&(
                     <PaymentStep
                         onNext={handleNextStep3}
+                        onBack={() => setStep(2)}
                         fee={feeData}
                     />
                 )}
-                {step === 4 && paymentMethod === 'online' && feeData && (
-                    <OnlinePaymentStep
-                        onBack={() => setStep(3)}
-                        onNext={handleNextStep4}
-                        fee={feeData}
-                    />
-                )}
-                {step === 5 && formData && paymentMethod && gymSelection && (
+                {step === 4 && formData && paymentMethod && gymSelection && (
                     <ConfirmationStep 
                         formData={formData}
                         gymSelection={gymSelection}
                         paymentMethod={paymentMethod}
-                        onBack={handleBack} 
+                        onBack={() => setStep(3)}
                         onComplete={handleComplete} 
                         isSubmitting={isSubmitting}
                         fee={feeData}
@@ -799,5 +739,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
