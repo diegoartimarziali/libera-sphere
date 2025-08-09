@@ -112,7 +112,6 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                         const now = Timestamp.now();
                         const eventsQuery = query(
                             collection(db, "events"),
-                            where("type", "==", "lesson"),
                             where("gymId", "==", gymId),
                             where("discipline", "==", discipline),
                             where("status", "==", "confermata"),
@@ -790,5 +789,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
