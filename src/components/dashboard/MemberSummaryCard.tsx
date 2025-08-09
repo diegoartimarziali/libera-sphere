@@ -79,8 +79,8 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     </div>
                 )}
                  <div className="text-lg pt-1">
-                    <span className="font-semibold">{props.discipline}</span>
-                    {props.grade && <span className="font-semibold ml-2">{props.grade}</span>}
+                    <span className="font-semibold">Disciplina: {props.discipline}</span>
+                    {props.grade && <span className="font-semibold ml-2">Grado: {props.grade}</span>}
                 </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-4 p-4">
@@ -128,5 +128,3 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         </Card>
     )
 }
-
-    
