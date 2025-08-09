@@ -115,18 +115,11 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
                         }
                         
                          // Fetch lesson schedule
-                        const scheduleCollectionRef = collection(db, `orarigruppi/${gymId}/lezioniselezione`);
-                        const scheduleSnapshot = await getDocs(query(scheduleCollectionRef));
-                        if (!scheduleSnapshot.empty) {
-                            const scheduleSummary = scheduleSnapshot.docs
-                                .map(doc => {
-                                    const data = doc.data();
-                                    return data.lezioni?.map((l: any) => `${l.giorno} ${l.orario}`).join('; ') || '';
-                                })
-                                .filter(Boolean)
-                                .join(' | ');
-
-                            setSelectionLessonsSchedule(scheduleSummary || "Orario non disponibile");
+                        const scheduleDocRef = doc(db, "orarigruppi", gymId);
+                        const scheduleDocSnap = await getDoc(scheduleDocRef);
+                        if (scheduleDocSnap.exists()) {
+                            const scheduleData = scheduleDocSnap.data();
+                            setSelectionLessonsSchedule(scheduleData.lezioniselezione || "Orario non disponibile");
                         } else {
                             setSelectionLessonsSchedule("Orario non disponibile");
                         }
@@ -806,3 +799,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
