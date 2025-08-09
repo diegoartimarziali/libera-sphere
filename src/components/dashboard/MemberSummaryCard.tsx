@@ -61,9 +61,9 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                        Stagione Sportiva: {props.sportingSeason}
                     </div>
                 )}
-                 <div className="text-lg font-semibold text-primary pt-1">
+                 <div className="text-lg font-semibold pt-1">
                     {props.discipline}
-                    {props.grade && <span className="text-base font-medium text-muted-foreground ml-2">({props.grade})</span>}
+                    {props.grade && <span className="font-medium ml-2">{props.grade}</span>}
                 </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-4 p-4">
