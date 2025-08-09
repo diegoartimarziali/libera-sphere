@@ -48,7 +48,7 @@ const InfoRow = ({ icon, label, value, valueClassName: externalValueClassName }:
     
     const isEmail = label.toLowerCase() === 'email';
 
-    const valueClassName = cn('ml-auto text-muted-foreground text-right font-bold', {
+    const valueClassName = cn('ml-auto text-muted-foreground text-right', {
         'font-bold': isEmail,
     }, externalValueClassName);
 
@@ -95,7 +95,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                 <div className="text-lg font-bold pt-1">
                    {props.sportingSeason}
                 </div>
-                <div className="text-base pt-1">
+                 <div className="text-base pt-1">
                     <span className="font-semibold">Disciplina:</span> {props.discipline}
                     {props.grade && <><span className="font-semibold ml-2">Grado:</span> {props.grade}</>}
                 </div>
@@ -132,14 +132,20 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                                 <CalendarCheck2 size={16} className="mr-3 w-5 text-muted-foreground" />
                                 Lezioni di Prova
                             </h4>
-                            {props.trialLessons.map((lesson, index) => (
-                                <div key={index} className="flex items-center text-sm ml-8">
-                                    <span className="font-bold">{index + 1}ª Lezione:</span>
-                                    <span className="ml-auto text-muted-foreground text-right capitalize">
-                                        {format(lesson.date, "EEEE dd/MM", { locale: it })} - {lesson.time}
-                                    </span>
-                                </div>
-                            ))}
+                            {props.trialLessons.map((lesson, index) => {
+                                const formattedDate = format(lesson.date, "EEEE dd/MM", { locale: it });
+                                const day = formattedDate.split(' ')[0];
+                                const datePart = formattedDate.substring(day.length).trim();
+
+                                return (
+                                    <div key={index} className="flex items-center text-sm ml-8">
+                                        <span className="font-bold">{index + 1}ª Lezione:</span>
+                                        <span className="ml-auto text-muted-foreground text-right capitalize">
+                                            <span className="font-bold text-foreground">{day}</span> {datePart} - {lesson.time}
+                                        </span>
+                                    </div>
+                                )
+                            })}
                         </div>
                     </>
                 )}
