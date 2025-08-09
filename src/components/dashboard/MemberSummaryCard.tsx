@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator"
 import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2, FileText, Activity, KeyRound, Repeat, CalendarClock, Building } from "lucide-react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
+import { cn } from "@/lib/utils"
 
 export interface TrialLesson {
     date: Date;
@@ -32,7 +33,7 @@ export interface MemberSummaryProps {
     subscriptionValidity?: string;
 }
 
-const InfoRow = ({ icon, label, value, isValueBold = false }: { icon: React.ReactNode, label: string, value?: string | boolean | null, isValueBold?: boolean }) => {
+const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string | boolean | null }) => {
     if (value === undefined || value === null || value === '' || value === 'Nessuna') return null;
     
     let displayValue: string;
@@ -41,12 +42,20 @@ const InfoRow = ({ icon, label, value, isValueBold = false }: { icon: React.Reac
     } else {
         displayValue = value;
     }
+    
+    const isEmail = label.toLowerCase() === 'email';
+    const isRegulations = label.toLowerCase() === 'statuto e regolamenti' && displayValue === 'Accettati';
+
+    const valueClassName = cn('ml-auto text-muted-foreground text-right', {
+        'font-bold': isEmail,
+        'text-success font-bold': isRegulations,
+    });
 
     return (
         <div className="flex items-center text-sm">
             <div className="w-5 text-muted-foreground">{icon}</div>
             <span className="ml-3 font-bold">{label}:</span>
-            <span className={`ml-auto text-muted-foreground text-right ${isValueBold ? 'font-bold' : ''}`}>{displayValue}</span>
+            <span className={valueClassName}>{displayValue}</span>
         </div>
     )
 }
@@ -68,7 +77,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
             </CardHeader>
             <CardContent className="flex-grow space-y-4 p-4">
                  <div className="space-y-3">
-                    <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} isValueBold={true} />
+                    <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
                     <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} />
                     <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={props.regulationsStatus} />
                     <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} />
