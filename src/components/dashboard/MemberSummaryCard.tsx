@@ -20,6 +20,7 @@ export interface MemberSummaryProps {
     sportingSeason?: string;
     regulationsStatus: string;
     medicalStatus: string;
+    medicalStatusState?: 'valid' | 'expiring' | 'expired' | null;
     gymName?: string;
     discipline?: string;
     grade?: string;
@@ -33,7 +34,7 @@ export interface MemberSummaryProps {
     subscriptionValidity?: string;
 }
 
-const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string, value?: string | boolean | null }) => {
+const InfoRow = ({ icon, label, value, valueClassName: externalValueClassName }: { icon: React.ReactNode, label: string, value?: string | boolean | null, valueClassName?: string }) => {
     if (value === undefined || value === null || value === '' || value === 'Nessuna') return null;
     
     let displayValue: string;
@@ -44,12 +45,10 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string,
     }
     
     const isEmail = label.toLowerCase() === 'email';
-    const isRegulations = label.toLowerCase() === 'statuto e regolamenti' && displayValue === 'Accettati';
 
     const valueClassName = cn('ml-auto text-muted-foreground text-right', {
         'font-bold': isEmail,
-        'text-success font-bold': isRegulations,
-    });
+    }, externalValueClassName);
 
     return (
         <div className="flex items-center text-sm">
@@ -61,6 +60,15 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string,
 }
 
 export function MemberSummaryCard(props: MemberSummaryProps) {
+
+    const regulationsClassName = props.regulationsStatus === 'Accettati' ? 'text-success font-bold' : '';
+
+    const medicalStatusClassName = cn('font-bold', {
+        'text-success': props.medicalStatusState === 'valid',
+        'text-orange-500': props.medicalStatusState === 'expiring',
+        'text-destructive': props.medicalStatusState === 'expired',
+    });
+
     return (
         <Card className="flex flex-col">
             <CardHeader className="flex flex-col items-center text-center p-4">
@@ -79,8 +87,8 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
                     <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} />
-                    <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={props.regulationsStatus} />
-                    <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} />
+                    <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={props.regulationsStatus} valueClassName={regulationsClassName} />
+                    <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} valueClassName={medicalStatusClassName} />
                  </div>
                  
                  <Separator />
@@ -120,3 +128,5 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         </Card>
     )
 }
+
+    

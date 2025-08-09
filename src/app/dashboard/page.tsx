@@ -104,8 +104,24 @@ export default function DashboardPage() {
             }
             
             let medicalStatusLabel = "Non Presente";
+            let certStatus: 'valid' | 'expiring' | 'expired' | null = null;
             if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
-                medicalStatusLabel = `Scade il ${format(data.medicalInfo.expiryDate.toDate(), 'dd/MM/yyyy')}`;
+                const expiry = data.medicalInfo.expiryDate.toDate();
+                medicalStatusLabel = `Scade il ${format(expiry, 'dd/MM/yyyy')}`;
+                
+                const today = startOfDay(new Date());
+                const expiryDate = startOfDay(expiry);
+                const daysDiff = differenceInDays(expiryDate, today);
+
+                if (daysDiff < 0) {
+                    certStatus = 'expired';
+                } else if (daysDiff <= 20) {
+                    certStatus = 'expiring';
+                } else {
+                    certStatus = 'valid';
+                }
+                setCertificateStatus(certStatus);
+                setDaysToExpire(daysDiff);
             }
 
             const regulationsStatusLabel = data.regulationsAccepted ? "Accettati" : "Non Accettati";
@@ -183,6 +199,7 @@ export default function DashboardPage() {
                 sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
                 regulationsStatus: regulationsStatusLabel,
                 medicalStatus: medicalStatusLabel,
+                medicalStatusState: certStatus,
                 gymName: data.gym ? gymsMap.get(data.gym) : undefined,
                 discipline: data.discipline,
                 grade: data.lastGrade,
@@ -195,22 +212,6 @@ export default function DashboardPage() {
                 subscriptionStatus: subscriptionStatusLabel,
                 subscriptionValidity: subscriptionValidityMonth,
             });
-
-            if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
-              const expiryDate = startOfDay(data.medicalInfo.expiryDate.toDate());
-              const today = startOfDay(new Date());
-              const daysDiff = differenceInDays(expiryDate, today);
-
-              setDaysToExpire(daysDiff);
-              
-              if (daysDiff < 0) {
-                  setCertificateStatus('expired');
-              } else if (daysDiff <= 20) {
-                  setCertificateStatus('expiring');
-              } else {
-                  setCertificateStatus('valid');
-              }
-            }
 
           }
         } catch (error) {
