@@ -141,7 +141,7 @@ export default function LiberaSpherePage() {
       setLastGrade('');
       setQualification('');
       // Se aikido, imposta automaticamente l'ID della palestra se ce n'è solo una
-      const aikidoGyms = gyms.filter(g => g.disciplines.includes('Aikido'));
+      const aikidoGyms = gyms.filter(g => g.disciplines && g.disciplines.includes('Aikido'));
       if (value === 'Aikido' && aikidoGyms.length === 1) {
           setGym(aikidoGyms[0].id);
       }
@@ -149,7 +149,7 @@ export default function LiberaSpherePage() {
 
   const getAvailableGymsForDiscipline = (discipline: 'Karate' | 'Aikido' | null) => {
     if (!discipline) return [];
-    return gyms.filter(g => g.disciplines.includes(discipline));
+    return gyms.filter(g => g.disciplines && g.disciplines.includes(discipline));
   };
 
 
