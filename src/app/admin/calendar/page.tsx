@@ -506,13 +506,35 @@ export default function AdminCalendarPage() {
     const handleDeleteCalendar = async (calendarId: string) => {
         setIsDeleting(calendarId);
         try {
-            // Potremmo voler eliminare anche tutti gli eventi associati, ma per ora eliminiamo solo il calendario.
-            await deleteDoc(doc(db, "calendars", calendarId));
-            await fetchSavedCalendars(); // Ricarica la lista
-            toast({ title: "Calendario Eliminato", description: "Il calendario selezionato è stato rimosso con successo.", variant: "success" });
+            const batch = writeBatch(db);
+
+            // 1. Trova tutti gli eventi associati al calendario
+            const eventsQuery = query(collection(db, "events"), where("calendarId", "==", calendarId));
+            const eventsSnapshot = await getDocs(eventsQuery);
+            
+            // 2. Aggiungi l'eliminazione di ogni evento al batch
+            eventsSnapshot.forEach(eventDoc => {
+                batch.delete(eventDoc.ref);
+            });
+
+            // 3. Aggiungi l'eliminazione del calendario stesso al batch
+            const calendarRef = doc(db, "calendars", calendarId);
+            batch.delete(calendarRef);
+
+            // 4. Esegui il batch
+            await batch.commit();
+
+            // 5. Aggiorna l'interfaccia
+            await fetchSavedCalendars(); 
+            toast({ 
+                title: "Calendario Eliminato", 
+                description: "Il calendario e tutte le sue lezioni associate sono stati rimossi con successo.", 
+                variant: "success" 
+            });
+
         } catch (error) {
-            console.error("Error deleting calendar:", error);
-            toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare il calendario." });
+            console.error("Error deleting calendar and its events:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare il calendario e le sue lezioni." });
         } finally {
             setIsDeleting(null);
         }
@@ -631,7 +653,7 @@ export default function AdminCalendarPage() {
                                                         <AlertDialogDescription>
                                                             Questa azione non può essere annullata. Questo eliminerà permanentemente il calendario
                                                             <strong className="mx-1">{cal.calendarName}</strong>
-                                                            dal database.
+                                                            e tutte le lezioni associate dal database.
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>
