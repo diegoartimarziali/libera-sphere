@@ -360,7 +360,7 @@ export default function LiberaSpherePage() {
           {isFormerMember === 'no' && (
             <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
               <div className="space-y-2">
-                <h4 className="font-semibold text-foreground">2. Scegli la disciplina e la palestra</h4>
+                <h4 className="font-semibold text-foreground">2. Quale disciplina vuoi provare ed in quale Palestra</h4>
                  {gymsLoading ? (
                     <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
                  ) : (
