@@ -464,8 +464,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
             )}
 
           </CardContent>
-          <CardFooter className="flex justify-between">
-            {onBack && <Button type="button" variant="outline" onClick={onBack}>Indietro</Button>}
+          <CardFooter className="flex justify-end">
             <Button
               type="submit"
               className="w-full"
@@ -480,5 +479,3 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     </Card>
   )
 }
-
-    
