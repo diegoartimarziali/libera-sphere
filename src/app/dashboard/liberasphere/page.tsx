@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -324,7 +323,7 @@ export default function LiberaSpherePage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-3">
-             <h4 className="font-semibold text-foreground">1. Sei già stato dei nostri?</h4>
+             <h4 className="font-semibold text-foreground">1. Sei già stato socio di Libera Energia?</h4>
              <RadioGroup 
                 value={isFormerMember || ''} 
                 onValueChange={(value) => handleIsFormerMemberChange(value as 'yes' | 'no')}
@@ -483,3 +482,5 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
+
+    
