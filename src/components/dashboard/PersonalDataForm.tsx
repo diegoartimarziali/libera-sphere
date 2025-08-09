@@ -47,6 +47,7 @@ const personalDataSchema = z.object({
   phone: z.string().min(1, "Il numero di telefono è obbligatorio."),
   isMinor: z.boolean(),
   parentData: parentDataSchema.optional(),
+  gym: z.string().min(1, "La palestra è obbligatoria."),
 }).superRefine((data, ctx) => {
     if (data.isMinor && !data.parentData) {
         ctx.addIssue({
@@ -85,6 +86,7 @@ interface PersonalDataFormProps {
     description: string;
     buttonText: string;
     onFormSubmit: (data: PersonalDataSchemaType) => void;
+    onBack?: () => void;
 }
 
 // Funzioni di utilità per la formattazione
@@ -97,7 +99,7 @@ const capitalizeWords = (str: string) => {
     return str.split(' ').map(word => capitalizeFirstLetter(word)).join(' ');
 };
 
-export function PersonalDataForm({ title, description, buttonText, onFormSubmit }: PersonalDataFormProps) {
+export function PersonalDataForm({ title, description, buttonText, onFormSubmit, onBack }: PersonalDataFormProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMinor, setIsMinor] = useState<boolean | null>(null)
@@ -123,7 +125,8 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             parentName: "",
             parentSurname: "",
             parentTaxCode: "",
-        }
+        },
+        gym: "",
     }
   })
 
@@ -176,6 +179,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
             province: userData.province || "",
             phone: userData.phone || "",
             isMinor: existingIsMinor,
+            gym: userData.gym || "",
         };
         
         if (existingIsMinor && userData.parentData) {
@@ -478,5 +482,3 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit 
     </Card>
   )
 }
-
-    

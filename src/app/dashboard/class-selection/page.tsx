@@ -365,8 +365,7 @@ function PaymentStep({
                     </Label>
                 </RadioGroup>
             </CardContent>
-            <CardFooter className="justify-between">
-                <Button variant="outline" onClick={onBack}>Indietro</Button>
+            <CardFooter className="justify-end">
                 <Button onClick={() => onNext(paymentMethod!)} disabled={!paymentMethod}>Prosegui</Button>
             </CardFooter>
         </Card>
@@ -792,5 +791,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
