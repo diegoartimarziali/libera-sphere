@@ -13,7 +13,7 @@ import { it } from "date-fns/locale";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, Save, Calendar, MapPin, Tag, Users, ExternalLink, Clock, Image as ImageIcon, Award, FileText, Sparkles } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Save, Calendar, MapPin, Tag, Users, ExternalLink, Clock, Image as ImageIcon, Award, FileText, Sparkles, LayoutGrid, List } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -22,6 +22,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 // =================================================================
 // TIPI E SCHEMI
@@ -198,6 +201,7 @@ export default function AdminStagesPage() {
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [stages, setStages] = useState<Stage[]>([]);
+    const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingStage, setEditingStage] = useState<StageFormData | undefined>(undefined);
@@ -310,17 +314,23 @@ export default function AdminStagesPage() {
                         <CardTitle>Gestione Stage ed Eventi</CardTitle>
                         <CardDescription>Crea e gestisci tutti gli eventi speciali.</CardDescription>
                     </div>
-                    <Button onClick={openCreateForm}>
-                        <PlusCircle className="mr-2" />
-                        Crea Nuovo Evento
-                    </Button>
+                    <div className="flex items-center gap-2">
+                         <div className="hidden sm:flex items-center gap-1 rounded-md bg-muted p-1">
+                            <Button variant={viewMode === 'card' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('card')} className="h-8 w-8"><LayoutGrid className="h-4 w-4" /></Button>
+                            <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('list')} className="h-8 w-8"><List className="h-4 w-4" /></Button>
+                         </div>
+                         <Button onClick={openCreateForm}>
+                            <PlusCircle className="mr-2" />
+                            Crea Nuovo Evento
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
                         <div className="flex justify-center items-center h-48"><Loader2 className="w-8 h-8 animate-spin" /></div>
                     ) : stages.length === 0 ? (
                         <p className="text-center text-muted-foreground py-12">Nessuno stage o evento trovato. Creane uno per iniziare.</p>
-                    ) : (
+                    ) : viewMode === 'card' ? (
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {stages.map(stage => (
                                 <Card key={stage.id} className="flex flex-col overflow-hidden">
@@ -352,7 +362,6 @@ export default function AdminStagesPage() {
                                     </CardContent>
                                     <CardFooter className="flex justify-end gap-2 bg-muted/50 p-3">
                                         <Button variant="outline" size="sm" onClick={() => openEditForm(stage)}>Modifica</Button>
-                                        
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                  <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button>
@@ -377,6 +386,59 @@ export default function AdminStagesPage() {
                                 </Card>
                             ))}
                         </div>
+                    ) : (
+                         <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Tipo</TableHead>
+                                    <TableHead>Titolo</TableHead>
+                                    <TableHead>Data e Ora</TableHead>
+                                    <TableHead>Luogo</TableHead>
+                                    <TableHead>Aperto a</TableHead>
+                                    <TableHead className="text-right">Costo</TableHead>
+                                    <TableHead className="text-right">Azioni</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {stages.map(stage => (
+                                    <TableRow key={stage.id}>
+                                        <TableCell><Badge variant="secondary">{getEventTypeLabel(stage.type)}</Badge></TableCell>
+                                        <TableCell className="font-medium capitalize">{stage.title}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span>{stage.startTime ? format(stage.startTime.toDate(), "dd/MM/yy", { locale: it }) : "N/D"}</span>
+                                                <span className="text-xs text-muted-foreground">{stage.startTime ? format(stage.startTime.toDate(), "HH:mm") : "N/D"}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{stage.location}</TableCell>
+                                        <TableCell>{stage.open_to}</TableCell>
+                                        <TableCell className="text-right">{stage.price.toFixed(2)} €</TableCell>
+                                        <TableCell className="text-right space-x-1">
+                                             <Button variant="ghost" size="sm" onClick={() => openEditForm(stage)}>Modifica</Button>
+                                              <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Eliminare l'evento <strong className="mx-1">{stage.title}</strong>? L'azione è irreversibile.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteStage(stage.id)}>
+                                                            Sì, elimina
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                         </Table>
                     )}
                 </CardContent>
             </Card>
@@ -396,3 +458,6 @@ export default function AdminStagesPage() {
         </div>
     );
 }
+
+
+    
