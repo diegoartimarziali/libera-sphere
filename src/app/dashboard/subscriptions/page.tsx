@@ -303,7 +303,7 @@ function PaymentStep({ subscription, onBack, onNext }: { subscription: Subscript
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Online (Carta di Credito)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Paga in modo sicuro e veloce con la tua carta tramite SumUp.
+                               Paga in modo sicuro e veloce con la tua carta tramite SumUp. Verrai indirizzato al sito SumUp, quando hai effettuato il pagamento torna qui per concludere l'acquisto.
                             </p>
                         </div>
                          <CreditCard className="h-6 w-6 text-muted-foreground" />
@@ -342,57 +342,10 @@ function PaymentStep({ subscription, onBack, onNext }: { subscription: Subscript
             </CardContent>
             <CardFooter className="justify-between">
                 <Button variant="outline" onClick={onBack}>Indietro</Button>
-                <Button onClick={() => onNext(paymentMethod!)} disabled={!paymentMethod}>Prosegui</Button>
+                <Button onClick={() => onNext(paymentMethod!)} disabled={!paymentMethod}>Conferma Acquisto</Button>
             </CardFooter>
         </Card>
     )
-}
-
-// Componente per lo Step di Pagamento Online (iFrame)
-function OnlinePaymentStep({ 
-    subscription,
-    onBack, 
-    onNext,
-    isSubmitting
-}: { 
-    subscription: Subscription,
-    onBack: () => void; 
-    onNext: () => void,
-    isSubmitting: boolean
-}) {
-    return (
-        <Card className="w-full max-w-3xl">
-            <CardHeader>
-                <CardTitle>Passo 3: Pagamento Online</CardTitle>
-                <CardDescription>
-                    Completa il pagamento di {subscription.price}€ per l'abbonamento <span className="font-semibold text-foreground">{subscription.name}</span>.
-                    Una volta terminato, clicca sul pulsante per procedere.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="aspect-video w-full">
-                    <iframe
-                        src={subscription.sumupLink}
-                        className="h-full w-full rounded-md border"
-                        title={`Pagamento SumUp ${subscription.name}`}
-                    ></iframe>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href={subscription.sumupLink} target="_blank" rel="noopener noreferrer" className="underline">cliccando qui</a>.
-                </p>
-            </CardContent>
-            <CardFooter className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-                <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
-                    <ArrowLeft />
-                    Torna alla Scelta
-                </Button>
-                <Button onClick={onNext} disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="animate-spin" /> : <CheckCircle />}
-                    Ho effettuato il pagamento
-                </Button>
-            </CardFooter>
-        </Card>
-    );
 }
 
 // Componente per il Popup del Bonifico
@@ -490,7 +443,7 @@ export default function SubscriptionsPage() {
                 if (userDocSnap.exists()) {
                     const fetchedUserData = userDocSnap.data() as UserData;
                     setUserData(fetchedUserData);
-                    if (fetchedUserData.subscriptionAccessStatus && (fetchedUserData.subscriptionAccessStatus === 'active' || fetchedUserData.subscriptionAccessStatus === 'pending')) {
+                    if (fetchedUserData.subscriptionAccessStatus && (fetchedUserData.subscriptionAccessStatus === 'active' || fetchedUserData.subscriptionAccessStatus === 'pending' || fetchedUserData.subscriptionAccessStatus === 'expired') && fetchedUserData.activeSubscription) {
                         const subStatus: UserSubscription = {
                             name: fetchedUserData.activeSubscription.name,
                             type: fetchedUserData.activeSubscription.type,
@@ -559,21 +512,24 @@ export default function SubscriptionsPage() {
         setPaymentMethod(method);
         switch (method) {
             case 'online':
-                setStep(3);
+                if (selectedSubscription?.sumupLink) {
+                    window.open(selectedSubscription.sumupLink, '_blank');
+                }
+                handleConfirmPayment(method);
                 break;
             case 'bank_transfer':
                 setIsBankTransferDialogOpen(true);
                 break;
             case 'in_person':
             default:
-                handleConfirmPayment();
+                handleConfirmPayment(method);
                 break;
         }
     };
     
     const handleBankTransferConfirm = () => {
         setIsBankTransferDialogOpen(false);
-        handleConfirmPayment();
+        handleConfirmPayment('bank_transfer');
     }
     
     const handleBack = () => {
@@ -584,14 +540,12 @@ export default function SubscriptionsPage() {
         }
     }
 
-    const handleConfirmPayment = async () => {
+    const handleConfirmPayment = async (finalPaymentMethod: PaymentMethod) => {
         if (!user || !selectedSubscription || !activitySettings) {
             toast({ title: "Errore", description: "Dati utente, abbonamento o impostazioni non validi.", variant: "destructive" });
             return;
         }
         
-        const finalPaymentMethod = paymentMethod || 'in_person';
-
         setIsSubmitting(true);
         try {
             const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
@@ -683,14 +637,6 @@ export default function SubscriptionsPage() {
                         onNext={handlePaymentSubmit}
                     />
                 )}
-                {step === 3 && selectedSubscription && paymentMethod === 'online' && (
-                    <OnlinePaymentStep 
-                        subscription={selectedSubscription}
-                        onBack={() => setStep(2)}
-                        onNext={handleConfirmPayment}
-                        isSubmitting={isSubmitting}
-                    />
-                )}
               </>
             )}
 
@@ -706,5 +652,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
-    
