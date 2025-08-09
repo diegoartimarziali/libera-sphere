@@ -10,7 +10,7 @@ import { it } from "date-fns/locale";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Loader2, CalendarCheck } from "lucide-react";
+import { Loader2, CalendarCheck, PartyPopper } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface UserData {
@@ -30,6 +30,7 @@ interface LessonEvent {
     discipline: string;
     gymId: string;
     gymName: string;
+    status: 'confermata' | 'annullata' | 'festivita';
 }
 
 export function AttendancePrompt() {
@@ -176,6 +177,19 @@ export function AttendancePrompt() {
     if (!todaysLesson || alreadyResponded) {
         return null; // Non mostrare nulla se non c'è lezione o se ha già risposto
     }
+    
+    // Se la lezione di oggi è una festività, mostra un messaggio informativo
+    if (todaysLesson.status === 'festivita') {
+        return (
+            <Alert variant="info" className="mb-6 animate-in fade-in-50">
+                <PartyPopper className="h-4 w-4" />
+                <AlertTitle>Nessuna Lezione Oggi</AlertTitle>
+                <AlertDescription>
+                    Oggi la palestra è chiusa per festività. Goditi il riposo!
+                </AlertDescription>
+            </Alert>
+        );
+    }
 
     return (
         <Alert className="mb-6 animate-in fade-in-50">
@@ -205,5 +219,3 @@ export function AttendancePrompt() {
         </Alert>
     );
 }
-
-    

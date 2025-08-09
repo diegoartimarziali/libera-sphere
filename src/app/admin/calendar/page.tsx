@@ -12,7 +12,7 @@ import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, X, Save, MessageSquareWarning, FileWarning, Upload, AlertTriangle } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, X, Save, MessageSquareWarning, FileWarning, Upload, AlertTriangle, PartyPopper } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,7 +48,7 @@ interface Lesson {
     gymId?: string;
     gymName?: string;
     discipline?: string;
-    status: 'confermata' | 'annullata';
+    status: 'confermata' | 'annullata' | 'festivita';
     notes?: string;
 }
 
@@ -84,7 +84,7 @@ const lessonFormSchema = z.object({
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
     discipline: z.string().optional(),
     gymId: z.string().optional(),
-    status: z.enum(['confermata', 'annullata']).default('confermata'),
+    status: z.enum(['confermata', 'annullata', 'festivita']).default('confermata'),
     notes: z.string().optional(),
 });
 
@@ -146,7 +146,7 @@ function LessonForm({ lesson, gyms, onSave, onCancel }: { lesson?: LessonFormDat
                 )} />
                 
                 <FormField control={form.control} name="status" render={({ field }) => (
-                    <FormItem><FormLabel>Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem><SelectItem value="festivita">Festività</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
 
                 <FormField control={form.control} name="notes" render={({ field }) => (
@@ -307,12 +307,9 @@ export default function AdminCalendarPage() {
 
             allDates.forEach(date => {
                 const dateString = format(date, 'yyyy-MM-dd');
-                if (exclusionDates.has(dateString)) {
-                    return;
-                }
-
-                const dayOfWeekName = dayNames[getDay(date)];
+                const isHoliday = exclusionDates.has(dateString);
                 
+                const dayOfWeekName = dayNames[getDay(date)];
                 const scheduleForDay = selectedGym.weeklySchedule?.find(d => d.dayOfWeek === dayOfWeekName);
 
                 if (scheduleForDay && scheduleForDay.slots) {
@@ -329,24 +326,25 @@ export default function AdminCalendarPage() {
                             
                             generatedLessons.push({
                                 id: `${dateString}-${disciplineFilter}-${index}`,
-                                title: disciplineFilter, 
+                                title: isHoliday ? "Chiuso per festività" : disciplineFilter, 
                                 startTime: Timestamp.fromDate(eventStart),
                                 endTime: Timestamp.fromDate(eventEnd),
                                 gymId: selectedGym.id,
                                 gymName: `${selectedGym.id} - ${selectedGym.name}`,
                                 discipline: disciplineFilter,
-                                status: 'confermata',
-                                notes: ''
+                                status: isHoliday ? 'festivita' : 'confermata',
+                                notes: isHoliday ? exclusionGroup?.name || 'Festività' : ''
                             });
                         }
                     });
                 }
             });
 
+            const operationalLessonsCount = generatedLessons.filter(l => l.status === 'confermata').length;
             setLessons(generatedLessons);
             const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
-            setGeneratedTitle(`Anteprima per ${gymDisplayName} - ${disciplineFilter} (${generatedLessons.length} lezioni)`);
-            toast({ title: "Anteprima Generata", description: `Trovate ${generatedLessons.length} lezioni per i criteri selezionati.` });
+            setGeneratedTitle(`Anteprima per ${gymDisplayName} - ${disciplineFilter} (${operationalLessonsCount} lezioni operative)`);
+            toast({ title: "Anteprima Generata", description: `Trovate ${operationalLessonsCount} lezioni operative per i criteri selezionati.` });
 
         } catch (error) {
             console.error("Error generating preview:", error);
@@ -401,10 +399,12 @@ export default function AdminCalendarPage() {
             await batch.commit();
             
             await fetchSavedCalendars();
+            
+            const operationalLessonsCount = lessons.filter(l => l.status === 'confermata').length;
 
             toast({
                 title: "Calendario Salvato!",
-                description: `Un nuovo calendario con ${lessons.length} lezioni è stato salvato con successo.`,
+                description: `Un nuovo calendario con ${operationalLessonsCount} lezioni operative è stato salvato con successo.`,
                 variant: "success",
             });
 
@@ -493,8 +493,9 @@ export default function AdminCalendarPage() {
             const lessonsList = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()} as Lesson));
 
             setLessons(lessonsList);
-            setGeneratedTitle(`Calendario Caricato: ${calendar.calendarName}`);
-            toast({ title: "Calendario Caricato", description: `Hai caricato ${lessonsList.length} lezioni nell'area di anteprima.`});
+            const operationalLessonsCount = lessonsList.filter(l => l.status === 'confermata').length;
+            setGeneratedTitle(`Calendario Caricato: ${calendar.calendarName} (${operationalLessonsCount} lezioni)`);
+            toast({ title: "Calendario Caricato", description: `Hai caricato ${lessonsList.length} lezioni totali nell'area di anteprima.`});
 
         } catch (error) {
             console.error("Error loading lessons for calendar:", error);
@@ -532,7 +533,7 @@ export default function AdminCalendarPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Generatore Calendario Allenamenti</CardTitle>
-                    <CardDescription>Crea in massa le lezioni di routine per un periodo, escludendo le festività.</CardDescription>
+                    <CardDescription>Crea in massa le lezioni di routine per un periodo, includendo le festività.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -683,7 +684,7 @@ export default function AdminCalendarPage() {
                                     <TableHead>Data</TableHead>
                                     <TableHead>Giorno</TableHead>
                                     <TableHead>Orario</TableHead>
-                                    <TableHead>Disciplina</TableHead>
+                                    <TableHead>Titolo Lezione</TableHead>
                                     <TableHead>Luogo/Palestra</TableHead>
                                     <TableHead className="text-right">Azioni</TableHead>
                                 </TableRow>
@@ -698,17 +699,26 @@ export default function AdminCalendarPage() {
                                                 </TableCell>
                                             </TableRow>
                                             {monthLessons.map(lesson => (
-                                                <TableRow key={lesson.id} className={cn(lesson.status === 'annullata' && 'bg-destructive/10 text-muted-foreground')}>
+                                                <TableRow key={lesson.id} className={cn(
+                                                    lesson.status === 'annullata' && 'bg-destructive/10 text-muted-foreground',
+                                                    lesson.status === 'festivita' && 'bg-blue-500/10 text-blue-800'
+                                                    )}>
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
-                                                            <Badge variant={lesson.status === 'annullata' ? 'destructive' : 'success'}>
-                                                                {lesson.status === 'annullata' ? 'Annullata' : 'OK'}
+                                                            <Badge variant={
+                                                                lesson.status === 'annullata' ? 'destructive' : 
+                                                                lesson.status === 'festivita' ? 'info' : 'success'
+                                                                }>
+                                                                {lesson.status === 'annullata' ? 'Annullata' : lesson.status === 'festivita' ? 'Festività' : 'OK'}
                                                             </Badge>
                                                             {lesson.notes && (
                                                                 <Popover>
                                                                     <PopoverTrigger asChild>
                                                                         <Button variant="ghost" size="icon" className="h-6 w-6">
-                                                                            <MessageSquareWarning className="h-4 w-4 text-amber-500" />
+                                                                            {lesson.status === 'festivita' 
+                                                                                ? <PartyPopper className="h-4 w-4 text-blue-500" />
+                                                                                : <MessageSquareWarning className="h-4 w-4 text-amber-500" />
+                                                                            }
                                                                         </Button>
                                                                     </PopoverTrigger>
                                                                     <PopoverContent className="text-sm w-80">
@@ -722,7 +732,7 @@ export default function AdminCalendarPage() {
                                                     <TableCell>{format(lesson.startTime.toDate(), "dd/MM/yy", {locale: it})}</TableCell>
                                                     <TableCell className="capitalize">{format(lesson.startTime.toDate(), "eeee", {locale: it})}</TableCell>
                                                     <TableCell>{`${format(lesson.startTime.toDate(), "HH:mm")} - ${format(lesson.endTime.toDate(), "HH:mm")}`}</TableCell>
-                                                    <TableCell className="font-medium capitalize">{lesson.discipline}</TableCell>
+                                                    <TableCell className="font-medium capitalize">{lesson.title}</TableCell>
                                                     <TableCell>{lesson.gymName}</TableCell>
                                                     <TableCell className="text-right">
                                                         <Button variant="ghost" size="sm" onClick={() => openEditForm(lesson)}>Modifica</Button>
@@ -762,7 +772,3 @@ export default function AdminCalendarPage() {
         </div>
     );
 }
-
-    
-
-    
