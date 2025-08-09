@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, writeBatch, query, where, orderBy, Timestamp, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData } from "firebase/firestore";
+import { collection, getDocs, doc, writeBatch, query, where, Timestamp, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -52,7 +52,15 @@ const stageFormSchema = z.object({
     description: z.string().optional(),
     price: z.preprocess((val) => Number(val), z.number().min(0, "Il prezzo non può essere negativo.")),
     open_to: z.string().min(2, "Specifica a chi è rivolto l'evento."),
-    imageUrl: z.string().url("Deve essere un URL valido.").optional().or(z.literal('')),
+    imageUrl: z.string().url("Deve essere un URL valido (es. https://images.unsplash.com/...).")
+        .refine(val => !val || val.startsWith('https://images.unsplash.com/') || val.startsWith('https://firebasestorage.googleapis.com/'), {
+            message: "Solo URL da Unsplash o Firebase Storage sono permessi."
+        })
+        .refine(val => !val || /\.(jpg|jpeg|png|gif|webp)$/.test(val.split('?')[0]), {
+            message: "L'URL deve puntare a un file immagine (jpg, png, ecc.)."
+        })
+        .optional()
+        .or(z.literal('')),
 });
 
 type StageFormData = z.infer<typeof stageFormSchema>;
@@ -274,8 +282,8 @@ export default function AdminStagesPage() {
         const end = stage.endTime.toDate();
         setEditingStage({
             id: stage.id,
-            title: stage.title,
             type: stage.type,
+            title: stage.title,
             startDate: start,
             startTime: format(start, 'HH:mm'),
             endDate: end,
