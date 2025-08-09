@@ -178,7 +178,6 @@ export default function AdminCalendarPage() {
     const [periodOptions, setPeriodOptions] = useState<PeriodOption[]>([]);
     const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
-    const [selectedDateGroupId, setSelectedDateGroupId] = useState<string>('none');
     
     const [gymFilter, setGymFilter] = useState<string>('');
     const [disciplineFilter, setDisciplineFilter] = useState('Karate');
@@ -194,7 +193,7 @@ export default function AdminCalendarPage() {
             const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), address: doc.data().address || '' } as Gym));
             setGyms(gymsList);
             
-            const dateGroupsSnapshot = await getDocs(query(collection(db, "dateGroups"), orderBy("name")));
+            const dateGroupsSnapshot = await getDocs(query(collection(db, "dateGroups")));
             const dateGroupsList = dateGroupsSnapshot.docs.map(doc => {
                  const data = doc.data();
                  const datesArray = Array.isArray(data.dates) ? data.dates : [];
@@ -294,12 +293,13 @@ export default function AdminCalendarPage() {
             }
 
             const exclusionDates = new Set<string>();
-            if (selectedDateGroupId !== 'none') {
-                const group = dateGroups.find(g => g.id === selectedDateGroupId);
-                group?.dates.forEach(d => {
+            const exclusionGroup = dateGroups.find(g => g.id === selectedGym.id);
+            if (exclusionGroup) {
+                exclusionGroup.dates.forEach(d => {
                     exclusionDates.add(format(d.toDate(), 'yyyy-MM-dd'));
                 });
             }
+
 
             const allDates = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
             const dayNames = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
@@ -485,10 +485,6 @@ export default function AdminCalendarPage() {
         setIsFormOpen(true);
     }
     
-    const handleDateGroupChange = (groupId: string) => {
-        setSelectedDateGroupId(groupId);
-    };
-    
     const handleLoadCalendar = async (calendar: SavedCalendar) => {
         try {
             const eventsQuery = query(collection(db, "events"), where("calendarId", "==", calendar.id), orderBy("startTime", "asc"));
@@ -554,22 +550,18 @@ export default function AdminCalendarPage() {
                                 </SelectContent>
                             </Select>
                         </div>
-                         <div className="space-y-2">
-                            <Label>Periodo da escludere</Label>
-                            <Select value={selectedDateGroupId} onValueChange={handleDateGroupChange}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleziona un gruppo di date..." />
-                                </SelectTrigger>
+                        <div className="space-y-2">
+                            <Label>Filtra per Disciplina</Label>
+                            <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="none">Nessuna esclusione</SelectItem>
-                                    {dateGroups.map(group => (
-                                        <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
-                                    ))}
+                                    <SelectItem value="Karate">Karate</SelectItem>
+                                    <SelectItem value="Aikido">Aikido</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1">
                          <div className="space-y-2">
                             <Label>Filtra per Palestra</Label>
                             <Select value={gymFilter} onValueChange={setGymFilter}>
@@ -578,18 +570,8 @@ export default function AdminCalendarPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {gyms.map(gym => (
-                                        <SelectItem key={gym.id} value={gym.id}>{gym.id} - {gym.name}</SelectItem>
+                                        <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>
                                     ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div className="space-y-2">
-                            <Label>Filtra per Disciplina</Label>
-                            <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Karate">Karate</SelectItem>
-                                    <SelectItem value="Aikido">Aikido</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -779,5 +761,7 @@ export default function AdminCalendarPage() {
         </div>
     );
 }
+
+    
 
     
