@@ -85,7 +85,6 @@ interface PersonalDataFormProps {
     description: string;
     buttonText: string;
     onFormSubmit: (data: PersonalDataSchemaType) => void;
-    onBack?: () => void;
 }
 
 // Funzioni di utilità per la formattazione
@@ -98,7 +97,7 @@ const capitalizeWords = (str: string) => {
     return str.split(' ').map(word => capitalizeFirstLetter(word)).join(' ');
 };
 
-export function PersonalDataForm({ title, description, buttonText, onFormSubmit, onBack }: PersonalDataFormProps) {
+export function PersonalDataForm({ title, description, buttonText, onFormSubmit }: PersonalDataFormProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMinor, setIsMinor] = useState<boolean | null>(null)
@@ -479,3 +478,5 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     </Card>
   )
 }
+
+    

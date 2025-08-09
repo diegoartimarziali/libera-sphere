@@ -71,7 +71,7 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
     ) : null
 );
 
-function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (data: GymSelectionData) => void }) {
+function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void }) {
     const [user] = useAuthState(auth);
     const { toast } = useToast();
     const router = useRouter();
@@ -217,7 +217,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
             <Card>
                 <CardHeader><CardTitle>Dati non trovati</CardTitle></CardHeader>
                 <CardContent><p>Non è stato possibile caricare le informazioni sulla palestra. Torna indietro e riprova.</p></CardContent>
-                <CardFooter><Button variant="outline" onClick={onBack}>Indietro</Button></CardFooter>
+                <CardFooter><Button variant="outline" onClick={() => router.back()}>Indietro</Button></CardFooter>
             </Card>
         );
     }
@@ -231,7 +231,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                 <CardContent>
                     <p>Al momento non ci sono lezioni di selezione disponibili per la disciplina e la palestra che hai scelto. Contatta la segreteria per maggiori informazioni.</p>
                 </CardContent>
-                 <CardFooter><Button variant="outline" onClick={onBack}>Indietro</Button></CardFooter>
+                 <CardFooter><Button variant="outline" onClick={() => router.back()}>Indietro</Button></CardFooter>
             </Card>
         );
     }
@@ -303,8 +303,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                 </div>
                 
             </CardContent>
-            <CardFooter className="justify-between">
-                 <Button variant="outline" onClick={onBack}>Indietro</Button>
+            <CardFooter className="justify-end">
                  <Button onClick={handleConfirm} disabled={!selectedLessonValue || highlightedLessons.length === 0}>Scegli il Pagamento</Button>
             </CardFooter>
         </Card>
@@ -756,12 +755,10 @@ export default function ClassSelectionPage() {
                         description="Completa le tue informazioni personali per procedere con l'iscrizione. Questi dati verranno salvati per future iscrizioni."
                         buttonText="Prosegui alla Scelta delle Lezioni"
                         onFormSubmit={handleNextStep1}
-                        onBack={() => router.push('/dashboard/liberasphere')}
                     />
                 )}
                 {step === 2 && (
                     <GymSelectionStep 
-                        onBack={handleBack}
                         onNext={handleNextStep2}
                     />
                 )}
