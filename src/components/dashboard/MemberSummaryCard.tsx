@@ -91,13 +91,13 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <>
                         <Separator />
                         <div className="space-y-3">
-                             <h4 className="text-sm font-medium flex items-center">
+                             <h4 className="text-sm font-bold flex items-center">
                                 <CalendarCheck2 size={16} className="mr-3 w-5 text-muted-foreground" />
                                 Lezioni di Prova
                             </h4>
                             {props.trialLessons.map((lesson, index) => (
                                 <div key={index} className="flex items-center text-sm ml-8">
-                                    <span className="font-medium">{index + 1}ª Lezione:</span>
+                                    <span className="font-bold">{index + 1}ª Lezione:</span>
                                     <span className="ml-auto text-muted-foreground text-right capitalize">
                                         {format(lesson.date, "EEEE dd/MM", { locale: it })} - {lesson.time}
                                     </span>
