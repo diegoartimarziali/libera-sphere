@@ -100,7 +100,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails, u
     )
 }
 
-// Componente per lo Step di Pagamento Online (iFrame)
+// Componente per lo Step di Pagamento Online (iFrame) - Questo non è più usato.
 function OnlinePaymentStep({ onBack, onNext, fee }: { onBack: () => void; onNext: () => void, fee: FeeData | null }) {
     if (!fee) {
         return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
@@ -167,7 +167,7 @@ function PaymentStep({ onBack, onNext, fee }: { onBack: () => void, onNext: (met
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Online (Carta di Credito)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Paga in modo sicuro e veloce la quota di {fee ? `${fee.price}€` : "..."} con la tua carta tramite SumUp.
+                                Paga in modo sicuro e veloce con la tua carta. Verrai reindirizzato al sito SumUp, quando hai effettuato il pagamento torna qui per concludere l'iscrizione.
                             </p>
                         </div>
                          <CreditCard className="h-6 w-6 text-muted-foreground" />
@@ -404,7 +404,10 @@ export default function AssociatesPage() {
         setPaymentMethod(method);
         switch (method) {
             case 'online':
-                setStep(3); // Vai allo step dell'iframe SumUp
+                if (feeData?.sumupLink) {
+                    window.open(feeData.sumupLink, '_blank');
+                }
+                setStep(4); // Vai direttamente al riepilogo
                 break;
             case 'bank_transfer':
                 setIsBankTransferDialogOpen(true); // Apri il popup del bonifico
@@ -416,11 +419,6 @@ export default function AssociatesPage() {
         }
     };
     
-    const handleOnlinePaymentNext = () => {
-        // L'utente ha cliccato "Ho effettuato il pagamento" dallo step dell'iframe
-        setStep(4);
-    }
-
     const handleBankTransferConfirm = () => {
         // L'utente ha confermato di aver letto i dati del bonifico
         setIsBankTransferDialogOpen(false);
@@ -484,13 +482,7 @@ export default function AssociatesPage() {
 
     const handleBack = () => {
         if (step === 4) { // Riepilogo
-            if (paymentMethod === 'online') {
-                setStep(3); // torna all'iframe
-            } else {
-                setStep(2); // torna alla scelta del pagamento
-            }
-        } else if (step === 3) { // Iframe
-             setStep(2); // torna alla scelta del pagamento
+            setStep(2); // torna alla scelta del pagamento
         } else if (step === 2) { // Scelta pagamento
              setStep(1); // torna ai dati
         } else if (step === 1){
@@ -498,10 +490,6 @@ export default function AssociatesPage() {
         } else {
             router.push('/dashboard'); 
         }
-    }
-
-    const handleBackFromOnlinePayment = () => {
-        setStep(2);
     }
     
     if (loading) {
@@ -541,9 +529,6 @@ export default function AssociatesPage() {
                         fee={feeData}
                     />
                 )}
-                {step === 3 && paymentMethod === 'online' && (
-                     <OnlinePaymentStep onBack={handleBackFromOnlinePayment} onNext={handleOnlinePaymentNext} fee={feeData} />
-                )}
                 {step === 4 && formData && (
                     <ConfirmationStep
                         formData={formData}
@@ -571,7 +556,5 @@ export default function AssociatesPage() {
         </div>
     )
 }
-
-    
 
     
