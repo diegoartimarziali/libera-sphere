@@ -64,7 +64,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
     const regulationsClassName = props.regulationsStatus === 'Accettati' ? 'text-success font-bold' : '';
 
     const medicalStatusClassName = cn('font-bold', {
-        'text-success': props.medicalStatusState === 'valid',
+        'text-green-600': props.medicalStatusState === 'valid',
         'text-orange-500': props.medicalStatusState === 'expiring',
         'text-destructive': props.medicalStatusState === 'expired',
     });
@@ -73,14 +73,15 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         <Card className="flex flex-col">
             <CardHeader className="flex flex-col items-center text-center p-4">
                 <CardTitle className="text-2xl">{props.name}</CardTitle>
-                 {props.sportingSeason && (
-                    <div className="text-lg font-bold pt-1">
-                       Stagione Sportiva: {props.sportingSeason}
-                    </div>
-                )}
-                 <div className="text-lg pt-1">
-                    <span className="font-semibold">Disciplina: {props.discipline}</span>
-                    {props.grade && <span className="font-semibold ml-2">Grado: {props.grade}</span>}
+                <div className="text-lg font-bold pt-1">
+                    Stagione Sportiva: {props.sportingSeason}
+                </div>
+                <div className="text-base pt-1">
+                    <span className="font-semibold">Disciplina:</span> {props.discipline}
+                    {props.grade && <><span className="font-semibold ml-2">Grado:</span> {props.grade}</>}
+                </div>
+                 <div className="text-base pt-1">
+                    <span className="font-semibold">Palestra:</span> {props.gymName}
                 </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-4 p-4">
@@ -94,7 +95,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <Separator />
 
                  <div className="space-y-3">
-                    <InfoRow icon={<Building size={16} />} label="Palestra" value={props.gymName} />
+                    
                     <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />
                     <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
                     <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
