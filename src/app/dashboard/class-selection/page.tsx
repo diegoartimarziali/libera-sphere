@@ -116,12 +116,16 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
                         
                          // Fetch lesson schedule
                         const scheduleCollectionRef = collection(db, `orarigruppi/${gymId}/lezioniselezione`);
-                        const scheduleSnapshot = await getDocs(query(scheduleCollectionRef, limit(1))); // Assuming one doc holds the schedule
+                        const scheduleSnapshot = await getDocs(query(scheduleCollectionRef));
                         if (!scheduleSnapshot.empty) {
-                            const scheduleData = scheduleSnapshot.docs[0].data();
-                            // This part is flexible depending on your data structure.
-                            // Let's assume the schedule is in a field called 'summary'.
-                            const scheduleSummary = scheduleData.lezioni?.map((l: any) => `${l.giorno} ${l.orario}`).join('; ');
+                            const scheduleSummary = scheduleSnapshot.docs
+                                .map(doc => {
+                                    const data = doc.data();
+                                    return data.lezioni?.map((l: any) => `${l.giorno} ${l.orario}`).join('; ') || '';
+                                })
+                                .filter(Boolean)
+                                .join(' | ');
+
                             setSelectionLessonsSchedule(scheduleSummary || "Orario non disponibile");
                         } else {
                             setSelectionLessonsSchedule("Orario non disponibile");
@@ -376,7 +380,8 @@ function PaymentStep({
                     </Label>
                 </RadioGroup>
             </CardContent>
-            <CardFooter className="justify-end">
+            <CardFooter className="justify-between">
+                <Button variant="outline" onClick={() => (window.location.href = '/dashboard/class-selection')}>Indietro</Button>
                 <Button onClick={() => onNext(paymentMethod!)} disabled={!paymentMethod}>Prosegui</Button>
             </CardFooter>
         </Card>
@@ -533,7 +538,8 @@ function ConfirmationStep({
                 </div>
 
             </CardContent>
-            <CardFooter className="justify-end">
+            <CardFooter className="justify-between">
+                 <Button variant="outline" onClick={onBack}>Indietro</Button>
                 <Button onClick={onComplete} disabled={!isConfirmed || isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Completa Iscrizione
