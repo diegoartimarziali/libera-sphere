@@ -29,6 +29,7 @@ export interface MemberSummaryProps {
     isInsured?: boolean;
     trialLessons?: TrialLesson[];
     trialStatus?: string;
+    trialStatusState?: 'pending_payment' | 'active' | 'completed' | 'not_applicable' | 'declined';
     subscriptionType?: string;
     subscriptionStatus?: string;
     subscriptionValidity?: string;
@@ -46,7 +47,7 @@ const InfoRow = ({ icon, label, value, valueClassName: externalValueClassName }:
     
     const isEmail = label.toLowerCase() === 'email';
 
-    const valueClassName = cn('ml-auto text-muted-foreground text-right', {
+    const valueClassName = cn('ml-auto text-muted-foreground text-right font-bold', {
         'font-bold': isEmail,
     }, externalValueClassName);
 
@@ -73,6 +74,12 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         'text-green-600': props.isInsured,
         'text-destructive': !props.isInsured,
     });
+    
+    const trialStatusClassName = cn('font-bold', {
+        'text-orange-500': props.trialStatusState === 'pending_payment',
+        'text-green-600': props.trialStatusState === 'active',
+        'text-muted-foreground': props.trialStatusState === 'completed',
+    });
 
     return (
         <Card className="flex flex-col">
@@ -81,7 +88,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                 <div className="text-lg font-bold pt-1">
                    {props.sportingSeason}
                 </div>
-                 <div className="text-base pt-1">
+                <div className="text-base pt-1">
                     <span className="font-semibold">Disciplina:</span> {props.discipline}
                     {props.grade && <><span className="font-semibold ml-2">Grado:</span> {props.grade}</>}
                 </div>
@@ -104,7 +111,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     
                     <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />
                     <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
-                    <InfoRow icon={<Activity size={16} />} label="Stato Prova" value={props.trialStatus} />
+                    <InfoRow icon={<Activity size={16} />} label="Stato Prova" value={props.trialStatus} valueClassName={trialStatusClassName} />
                     <InfoRow icon={<Repeat size={16}/>} label="Abbonamento" value={props.subscriptionType} />
                     <InfoRow icon={<CalendarClock size={16}/>} label="Valido per il mese di" value={props.subscriptionValidity} />
                     <InfoRow icon={<KeyRound size={16} />} label="Stato Abbonamento" value={props.subscriptionStatus} />

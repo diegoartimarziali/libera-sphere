@@ -146,6 +146,7 @@ export default function DashboardPage() {
             let trialStatusLabel: string | undefined = undefined;
             if(data.trialStatus === 'pending_payment') trialStatusLabel = "In attesa di approvazione pagamento";
             if(data.trialStatus === 'active') trialStatusLabel = "Attiva";
+            if(data.trialStatus === 'completed') trialStatusLabel = "Completata";
 
             let subscriptionStatusLabel: string | undefined = undefined;
             let subscriptionValidityMonth: string | undefined = undefined;
@@ -208,6 +209,7 @@ export default function DashboardPage() {
                 isInsured: data.isInsured,
                 trialLessons: trialLessons,
                 trialStatus: trialStatusLabel,
+                trialStatusState: data.trialStatus,
                 subscriptionType: data.activeSubscription?.name,
                 subscriptionStatus: subscriptionStatusLabel,
                 subscriptionValidity: subscriptionValidityMonth,
