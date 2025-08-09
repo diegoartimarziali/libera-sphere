@@ -157,7 +157,7 @@ export default function LiberaSpherePage() {
     if (gymsLoading || !isFormerMember) return true;
 
     if (isFormerMember === 'yes') {
-        return !discipline || !firstYear || !lastGrade || !qualification || gradesLoading;
+        return !discipline || !gym || !firstYear || !lastGrade || !qualification || gradesLoading;
     }
 
     if (isFormerMember === 'no') {
@@ -276,7 +276,7 @@ export default function LiberaSpherePage() {
 
     return (
         <Select value={gym} onValueChange={setGym}>
-            <SelectTrigger id="gym_new">
+            <SelectTrigger>
                 <SelectValue placeholder="Seleziona la palestra" />
             </SelectTrigger>
             <SelectContent>
@@ -420,28 +420,37 @@ export default function LiberaSpherePage() {
           {isFormerMember === 'yes' && (
             <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
                 <div className="space-y-2">
-                    <h4 className="font-semibold text-foreground">2. Quale disciplina hai praticato con noi?</h4>
+                    <h4 className="font-semibold text-foreground">2. Conferma i tuoi dati</h4>
                      {gymsLoading ? (
                         <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
                      ) : (
-                        <RadioGroup
-                            value={discipline || ''}
-                            onValueChange={(value) => handleDisciplineChange(value as 'Karate' | 'Aikido')}
-                            className="grid grid-cols-2 gap-4"
-                        >
-                           <Label htmlFor="karate_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Karate' && "border-primary")}>
-                                <RadioGroupItem value="Karate" id="karate_former" className="sr-only" />
-                                <span>Karate</span>
-                            </Label>
-                            <Label htmlFor="aikido_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Aikido' && "border-primary")}>
-                                <RadioGroupItem value="Aikido" id="aikido_former" className="sr-only" />
-                                <span>Aikido</span>
-                            </Label>
-                        </RadioGroup>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                 <Label>Disciplina</Label>
+                                 <RadioGroup
+                                    value={discipline || ''}
+                                    onValueChange={(value) => handleDisciplineChange(value as 'Karate' | 'Aikido')}
+                                    className="grid grid-cols-2 gap-4"
+                                >
+                                   <Label htmlFor="karate_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Karate' && "border-primary")}>
+                                        <RadioGroupItem value="Karate" id="karate_former" className="sr-only" />
+                                        <span>Karate</span>
+                                    </Label>
+                                    <Label htmlFor="aikido_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Aikido' && "border-primary")}>
+                                        <RadioGroupItem value="Aikido" id="aikido_former" className="sr-only" />
+                                        <span>Aikido</span>
+                                    </Label>
+                                </RadioGroup>
+                            </div>
+                             <div className="space-y-2">
+                                <Label>Palestra</Label>
+                                {renderGymSelect(discipline)}
+                             </div>
+                        </div>
                      )}
                 </div>
                 
-                {discipline && (
+                {discipline && gym && (
                     <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                              <div>
