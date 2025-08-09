@@ -69,6 +69,11 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         'text-destructive': props.medicalStatusState === 'expired',
     });
 
+    const insuredStatusClassName = cn('font-bold', {
+        'text-green-600': props.isInsured,
+        'text-destructive': !props.isInsured,
+    });
+
     return (
         <Card className="flex flex-col">
             <CardHeader className="flex flex-col items-center text-center p-4">
@@ -76,7 +81,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                 <div className="text-lg font-bold pt-1">
                    {props.sportingSeason}
                 </div>
-                <div className="text-base pt-1">
+                 <div className="text-base pt-1">
                     <span className="font-semibold">Disciplina:</span> {props.discipline}
                     {props.grade && <><span className="font-semibold ml-2">Grado:</span> {props.grade}</>}
                 </div>
@@ -90,7 +95,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} />
                     <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={props.regulationsStatus} valueClassName={regulationsClassName} />
                     <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} valueClassName={medicalStatusClassName} />
-                    <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
+                    <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} valueClassName={insuredStatusClassName} />
                  </div>
                  
                  <Separator />
