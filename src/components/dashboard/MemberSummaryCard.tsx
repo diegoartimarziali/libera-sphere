@@ -56,13 +56,20 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         <Card className="flex flex-col">
             <CardHeader className="flex flex-col items-center text-center p-4">
                 <CardTitle className="text-2xl">{props.name}</CardTitle>
-                <CardDescription>Questo è il riepilogo del tuo profilo</CardDescription>
+                 <CardDescription className="text-lg font-semibold text-primary">
+                    {props.discipline}
+                    {props.grade && <span className="text-base font-medium text-muted-foreground ml-2">({props.grade})</span>}
+                </CardDescription>
+                {props.sportingSeason && (
+                    <div className="text-sm text-muted-foreground pt-1">
+                       Stagione Sportiva: {props.sportingSeason}
+                    </div>
+                )}
             </CardHeader>
             <CardContent className="flex-grow space-y-4 p-4">
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
                     <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} />
-                    <InfoRow icon={<CalendarDays size={16} />} label="Stagione Sportiva" value={props.sportingSeason} />
                     <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={props.regulationsStatus} />
                     <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} />
                  </div>
@@ -71,8 +78,6 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
 
                  <div className="space-y-3">
                     <InfoRow icon={<Building size={16} />} label="Palestra" value={props.gymName} />
-                    <InfoRow icon={<Sparkles size={16} />} label="Disciplina" value={props.discipline} />
-                    <InfoRow icon={<Award size={16} />} label="Grado" value={props.grade} />
                     <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />
                     <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
                     <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
