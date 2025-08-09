@@ -217,7 +217,6 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
             <Card>
                 <CardHeader><CardTitle>Dati non trovati</CardTitle></CardHeader>
                 <CardContent><p>Non è stato possibile caricare le informazioni sulla palestra. Torna indietro e riprova.</p></CardContent>
-                <CardFooter><Button variant="outline" onClick={() => router.back()}>Indietro</Button></CardFooter>
             </Card>
         );
     }
@@ -231,7 +230,6 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
                 <CardContent>
                     <p>Al momento non ci sono lezioni di selezione disponibili per la disciplina e la palestra che hai scelto. Contatta la segreteria per maggiori informazioni.</p>
                 </CardContent>
-                 <CardFooter><Button variant="outline" onClick={() => router.back()}>Indietro</Button></CardFooter>
             </Card>
         );
     }
@@ -312,11 +310,9 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
 
 // Componente per lo Step di Pagamento
 function PaymentStep({ 
-    onBack, 
     onNext,
     fee
 }: { 
-    onBack: () => void, 
     onNext: (method: PaymentMethod) => void,
     fee: FeeData | null
 }) {
@@ -763,7 +759,6 @@ export default function ClassSelectionPage() {
                 )}
                 {step === 3 && gymSelection &&(
                     <PaymentStep
-                        onBack={() => setStep(2)}
                         onNext={handleNextStep3}
                         fee={feeData}
                     />
@@ -791,3 +786,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
