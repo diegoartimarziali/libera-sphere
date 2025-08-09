@@ -86,7 +86,10 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
 
     useEffect(() => {
         const fetchEventData = async () => {
-            if (!user) return;
+            if (!user) {
+                setLoading(false);
+                return
+            };
             setLoading(true);
             try {
                 const userDocRef = doc(db, "users", user.uid);
@@ -142,9 +145,11 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
             }
         };
 
-        fetchEventData();
+        if (user) {
+            fetchEventData();
+        }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user]);
+    }, []);
 
     useEffect(() => {
         if (selectedLessonValue && userDiscipline) {
