@@ -97,7 +97,6 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
             {isOperational && (
                 <>
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
-                    <NavLink href="/dashboard/stages" icon={Sparkles} onClick={onLinkClick}>Stages</NavLink>
                     <NavLink href="/dashboard/attendances" icon={ClipboardList} onClick={onLinkClick}>Le Mie Presenze</NavLink>
                 </>
             )}
@@ -378,5 +377,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
