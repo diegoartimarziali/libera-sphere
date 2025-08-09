@@ -142,7 +142,7 @@ function LessonForm({ lesson, gyms, onSave, onCancel }: { lesson?: LessonFormDat
                 )} />
                 
                 <FormField control={form.control} name="gymId" render={({ field }) => (
-                    <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 
                 <FormField control={form.control} name="status" render={({ field }) => (
@@ -333,7 +333,7 @@ export default function AdminCalendarPage() {
                                 startTime: Timestamp.fromDate(eventStart),
                                 endTime: Timestamp.fromDate(eventEnd),
                                 gymId: selectedGym.id,
-                                gymName: selectedGym.name,
+                                gymName: `${selectedGym.id} - ${selectedGym.name}`,
                                 discipline: disciplineFilter,
                                 status: 'confermata',
                                 notes: ''
@@ -344,7 +344,7 @@ export default function AdminCalendarPage() {
             });
 
             setLessons(generatedLessons);
-            const gymDisplayName = `${selectedGym.name}`;
+            const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
             setGeneratedTitle(`Anteprima per ${gymDisplayName} - ${disciplineFilter} (${generatedLessons.length} lezioni)`);
             toast({ title: "Anteprima Generata", description: `Trovate ${generatedLessons.length} lezioni per i criteri selezionati.` });
 
@@ -430,6 +430,7 @@ export default function AdminCalendarPage() {
         const { startDate, startTime, endDate, endTime, ...restData } = data;
         const startDateTime = new Date(`${format(startDate, 'yyyy-MM-dd')}T${startTime}`);
         const endDateTime = new Date(`${format(endDate, 'yyyy-MM-dd')}T${endTime}`);
+        const selectedGym = gyms.find(g => g.id === restData.gymId)
         
         const newOrUpdatedLesson: Lesson = {
             id: data.id || `manual-${new Date().getTime()}`,
@@ -438,7 +439,7 @@ export default function AdminCalendarPage() {
             endTime: Timestamp.fromDate(endDateTime),
             discipline: restData.discipline,
             gymId: restData.gymId,
-            gymName: gyms.find(g => g.id === restData.gymId)?.name,
+            gymName: selectedGym ? `${selectedGym.id} - ${selectedGym.name}` : undefined,
             status: restData.status,
             notes: restData.notes,
         };
@@ -570,7 +571,7 @@ export default function AdminCalendarPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {gyms.map(gym => (
-                                        <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>
+                                        <SelectItem key={gym.id} value={gym.id}>{gym.id} - {gym.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
