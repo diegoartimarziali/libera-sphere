@@ -265,7 +265,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
                     <h3 className="text-lg font-semibold">La tua scelta</h3>
                      <dl className="space-y-2">
                         <DataRow label="Disciplina" value={userDiscipline} icon={<Sparkles size={16} />} />
-                        <DataRow label="Palestra" value={`Id Palestra (${userGymId}), name (${userGymName})`} icon={<Building size={16} />} />
+                        <DataRow label="Palestra" value={`Id Palestra ${userGymId}, name ${userGymName}`} icon={<Building size={16} />} />
                      </dl>
                 </div>
                 
@@ -361,7 +361,8 @@ function PaymentStep({
                     </Label>
                 </RadioGroup>
             </CardContent>
-            <CardFooter className="justify-end">
+            <CardFooter className="justify-between">
+                <Button variant="outline" onClick={() => setStep(2)}>Indietro</Button>
                 <Button onClick={() => onNext(paymentMethod!)} disabled={!paymentMethod}>Prosegui</Button>
             </CardFooter>
         </Card>
@@ -786,5 +787,7 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
 
     
