@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, writeBatch, query, where, Timestamp, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData } from "firebase/firestore";
+import { collection, getDocs, doc, writeBatch, query, where, Timestamp, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -29,6 +29,10 @@ import { cn } from "@/lib/utils";
 // =================================================================
 // TIPI E SCHEMI
 // =================================================================
+interface Gym {
+  id: string;
+  name: string;
+}
 
 export interface Stage {
     id: string;
@@ -101,7 +105,7 @@ const InfoRow = ({ icon: Icon, text }: { icon: React.ElementType, text: string }
 // COMPONENTI
 // =================================================================
 
-function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave: (data: StageFormData) => void, onCancel: () => void }) {
+function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, gyms: Gym[], onSave: (data: StageFormData) => void, onCancel: () => void }) {
     const form = useForm<StageFormData>({
         resolver: zodResolver(stageFormSchema),
         defaultValues: stage || {
@@ -118,6 +122,8 @@ function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave:
             imageUrl: ''
         }
     });
+    
+    const locationType = form.watch('location');
 
     const onSubmit = (data: StageFormData) => {
         onSave(data);
@@ -162,8 +168,19 @@ function StageForm({ stage, onSave, onCancel }: { stage?: StageFormData, onSave:
                 </div>
 
                 <FormField control={form.control} name="location" render={({ field }) => (
-                    <FormItem><FormLabel>Luogo</FormLabel><FormControl><Input {...field} placeholder="Es. Palestra Comunale, Via Roma 1" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Luogo</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Seleziona un luogo..." /></SelectTrigger></FormControl>
+                             <SelectContent>
+                                {gyms.map(g => (
+                                    <SelectItem key={g.id} value={`${g.id} - ${g.name}`}>{g.id} - {g.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
                 )} />
+                
                 <FormField control={form.control} name="description" render={({ field }) => (
                     <FormItem><FormLabel>Descrizione</FormLabel><FormControl><Textarea {...field} placeholder="Descrivi l'evento, il programma, ecc." /></FormControl><FormMessage /></FormItem>
                 )} />
@@ -201,12 +218,13 @@ export default function AdminStagesPage() {
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [stages, setStages] = useState<Stage[]>([]);
+    const [gyms, setGyms] = useState<Gym[]>([]);
     const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingStage, setEditingStage] = useState<StageFormData | undefined>(undefined);
 
-    const fetchStages = async () => {
+    const fetchInitialData = async () => {
         setLoading(true);
         try {
             const eventsCollection = collection(db, "events");
@@ -221,6 +239,11 @@ export default function AdminStagesPage() {
                 .sort((a,b) => b.startTime.toMillis() - a.startTime.toMillis()); // Ordina qui
             
             setStages(stagesList);
+
+            const gymsSnapshot = await getDocs(query(collection(db, "gyms"), doc(db, "gyms", "name")));
+            const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()} as Gym));
+            setGyms(gymsList);
+
         } catch (error) {
             console.error("Error fetching stages:", error);
             toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare gli eventi." });
@@ -230,7 +253,7 @@ export default function AdminStagesPage() {
     };
 
     useEffect(() => {
-        fetchStages();
+        fetchInitialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -259,7 +282,7 @@ export default function AdminStagesPage() {
                 });
                 toast({ title: "Evento Creato!", variant: "success" });
             }
-            await fetchStages(); // Ricarica la lista
+            await fetchInitialData(); // Ricarica la lista
             setIsFormOpen(false);
             setEditingStage(undefined);
         } catch (error) {
@@ -274,7 +297,7 @@ export default function AdminStagesPage() {
         try {
             await deleteDoc(doc(db, "events", stageId));
             toast({ title: "Evento Eliminato", variant: "success" });
-            await fetchStages();
+            await fetchInitialData();
         } catch (error) {
             console.error("Error deleting stage:", error);
             toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare l'evento." });
@@ -450,6 +473,7 @@ export default function AdminStagesPage() {
                     </DialogHeader>
                     <StageForm 
                         stage={editingStage} 
+                        gyms={gyms}
                         onSave={handleSaveStage} 
                         onCancel={() => setIsFormOpen(false)} 
                     />
@@ -458,6 +482,5 @@ export default function AdminStagesPage() {
         </div>
     );
 }
-
 
     

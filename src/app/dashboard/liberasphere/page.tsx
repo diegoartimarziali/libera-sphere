@@ -241,8 +241,7 @@ export default function LiberaSpherePage() {
   };
 
   const getGymDisplayString = (gym: Gym) => {
-    const parts = [gym.name, gym.address, gym.streetNumber, gym.city];
-    return parts.filter(Boolean).join(", ");
+    return `${gym.id} - ${gym.name}`;
   };
 
   const renderGymSelect = (currentDiscipline: 'Karate' | 'Aikido' | null) => {
@@ -400,32 +399,6 @@ export default function LiberaSpherePage() {
                       </div>
                   </div>
               )}
-
-               {hasPracticedBefore === 'no' && discipline === 'Aikido' && (
-                  <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                      <h4 className="font-semibold text-foreground">Hai già praticato {discipline} in passato?</h4>
-                       <RadioGroup
-                        value={hasPracticedBefore || ''}
-                        onValueChange={(value) => setHasPracticedBefore(value as 'yes' | 'no')}
-                        className="flex gap-4"
-                    >
-                        <Label htmlFor="practiced_no_aikido" className={cn("flex items-center space-x-2 p-2 border rounded-md cursor-pointer flex-1 justify-center bg-background", hasPracticedBefore === 'no' && 'border-primary')}>
-                            <RadioGroupItem value="no" id="practiced_no_aikido" />
-                            <span>No, mai</span>
-                        </Label>
-                         <Label htmlFor="practiced_yes_aikido" className={cn("flex items-center space-x-2 p-2 border rounded-md cursor-pointer flex-1 justify-center bg-background", hasPracticedBefore === 'yes' && 'border-primary')}>
-                            <RadioGroupItem value="yes" id="practiced_yes_aikido" />
-                            <span>Sì, ho già praticato</span>
-                        </Label>
-                    </RadioGroup>
-
-                     {hasPracticedBefore === 'yes' && (
-                        <div className="space-y-2 pt-4">
-                           {renderGradeSelect("Con quale grado?")}
-                        </div>
-                      )}
-                  </div>
-              )}
             </div>
           )}
 
@@ -510,3 +483,5 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
+
+    
