@@ -200,7 +200,7 @@ export default function DashboardPage() {
                 regulationsStatus: regulationsStatusLabel,
                 medicalStatus: medicalStatusLabel,
                 medicalStatusState: certStatus,
-                gymName: data.gym ? gymsMap.get(data.gym) : undefined,
+                gymName: data.gym ? `${data.gym}, ${gymsMap.get(data.gym)}` : undefined,
                 discipline: data.discipline,
                 grade: data.lastGrade,
                 qualifica: data.qualification,
@@ -352,5 +352,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-    
