@@ -267,7 +267,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
                     <h3 className="text-lg font-semibold">La tua scelta</h3>
                      <dl className="space-y-2">
                         <DataRow label="Disciplina" value={userDiscipline} icon={<Sparkles size={16} />} />
-                        <DataRow label="Palestra" value={userGymName} icon={<Building size={16} />} />
+                        <DataRow label="Palestra" value={`Id Palestra (${userGymId}), name (${userGymName})`} icon={<Building size={16} />} />
                      </dl>
                 </div>
                 
