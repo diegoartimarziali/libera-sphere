@@ -109,7 +109,6 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                              setUserGymName(gymData.name);
                         }
                         
-                        // NUOVA LOGICA: Fetch da 'events' collection
                         const now = Timestamp.now();
                         const eventsQuery = query(
                             collection(db, "events"),
@@ -119,7 +118,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                             where("status", "==", "confermata"),
                             where("startTime", ">=", now),
                             orderBy("startTime", "asc"),
-                            limit(20) // Limitiamo il numero di lezioni future da caricare
+                            limit(20)
                         );
                         
                         const eventsSnapshot = await getDocs(eventsQuery);
@@ -146,7 +145,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
 
         fetchEventData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, toast]);
+    }, [user]);
 
     useEffect(() => {
         if (selectedLessonValue && userDiscipline) {
@@ -157,8 +156,7 @@ function GymSelectionStep({ onBack, onNext }: { onBack: () => void; onNext: (dat
                 const lessonsBundle = upcomingLessons.slice(selectedIndex, selectedIndex + lessonsToTake);
                 setHighlightedLessons(lessonsBundle);
             } else if (selectedIndex !== -1) {
-                // Se non ci sono abbastanza lezioni per il bundle completo
-                setHighlightedLessons([]); // Resetta per indicare una scelta non valida
+                setHighlightedLessons([]); 
                  toast({ 
                     variant: "destructive", 
                     title: "Lezioni insufficienti", 
