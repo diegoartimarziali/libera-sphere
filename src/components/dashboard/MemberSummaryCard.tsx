@@ -61,7 +61,7 @@ const InfoRow = ({ icon, label, value, valueClassName: externalValueClassName }:
 
 export function MemberSummaryCard(props: MemberSummaryProps) {
 
-    const regulationsClassName = props.regulationsStatus === 'Accettati' ? 'text-success font-bold' : '';
+    const regulationsClassName = props.regulationsStatus === 'Accettati' ? 'text-green-600 font-bold' : '';
 
     const medicalStatusClassName = cn('font-bold', {
         'text-green-600': props.medicalStatusState === 'valid',
@@ -74,7 +74,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
             <CardHeader className="flex flex-col items-center text-center p-4">
                 <CardTitle className="text-2xl">{props.name}</CardTitle>
                 <div className="text-lg font-bold pt-1">
-                    Stagione Sportiva: {props.sportingSeason}
+                   {props.sportingSeason}
                 </div>
                 <div className="text-base pt-1">
                     <span className="font-semibold">Disciplina:</span> {props.discipline}
@@ -90,6 +90,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} />
                     <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={props.regulationsStatus} valueClassName={regulationsClassName} />
                     <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} valueClassName={medicalStatusClassName} />
+                    <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
                  </div>
                  
                  <Separator />
@@ -98,7 +99,6 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     
                     <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />
                     <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} />
-                    <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} />
                     <InfoRow icon={<Activity size={16} />} label="Stato Prova" value={props.trialStatus} />
                     <InfoRow icon={<Repeat size={16}/>} label="Abbonamento" value={props.subscriptionType} />
                     <InfoRow icon={<CalendarClock size={16}/>} label="Valido per il mese di" value={props.subscriptionValidity} />
