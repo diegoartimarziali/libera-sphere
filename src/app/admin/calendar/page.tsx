@@ -534,7 +534,7 @@ export default function AdminCalendarPage() {
 
         } catch (error) {
             console.error("Error deleting calendar and its events:", error);
-            toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare il calendario e le sue lezioni." });
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare il calendario e le sue lezioni. Se il problema persiste, crea un indice su 'calendarId' in Firestore." });
         } finally {
             setIsDeleting(null);
         }
@@ -794,6 +794,8 @@ export default function AdminCalendarPage() {
         </div>
     );
 }
+
+    
 
     
 
