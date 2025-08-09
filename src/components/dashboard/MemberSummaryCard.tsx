@@ -45,7 +45,7 @@ const InfoRow = ({ icon, label, value }: { icon: React.ReactNode, label: string,
     return (
         <div className="flex items-center text-sm">
             <div className="w-5 text-muted-foreground">{icon}</div>
-            <span className="ml-3 font-medium">{label}:</span>
+            <span className="ml-3 font-bold">{label}:</span>
             <span className="ml-auto text-muted-foreground text-right">{displayValue}</span>
         </div>
     )
@@ -56,8 +56,8 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         <Card className="flex flex-col">
             <CardHeader className="flex flex-col items-center text-center p-4">
                 <CardTitle className="text-2xl">{props.name}</CardTitle>
-                {props.sportingSeason && (
-                    <div className="text-lg font-semibold pt-1">
+                 {props.sportingSeason && (
+                    <div className="text-lg font-bold pt-1">
                        Stagione Sportiva: {props.sportingSeason}
                     </div>
                 )}
