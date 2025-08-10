@@ -329,10 +329,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                       <FormControl>
                          <DatePicker 
                             value={field.value} 
-                            onChange={(date) => {
-                                field.onChange(date);
-                            }}
-                            disableFuture
+                            onChange={field.onChange}
                           />
                       </FormControl>
                       <FormMessage />
@@ -495,3 +492,4 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     </Card>
   )
 }
+

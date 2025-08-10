@@ -273,7 +273,6 @@ export default function MedicalCertificatePage() {
                            <DatePicker
                                 value={field.value}
                                 onChange={field.onChange}
-                                disablePast
                             />
                         </FormControl>
                         <FormMessage />
