@@ -2,7 +2,7 @@
 "use client"
 
 import * as React from "react"
-import { format, parseISO } from "date-fns"
+import { format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { DayPicker } from "react-day-picker"
 
@@ -52,4 +52,3 @@ export function DatePicker({ value, onChange, disableFuture, disablePast }: Date
         </Popover>
     );
 }
-
