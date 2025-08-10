@@ -12,7 +12,7 @@ import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, 
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, X, Save, MessageSquareWarning, FileWarning, Upload, AlertTriangle, PartyPopper } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, X, Save, MessageSquareWarning, FileWarning, Upload, AlertTriangle, PartyPopper, TestTube2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -274,7 +274,7 @@ export default function AdminCalendarPage() {
 
     const selectedPeriod = periodOptions.find(p => p.id === selectedPeriodId);
     
-    const handlePreviewCalendar = async () => {
+    const handleGenerateCalendar = async (isTest = false) => {
         if (!selectedPeriod || !gymFilter || !disciplineFilter) {
             toast({ variant: "destructive", title: "Dati Mancanti", description: "Seleziona periodo, palestra e disciplina." });
             return;
@@ -291,49 +291,87 @@ export default function AdminCalendarPage() {
                 setIsGenerating(false);
                 return;
             }
-
-            const exclusionDates = new Set<string>();
-            const exclusionGroup = dateGroups.find(g => g.id === selectedGym.id);
-            if (exclusionGroup) {
-                exclusionGroup.dates.forEach(d => {
-                    exclusionDates.add(format(d.toDate(), 'yyyy-MM-dd'));
-                });
+            
+            let exclusionDates = new Set<string>();
+            // Solo per la generazione standard, non per quella di test
+            if (!isTest) {
+                const exclusionGroup = dateGroups.find(g => g.id === selectedGym.id);
+                if (exclusionGroup) {
+                    exclusionGroup.dates.forEach(d => {
+                        exclusionDates.add(format(d.toDate(), 'yyyy-MM-dd'));
+                    });
+                }
             }
+            
 
             const allDates = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
             let generatedLessons: Lesson[] = [];
 
             allDates.forEach(date => {
                 const dateString = format(date, 'yyyy-MM-dd');
-                const isHoliday = exclusionDates.has(dateString);
                 
-                // --- TEST LOGIC START ---
-                // Ignora l'orario settimanale e crea una lezione per ogni giorno
-                const eventStart = new Date(date);
-                eventStart.setHours(10, 0, 0, 0); // Orario fittizio 10:00
+                if (isTest) {
+                    // Logica per il CALENDARIO DI TEST: crea una lezione ogni giorno
+                    const eventStart = new Date(date);
+                    eventStart.setHours(18, 0, 0, 0); // Orario fittizio 18:00
 
-                const eventEnd = new Date(date);
-                eventEnd.setHours(11, 0, 0, 0); // Orario fittizio 11:00
+                    const eventEnd = new Date(date);
+                    eventEnd.setHours(19, 0, 0, 0); // Orario fittizio 19:00
 
-                generatedLessons.push({
-                    id: `${dateString}-TEST-1`,
-                    title: isHoliday ? "Chiuso per festività" : disciplineFilter, 
-                    startTime: Timestamp.fromDate(eventStart),
-                    endTime: Timestamp.fromDate(eventEnd),
-                    gymId: selectedGym.id,
-                    gymName: `${selectedGym.id} - ${selectedGym.name}`,
-                    discipline: disciplineFilter,
-                    status: isHoliday ? 'festivita' : 'confermata',
-                    notes: isHoliday ? exclusionGroup?.name || 'Festività' : ''
-                });
-                // --- TEST LOGIC END ---
+                    generatedLessons.push({
+                        id: `${dateString}-TEST`,
+                        title: `${disciplineFilter} (Test)`, 
+                        startTime: Timestamp.fromDate(eventStart),
+                        endTime: Timestamp.fromDate(eventEnd),
+                        gymId: selectedGym.id,
+                        gymName: `${selectedGym.id} - ${selectedGym.name}`,
+                        discipline: disciplineFilter,
+                        status: 'confermata',
+                        notes: 'Lezione di test generata automaticamente'
+                    });
+                } else {
+                    // Logica per il CALENDARIO STANDARD (quella originale)
+                    const isHoliday = exclusionDates.has(dateString);
+                    const dayOfWeek = getDay(date); // Domenica = 0, Lunedì = 1, etc.
+                    
+                    const scheduleForDay = selectedGym.weeklySchedule?.find(s => s.dayOfWeek === dayOfWeek);
+
+                    if (scheduleForDay) {
+                        scheduleForDay.timeSlots.forEach((slot: {startTime: string, endTime: string, discipline: string}, index: number) => {
+                            if (slot.discipline === disciplineFilter) {
+                                const [startHour, startMinute] = slot.startTime.split(':').map(Number);
+                                const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+
+                                const eventStart = new Date(date);
+                                eventStart.setHours(startHour, startMinute, 0, 0);
+
+                                const eventEnd = new Date(date);
+                                eventEnd.setHours(endHour, endMinute, 0, 0);
+                                
+                                 generatedLessons.push({
+                                    id: `${dateString}-${index}`,
+                                    title: isHoliday ? "Chiuso per festività" : disciplineFilter, 
+                                    startTime: Timestamp.fromDate(eventStart),
+                                    endTime: Timestamp.fromDate(eventEnd),
+                                    gymId: selectedGym.id,
+                                    gymName: `${selectedGym.id} - ${selectedGym.name}`,
+                                    discipline: disciplineFilter,
+                                    status: isHoliday ? 'festivita' : 'confermata',
+                                    notes: isHoliday ? dateGroups.find(g => g.id === selectedGym.id)?.name || 'Festività' : ''
+                                });
+                            }
+                        });
+                    }
+                }
             });
 
             const operationalLessonsCount = generatedLessons.filter(l => l.status === 'confermata').length;
             setLessons(generatedLessons);
             const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
-            setGeneratedTitle(`Anteprima per ${gymDisplayName} - ${disciplineFilter} (${operationalLessonsCount} lezioni operative)`);
-            toast({ title: "Anteprima Generata", description: `Trovate ${operationalLessonsCount} lezioni operative per i criteri selezionati.` });
+            
+            const titlePrefix = isTest ? "Anteprima Calendario di Test" : "Anteprima Calendario Standard";
+            setGeneratedTitle(`${titlePrefix} per ${gymDisplayName} - ${disciplineFilter} (${operationalLessonsCount} lezioni)`);
+            toast({ title: "Anteprima Generata", description: `Trovate ${operationalLessonsCount} lezioni per i criteri selezionati.` });
 
         } catch (error) {
             console.error("Error generating preview:", error);
@@ -590,10 +628,14 @@ export default function AdminCalendarPage() {
                         </div>
                     </div>
                 </CardContent>
-                <CardFooter>
-                    <Button onClick={handlePreviewCalendar} disabled={isGenerating || isSaving}>
+                <CardFooter className="flex gap-2">
+                    <Button onClick={() => handleGenerateCalendar(false)} disabled={isGenerating || isSaving}>
                         {isGenerating ? <Loader2 className="animate-spin mr-2" /> : null}
                         Genera Anteprima
+                    </Button>
+                    <Button onClick={() => handleGenerateCalendar(true)} disabled={isGenerating || isSaving} variant="secondary">
+                        {isGenerating ? <Loader2 className="animate-spin mr-2" /> : <TestTube2 className="mr-2" />}
+                        Genera Calendario di Test
                     </Button>
                 </CardFooter>
             </Card>
