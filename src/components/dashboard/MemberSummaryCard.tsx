@@ -19,6 +19,7 @@ export interface MemberSummaryProps {
     socioDal?: string;
     sportingSeason?: string;
     regulationsStatus: string;
+    regulationsAccepted: boolean;
     medicalStatus: string;
     medicalStatusState?: 'valid' | 'expiring' | 'expired' | null;
     gymName?: string;
@@ -63,7 +64,7 @@ const InfoRow = ({ icon, label, value, valueClassName: externalValueClassName }:
 
 export function MemberSummaryCard(props: MemberSummaryProps) {
 
-    const regulationsClassName = props.regulationsStatus === 'Accettati' ? 'text-green-600 font-bold' : '';
+    const regulationsClassName = props.regulationsAccepted ? 'text-green-600 font-bold' : '';
 
     const medicalStatusClassName = cn('font-bold', {
         'text-green-600': props.medicalStatusState === 'valid',
@@ -88,7 +89,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         'text-destructive': props.membershipStatusState === 'expired',
     });
 
-    const subscriptionTypeClassName = 'text-foreground font-bold';
+    const subscriptionTypeClassName = 'text-foreground font-black';
 
     const subscriptionStatusClassName = cn('font-bold', {
         'text-orange-500': props.subscriptionStatus === 'In attesa di approvazione' || props.subscriptionStatus === 'In scadenza',
@@ -96,7 +97,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         'text-destructive': props.subscriptionStatus === 'Scaduto',
     });
 
-    const socioDalClassName = 'text-foreground font-bold';
+    const socioDalClassName = 'text-foreground font-black';
 
     return (
         <Card className="flex flex-col">

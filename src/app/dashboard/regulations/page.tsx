@@ -5,7 +5,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, updateDoc } from "firebase/firestore"
+import { doc, serverTimestamp, updateDoc } from "firebase/firestore"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -51,6 +51,7 @@ export default function RegulationsPage() {
       const userDocRef = doc(db, "users", user.uid)
       await updateDoc(userDocRef, {
         regulationsAccepted: true,
+        regulationsAcceptedAt: serverTimestamp(),
       })
       
       router.push("/dashboard/medical-certificate")
@@ -149,5 +150,3 @@ export default function RegulationsPage() {
     </div>
   )
 }
-
-    

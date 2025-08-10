@@ -30,6 +30,7 @@ interface UserData {
   associationExpiryDate?: Timestamp;
   applicationSubmitted: boolean;
   regulationsAccepted: boolean;
+  regulationsAcceptedAt?: Timestamp;
   isInsured?: boolean;
   medicalInfo?: {
     type: 'certificate';
@@ -124,7 +125,9 @@ export default function DashboardPage() {
                 setDaysToExpire(daysDiff);
             }
 
-            const regulationsStatusLabel = data.regulationsAccepted ? "Accettati" : "Non Accettati";
+            const regulationsStatusLabel = data.regulationsAccepted 
+                ? `Accettati il ${data.regulationsAcceptedAt ? format(data.regulationsAcceptedAt.toDate(), 'dd/MM/yyyy') : ''}` 
+                : "Non Accettati";
             
             const trialLessons: TrialLesson[] | undefined = 
                 (data.trialStatus === 'active' || data.trialStatus === 'pending_payment') && data.trialLessons
@@ -199,6 +202,7 @@ export default function DashboardPage() {
                 socioDal: socioDalYear,
                 sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
                 regulationsStatus: regulationsStatusLabel,
+                regulationsAccepted: data.regulationsAccepted,
                 medicalStatus: medicalStatusLabel,
                 medicalStatusState: certStatus,
                 gymName: data.gym ? `${data.gym}, ${gymsMap.get(data.gym)}` : undefined,
