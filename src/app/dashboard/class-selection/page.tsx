@@ -38,8 +38,6 @@ interface UpcomingLesson {
 }
 
 // Tipi di dati
-type PaymentMethod = "in_person" | "online"
-
 interface GymSelectionData {
     gymId: string;
     gymName: string;
@@ -698,10 +696,10 @@ export default function ClassSelectionPage() {
             // Logic for awarding prizes
             const gymName = gyms.get(gymSelection.gymId)?.name.toLowerCase() || '';
             let awardToAssign: Award | undefined;
-
-            if (gymName === 'villeneuve' || gymName === 'aosta') {
+            
+            if (gymName.includes('villeneuve') || gymName.includes('aosta')) {
                 awardToAssign = awards.find(a => a.name === "Premio Frequenza 1");
-            } else if (gymName === 'verres') {
+            } else if (gymName.includes('verres')) {
                 awardToAssign = awards.find(a => a.name === "Premio Frequenza 2");
             }
 
