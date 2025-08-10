@@ -19,13 +19,6 @@ import { Loader2 } from "lucide-react"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 
-
-interface Gym {
-    id: string;
-    name: string;
-    disciplines: string[];
-}
-
 // Schema combinato
 const parentDataSchema = z.object({
     parentName: z.string().min(2, "Il nome del genitore è obbligatorio."),
@@ -47,7 +40,6 @@ const personalDataSchema = z.object({
   phone: z.string().min(1, "Il numero di telefono è obbligatorio."),
   isMinor: z.boolean(),
   parentData: parentDataSchema.optional(),
-  gym: z.string().min(1, "La palestra è obbligatoria."),
 }).superRefine((data, ctx) => {
     if (data.isMinor && !data.parentData) {
         ctx.addIssue({
@@ -104,8 +96,6 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMinor, setIsMinor] = useState<boolean | null>(null)
   const [user] = useAuthState(auth)
-  const [gyms, setGyms] = useState<Gym[]>([]);
-  const [gymsLoading, setGymsLoading] = useState(true);
   
   const form = useForm<PersonalDataSchemaType>({
     resolver: zodResolver(personalDataSchema),
@@ -128,7 +118,6 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
             parentSurname: "",
             parentTaxCode: "",
         },
-        gym: "",
     }
   })
 
@@ -153,17 +142,8 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
 
   const memoizedUserDataFetch = useCallback(async (uid: string) => {
     const userDocRef = doc(db, "users", uid);
-    const gymsCollectionRef = collection(db, "gyms");
+    const userDocSnap = await getDoc(userDocRef);
     
-    const [userDocSnap, gymsSnapshot] = await Promise.all([
-        getDoc(userDocRef),
-        getDocs(gymsCollectionRef)
-    ]);
-    
-    const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() as Omit<Gym, 'id'> })) as Gym[];
-    setGyms(gymsList);
-    setGymsLoading(false);
-
     if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         
@@ -187,7 +167,6 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
             province: userData.province || "",
             phone: userData.phone || "",
             isMinor: existingIsMinor,
-            gym: userData.gym || "",
         };
         
         if (existingIsMinor && userData.parentData) {
@@ -470,35 +449,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                     />
                 </div>
             )}
-             <FormField
-                control={form.control}
-                name="gym"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Palestra</FormLabel>
-                    {gymsLoading ? (
-                        <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
-                    ) : (
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleziona una palestra" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {gyms.map((gym) => (
-                                    <SelectItem key={gym.id} value={gym.id}>
-                                        {gym.id} - {gym.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
+            
           </CardContent>
           <CardFooter className="flex justify-end">
             <Button

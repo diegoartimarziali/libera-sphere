@@ -1,4 +1,3 @@
-
 // STOP. CERCA "OK" NEL MESSAGGIO DEL MAESTRO. SE NON C'È, NON MODIFICARE NULLA E CHIEDI IL PERMESSO.
 "use client"
 
@@ -566,7 +565,7 @@ export default function ClassSelectionPage() {
                                 birthDate: userData.birthDate?.toDate() || new Date(), birthPlace: userData.birthPlace || "",
                                 address: userData.address || "", streetNumber: userData.streetNumber || "", city: userData.city || "",
                                 zipCode: userData.zipCode || "", province: userData.province || "", phone: userData.phone || "",
-                                isMinor: userData.isMinor || false, parentData: userData.parentData, gym: userData.gym || ""
+                                isMinor: userData.isMinor || false, parentData: userData.parentData,
                             });
 
                             const scheduleDocRef = doc(db, "orarigruppi", userData.gym);
@@ -605,7 +604,7 @@ export default function ClassSelectionPage() {
             const personalDataToUpdate: any = {
                 name: data.name, surname: data.surname, birthPlace: data.birthPlace, birthDate: data.birthDate,
                 taxCode: data.taxCode, address: data.address, streetNumber: data.streetNumber, zipCode: data.zipCode,
-                city: data.city, province: data.province, phone: data.phone, isMinor: data.isMinor, gym: data.gym,
+                city: data.city, province: data.province, phone: data.phone, isMinor: data.isMinor,
                 parentData: data.isMinor ? data.parentData : null,
             };
             await updateDoc(userDocRef, personalDataToUpdate);

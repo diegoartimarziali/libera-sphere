@@ -1,4 +1,3 @@
-
 // STOP. CERCA "OK" NEL MESSAGGIO DEL MAESTRO. SE NON C'È, NON MODIFICARE NULLA E CHIEDI IL PERMESSO.
 "use client"
 
@@ -34,17 +33,47 @@ export default function LiberaSpherePage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [gradesLoading, setGradesLoading] = useState(false);
+  const [gymsLoading, setGymsLoading] = useState(true);
   
   // Stati per il flusso unificato
   const [isFormerMember, setIsFormerMember] = useState<'yes' | 'no' | null>(null)
   const [discipline, setDiscipline] = useState<'Karate' | 'Aikido' | null>(null);
+  const [gym, setGym] = useState('');
   const [hasPracticedBefore, setHasPracticedBefore] = useState<'yes' | 'no' | null>(null);
   const [lastGrade, setLastGrade] = useState('');
   const [qualification, setQualification] = useState('');
   const [firstYear, setFirstYear] = useState('');
   
-
+  const [allGyms, setAllGyms] = useState<Gym[]>([]);
+  const [filteredGyms, setFilteredGyms] = useState<Gym[]>([]);
   const [grades, setGrades] = useState<string[]>([]);
+
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            setGymsLoading(true);
+            try {
+                const gymsSnapshot = await getDocs(collection(db, "gyms"));
+                const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
+                setAllGyms(gymsList);
+            } catch (error) {
+                console.error("Error fetching gyms:", error);
+                toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare le palestre." });
+            } finally {
+                setGymsLoading(false);
+            }
+        };
+        fetchInitialData();
+    }, [toast]);
+
+    useEffect(() => {
+        if (discipline) {
+            const gymsForDiscipline = allGyms.filter(g => g.disciplines.includes(discipline));
+            setFilteredGyms(gymsForDiscipline);
+            setGym(''); // Reset gym selection when discipline changes
+        } else {
+            setFilteredGyms([]);
+        }
+    }, [discipline, allGyms]);
 
   useEffect(() => {
         const fetchGrades = async () => {
@@ -100,6 +129,7 @@ export default function LiberaSpherePage() {
       setIsFormerMember(value);
       // Resetta tutti gli altri stati per evitare dati sporchi tra le selezioni
       setDiscipline(null);
+      setGym('');
       setHasPracticedBefore(null);
       setLastGrade('');
       setQualification('');
@@ -117,11 +147,11 @@ export default function LiberaSpherePage() {
     if (!isFormerMember) return true;
 
     if (isFormerMember === 'yes') {
-        return !discipline || !firstYear || !lastGrade || !qualification || gradesLoading;
+        return !discipline || !gym || !firstYear || !lastGrade || !qualification || gradesLoading || gymsLoading;
     }
 
     if (isFormerMember === 'no') {
-        if (!discipline) return true;
+        if (!discipline || !gym || gymsLoading) return true;
         if (!hasPracticedBefore) return true;
         if (gradesLoading) return true;
         if (hasPracticedBefore === 'yes') {
@@ -150,6 +180,7 @@ export default function LiberaSpherePage() {
         const dataToUpdate: any = {
             isFormerMember,
             discipline,
+            gym,
         };
         let destination = "/dashboard/class-selection";
 
@@ -264,25 +295,49 @@ export default function LiberaSpherePage() {
             <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
               <div className="space-y-2">
                 <h4 className="font-semibold text-foreground">2. Quale disciplina vuoi provare?</h4>
-                <RadioGroup
-                    value={discipline || ''}
-                    onValueChange={(value) => handleDisciplineChange(value as 'Karate' | 'Aikido')}
-                    className="grid grid-cols-2 gap-4 col-span-2"
-                >
-                    <Label htmlFor="karate_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Karate' && "border-primary")}>
-                        <RadioGroupItem value="Karate" id="karate_new" className="sr-only" />
-                        <span>Karate</span>
-                    </Label>
-                    <Label htmlFor="aikido_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Aikido' && "border-primary")}>
-                        <RadioGroupItem value="Aikido" id="aikido_new" className="sr-only" />
-                        <span>Aikido</span>
-                    </Label>
-                </RadioGroup>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <RadioGroup
+                        value={discipline || ''}
+                        onValueChange={(value) => handleDisciplineChange(value as 'Karate' | 'Aikido')}
+                        className="grid grid-cols-2 gap-4 col-span-2"
+                    >
+                        <Label htmlFor="karate_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Karate' && "border-primary")}>
+                            <RadioGroupItem value="Karate" id="karate_new" className="sr-only" />
+                            <span>Karate</span>
+                        </Label>
+                        <Label htmlFor="aikido_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Aikido' && "border-primary")}>
+                            <RadioGroupItem value="Aikido" id="aikido_new" className="sr-only" />
+                            <span>Aikido</span>
+                        </Label>
+                    </RadioGroup>
+                </div>
               </div>
-              
-              {discipline && (
+
+               {discipline && (
                 <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                    <h4 className="font-semibold text-foreground">3. Hai già praticato {discipline} in passato?</h4>
+                     <h4 className="font-semibold text-foreground">3. In quale palestra?</h4>
+                      {gymsLoading ? (
+                        <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
+                    ) : (
+                        <Select value={gym} onValueChange={setGym}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Seleziona una palestra" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {filteredGyms.map((g) => (
+                                    <SelectItem key={g.id} value={g.id}>
+                                        {g.id} - {g.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+              )}
+              
+              {gym && (
+                <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
+                    <h4 className="font-semibold text-foreground">4. Hai già praticato {discipline} in passato?</h4>
                     <RadioGroup
                         value={hasPracticedBefore || ''}
                         onValueChange={(value) => setHasPracticedBefore(value as 'yes' | 'no')}
@@ -315,8 +370,8 @@ export default function LiberaSpherePage() {
                 <div className="space-y-2">
                     <h4 className="font-semibold text-foreground">2. Conferma i tuoi dati</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                             <Label>Disciplina</Label>
+                         <div className="space-y-2">
+                            <Label>Disciplina</Label>
                              <RadioGroup
                                 value={discipline || ''}
                                 onValueChange={(value) => handleDisciplineChange(value as 'Karate' | 'Aikido')}
@@ -332,14 +387,33 @@ export default function LiberaSpherePage() {
                                 </Label>
                             </RadioGroup>
                         </div>
-                         <div className="space-y-2">
-                            {renderGradeSelect("Il tuo grado attuale")}
-                         </div>
+                        <div className="space-y-2">
+                             <Label>Palestra</Label>
+                              {gymsLoading ? (
+                                <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
+                            ) : (
+                                <Select value={gym} onValueChange={setGym} disabled={!discipline}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seleziona una palestra" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {filteredGyms.map((g) => (
+                                            <SelectItem key={g.id} value={g.id}>
+                                                {g.id} - {g.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
                     </div>
                 </div>
                 
-                {discipline && (
+                {discipline && gym && (
                     <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
+                        <div className="space-y-2">
+                             {renderGradeSelect("Il tuo grado attuale")}
+                        </div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                              <div>
                                 <Label htmlFor="firstYear">Primo Anno di Associazione</Label>
