@@ -165,7 +165,13 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
     useEffect(() => {
         if (selectedLessonValue && upcomingLessons.length > 0) {
             const selectedIndex = upcomingLessons.findIndex(l => l.id === selectedLessonValue);
-            const lessonsToTake = 3; // Lezioni di prova sono sempre 3
+            let lessonsToTake = 3; // Default
+            
+            if (userDiscipline === 'Karate') {
+                lessonsToTake = 3;
+            } else if (userDiscipline === 'Aikido') {
+                lessonsToTake = 1;
+            }
 
             if (selectedIndex !== -1 && upcomingLessons.length >= selectedIndex + lessonsToTake) {
                 const lessonsBundle = upcomingLessons.slice(selectedIndex, selectedIndex + lessonsToTake);
@@ -183,7 +189,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
         } else {
             setHighlightedLessons([]);
         }
-    }, [selectedLessonValue, upcomingLessons, toast]);
+    }, [selectedLessonValue, upcomingLessons, toast, userDiscipline]);
     
     const handleConfirm = () => {
         if (!userDiscipline || !userGymId || !userGymName || highlightedLessons.length === 0) {
@@ -191,7 +197,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
             return;
         }
         
-        const expectedLessons = 3;
+        const expectedLessons = userDiscipline === 'Aikido' ? 1 : 3;
         if (highlightedLessons.length < expectedLessons) {
             toast({ variant: "destructive", title: "Lezioni insufficienti", description: `Non ci sono abbastanza lezioni disponibili per completare il ciclo di prova da questa data. Scegli un'altra data di inizio.`});
             return;
@@ -244,7 +250,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
         );
     }
     
-    const lessonsToOffer = 3;
+    const lessonsToOffer = userDiscipline === 'Aikido' ? 1 : 3;
     
     return (
         <Card>
@@ -745,3 +751,5 @@ export default function ClassSelectionPage() {
     )
 }
 
+
+    
