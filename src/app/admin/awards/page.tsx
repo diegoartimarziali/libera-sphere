@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, addDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, addDoc, deleteDoc, where } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -11,19 +11,34 @@ import { z } from "zod";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, Award } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Award, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 
 interface Award {
     id: string;
     name: string;
     value: number;
+}
+
+interface AssociateProfile {
+    uid: string;
+    name: string;
+    surname: string;
+    email: string;
+    discipline?: string;
+    gym?: string;
+}
+
+interface Gym {
+    id: string;
+    name: string;
 }
 
 const awardFormSchema = z.object({
@@ -43,27 +58,61 @@ export default function AdminAwardsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAward, setEditingAward] = useState<Award | null>(null);
 
+    const [associates, setAssociates] = useState<AssociateProfile[]>([]);
+    const [loadingAssociates, setLoadingAssociates] = useState(true);
+    const [gyms, setGyms] = useState<Map<string, string>>(new Map());
+
     const form = useForm<AwardFormData>({
         resolver: zodResolver(awardFormSchema),
         defaultValues: { name: '', value: 0 }
     });
-
-    const fetchAwards = async () => {
-        setLoading(true);
-        try {
-            const awardsSnapshot = await getDocs(query(collection(db, "awards"), orderBy("name")));
-            const awardsList = awardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Award));
-            setAwards(awardsList);
-        } catch (error) {
-            console.error("Error fetching awards:", error);
-            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i premi." });
-        } finally {
-            setLoading(false);
-        }
-    };
     
     useEffect(() => {
+        const fetchAwards = async () => {
+            setLoading(true);
+            try {
+                const awardsSnapshot = await getDocs(query(collection(db, "awards"), orderBy("name")));
+                const awardsList = awardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Award));
+                setAwards(awardsList);
+            } catch (error) {
+                console.error("Error fetching awards:", error);
+                toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i premi." });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        const fetchAssociates = async () => {
+            setLoadingAssociates(true);
+            try {
+                // Fetch gyms first
+                const gymsSnapshot = await getDocs(collection(db, "gyms"));
+                const gymsMap = new Map<string, string>();
+                gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
+                setGyms(gymsMap);
+
+                // Fetch active associates
+                const associatesQuery = query(
+                    collection(db, "users"),
+                    where("associationStatus", "==", "active"),
+                    orderBy("surname")
+                );
+                const associatesSnapshot = await getDocs(associatesQuery);
+                const associatesList = associatesSnapshot.docs.map(doc => ({
+                    uid: doc.id,
+                    ...doc.data()
+                } as AssociateProfile));
+                setAssociates(associatesList);
+            } catch (error) {
+                console.error("Error fetching associates:", error);
+                toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare l'elenco degli atleti associati." });
+            } finally {
+                setLoadingAssociates(false);
+            }
+        };
+
         fetchAwards();
+        fetchAssociates();
     }, [toast]);
     
     const openCreateForm = () => {
@@ -90,7 +139,11 @@ export default function AdminAwardsPage() {
                 toast({ title: "Premio creato!", variant: "success" });
             }
             
-            await fetchAwards();
+            // Re-fetch awards after saving
+            const awardsSnapshot = await getDocs(query(collection(db, "awards"), orderBy("name")));
+            const awardsList = awardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Award));
+            setAwards(awardsList);
+            
             setIsFormOpen(false);
             setEditingAward(null);
 
@@ -106,7 +159,10 @@ export default function AdminAwardsPage() {
         try {
              await deleteDoc(doc(db, "awards", awardId));
              toast({ title: "Premio eliminato", variant: "success" });
-             await fetchAwards();
+             // Re-fetch awards after deleting
+             const awardsSnapshot = await getDocs(query(collection(db, "awards"), orderBy("name")));
+             const awardsList = awardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Award));
+             setAwards(awardsList);
         } catch (error) {
             console.error("Error deleting award:", error);
             toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare il premio." });
@@ -205,6 +261,49 @@ export default function AdminAwardsPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
+            
+             <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-4">
+                        <Users className="h-8 w-8 text-primary" />
+                        <div>
+                            <CardTitle>Elenco Atleti Associati</CardTitle>
+                            <CardDescription>Lista di tutti gli atleti con associazione attiva.</CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                     <div className="rounded-md border">
+                        <Table>
+                             <TableHeader>
+                                <TableRow>
+                                    <TableHead>Nome e Cognome</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Disciplina</TableHead>
+                                    <TableHead>Palestra</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loadingAssociates ? (
+                                    <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                ) : associates.length > 0 ? (
+                                    associates.map((associate) => (
+                                        <TableRow key={associate.uid}>
+                                            <TableCell className="font-medium">{associate.name} {associate.surname}</TableCell>
+                                            <TableCell>{associate.email}</TableCell>
+                                            <TableCell><Badge variant="secondary">{associate.discipline || 'N/D'}</Badge></TableCell>
+                                            <TableCell>{associate.gym ? gyms.get(associate.gym) || associate.gym : 'N/D'}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground">Nessun atleta con associazione attiva trovato.</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                     </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
+
