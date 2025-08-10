@@ -1,3 +1,4 @@
+
 // STOP. CERCA "OK" NEL MESSAGGIO DEL MAESTRO. SE NON C'È, NON MODIFICARE NULLA E CHIEDI IL PERMESSO.
 "use client"
 
@@ -48,6 +49,7 @@ interface GymSelectionData {
         endTime: Timestamp;
     }[];
     discipline: string;
+    selectionLessonsSchedule?: string;
 }
 
 interface Settings {
@@ -202,6 +204,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
             gymId: userGymId,
             gymName: userGymName,
             discipline: userDiscipline,
+            selectionLessonsSchedule: selectionLessonsSchedule || undefined,
             trialLessons: highlightedLessons.map(event => ({
                 eventId: event.id,
                 startTime: event.startTime,
@@ -452,7 +455,7 @@ function ConfirmationStep({
                            <DataRow 
                                 key={index}
                                 label={`${index + 1}ª Lezione`} 
-                                value={`${format(lesson.startTime.toDate(), "EEEE d MMMM", { locale: it })} ore ${format(lesson.startTime.toDate(), "HH:mm")}`} 
+                                value={`${format(lesson.startTime.toDate(), "EEEE d MMMM", { locale: it })} ${gymSelection.selectionLessonsSchedule ? `ore ${gymSelection.selectionLessonsSchedule}` : ''}`} 
                                 icon={<CalendarIconDay size={16} />} 
                            />
                         ))}
@@ -555,11 +558,16 @@ export default function ClassSelectionPage() {
                                 isMinor: userData.isMinor || false, parentData: userData.parentData, gym: userData.gym || ""
                             });
 
+                            const scheduleDocRef = doc(db, "orarigruppi", userData.gym);
+                            const scheduleDocSnap = await getDoc(scheduleDocRef);
+                            const schedule = scheduleDocSnap.exists() ? scheduleDocSnap.data().lezioniselezione : undefined;
+
                             setGymSelection({
                                 gymId: userData.gym,
                                 gymName: gymsMap.get(userData.gym) || userData.gym,
                                 discipline: userData.discipline,
-                                trialLessons: userData.trialLessons
+                                trialLessons: userData.trialLessons,
+                                selectionLessonsSchedule: schedule
                             });
                             setFinalGrade(userData.lastGrade);
                             setStep(4);
@@ -690,7 +698,8 @@ export default function ClassSelectionPage() {
         }
         setIsSubmitting(true);
         try {
-            await updateDoc(doc(db, "users", user.uid), { applicationSubmitted: true });
+            // Eliminiamo la casella e il tasto indietro
+            // await updateDoc(doc(db, "users", user.uid), { applicationSubmitted: true });
             
             // Set a flag in session storage to show the message on the dashboard
             sessionStorage.setItem('showDataCorrectionMessage', new Date().toISOString());
@@ -765,3 +774,5 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
+    
