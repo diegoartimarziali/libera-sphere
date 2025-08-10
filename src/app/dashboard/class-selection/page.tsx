@@ -389,7 +389,6 @@ function ConfirmationStep({
     formData,
     gymSelection,
     paymentMethod,
-    onBack, 
     onComplete,
     isSubmitting,
     fee,
@@ -398,13 +397,11 @@ function ConfirmationStep({
     formData: PersonalDataSchemaType,
     gymSelection: GymSelectionData,
     paymentMethod: PaymentMethod,
-    onBack: () => void, 
     onComplete: () => void,
     isSubmitting: boolean,
     fee: FeeData | null,
     lastGrade: string | null
 }) {
-    const [isConfirmed, setIsConfirmed] = useState(false);
     
     if (!fee || !lastGrade) {
         return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
@@ -476,18 +473,9 @@ function ConfirmationStep({
                        />
                     </dl>
                 </div>
-                
-                <div className="flex items-center space-x-2 pt-4">
-                    <Checkbox id="confirm-data" checked={isConfirmed} onCheckedChange={(checked) => setIsConfirmed(checked as boolean)} />
-                    <Label htmlFor="confirm-data" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Dichiaro che i dati inseriti sono corretti.
-                    </Label>
-                </div>
-
             </CardContent>
-            <CardFooter className="justify-between">
-                 <Button variant="outline" onClick={onBack}>Indietro</Button>
-                <Button onClick={onComplete} disabled={!isConfirmed || isSubmitting}>
+            <CardFooter>
+                <Button onClick={onComplete} disabled={isSubmitting} className="w-full">
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Completa Iscrizione
                 </Button>
@@ -714,9 +702,7 @@ export default function ClassSelectionPage() {
     }
 
     const handleBack = () => {
-        if (step === 4) {
-            setStep(1); 
-        } else if (step > 1) {
+        if (step > 1) {
             setStep(prev => prev - 1);
         } else {
             router.push('/dashboard/liberasphere');
@@ -766,7 +752,6 @@ export default function ClassSelectionPage() {
                         formData={formData}
                         gymSelection={gymSelection}
                         paymentMethod={paymentMethod}
-                        onBack={handleBack}
                         onComplete={handleComplete} 
                         isSubmitting={isSubmitting}
                         fee={feeData}
