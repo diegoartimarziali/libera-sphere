@@ -163,7 +163,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
     }, [user]);
 
     useEffect(() => {
-        if (selectedLessonValue && userDiscipline) {
+        if (selectedLessonValue && upcomingLessons.length > 0) {
             const selectedIndex = upcomingLessons.findIndex(l => l.id === selectedLessonValue);
             const lessonsToTake = userDiscipline === 'Karate' ? 3 : 1;
 

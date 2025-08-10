@@ -465,6 +465,19 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                     />
                 </div>
             )}
+             <FormField
+                control={form.control}
+                name="gym"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Palestra</FormLabel>
+                    <FormControl>
+                      <Input placeholder="ID Palestra (es. RM1)" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
           </CardContent>
           <CardFooter className="flex justify-end">
