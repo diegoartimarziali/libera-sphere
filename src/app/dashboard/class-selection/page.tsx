@@ -415,7 +415,7 @@ function ConfirmationStep({
                 <CardTitle>Passo Finale: Riepilogo e Conferma</CardTitle>
                 <CardDescription>
                     Controlla attentamente i dati e la scelta del pagamento. Se tutto è corretto,
-                    conferma e completa l'iscrizione.
+                    completa l'iscrizione.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -455,7 +455,7 @@ function ConfirmationStep({
                            <DataRow 
                                 key={index}
                                 label={`${index + 1}ª Lezione`} 
-                                value={`${format(lesson.startTime.toDate(), "EEEE d MMMM", { locale: it })} ${gymSelection.selectionLessonsSchedule ? `ore ${gymSelection.selectionLessonsSchedule}` : ''}`} 
+                                value={`${format(lesson.startTime.toDate(), "EEEE d MMMM", { locale: it })} ${gymSelection.selectionLessonsSchedule ? `- Orario: ${gymSelection.selectionLessonsSchedule}` : ''}`} 
                                 icon={<CalendarIconDay size={16} />} 
                            />
                         ))}
@@ -698,12 +698,7 @@ export default function ClassSelectionPage() {
         }
         setIsSubmitting(true);
         try {
-            // Eliminiamo la casella e il tasto indietro
-            // await updateDoc(doc(db, "users", user.uid), { applicationSubmitted: true });
-            
-            // Set a flag in session storage to show the message on the dashboard
             sessionStorage.setItem('showDataCorrectionMessage', new Date().toISOString());
-
             toast({ title: "Iscrizione Inviata!", description: "La tua richiesta è stata inviata con successo. Verrai reindirizzato."});
             router.push("/dashboard")
         } catch (error) {
