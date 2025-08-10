@@ -100,48 +100,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails, u
     )
 }
 
-// Componente per lo Step di Pagamento Online (iFrame) - Questo non è più usato.
-function OnlinePaymentStep({ onBack, onNext, fee }: { onBack: () => void; onNext: () => void, fee: FeeData | null }) {
-    if (!fee) {
-        return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
-    }
-    
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Passo 3: Pagamento Online</CardTitle>
-                <CardDescription>
-                    Completa il pagamento di {fee.price}€ tramite il portale sicuro di SumUp qui sotto. Una volta terminato, clicca sul pulsante per procedere.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="aspect-video w-full">
-                    <iframe
-                        src={fee.sumupLink}
-                        className="h-full w-full rounded-md border"
-                        title="Pagamento SumUp Quota Associativa"
-                    ></iframe>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                    Se hai problemi a visualizzare il modulo, puoi aprirlo in una nuova scheda <a href={fee.sumupLink} target="_blank" rel="noopener noreferrer" className="underline">cliccando qui</a>.
-                </p>
-            </CardContent>
-            <CardFooter className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-                <Button variant="outline" onClick={onBack}>
-                    <ArrowLeft />
-                    Torna alla scelta
-                </Button>
-                <Button onClick={onNext}>
-                    <CheckCircle />
-                    Ho effettuato il pagamento
-                </Button>
-            </CardFooter>
-        </Card>
-    );
-}
-
-
-// Componente per lo Step 2: Pagamento
+// Componente per lo Step di Pagamento
 function PaymentStep({ onBack, onNext, fee }: { onBack: () => void, onNext: (method: PaymentMethod) => void, fee: FeeData | null }) {
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
 
@@ -248,8 +207,6 @@ function ConfirmationStep({
     lastGrade: string | null,
     qualification: string | null,
 }) {
-    const [isConfirmed, setIsConfirmed] = useState(false);
-    
     if (!fee) {
         return <Card><CardContent className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin" /></CardContent></Card>
     }
@@ -304,17 +261,9 @@ function ConfirmationStep({
                        <DataRow label="Stato Pagamento" value={getPaymentStatus(paymentMethod, fee.price)} />
                     </dl>
                 </div>
-
-                <div className="flex items-center space-x-2 pt-4">
-                    <Checkbox id="confirm-data" checked={isConfirmed} onCheckedChange={(checked) => setIsConfirmed(checked as boolean)} />
-                    <Label htmlFor="confirm-data" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Dichiaro che i dati inseriti sono corretti e confermo la richiesta.
-                    </Label>
-                </div>
             </CardContent>
-            <CardFooter className="justify-between">
-                <Button variant="outline" onClick={onBack}>Indietro</Button>
-                <Button onClick={onComplete} disabled={!isConfirmed || isSubmitting}>
+            <CardFooter>
+                <Button onClick={onComplete} disabled={isSubmitting} className="w-full">
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Invia Domanda di Associazione
                 </Button>
@@ -469,6 +418,9 @@ export default function AssociatesPage() {
             });
 
             await Promise.all([updateDoc(userDocRef, dataToUpdate), paymentDocPromise]);
+            
+            // Set a flag in session storage to show the message on the dashboard
+            sessionStorage.setItem('showDataCorrectionMessage', new Date().toISOString());
 
             toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo. Verrai reindirizzato al prossimo passo." });
             router.push("/dashboard");
@@ -556,5 +508,3 @@ export default function AssociatesPage() {
         </div>
     )
 }
-
-    

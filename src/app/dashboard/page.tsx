@@ -11,7 +11,7 @@ import { it } from "date-fns/locale"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed } from "lucide-react"
+import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed, Mail } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
 import { AttendancePrompt } from "@/components/dashboard/AttendancePrompt"
 
@@ -78,8 +78,23 @@ export default function DashboardPage() {
   const [certificateStatus, setCertificateStatus] = useState<'valid' | 'expiring' | 'expired' | null>(null);
   const [daysToExpire, setDaysToExpire] = useState<number | null>(null);
   const [memberCardProps, setMemberCardProps] = useState<MemberSummaryProps | null>(null);
+  const [showDataCorrectionMessage, setShowDataCorrectionMessage] = useState(false);
 
   useEffect(() => {
+    // Check for the data correction message flag on component mount
+    const submissionTimestamp = sessionStorage.getItem('showDataCorrectionMessage');
+    if (submissionTimestamp) {
+        const oneHour = 60 * 60 * 1000;
+        const timeSinceSubmission = new Date().getTime() - new Date(submissionTimestamp).getTime();
+
+        if (timeSinceSubmission < oneHour) {
+            setShowDataCorrectionMessage(true);
+        } else {
+            // Clean up if the hour has passed
+            sessionStorage.removeItem('showDataCorrectionMessage');
+        }
+    }
+
     if (authLoading) return
 
     if (user) {
@@ -261,6 +276,18 @@ export default function DashboardPage() {
         return <Skeleton className="h-24 w-full mb-6" />;
       }
       
+      if (showDataCorrectionMessage) {
+        return (
+            <Alert variant="warning" className="mb-6">
+                <Mail className="h-4 w-4" />
+                <AlertTitle>Controlla i tuoi dati</AlertTitle>
+                <AlertDescription>
+                    Se hai notato errori, invia entro 1 ora una email di correzione a: <a href="mailto:segreteria@artimarzialivalledaosta.com" className="font-semibold underline">segreteria@artimarzialivalledaosta.com</a>.
+                </AlertDescription>
+            </Alert>
+        );
+      }
+
       if (userData?.subscriptionAccessStatus === 'pending') {
           return (
             <Alert variant="warning" className="mb-6">

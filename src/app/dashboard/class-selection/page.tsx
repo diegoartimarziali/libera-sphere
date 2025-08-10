@@ -1,4 +1,3 @@
-
 // STOP. CERCA "OK" NEL MESSAGGIO DEL MAESTRO. SE NON C'È, NON MODIFICARE NULLA E CHIEDI IL PERMESSO.
 "use client"
 
@@ -692,6 +691,10 @@ export default function ClassSelectionPage() {
         setIsSubmitting(true);
         try {
             await updateDoc(doc(db, "users", user.uid), { applicationSubmitted: true });
+            
+            // Set a flag in session storage to show the message on the dashboard
+            sessionStorage.setItem('showDataCorrectionMessage', new Date().toISOString());
+
             toast({ title: "Iscrizione Inviata!", description: "La tua richiesta è stata inviata con successo. Verrai reindirizzato."});
             router.push("/dashboard")
         } catch (error) {
@@ -762,6 +765,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-    
-
-    
