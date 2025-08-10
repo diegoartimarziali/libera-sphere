@@ -16,6 +16,7 @@ import { Badge, badgeVariants } from "@/components/ui/badge"
 import { Loader2, User, Users, Search, ClipboardCheck } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Attendance {
     id: string;
@@ -33,6 +34,11 @@ interface UserProfile {
     email: string;
     discipline?: string;
     attendances: Attendance[];
+}
+
+interface Gym {
+    id: string;
+    name: string;
 }
 
 // Funzioni helper per tradurre stati e metodi
@@ -56,12 +62,20 @@ export default function AdminAttendancesPage() {
     const [profiles, setProfiles] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [gyms, setGyms] = useState<Gym[]>([]);
+    const [gymFilter, setGymFilter] = useState("all");
+    const [disciplineFilter, setDisciplineFilter] = useState("all");
     const { toast } = useToast();
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
+                // Fetch gyms
+                const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
+                const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
+                setGyms(gymsList);
+
                 // 1. Fetch all users
                 const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
                 const userProfilesMap = new Map<string, UserProfile>();
@@ -108,11 +122,31 @@ export default function AdminAttendancesPage() {
     
 
     const filteredProfiles = profiles
+        .map(profile => {
+            // First, filter the attendances inside each profile
+            const filteredAttendances = profile.attendances.filter(attendance => {
+                const gymMatch = gymFilter === "all" || attendance.gymName.toLowerCase().includes(gymFilter.toLowerCase());
+                return gymMatch;
+            });
+
+            // Return a new profile object with the filtered attendances
+            return {
+                ...profile,
+                attendances: filteredAttendances,
+            };
+        })
         .filter(profile => {
+            // Then, filter the profiles themselves
+            const search = searchTerm.toLowerCase();
             const fullName = `${profile.name} ${profile.surname}`.toLowerCase();
             const email = profile.email.toLowerCase();
-            const search = searchTerm.toLowerCase();
-            return fullName.includes(search) || email.includes(search);
+            const nameOrEmailMatch = fullName.includes(search) || email.includes(search);
+
+            const disciplineMatch = disciplineFilter === "all" || profile.discipline === disciplineFilter;
+            
+            // A profile should be shown if it matches the search and discipline,
+            // AND has attendances that match the gym filter (or if gym filter is 'all')
+            return nameOrEmailMatch && disciplineMatch;
         });
 
     return (
@@ -134,6 +168,27 @@ export default function AdminAttendancesPage() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
+                    <Select value={gymFilter} onValueChange={setGymFilter}>
+                        <SelectTrigger className="w-full sm:w-[240px]">
+                            <SelectValue placeholder="Filtra per palestra..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Tutte le Palestre</SelectItem>
+                            {gyms.map(gym => (
+                                <SelectItem key={gym.id} value={gym.name}>{gym.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
+                        <SelectTrigger className="w-full sm:w-[240px]">
+                            <SelectValue placeholder="Filtra per disciplina..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Tutte le Discipline</SelectItem>
+                            <SelectItem value="Karate">Karate</SelectItem>
+                            <SelectItem value="Aikido">Aikido</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
 
                 {loading ? (
@@ -143,6 +198,10 @@ export default function AdminAttendancesPage() {
                 ) : (
                     <Accordion type="multiple" className="w-full">
                         {filteredProfiles.length > 0 ? filteredProfiles.map(profile => {
+                            // Don't render users who have no matching attendances after filtering
+                            if (profile.attendances.length === 0 && gymFilter !== 'all') {
+                                return null;
+                            }
                             const totalPresences = profile.attendances.filter(a => a.status === 'presente').length;
 
                             return (
@@ -191,7 +250,7 @@ export default function AdminAttendancesPage() {
                                                 </TableBody>
                                             </Table>
                                         ) : (
-                                            <p className="text-center text-muted-foreground py-4">Nessuna presenza o assenza registrata per questo utente.</p>
+                                            <p className="text-center text-muted-foreground py-4">Nessuna presenza o assenza registrata per questo utente per i filtri selezionati.</p>
                                         )}
                                     </AccordionContent>
                                 </AccordionItem>
@@ -209,5 +268,3 @@ export default function AdminAttendancesPage() {
         </Card>
     );
 }
-
-    
