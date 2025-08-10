@@ -696,7 +696,7 @@ export default function ClassSelectionPage() {
             });
 
             // Logic for awarding prizes
-            const gymName = gyms.get(gymSelection.gymId)?.name.toLowerCase();
+            const gymName = gyms.get(gymSelection.gymId)?.name.toLowerCase() || '';
             let awardToAssign: Award | undefined;
 
             if (gymName === 'villeneuve' || gymName === 'aosta') {
@@ -811,5 +811,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-    
