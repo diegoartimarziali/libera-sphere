@@ -152,7 +152,7 @@ export default function AdminAttendancesPage() {
                                             <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
                                                 <div className="flex items-center">
                                                     <User className="h-5 w-5 mr-3 text-primary" />
-                                                    <span className="font-bold text-lg">{profile.name} {profile.surname}</span>
+                                                    <span className="font-bold">{profile.name} {profile.surname}</span>
                                                 </div>
                                                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
                                                     {profile.discipline && <span>{profile.discipline}</span>}
@@ -210,3 +210,4 @@ export default function AdminAttendancesPage() {
     );
 }
 
+    
