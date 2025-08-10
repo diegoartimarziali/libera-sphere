@@ -59,6 +59,12 @@ interface Settings {
     };
 }
 
+interface Award {
+    id: string;
+    name: string;
+    value: number;
+}
+
 
 // Componente per visualizzare i dati in modo pulito
 const DataRow = ({ label, value, icon }: { label: string; value?: string | null, icon?: React.ReactNode }) => (
@@ -500,6 +506,8 @@ export default function ClassSelectionPage() {
     const [user] = useAuthState(auth);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [finalGrade, setFinalGrade] = useState<string | null>(null);
+    const [gyms, setGyms] = useState<Map<string, {name: string}>>(new Map());
+    const [awards, setAwards] = useState<Award[]>([]);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -513,6 +521,7 @@ export default function ClassSelectionPage() {
                 const userDocRef = doc(db, "users", user.uid);
                 const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
                 const gymsSnap = await getDocs(collection(db, "gyms"));
+                const awardsSnap = await getDocs(collection(db, "awards"));
 
                 const [feeDocSnap, enrollmentDocSnap, userDocSnap] = await Promise.all([
                     getDoc(feeDocRef),
@@ -520,8 +529,12 @@ export default function ClassSelectionPage() {
                     getDoc(userDocRef),
                 ]);
                 
-                const gymsMap = new Map<string, string>();
-                gymsSnap.forEach(doc => gymsMap.set(doc.id, doc.data().name));
+                const gymsMap = new Map<string, {name: string}>();
+                gymsSnap.forEach(doc => gymsMap.set(doc.id, { name: doc.data().name }));
+                setGyms(gymsMap);
+
+                const awardsList = awardsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Award));
+                setAwards(awardsList);
 
                 if (feeDocSnap.exists()) setFeeData(feeDocSnap.data() as FeeData);
                 else toast({ title: "Errore", description: "Impossibile caricare i dati della quota.", variant: "destructive" });
@@ -564,7 +577,7 @@ export default function ClassSelectionPage() {
 
                             setGymSelection({
                                 gymId: userData.gym,
-                                gymName: gymsMap.get(userData.gym) || userData.gym,
+                                gymName: gymsMap.get(userData.gym)?.name || userData.gym,
                                 discipline: userData.discipline,
                                 trialLessons: userData.trialLessons,
                                 selectionLessonsSchedule: schedule
@@ -582,6 +595,7 @@ export default function ClassSelectionPage() {
             }
         };
         fetchInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, toast]);
 
     
@@ -657,13 +671,17 @@ export default function ClassSelectionPage() {
         if (!user || !gymSelection || !feeData) return;
         setIsSubmitting(true);
         try {
+            const batch = writeBatch(db);
+            const userDocRef = doc(db, "users", user.uid);
+            
             // Check if a pending trial payment already exists
             const paymentsRef = collection(db, 'users', user.uid, 'payments');
             const q = query(paymentsRef, where('type', '==', 'trial'), where('status', '==', 'pending'), limit(1));
             const existingPaymentSnap = await getDocs(q);
 
             if (existingPaymentSnap.empty) {
-                 await addDoc(paymentsRef, {
+                 const newPaymentRef = doc(paymentsRef);
+                 batch.set(newPaymentRef, {
                     userId: user.uid, createdAt: serverTimestamp(), amount: feeData.price,
                     description: feeData.name, type: 'trial', status: 'pending', paymentMethod: method,
                 });
@@ -672,10 +690,34 @@ export default function ClassSelectionPage() {
             const expiryLessonIndex = gymSelection.trialLessons.length > 1 ? 2 : 0;
             const trialExpiryDate = gymSelection.trialLessons[expiryLessonIndex]?.endTime;
             
-            await updateDoc(doc(db, "users", user.uid), {
+            batch.update(userDocRef, {
                 trialStatus: 'pending_payment',
                 trialExpiryDate: trialExpiryDate || null,
             });
+
+            // Logic for awarding prizes
+            const gymName = gyms.get(gymSelection.gymId)?.name.toLowerCase();
+            let awardToAssign: Award | undefined;
+
+            if (gymName === 'villeneuve' || gymName === 'aosta') {
+                awardToAssign = awards.find(a => a.name === "Premio Frequenza 1");
+            } else if (gymName === 'verres') {
+                awardToAssign = awards.find(a => a.name === "Premio Frequenza 2");
+            }
+
+            if (awardToAssign) {
+                const userAwardsRef = doc(collection(db, "userAwards"));
+                batch.set(userAwardsRef, {
+                    userId: user.uid,
+                    awardId: awardToAssign.id,
+                    awardName: awardToAssign.name,
+                    awardValue: awardToAssign.value,
+                    assignedAt: serverTimestamp(),
+                    reason: "Iscrizione lezioni di prova",
+                });
+            }
+            
+            await batch.commit();
             
             setPaymentMethod(method);
             
