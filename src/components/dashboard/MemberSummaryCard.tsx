@@ -20,6 +20,7 @@ export interface MemberSummaryProps {
     sportingSeason?: string;
     regulationsStatus: string;
     regulationsAccepted: boolean;
+    regulationsAcceptedAt?: Date | null;
     medicalStatus: string;
     medicalStatusState?: 'valid' | 'expiring' | 'expired' | null;
     gymName?: string;
@@ -63,6 +64,10 @@ const InfoRow = ({ icon, label, value, valueClassName: externalValueClassName }:
 }
 
 export function MemberSummaryCard(props: MemberSummaryProps) {
+    
+    const regulationsDisplayValue = props.regulationsAccepted && props.regulationsAcceptedAt
+        ? `${props.regulationsStatus} il ${format(props.regulationsAcceptedAt, 'dd/MM/yyyy', { locale: it })}`
+        : props.regulationsStatus;
 
     const regulationsClassName = props.regulationsAccepted ? 'text-green-600 font-bold' : '';
 
@@ -118,7 +123,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
                     <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} valueClassName={socioDalClassName} />
-                    <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={props.regulationsStatus} valueClassName={regulationsClassName} />
+                    <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={regulationsDisplayValue} valueClassName={regulationsClassName} />
                     <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} valueClassName={medicalStatusClassName} />
                     <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} valueClassName={insuredStatusClassName} />
                  </div>

@@ -126,7 +126,7 @@ export default function DashboardPage() {
             }
 
             const regulationsStatusLabel = data.regulationsAccepted 
-                ? `Accettati il ${data.regulationsAcceptedAt ? format(data.regulationsAcceptedAt.toDate(), 'dd/MM/yyyy') : ''}` 
+                ? "Accettati"
                 : "Non Accettati";
             
             const trialLessons: TrialLesson[] | undefined = 
@@ -203,6 +203,7 @@ export default function DashboardPage() {
                 sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
                 regulationsStatus: regulationsStatusLabel,
                 regulationsAccepted: data.regulationsAccepted,
+                regulationsAcceptedAt: data.regulationsAcceptedAt?.toDate(),
                 medicalStatus: medicalStatusLabel,
                 medicalStatusState: certStatus,
                 gymName: data.gym ? `${data.gym}, ${gymsMap.get(data.gym)}` : undefined,
