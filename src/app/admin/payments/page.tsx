@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react"
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { collection, getDocs, query, orderBy, collectionGroup, where, doc, writeBatch, Timestamp, updateDoc, getDoc } from "firebase/firestore"
+import { collection, getDocs, query, orderBy, collectionGroup, where, doc, writeBatch, Timestamp, updateDoc, getDoc, serverTimestamp } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import type { VariantProps } from "class-variance-authority"
@@ -42,6 +42,7 @@ interface UserProfile {
     associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
     trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
     subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
+    subscriptionActivationDate?: Timestamp;
     payments: Payment[];
 }
 
@@ -135,6 +136,7 @@ export default function AdminPaymentsPage() {
                         associationStatus: userData.associationStatus,
                         trialStatus: userData.trialStatus,
                         subscriptionAccessStatus: userData.subscriptionAccessStatus,
+                        subscriptionActivationDate: userData.subscriptionActivationDate,
                         payments: payments
                     };
                 }));
@@ -185,7 +187,8 @@ export default function AdminPaymentsPage() {
                     });
                 } else if (payment.type === 'subscription') {
                     batch.update(userDocRef, { 
-                        subscriptionAccessStatus: 'active'
+                        subscriptionAccessStatus: 'active',
+                        subscriptionActivationDate: serverTimestamp()
                     });
                 }
             } else { // se il pagamento viene messo a FAILED
@@ -218,7 +221,11 @@ export default function AdminPaymentsPage() {
                         if (newStatus === 'completed') {
                             if (payment.type === 'association') updatedProfile.associationStatus = 'active';
                             if (payment.type === 'trial') updatedProfile.trialStatus = 'active';
-                            if (payment.type === 'subscription') updatedProfile.subscriptionAccessStatus = 'active';
+                            if (payment.type === 'subscription') {
+                                updatedProfile.subscriptionAccessStatus = 'active';
+                                // Simula il server timestamp con la data corrente per l'aggiornamento UI
+                                updatedProfile.subscriptionActivationDate = Timestamp.now();
+                            }
                         } else { // failed
                             if (payment.type === 'association') updatedProfile.associationStatus = 'not_associated';
                             if (payment.type === 'trial') updatedProfile.trialStatus = 'not_applicable';
@@ -335,7 +342,7 @@ export default function AdminPaymentsPage() {
                                         <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
                                             <div className="flex items-center">
                                                 <User className="h-5 w-5 mr-3 text-primary" />
-                                                <span className="font-bold text-lg">{profile.name} {profile.surname}</span>
+                                                <span className="font-bold">{profile.name} {profile.surname}</span>
                                                 {profile.role === 'admin' && <Badge variant="destructive" className="ml-3">Admin</Badge>}
                                             </div>
                                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
@@ -431,7 +438,3 @@ export default function AdminPaymentsPage() {
         </Card>
     );
 }
-
-    
-
-    
