@@ -88,13 +88,15 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         'text-destructive': props.membershipStatusState === 'expired',
     });
 
-    const subscriptionTypeClassName = 'text-muted-foreground font-bold';
+    const subscriptionTypeClassName = 'text-foreground font-bold';
 
     const subscriptionStatusClassName = cn('font-bold', {
         'text-orange-500': props.subscriptionStatus === 'In attesa di approvazione' || props.subscriptionStatus === 'In scadenza',
         'text-green-600': props.subscriptionStatus === 'Attivo',
         'text-destructive': props.subscriptionStatus === 'Scaduto',
     });
+
+    const socioDalClassName = 'text-foreground font-bold';
 
     return (
         <Card className="flex flex-col">
@@ -114,7 +116,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
             <CardContent className="flex-grow space-y-4 p-4">
                  <div className="space-y-3">
                     <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
-                    <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} />
+                    <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} valueClassName={socioDalClassName} />
                     <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={props.regulationsStatus} valueClassName={regulationsClassName} />
                     <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} valueClassName={medicalStatusClassName} />
                     <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} valueClassName={insuredStatusClassName} />
