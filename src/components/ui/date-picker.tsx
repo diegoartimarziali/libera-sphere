@@ -13,55 +13,53 @@ interface DatePickerProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function DatePicker({ value, onChange, ...props }: DatePickerProps) {
-    const [textValue, setTextValue] = React.useState(value ? format(value, "dd/MM/yyyy") : "");
+    const [inputValue, setInputValue] = React.useState("");
+
+    // Questo effect sincronizza l'input field solo quando il valore esterno (prop) cambia.
+    React.useEffect(() => {
+        if (value && isValid(value)) {
+            setInputValue(format(value, "dd/MM/yyyy"));
+        } else if (value === null || value === undefined) {
+             setInputValue("");
+        }
+    }, [value]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let input = e.target.value.replace(/\D/g, ''); // Rimuove tutto tranne i numeri
-        
-        if (input.length > 8) {
-            input = input.slice(0, 8);
-        }
+        const rawValue = e.target.value.replace(/\D/g, ''); // Rimuove tutto tranne i numeri
+        setInputValue(formatInput(rawValue));
 
-        let formattedInput = '';
-        if (input.length > 4) {
-            formattedInput = `${input.slice(0, 2)}/${input.slice(2, 4)}/${input.slice(4)}`;
-        } else if (input.length > 2) {
-            formattedInput = `${input.slice(0, 2)}/${input.slice(2)}`;
-        } else {
-            formattedInput = input;
-        }
-
-        setTextValue(formattedInput);
-
-        if (formattedInput.length === 10) {
-            const parsedDate = parse(formattedInput, "dd/MM/yyyy", new Date());
+        if (rawValue.length === 8) {
+            const parsedDate = parse(rawValue, "ddMMyyyy", new Date());
             if (isValid(parsedDate)) {
+                // Notifica al parent il cambiamento con un oggetto Date valido
                 onChange(parsedDate);
             } else {
-                onChange(undefined);
+                 onChange(undefined);
             }
         } else {
+            // Se la data non è completa, notifica che non è valida
             onChange(undefined);
         }
     };
     
-    React.useEffect(() => {
-        if (value && isValid(value)) {
-            const formatted = format(value, "dd/MM/yyyy");
-            if (textValue !== formatted) {
-               setTextValue(formatted);
-            }
-        } else if (!value) {
-             setTextValue("");
+    const formatInput = (text: string): string => {
+        if (!text) return "";
+        let formatted = text;
+        if (text.length > 2) {
+            formatted = `${text.slice(0, 2)}/${text.slice(2)}`;
         }
-    }, [value, textValue]);
+        if (text.length > 4) {
+            formatted = `${text.slice(0, 2)}/${text.slice(2, 4)}/${text.slice(4, 8)}`;
+        }
+        return formatted;
+    }
 
 
     return (
        <Input
             type="text"
             placeholder="GG/MM/AAAA"
-            value={textValue}
+            value={inputValue}
             onChange={handleInputChange}
             maxLength={10}
             {...props}
