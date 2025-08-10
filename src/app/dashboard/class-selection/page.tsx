@@ -547,7 +547,11 @@ export default function ClassSelectionPage() {
     
     const handleNextStep1 = (data: PersonalDataSchemaType) => {
         setFormData(data);
-        setStep(2);
+        if (gymSelection && paymentMethod) {
+            setStep(4);
+        } else {
+            setStep(2);
+        }
     }
     
     const handleNextStep2 = async (data: GymSelectionData) => {
@@ -572,10 +576,10 @@ export default function ClassSelectionPage() {
              if (hasPracticed && pastDiscipline === data.discipline && pastGrade) {
                  grade = pastGrade;
              } else {
-                const disciplineConfigRef = doc(db, "config", data.discipline.toLowerCase());
-                const disciplineConfigSnap = await getDoc(disciplineConfigRef);
-                if (disciplineConfigSnap.exists() && disciplineConfigSnap.data().grades && disciplineConfigSnap.data().grades.length > 0) {
-                    const defaultGradeValue = disciplineConfigSnap.data().grades[0];
+                const docRef = doc(db, "config", data.discipline.toLowerCase());
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
+                    const defaultGradeValue = docSnap.data().grades[0];
                     grade = data.discipline === 'Karate' ? `Cintura ${defaultGradeValue}` : defaultGradeValue;
                 } else {
                      toast({ title: "Errore", description: "Grado di default non trovato.", variant: "destructive" });
@@ -673,7 +677,9 @@ export default function ClassSelectionPage() {
     }
 
     const handleBack = () => {
-        if (step > 1) {
+        if (step === 4) {
+            setStep(1); // Dal riepilogo, torna sempre ai dati anagrafici
+        } else if (step > 1) {
             setStep(prev => prev - 1);
         } else {
             router.push('/dashboard/liberasphere');
@@ -702,7 +708,7 @@ export default function ClassSelectionPage() {
                     <PersonalDataForm
                         title="Passo 1: Dati Anagrafici"
                         description="Completa le tue informazioni personali per procedere con l'iscrizione. Questi dati verranno salvati per future iscrizioni."
-                        buttonText="Prosegui alla Scelta delle Lezioni"
+                        buttonText="Prosegui"
                         onFormSubmit={handleNextStep1}
                     />
                 )}
@@ -723,7 +729,7 @@ export default function ClassSelectionPage() {
                         formData={formData}
                         gymSelection={gymSelection}
                         paymentMethod={paymentMethod}
-                        onBack={() => setStep(3)}
+                        onBack={handleBack}
                         onComplete={handleComplete} 
                         isSubmitting={isSubmitting}
                         fee={feeData}
