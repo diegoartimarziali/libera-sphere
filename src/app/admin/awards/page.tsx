@@ -3,11 +3,13 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, addDoc, deleteDoc, where } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, addDoc, deleteDoc, where, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { differenceInYears } from 'date-fns';
+
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +36,10 @@ interface AssociateProfile {
     email: string;
     discipline?: string;
     gym?: string;
+    birthDate?: Timestamp;
+    lastGrade?: string;
 }
+
 
 interface Gym {
     id: string;
@@ -168,6 +173,11 @@ export default function AdminAwardsPage() {
             toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare il premio." });
         }
     }
+    
+    const calculateAge = (birthDate: Timestamp | undefined) => {
+        if (!birthDate) return 'N/D';
+        return differenceInYears(new Date(), birthDate.toDate()).toString();
+    }
 
     return (
         <div className="space-y-8">
@@ -278,25 +288,27 @@ export default function AdminAwardsPage() {
                              <TableHeader>
                                 <TableRow>
                                     <TableHead>Nome e Cognome</TableHead>
-                                    <TableHead>Email</TableHead>
+                                    <TableHead>Età</TableHead>
                                     <TableHead>Disciplina</TableHead>
+                                    <TableHead>Grado</TableHead>
                                     <TableHead>Palestra</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loadingAssociates ? (
-                                    <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                                 ) : associates.length > 0 ? (
                                     associates.map((associate) => (
                                         <TableRow key={associate.uid}>
                                             <TableCell className="font-medium">{associate.name} {associate.surname}</TableCell>
-                                            <TableCell>{associate.email}</TableCell>
+                                            <TableCell>{calculateAge(associate.birthDate)}</TableCell>
                                             <TableCell><Badge variant="secondary">{associate.discipline || 'N/D'}</Badge></TableCell>
+                                            <TableCell>{associate.lastGrade || 'N/D'}</TableCell>
                                             <TableCell>{associate.gym ? gyms.get(associate.gym) || associate.gym : 'N/D'}</TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
-                                    <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground">Nessun atleta con associazione attiva trovato.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Nessun atleta con associazione attiva trovato.</TableCell></TableRow>
                                 )}
                             </TableBody>
                         </Table>
@@ -306,4 +318,3 @@ export default function AdminAwardsPage() {
         </div>
     );
 }
-
