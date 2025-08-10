@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { format, parse } from "date-fns"
+import { format, parse, isValid } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -15,29 +15,46 @@ interface DatePickerProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export function DatePicker({ value, onChange, ...props }: DatePickerProps) {
     const [textValue, setTextValue] = React.useState(value ? format(value, "dd/MM/yyyy") : "");
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const str = e.target.value;
-        setTextValue(str);
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let input = e.target.value.replace(/\D/g, ''); // Rimuove tutto tranne i numeri
+        
+        if (input.length > 8) {
+            input = input.slice(0, 8);
+        }
 
-        if (str.length === 10) { // Basic validation for "dd/MM/yyyy"
-            const parsedDate = parse(str, "dd/MM/yyyy", new Date());
-            if (!isNaN(parsedDate.getTime())) {
+        let formattedInput = '';
+        if (input.length > 4) {
+            formattedInput = `${input.slice(0, 2)}/${input.slice(2, 4)}/${input.slice(4)}`;
+        } else if (input.length > 2) {
+            formattedInput = `${input.slice(0, 2)}/${input.slice(2)}`;
+        } else {
+            formattedInput = input;
+        }
+
+        setTextValue(formattedInput);
+
+        if (formattedInput.length === 10) {
+            const parsedDate = parse(formattedInput, "dd/MM/yyyy", new Date());
+            if (isValid(parsedDate)) {
                 onChange(parsedDate);
             } else {
-                 onChange(undefined);
+                onChange(undefined);
             }
         } else {
-             onChange(undefined);
+            onChange(undefined);
         }
     };
     
     React.useEffect(() => {
-        if (value) {
-            setTextValue(format(value, "dd/MM/yyyy"));
-        } else {
-            setTextValue("");
+        if (value && isValid(value)) {
+            const formatted = format(value, "dd/MM/yyyy");
+            if (textValue !== formatted) {
+               setTextValue(formatted);
+            }
+        } else if (!value) {
+             setTextValue("");
         }
-    }, [value]);
+    }, [value, textValue]);
 
 
     return (
@@ -45,7 +62,8 @@ export function DatePicker({ value, onChange, ...props }: DatePickerProps) {
             type="text"
             placeholder="GG/MM/AAAA"
             value={textValue}
-            onChange={handleChange}
+            onChange={handleInputChange}
+            maxLength={10}
             {...props}
        />
     );
