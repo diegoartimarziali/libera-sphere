@@ -271,14 +271,12 @@ export default function DashboardPage() {
     }
   }, [user, authLoading])
 
-  const renderInfoAlert = () => {
-      if (dataLoading) {
-        return <Skeleton className="h-24 w-full mb-6" />;
-      }
-      
+  const renderInfoAlerts = () => {
+      const alerts = [];
+
       if (showDataCorrectionMessage) {
-        return (
-            <Alert variant="warning" className="mb-6">
+        alerts.push(
+            <Alert key="data-correction" variant="warning" className="mb-6">
                 <Mail className="h-4 w-4" />
                 <AlertTitle>Controlla i tuoi dati</AlertTitle>
                 <AlertDescription>
@@ -289,8 +287,8 @@ export default function DashboardPage() {
       }
 
       if (userData?.subscriptionAccessStatus === 'pending') {
-          return (
-            <Alert variant="warning" className="mb-6">
+          alerts.push(
+            <Alert key="sub-pending" variant="warning" className="mb-6">
               <DoorClosed className="h-4 w-4" />
               <AlertTitle>Abbonamento in Attesa</AlertTitle>
               <AlertDescription>
@@ -301,8 +299,8 @@ export default function DashboardPage() {
       }
       
       if (userData?.associationStatus === 'pending') {
-          return (
-            <Alert variant="warning" className="mb-6">
+          alerts.push(
+            <Alert key="assoc-pending" variant="warning" className="mb-6">
               <Clock className="h-4 w-4" />
               <AlertTitle>Domanda di Associazione Inviata!</AlertTitle>
               <AlertDescription>
@@ -313,8 +311,8 @@ export default function DashboardPage() {
       }
       
       if (userData?.trialStatus === 'pending_payment') {
-           return (
-            <Alert variant="warning" className="mb-6">
+           alerts.push(
+            <Alert key="trial-pending" variant="warning" className="mb-6">
               <Clock className="h-4 w-4" />
               <AlertTitle>Richiesta Lezioni di Prova Inviata!</AlertTitle>
               <AlertDescription>
@@ -325,8 +323,8 @@ export default function DashboardPage() {
       }
 
       if (userData?.trialOutcome === 'declined') {
-          return (
-            <Alert variant="info" className="mb-6">
+          alerts.push(
+            <Alert key="trial-declined" variant="info" className="mb-6">
               <Frown className="h-4 w-4" />
               <AlertTitle>Ci dispiace vederti andare</AlertTitle>
               <AlertDescription>
@@ -337,8 +335,8 @@ export default function DashboardPage() {
       }
       
       if (certificateStatus === 'expired') {
-        return (
-          <Alert variant="destructive" className="mb-6">
+        alerts.push(
+          <Alert key="cert-expired" variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Certificato Medico Scaduto!</AlertTitle>
             <AlertDescription>
@@ -349,8 +347,8 @@ export default function DashboardPage() {
       }
       
       if (certificateStatus === 'expiring' && daysToExpire !== null) {
-        return (
-          <Alert variant="warning" className="mb-6">
+        alerts.push(
+          <Alert key="cert-expiring" variant="warning" className="mb-6">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Certificato Medico in Scadenza</AlertTitle>
             <AlertDescription>
@@ -360,7 +358,7 @@ export default function DashboardPage() {
         );
       }
 
-    return null;
+    return alerts.length > 0 ? <>{alerts}</> : null;
   }
 
   return (
@@ -371,7 +369,7 @@ export default function DashboardPage() {
 
       <AttendancePrompt />
 
-      {renderInfoAlert()}
+      {dataLoading ? <Skeleton className="h-24 w-full mb-6" /> : renderInfoAlerts()}
       
        <div className="flex justify-center">
         <div className="w-full max-w-2xl">
