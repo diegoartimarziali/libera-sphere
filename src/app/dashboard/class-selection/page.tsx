@@ -165,13 +165,8 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
     useEffect(() => {
         if (selectedLessonValue && upcomingLessons.length > 0) {
             const selectedIndex = upcomingLessons.findIndex(l => l.id === selectedLessonValue);
-            let lessonsToTake = 3; // Default
             
-            if (userDiscipline === 'Karate') {
-                lessonsToTake = 3;
-            } else if (userDiscipline === 'Aikido') {
-                lessonsToTake = 1;
-            }
+            const lessonsToTake = 3;
 
             if (selectedIndex !== -1 && upcomingLessons.length >= selectedIndex + lessonsToTake) {
                 const lessonsBundle = upcomingLessons.slice(selectedIndex, selectedIndex + lessonsToTake);
@@ -189,7 +184,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
         } else {
             setHighlightedLessons([]);
         }
-    }, [selectedLessonValue, upcomingLessons, toast, userDiscipline]);
+    }, [selectedLessonValue, upcomingLessons, toast]);
     
     const handleConfirm = () => {
         if (!userDiscipline || !userGymId || !userGymName || highlightedLessons.length === 0) {
@@ -197,7 +192,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
             return;
         }
         
-        const expectedLessons = userDiscipline === 'Aikido' ? 1 : 3;
+        const expectedLessons = 3;
         if (highlightedLessons.length < expectedLessons) {
             toast({ variant: "destructive", title: "Lezioni insufficienti", description: `Non ci sono abbastanza lezioni disponibili per completare il ciclo di prova da questa data. Scegli un'altra data di inizio.`});
             return;
@@ -250,7 +245,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
         );
     }
     
-    const lessonsToOffer = userDiscipline === 'Aikido' ? 1 : 3;
+    const lessonsToOffer = 3;
     
     return (
         <Card>
@@ -569,9 +564,28 @@ export default function ClassSelectionPage() {
              }
              const fetchedUserData = userDocSnap.data();
 
-            const grade = await getFinalGrade(fetchedUserData, data.discipline);
+             const hasPracticed = fetchedUserData?.hasPracticedBefore === 'yes';
+             const pastDiscipline = fetchedUserData?.discipline;
+             const pastGrade = fetchedUserData?.lastGrade;
+             let grade = "";
+             
+             if (hasPracticed && pastDiscipline === data.discipline && pastGrade) {
+                 grade = pastGrade;
+             } else {
+                const disciplineConfigRef = doc(db, "config", data.discipline.toLowerCase());
+                const disciplineConfigSnap = await getDoc(disciplineConfigRef);
+                if (disciplineConfigSnap.exists() && disciplineConfigSnap.data().grades && disciplineConfigSnap.data().grades.length > 0) {
+                    const defaultGradeValue = disciplineConfigSnap.data().grades[0];
+                    grade = data.discipline === 'Karate' ? `Cintura ${defaultGradeValue}` : defaultGradeValue;
+                } else {
+                     toast({ title: "Errore", description: "Grado di default non trovato.", variant: "destructive" });
+                     setIsSubmitting(false);
+                     return;
+                }
+             }
+
             if (!grade) {
-                toast({ title: "Errore", description: "Impossibile recuperare il grado di default da Firestore.", variant: "destructive" });
+                toast({ title: "Errore", description: "Impossibile determinare il grado.", variant: "destructive" });
                 setIsSubmitting(false);
                 return;
             }
@@ -579,7 +593,7 @@ export default function ClassSelectionPage() {
             setGymSelection(data);
             setStep(3);
         } catch (error) {
-             toast({ title: "Errore", description: "Impossibile salvare la scelta delle lezioni.", variant: "destructive" });
+             toast({ title: "Errore", description: `Impossibile salvare la scelta delle lezioni: ${error instanceof Error ? error.message : 'sconosciuto'}`, variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }
@@ -591,36 +605,6 @@ export default function ClassSelectionPage() {
             window.open(feeData.sumupLink, '_blank');
         }
         setStep(4);
-    }
-
-    const getFinalGrade = async (userData: any, currentDiscipline: string) => {
-        const hasPracticed = userData?.hasPracticedBefore === 'yes';
-        const pastDiscipline = userData?.pastExperience?.discipline;
-        const pastGrade = userData?.pastExperience?.grade;
-    
-        if (hasPracticed && pastDiscipline === currentDiscipline && pastGrade) {
-            return pastGrade;
-        } else {
-            // Se non ha praticato o ha cambiato disciplina, prendi il grado di default da Firestore
-            try {
-                const docRef = doc(db, "config", currentDiscipline.toLowerCase());
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
-                    const grade = docSnap.data().grades[0];
-                    if (discipline === 'Karate') {
-                      defaultGrade = `Cintura ${grade}`;
-                    } else {
-                      defaultGrade = grade;
-                    }
-                } else {
-                     toast({ title: "Errore", description: "Impossibile trovare il grado di default. Contatta il supporto.", variant: "destructive" });
-                     setIsLoading(false);
-                     return;
-                }
-                dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
-                dataToUpdate.lastGrade = defaultGrade;
-            }
-        }
     }
     
     const handleComplete = async () => {
@@ -750,6 +734,3 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
-
-
-    
