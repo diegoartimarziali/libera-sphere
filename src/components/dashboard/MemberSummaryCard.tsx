@@ -3,7 +3,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2, FileText, Activity, KeyRound, Repeat, CalendarClock, Building } from "lucide-react"
+import { User, Mail, Shield, Award, Sparkles, CalendarDays, ShieldCheck, HeartPulse, Star, CalendarPlus, CalendarCheck2, FileText, Activity, KeyRound, Repeat, CalendarClock, Building, Phone, MapPin, Cake, UserCircle, Users } from "lucide-react"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -16,6 +16,17 @@ export interface TrialLesson {
 export interface MemberSummaryProps {
     name: string;
     email: string;
+    taxCode?: string;
+    phone?: string;
+    birthDate?: Date;
+    birthPlace?: string;
+    fullAddress?: string;
+    isMinor?: boolean;
+    parentData?: {
+        parentName: string;
+        parentSurname: string;
+        parentTaxCode: string;
+    };
     socioDal?: string;
     sportingSeason?: string;
     regulationsStatus: string;
@@ -121,23 +132,62 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
             </CardHeader>
             <CardContent className="flex-grow space-y-4 p-4">
                  <div className="space-y-3">
-                    <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
-                    <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} valueClassName={socioDalClassName} />
-                    <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={regulationsDisplayValue} valueClassName={regulationsClassName} />
-                    <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} valueClassName={medicalStatusClassName} />
-                    <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} valueClassName={insuredStatusClassName} />
+                    <h4 className="text-sm font-bold flex items-center">
+                        <UserCircle size={16} className="mr-3 w-5 text-muted-foreground" />
+                        Dati Anagrafici
+                    </h4>
+                    <div className="pl-8 space-y-3">
+                        <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
+                        <InfoRow icon={<Phone size={16} />} label="Telefono" value={props.phone} />
+                        <InfoRow icon={<User size={16} />} label="Codice Fiscale" value={props.taxCode} />
+                        <InfoRow icon={<Cake size={16} />} label="Nato/a il" value={props.birthDate ? `${format(props.birthDate, 'dd/MM/yyyy', { locale: it })} a ${props.birthPlace}`: undefined} />
+                        <InfoRow icon={<MapPin size={16} />} label="Indirizzo" value={props.fullAddress} />
+                    </div>
+                </div>
+
+                {props.isMinor && props.parentData && (
+                     <div className="space-y-3">
+                        <h4 className="text-sm font-bold flex items-center">
+                            <Users size={16} className="mr-3 w-5 text-muted-foreground" />
+                            Dati Genitore/Tutore
+                        </h4>
+                        <div className="pl-8 space-y-3">
+                            <InfoRow icon={<User size={16} />} label="Nome" value={`${props.parentData.parentName} ${props.parentData.parentSurname}`} />
+                            <InfoRow icon={<User size={16} />} label="Codice Fiscale" value={props.parentData.parentTaxCode} />
+                        </div>
+                    </div>
+                )}
+                 
+                 <Separator />
+
+                 <div className="space-y-3">
+                    <h4 className="text-sm font-bold flex items-center">
+                        <Award size={16} className="mr-3 w-5 text-muted-foreground" />
+                        Stato Associativo e Sportivo
+                    </h4>
+                    <div className="pl-8 space-y-3">
+                        <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} valueClassName={socioDalClassName} />
+                        <InfoRow icon={<FileText size={16} />} label="Statuto e Regolamenti" value={regulationsDisplayValue} valueClassName={regulationsClassName} />
+                        <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} valueClassName={medicalStatusClassName} />
+                        <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} valueClassName={insuredStatusClassName} />
+                        <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} valueClassName={membershipStatusClassName} />
+                        <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />
+                    </div>
                  </div>
                  
                  <Separator />
 
                  <div className="space-y-3">
-                    
-                    <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />
-                    <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} valueClassName={membershipStatusClassName} />
-                    <InfoRow icon={<Activity size={16} />} label="Stato Prova" value={props.trialStatus} valueClassName={trialStatusClassName} />
-                    <InfoRow icon={<Repeat size={16}/>} label="Abbonamento" value={props.subscriptionType} valueClassName={subscriptionTypeClassName} />
-                    <InfoRow icon={<CalendarClock size={16}/>} label="Valido per il mese di" value={props.subscriptionValidity} />
-                    <InfoRow icon={<KeyRound size={16} />} label="Stato Abbonamento" value={props.subscriptionStatus} valueClassName={subscriptionStatusClassName} />
+                    <h4 className="text-sm font-bold flex items-center">
+                        <KeyRound size={16} className="mr-3 w-5 text-muted-foreground" />
+                        Abbonamenti e Prove
+                    </h4>
+                    <div className="pl-8 space-y-3">
+                        <InfoRow icon={<Activity size={16} />} label="Stato Prova" value={props.trialStatus} valueClassName={trialStatusClassName} />
+                        <InfoRow icon={<Repeat size={16}/>} label="Abbonamento" value={props.subscriptionType} valueClassName={subscriptionTypeClassName} />
+                        <InfoRow icon={<CalendarClock size={16}/>} label="Valido per il mese di" value={props.subscriptionValidity} />
+                        <InfoRow icon={<KeyRound size={16} />} label="Stato Abbonamento" value={props.subscriptionStatus} valueClassName={subscriptionStatusClassName} />
+                    </div>
                  </div>
                  
                 {props.trialLessons && props.trialLessons.length > 0 && (
@@ -146,7 +196,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                         <div className="space-y-3">
                              <h4 className="text-sm font-bold flex items-center">
                                 <CalendarCheck2 size={16} className="mr-3 w-5 text-muted-foreground" />
-                                Lezioni di Prova
+                                Lezioni di Prova Prenotate
                             </h4>
                             {props.trialLessons.map((lesson, index) => {
                                 const formattedDate = format(lesson.date, "EEEE dd/MM", { locale: it });

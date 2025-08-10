@@ -26,6 +26,21 @@ interface UserData {
   lastGrade: string;
   qualification: string;
   createdAt: Timestamp;
+  taxCode?: string;
+  phone?: string;
+  birthDate?: Timestamp;
+  birthPlace?: string;
+  address?: string;
+  streetNumber?: string;
+  city?: string;
+  zipCode?: string;
+  province?: string;
+  isMinor?: boolean;
+  parentData?: {
+      parentName: string;
+      parentSurname: string;
+      parentTaxCode: string;
+  };
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   associationExpiryDate?: Timestamp;
   applicationSubmitted: boolean;
@@ -219,6 +234,13 @@ export default function DashboardPage() {
                 subscriptionType: data.activeSubscription?.name,
                 subscriptionStatus: subscriptionStatusLabel,
                 subscriptionValidity: subscriptionValidityMonth,
+                taxCode: data.taxCode,
+                phone: data.phone,
+                birthDate: data.birthDate?.toDate(),
+                birthPlace: data.birthPlace,
+                fullAddress: data.address ? `${data.address}, ${data.streetNumber}, ${data.zipCode} ${data.city} (${data.province})` : undefined,
+                isMinor: data.isMinor,
+                parentData: data.parentData,
             });
 
           }
