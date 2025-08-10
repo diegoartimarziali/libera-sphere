@@ -89,6 +89,7 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
             <NavLink href="/dashboard" icon={UserSquare} onClick={onLinkClick}>Scheda Personale</NavLink>
             <NavLink href="/dashboard/medical-certificate" icon={HeartPulse} onClick={onLinkClick}>Certificato Medico</NavLink>
             <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick}>I Miei Pagamenti</NavLink>
+            <NavLink href="/dashboard/wallet" icon={Wallet} onClick={onLinkClick}>Portafoglio</NavLink>
 
             {isReadyForAssociation && (
                  <NavLink href="/dashboard/associates" icon={UserPlus} onClick={onLinkClick}>Diventa Socio</NavLink>
@@ -99,7 +100,6 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
                     <NavLink href="/dashboard/attendances" icon={ClipboardList} onClick={onLinkClick}>Le Mie Presenze</NavLink>
                     <NavLink href="/dashboard/calendar" icon={CalendarDays} onClick={onLinkClick}>Calendari Attività</NavLink>
-                    <NavLink href="/dashboard/wallet" icon={Wallet} onClick={onLinkClick}>Portafoglio</NavLink>
                 </>
             )}
             
