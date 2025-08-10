@@ -10,7 +10,7 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
 
-import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, CalendarDays } from "lucide-react"
+import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, CalendarDays, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { signOut } from "firebase/auth"
@@ -99,6 +99,7 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
                     <NavLink href="/dashboard/attendances" icon={ClipboardList} onClick={onLinkClick}>Le Mie Presenze</NavLink>
                     <NavLink href="/dashboard/calendar" icon={CalendarDays} onClick={onLinkClick}>Calendari Attività</NavLink>
+                    <NavLink href="/dashboard/wallet" icon={Wallet} onClick={onLinkClick}>Portafoglio</NavLink>
                 </>
             )}
             
