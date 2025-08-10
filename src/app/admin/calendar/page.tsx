@@ -88,8 +88,19 @@ const lessonFormSchema = z.object({
     notes: z.string().optional(),
 });
 
-
 type LessonFormData = z.infer<typeof lessonFormSchema>;
+
+const testCalendarFormSchema = z.object({
+    startDate: z.date({ required_error: "La data di inizio è obbligatoria." }),
+    endDate: z.date({ required_error: "La data di fine è obbligatoria." }),
+    gymId: z.string({ required_error: "La palestra è obbligatoria." }),
+    discipline: z.enum(['Karate', 'Aikido'], { required_error: "La disciplina è obbligatoria." }),
+}).refine(data => data.endDate >= data.startDate, {
+    message: "La data di fine non può essere precedente a quella di inizio.",
+    path: ["endDate"],
+});
+
+type TestCalendarFormData = z.infer<typeof testCalendarFormSchema>;
 
 // =================================================================
 // COMPONENTI
@@ -162,6 +173,48 @@ function LessonForm({ lesson, gyms, onSave, onCancel }: { lesson?: LessonFormDat
     );
 }
 
+function TestCalendarDialog({ gyms, onGenerate, onOpenChange }: { gyms: Gym[], onGenerate: (data: TestCalendarFormData) => void, onOpenChange: (open: boolean) => void }) {
+    const testForm = useForm<TestCalendarFormData>({
+        resolver: zodResolver(testCalendarFormSchema),
+        defaultValues: {
+            startDate: startOfDay(new Date()),
+            endDate: addDays(startOfDay(new Date()), 7),
+        }
+    });
+
+    const handleFormSubmit = (data: TestCalendarFormData) => {
+        onGenerate(data);
+        onOpenChange(false); // Chiude la modale dopo aver generato
+    };
+
+    return (
+        <Form {...testForm}>
+            <form onSubmit={testForm.handleSubmit(handleFormSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField control={testForm.control} name="startDate" render={({ field }) => (
+                        <FormItem><FormLabel>Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={testForm.control} name="endDate" render={({ field }) => (
+                        <FormItem><FormLabel>Al</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                </div>
+                 <FormField control={testForm.control} name="gymId" render={({ field }) => (
+                    <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona una palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                )} />
+                 <FormField control={testForm.control} name="discipline" render={({ field }) => (
+                    <FormItem><FormLabel>Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona una disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                )} />
+                <DialogFooter>
+                     <DialogClose asChild>
+                        <Button type="button" variant="ghost">Annulla</Button>
+                    </DialogClose>
+                    <Button type="submit">Genera Anteprima Test</Button>
+                </DialogFooter>
+            </form>
+        </Form>
+    );
+}
+
 
 export default function AdminCalendarPage() {
     const { toast } = useToast();
@@ -185,6 +238,8 @@ export default function AdminCalendarPage() {
     // Stati per il form modale
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingLesson, setEditingLesson] = useState<LessonFormData | undefined>(undefined);
+    const [isTestFormOpen, setIsTestFormOpen] = useState(false);
+
 
     const fetchInitialData = async () => {
         setLoading(true);
@@ -274,7 +329,7 @@ export default function AdminCalendarPage() {
 
     const selectedPeriod = periodOptions.find(p => p.id === selectedPeriodId);
     
-    const handleGenerateCalendar = async (isTest = false) => {
+    const handleGenerateCalendar = async () => {
         if (!selectedPeriod || !gymFilter || !disciplineFilter) {
             toast({ variant: "destructive", title: "Dati Mancanti", description: "Seleziona periodo, palestra e disciplina." });
             return;
@@ -293,75 +348,48 @@ export default function AdminCalendarPage() {
             }
             
             let exclusionDates = new Set<string>();
-            // Solo per la generazione standard, non per quella di test
-            if (!isTest) {
-                const exclusionGroup = dateGroups.find(g => g.id === selectedGym.id);
-                if (exclusionGroup) {
-                    exclusionGroup.dates.forEach(d => {
-                        exclusionDates.add(format(d.toDate(), 'yyyy-MM-dd'));
-                    });
-                }
+            const exclusionGroup = dateGroups.find(g => g.id === selectedGym.id);
+            if (exclusionGroup) {
+                exclusionGroup.dates.forEach(d => {
+                    exclusionDates.add(format(d.toDate(), 'yyyy-MM-dd'));
+                });
             }
-            
 
             const allDates = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
             let generatedLessons: Lesson[] = [];
 
             allDates.forEach(date => {
                 const dateString = format(date, 'yyyy-MM-dd');
+                const isHoliday = exclusionDates.has(dateString);
+                const dayOfWeek = getDay(date); // Domenica = 0, Lunedì = 1, etc.
                 
-                if (isTest) {
-                    // Logica per il CALENDARIO DI TEST: crea una lezione ogni giorno
-                    const eventStart = new Date(date);
-                    eventStart.setHours(18, 0, 0, 0); // Orario fittizio 18:00
+                const scheduleForDay = selectedGym.weeklySchedule?.find(s => s.dayOfWeek === dayOfWeek);
 
-                    const eventEnd = new Date(date);
-                    eventEnd.setHours(19, 0, 0, 0); // Orario fittizio 19:00
+                if (scheduleForDay) {
+                    scheduleForDay.timeSlots.forEach((slot: {startTime: string, endTime: string, discipline: string}, index: number) => {
+                        if (slot.discipline === disciplineFilter) {
+                            const [startHour, startMinute] = slot.startTime.split(':').map(Number);
+                            const [endHour, endMinute] = slot.endTime.split(':').map(Number);
 
-                    generatedLessons.push({
-                        id: `${dateString}-TEST`,
-                        title: `${disciplineFilter} (Test)`, 
-                        startTime: Timestamp.fromDate(eventStart),
-                        endTime: Timestamp.fromDate(eventEnd),
-                        gymId: selectedGym.id,
-                        gymName: `${selectedGym.id} - ${selectedGym.name}`,
-                        discipline: disciplineFilter,
-                        status: 'confermata',
-                        notes: 'Lezione di test generata automaticamente'
+                            const eventStart = new Date(date);
+                            eventStart.setHours(startHour, startMinute, 0, 0);
+
+                            const eventEnd = new Date(date);
+                            eventEnd.setHours(endHour, endMinute, 0, 0);
+                            
+                             generatedLessons.push({
+                                id: `${dateString}-${index}`,
+                                title: isHoliday ? "Chiuso per festività" : disciplineFilter, 
+                                startTime: Timestamp.fromDate(eventStart),
+                                endTime: Timestamp.fromDate(eventEnd),
+                                gymId: selectedGym.id,
+                                gymName: `${selectedGym.id} - ${selectedGym.name}`,
+                                discipline: disciplineFilter,
+                                status: isHoliday ? 'festivita' : 'confermata',
+                                notes: isHoliday ? dateGroups.find(g => g.id === selectedGym.id)?.name || 'Festività' : ''
+                            });
+                        }
                     });
-                } else {
-                    // Logica per il CALENDARIO STANDARD (quella originale)
-                    const isHoliday = exclusionDates.has(dateString);
-                    const dayOfWeek = getDay(date); // Domenica = 0, Lunedì = 1, etc.
-                    
-                    const scheduleForDay = selectedGym.weeklySchedule?.find(s => s.dayOfWeek === dayOfWeek);
-
-                    if (scheduleForDay) {
-                        scheduleForDay.timeSlots.forEach((slot: {startTime: string, endTime: string, discipline: string}, index: number) => {
-                            if (slot.discipline === disciplineFilter) {
-                                const [startHour, startMinute] = slot.startTime.split(':').map(Number);
-                                const [endHour, endMinute] = slot.endTime.split(':').map(Number);
-
-                                const eventStart = new Date(date);
-                                eventStart.setHours(startHour, startMinute, 0, 0);
-
-                                const eventEnd = new Date(date);
-                                eventEnd.setHours(endHour, endMinute, 0, 0);
-                                
-                                 generatedLessons.push({
-                                    id: `${dateString}-${index}`,
-                                    title: isHoliday ? "Chiuso per festività" : disciplineFilter, 
-                                    startTime: Timestamp.fromDate(eventStart),
-                                    endTime: Timestamp.fromDate(eventEnd),
-                                    gymId: selectedGym.id,
-                                    gymName: `${selectedGym.id} - ${selectedGym.name}`,
-                                    discipline: disciplineFilter,
-                                    status: isHoliday ? 'festivita' : 'confermata',
-                                    notes: isHoliday ? dateGroups.find(g => g.id === selectedGym.id)?.name || 'Festività' : ''
-                                });
-                            }
-                        });
-                    }
                 }
             });
 
@@ -369,8 +397,7 @@ export default function AdminCalendarPage() {
             setLessons(generatedLessons);
             const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
             
-            const titlePrefix = isTest ? "Anteprima Calendario di Test" : "Anteprima Calendario Standard";
-            setGeneratedTitle(`${titlePrefix} per ${gymDisplayName} - ${disciplineFilter} (${operationalLessonsCount} lezioni)`);
+            setGeneratedTitle(`Anteprima Calendario Standard per ${gymDisplayName} - ${disciplineFilter} (${operationalLessonsCount} lezioni)`);
             toast({ title: "Anteprima Generata", description: `Trovate ${operationalLessonsCount} lezioni per i criteri selezionati.` });
 
         } catch (error) {
@@ -380,16 +407,85 @@ export default function AdminCalendarPage() {
             setIsGenerating(false);
         }
     };
+    
+    const handleGenerateTestCalendar = async (data: TestCalendarFormData) => {
+        setIsGenerating(true);
+        setLessons([]);
+        try {
+            const { startDate, endDate, gymId, discipline } = data;
+            const selectedGym = gyms.find(g => g.id === gymId);
+            if (!selectedGym) {
+                toast({ variant: "destructive", title: "Palestra non trovata" });
+                setIsGenerating(false);
+                return;
+            }
+
+            const allDates = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
+            let generatedLessons: Lesson[] = [];
+            
+            allDates.forEach(date => {
+                const dateString = format(date, 'yyyy-MM-dd');
+                const eventStart = new Date(date);
+                eventStart.setHours(18, 0, 0, 0); // Orario fisso 18:00
+
+                const eventEnd = new Date(date);
+                eventEnd.setHours(19, 0, 0, 0); // Orario fisso 19:00
+
+                generatedLessons.push({
+                    id: `${dateString}-TEST`,
+                    title: `${discipline} (Test)`,
+                    startTime: Timestamp.fromDate(eventStart),
+                    endTime: Timestamp.fromDate(eventEnd),
+                    gymId: selectedGym.id,
+                    gymName: `${selectedGym.id} - ${selectedGym.name}`,
+                    discipline: discipline,
+                    status: 'confermata',
+                    notes: 'Lezione di test generata automaticamente'
+                });
+            });
+
+            setLessons(generatedLessons);
+            const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
+            setGeneratedTitle(`Anteprima Calendario di Test per ${gymDisplayName} - ${discipline} (${generatedLessons.length} lezioni)`);
+            toast({ title: "Anteprima Test Generata", description: `Create ${generatedLessons.length} lezioni giornaliere.` });
+        } catch (error) {
+            console.error("Error generating test preview:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile generare l'anteprima di test." });
+        } finally {
+            setIsGenerating(false);
+        }
+    }
 
 
     const handleSaveCalendar = async () => {
-        if (lessons.length === 0 || !gymFilter || !disciplineFilter || !selectedPeriod) {
+        if (lessons.length === 0 || !generatedTitle) {
             toast({ variant: "destructive", title: "Dati insufficienti", description: "Non ci sono lezioni nell'anteprima o mancano i filtri per salvare." });
             return;
         }
+        
+        // Estrai i dati necessari dal titolo generato o da altre fonti di stato
+        const isTest = generatedTitle.includes("di Test");
+        let gymId, discipline, periodLabel;
+
+        if (isTest) {
+            // Per il test, i dati sono nella prima lezione
+            gymId = lessons[0].gymId;
+            discipline = lessons[0].discipline;
+            periodLabel = `Test dal ${format(lessons[0].startTime.toDate(), 'dd/MM/yy')} al ${format(lessons[lessons.length - 1].startTime.toDate(), 'dd/MM/yy')}`
+        } else {
+             gymId = gymFilter;
+             discipline = disciplineFilter;
+             periodLabel = selectedPeriod?.label;
+        }
+
+        if (!gymId || !discipline || !periodLabel) {
+             toast({ variant: "destructive", title: "Dati insufficienti", description: "Impossibile determinare palestra, disciplina o periodo." });
+             return;
+        }
+
         setIsSaving(true);
         try {
-            const selectedGym = gyms.find(g => g.id === gymFilter);
+            const selectedGym = gyms.find(g => g.id === gymId);
             if (!selectedGym) {
                  toast({ variant: "destructive", title: "Palestra non trovata", description: "La palestra selezionata non è valida." });
                  setIsSaving(false);
@@ -401,9 +497,9 @@ export default function AdminCalendarPage() {
             const calendarData = {
                 gymId: selectedGym.id,
                 gymName: gymDisplayName,
-                year: getYear(selectedPeriod.startDate),
-                discipline: disciplineFilter,
-                calendarName: `Calendario per ${gymDisplayName} - ${disciplineFilter} (${selectedPeriod.label})`,
+                year: getYear(lessons[0].startTime.toDate()),
+                discipline: discipline,
+                calendarName: `Calendario per ${gymDisplayName} - ${discipline} (${periodLabel})`,
                 createdAt: serverTimestamp(),
             };
             
@@ -629,14 +725,27 @@ export default function AdminCalendarPage() {
                     </div>
                 </CardContent>
                 <CardFooter className="flex gap-2">
-                    <Button onClick={() => handleGenerateCalendar(false)} disabled={isGenerating || isSaving}>
+                    <Button onClick={() => handleGenerateCalendar()} disabled={isGenerating || isSaving}>
                         {isGenerating ? <Loader2 className="animate-spin mr-2" /> : null}
                         Genera Anteprima
                     </Button>
-                    <Button onClick={() => handleGenerateCalendar(true)} disabled={isGenerating || isSaving} variant="secondary">
-                        {isGenerating ? <Loader2 className="animate-spin mr-2" /> : <TestTube2 className="mr-2" />}
-                        Genera Calendario di Test
-                    </Button>
+                    <Dialog open={isTestFormOpen} onOpenChange={setIsTestFormOpen}>
+                        <DialogTrigger asChild>
+                             <Button variant="secondary">
+                                <TestTube2 className="mr-2" />
+                                Genera Calendario di Test
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                             <DialogHeader>
+                                <DialogTitle>Crea Calendario di Test</DialogTitle>
+                                <DialogDescription>
+                                    Seleziona un intervallo di date, una palestra e una disciplina. Verrà creata una lezione al giorno (18:00-19:00).
+                                </DialogDescription>
+                            </DialogHeader>
+                           <TestCalendarDialog gyms={gyms} onGenerate={handleGenerateTestCalendar} onOpenChange={setIsTestFormOpen} />
+                        </DialogContent>
+                    </Dialog>
                 </CardFooter>
             </Card>
 
@@ -824,6 +933,5 @@ export default function AdminCalendarPage() {
 
         </div>
     );
-}
 
     
