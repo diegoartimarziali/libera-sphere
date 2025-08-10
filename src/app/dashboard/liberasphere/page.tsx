@@ -173,23 +173,23 @@ export default function LiberaSpherePage() {
 
   const handleContinue = async () => {
     if (!user) {
-      toast({ variant: "destructive", title: "Errore", description: "Utente non autenticato." });
-      return;
+        toast({ variant: "destructive", title: "Errore", description: "Utente non autenticato." });
+        return;
     }
 
     if (isContinueDisabled()) {
-       toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi richiesti." });
-       return;
+        toast({ variant: "destructive", title: "Attenzione", description: "Per favore, compila tutti i campi richiesti." });
+        return;
     }
 
     setIsLoading(true);
-    
+
     try {
         const userDocRef = doc(db, "users", user.uid);
-        let dataToUpdate: any = { 
+        const dataToUpdate: any = {
             isFormerMember,
             discipline,
-            gym
+            gym,
         };
         let destination = "";
 
@@ -200,48 +200,38 @@ export default function LiberaSpherePage() {
             destination = "/dashboard/associates";
         } else { // isFormerMember === 'no'
             dataToUpdate.firstYear = new Date().getFullYear().toString();
-            destination = "/dashboard/class-selection";
             dataToUpdate.hasPracticedBefore = hasPracticedBefore;
-
+            destination = "/dashboard/class-selection";
+            
+            // Logica del grado semplificata
             if (hasPracticedBefore === 'yes') {
-                 dataToUpdate.pastExperience = { discipline, grade: lastGrade };
-                 dataToUpdate.lastGrade = lastGrade;
-            } else { // hasPracticedBefore === 'no'
-                let defaultGrade = '';
-                const currentDiscipline = discipline as 'Karate' | 'Aikido';
-                const docRef = doc(db, "config", currentDiscipline.toLowerCase());
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
-                    const gradeValue = docSnap.data().grades[0];
-                    if (currentDiscipline === 'Karate') {
-                      defaultGrade = `Cintura ${gradeValue}`;
-                    } else {
-                      defaultGrade = gradeValue;
-                    }
-                } else {
-                     toast({ title: "Errore", description: "Impossibile trovare il grado di default. Contatta il supporto.", variant: "destructive" });
-                     setIsLoading(false);
-                     return;
-                }
-                dataToUpdate.pastExperience = { discipline: currentDiscipline, grade: defaultGrade };
-                dataToUpdate.lastGrade = defaultGrade;
+                dataToUpdate.lastGrade = lastGrade;
+            } else {
+                 const docRef = doc(db, "config", (discipline as string).toLowerCase());
+                 const docSnap = await getDoc(docRef);
+                 if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
+                     const defaultGradeValue = docSnap.data().grades[0];
+                     dataToUpdate.lastGrade = discipline === 'Karate' ? `Cintura ${defaultGradeValue}` : defaultGradeValue;
+                 } else {
+                     throw new Error(`Grado di default non trovato per ${discipline}`);
+                 }
             }
         }
-
+        
         await updateDoc(userDocRef, dataToUpdate);
         router.push(destination);
 
     } catch (error) {
-      console.error("Error updating user choice:", error);
-      toast({
-        variant: "destructive",
-        title: "Errore",
-        description: "Non è stato possibile salvare la tua scelta. Riprova.",
-      });
-    } finally {
+        console.error("Error updating user choice:", error);
+        toast({
+            variant: "destructive",
+            title: "Errore",
+            description: `Non è stato possibile salvare la tua scelta. Dettagli: ${error instanceof Error ? error.message : 'Errore sconosciuto'}.`,
+        });
         setIsLoading(false);
     }
   };
+
 
   const getGymDisplayString = (gym: Gym) => {
     return `${gym.id} - ${gym.name}`;
