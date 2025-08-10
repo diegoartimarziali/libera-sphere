@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Loader2, PlusCircle, Trash2, Award } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -36,7 +37,7 @@ interface AwardsData {
 }
 
 const awardFormSchema = z.object({
-    name: z.string().min(3, "Il nome è obbligatorio."),
+    name: z.string().min(3, "Il nome del premio è obbligatorio (min. 3 caratteri)."),
     value: z.preprocess((val) => Number(val), z.number().min(0, "Il valore non può essere negativo.")),
 });
 
@@ -111,6 +112,7 @@ export default function AdminAwardsPage() {
 
     const openEditForm = (award: Award, discipline: string) => {
         setEditingAward({ award, discipline });
+        setCurrentDiscipline(discipline as "Karate" | "Aikido");
         form.reset({ name: award.name, value: award.value });
         setIsFormOpen(true);
     };
@@ -142,6 +144,7 @@ export default function AdminAwardsPage() {
                         [currentDiscipline]: arrayUnion({ name: data.name, value: data.value })
                     });
                 } else {
+                    // Crea il documento se non esiste
                     await setDoc(awardDocRef, {
                         [currentDiscipline]: [{ name: data.name, value: data.value }]
                     });
@@ -149,6 +152,7 @@ export default function AdminAwardsPage() {
                  toast({ title: "Premio creato!", variant: "success" });
             }
             
+            // Ricarica i dati per aggiornare la UI
             const updatedDocSnap = await getDoc(awardDocRef);
             setAwards(updatedDocSnap.data() as AwardsData);
 
@@ -173,6 +177,7 @@ export default function AdminAwardsPage() {
              });
              toast({ title: "Premio eliminato", variant: "success" });
              
+             // Ricarica i dati per aggiornare la UI
              const updatedDocSnap = await getDoc(awardDocRef);
              setAwards(updatedDocSnap.data() as AwardsData);
         } catch (error) {
@@ -188,51 +193,53 @@ export default function AdminAwardsPage() {
                  <Button className="mb-4" onClick={() => openCreateForm(discipline)}>
                     <PlusCircle className="mr-2" /> Aggiungi Premio a {discipline}
                 </Button>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Nome Premio</TableHead>
-                            <TableHead className="w-[150px]">Valore (Punti)</TableHead>
-                            <TableHead className="w-[150px] text-right">Azioni</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                         {loading ? (
-                             <TableRow><TableCell colSpan={3} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
-                         ) : disciplineAwards.length > 0 ? (
-                            disciplineAwards.map((award, index) => (
-                                <TableRow key={index}>
-                                    <TableCell className="font-medium">{award.name}</TableCell>
-                                    <TableCell>{award.value}</TableCell>
-                                    <TableCell className="text-right space-x-1">
-                                        <Button variant="ghost" size="sm" onClick={() => openEditForm(award, discipline)}>Modifica</Button>
-                                         <AlertDialog>
-                                            <AlertDialogTrigger asChild>
-                                                 <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        Eliminare il premio <strong className="mx-1">{award.name}</strong>? L'azione è irreversibile.
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>Annulla</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => handleDeleteAward(award, discipline)}>
-                                                        Sì, elimina
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        ) : (
-                             <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground">Nessun premio trovato per questa disciplina.</TableCell></TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Nome Premio</TableHead>
+                                <TableHead className="w-[150px]">Valore (Punti)</TableHead>
+                                <TableHead className="w-[180px] text-right">Azioni</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow><TableCell colSpan={3} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                            ) : disciplineAwards.length > 0 ? (
+                                disciplineAwards.map((award, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell className="font-medium">{award.name}</TableCell>
+                                        <TableCell>{award.value}</TableCell>
+                                        <TableCell className="text-right space-x-1">
+                                            <Button variant="outline" size="sm" onClick={() => openEditForm(award, discipline)}>Modifica</Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-1" />Elimina</Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Eliminare il premio <strong className="mx-1">{award.name}</strong>? L'azione è irreversibile.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteAward(award, discipline)}>
+                                                            Sì, elimina
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground">Nessun premio trovato per questa disciplina.</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
         )
     };
@@ -241,8 +248,13 @@ export default function AdminAwardsPage() {
         <div className="space-y-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>Gestione Premi e Valori</CardTitle>
-                    <CardDescription>Crea e gestisci i premi che possono essere accumulati dagli atleti.</CardDescription>
+                    <div className="flex items-center gap-4">
+                        <Award className="h-8 w-8 text-primary" />
+                        <div>
+                            <CardTitle>Gestione Valori e Premi</CardTitle>
+                            <CardDescription>Crea e gestisci i premi che possono essere accumulati dagli atleti per ogni palestra.</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="max-w-sm mb-6">
@@ -279,7 +291,7 @@ export default function AdminAwardsPage() {
              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingAward ? "Modifica Premio" : "Crea Nuovo Premio"}</DialogTitle>
+                        <DialogTitle>{editingAward ? `Modifica Premio per ${currentDiscipline}` : `Crea Nuovo Premio per ${currentDiscipline}`}</DialogTitle>
                     </DialogHeader>
                      <Form {...form}>
                         <form onSubmit={form.handleSubmit(handleSaveAward)} className="space-y-4 py-4">
@@ -293,7 +305,7 @@ export default function AdminAwardsPage() {
                                 <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annulla</Button>
                                 <Button type="submit" disabled={isSubmitting}>
                                      {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
-                                     Salva
+                                     Salva Premio
                                 </Button>
                             </DialogFooter>
                         </form>
