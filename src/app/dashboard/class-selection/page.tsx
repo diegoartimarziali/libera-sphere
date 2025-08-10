@@ -165,7 +165,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
     useEffect(() => {
         if (selectedLessonValue && upcomingLessons.length > 0) {
             const selectedIndex = upcomingLessons.findIndex(l => l.id === selectedLessonValue);
-            const lessonsToTake = userDiscipline === 'Karate' ? 3 : 1;
+            const lessonsToTake = 3; // Lezioni di prova sono sempre 3
 
             if (selectedIndex !== -1 && upcomingLessons.length >= selectedIndex + lessonsToTake) {
                 const lessonsBundle = upcomingLessons.slice(selectedIndex, selectedIndex + lessonsToTake);
@@ -183,7 +183,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
         } else {
             setHighlightedLessons([]);
         }
-    }, [selectedLessonValue, upcomingLessons, userDiscipline, toast]);
+    }, [selectedLessonValue, upcomingLessons, toast]);
     
     const handleConfirm = () => {
         if (!userDiscipline || !userGymId || !userGymName || highlightedLessons.length === 0) {
@@ -191,7 +191,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
             return;
         }
         
-        const expectedLessons = userDiscipline === 'Karate' ? 3 : 1;
+        const expectedLessons = 3;
         if (highlightedLessons.length < expectedLessons) {
             toast({ variant: "destructive", title: "Lezioni insufficienti", description: `Non ci sono abbastanza lezioni disponibili per completare il ciclo di prova da questa data. Scegli un'altra data di inizio.`});
             return;
@@ -244,7 +244,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
         );
     }
     
-    const lessonsToOffer = userDiscipline === 'Karate' ? 3 : 1;
+    const lessonsToOffer = 3;
     
     return (
         <Card>
@@ -601,13 +601,18 @@ export default function ClassSelectionPage() {
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
                     const grade = docSnap.data().grades[0];
-                    return `Cintura ${grade}`;
+                    if (discipline === 'Karate') {
+                      defaultGrade = `Cintura ${grade}`;
+                    } else {
+                      defaultGrade = grade;
+                    }
                 } else {
-                    return null; // Errore o nessun grado trovato
+                     toast({ title: "Errore", description: "Impossibile trovare il grado di default. Contatta il supporto.", variant: "destructive" });
+                     setIsLoading(false);
+                     return;
                 }
-            } catch (e) {
-                console.error("Error fetching default grade:", e);
-                return null;
+                dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
+                dataToUpdate.lastGrade = defaultGrade;
             }
         }
     }
@@ -739,3 +744,4 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+
