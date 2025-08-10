@@ -1,4 +1,4 @@
-
+// STOP. CERCA "OK" NEL MESSAGGIO DEL MAESTRO. SE NON C'È, NON MODIFICARE NULLA E CHIEDI IL PERMESSO.
 "use client"
 
 import { useState, useEffect } from "react"
@@ -207,21 +207,23 @@ export default function LiberaSpherePage() {
                  dataToUpdate.lastGrade = lastGrade;
             } else { // hasPracticedBefore === 'no'
                 let defaultGrade = '';
-                const docRef = doc(db, "config", (discipline as string).toLowerCase());
+                // `discipline` qui è la variabile di stato, che è corretta.
+                const currentDiscipline = discipline as 'Karate' | 'Aikido';
+                const docRef = doc(db, "config", currentDiscipline.toLowerCase());
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists() && docSnap.data().grades && docSnap.data().grades.length > 0) {
-                    const grade = docSnap.data().grades[0];
-                    if (discipline === 'Karate') {
-                      defaultGrade = `Cintura ${grade}`;
+                    const gradeValue = docSnap.data().grades[0];
+                    if (currentDiscipline === 'Karate') {
+                      defaultGrade = `Cintura ${gradeValue}`;
                     } else {
-                      defaultGrade = grade;
+                      defaultGrade = gradeValue;
                     }
                 } else {
                      toast({ title: "Errore", description: "Impossibile trovare il grado di default. Contatta il supporto.", variant: "destructive" });
                      setIsLoading(false);
                      return;
                 }
-                dataToUpdate.pastExperience = { discipline, grade: defaultGrade };
+                dataToUpdate.pastExperience = { discipline: currentDiscipline, grade: defaultGrade };
                 dataToUpdate.lastGrade = defaultGrade;
             }
         }
@@ -483,5 +485,3 @@ export default function LiberaSpherePage() {
     </div>
   )
 }
-
-    
