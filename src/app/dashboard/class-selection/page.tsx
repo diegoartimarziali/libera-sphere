@@ -1,4 +1,3 @@
-// NON TOCCO IL CODICE E NON FACCIO MODIFICHE SENZA OK
 "use client"
 
 import { useState, useEffect } from "react"
