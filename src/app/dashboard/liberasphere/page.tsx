@@ -183,15 +183,16 @@ export default function LiberaSpherePage() {
     }
 
     setIsLoading(true);
-    const userDocRef = doc(db, "users", user.uid);
     
-    let dataToUpdate: any = { isFormerMember };
-    let destination = "";
-
     try {
-        dataToUpdate.discipline = discipline;
-        dataToUpdate.gym = gym;
-        
+        const userDocRef = doc(db, "users", user.uid);
+        let dataToUpdate: any = { 
+            isFormerMember,
+            discipline,
+            gym
+        };
+        let destination = "";
+
         if (isFormerMember === 'yes') {
             dataToUpdate.firstYear = firstYear;
             dataToUpdate.lastGrade = lastGrade;
@@ -200,14 +201,13 @@ export default function LiberaSpherePage() {
         } else { // isFormerMember === 'no'
             dataToUpdate.firstYear = new Date().getFullYear().toString();
             destination = "/dashboard/class-selection";
-
             dataToUpdate.hasPracticedBefore = hasPracticedBefore;
+
             if (hasPracticedBefore === 'yes') {
                  dataToUpdate.pastExperience = { discipline, grade: lastGrade };
                  dataToUpdate.lastGrade = lastGrade;
             } else { // hasPracticedBefore === 'no'
                 let defaultGrade = '';
-                // `discipline` qui è la variabile di stato, che è corretta.
                 const currentDiscipline = discipline as 'Karate' | 'Aikido';
                 const docRef = doc(db, "config", currentDiscipline.toLowerCase());
                 const docSnap = await getDoc(docRef);
@@ -238,7 +238,8 @@ export default function LiberaSpherePage() {
         title: "Errore",
         description: "Non è stato possibile salvare la tua scelta. Riprova.",
       });
-      setIsLoading(false);
+    } finally {
+        setIsLoading(false);
     }
   };
 
