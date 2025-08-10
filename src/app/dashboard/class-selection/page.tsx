@@ -517,13 +517,20 @@ export default function ClassSelectionPage() {
                 return;
             }
             try {
-                // Carica solo le configurazioni statiche, non determinare lo step qui
                 const feeDocRef = doc(db, "fees", "trial");
                 const enrollmentSettingsRef = doc(db, "settings", "enrollment");
-                 const [feeDocSnap, enrollmentDocSnap] = await Promise.all([
+                const userDocRef = doc(db, "users", user.uid);
+                const paymentsCollectionRef = collection(db, "users", user.uid, "payments");
+
+                const [feeDocSnap, enrollmentDocSnap, userDocSnap, gymsSnap] = await Promise.all([
                     getDoc(feeDocRef),
                     getDoc(enrollmentSettingsRef),
+                    getDoc(userDocRef),
+                    getDocs(collection(db, "gyms"))
                 ]);
+                
+                const gymsMap = new Map<string, string>();
+                gymsSnap.forEach(doc => gymsMap.set(doc.id, doc.data().name));
 
                 if (feeDocSnap.exists()) setFeeData(feeDocSnap.data() as FeeData);
                 else toast({ title: "Errore", description: "Impossibile caricare i dati della quota.", variant: "destructive" });
@@ -532,6 +539,42 @@ export default function ClassSelectionPage() {
                     setSettings({ enrollment: enrollmentDocSnap.data() as Settings['enrollment'] });
                 } else {
                     toast({ title: "Errore di configurazione", description: "Impostazioni per le iscrizioni non trovate.", variant: "destructive" });
+                }
+
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+
+                    if (userData.trialStatus === 'pending_payment' && userData.trialLessons?.length > 0) {
+                        const q = query(
+                            paymentsCollectionRef,
+                            where("type", "==", "trial"),
+                            orderBy("createdAt", "desc"),
+                            limit(1)
+                        );
+                        const paymentSnap = await getDocs(q);
+                        
+                        if (!paymentSnap.empty) {
+                            const lastPayment = paymentSnap.docs[0].data();
+                            setPaymentMethod(lastPayment.paymentMethod as PaymentMethod);
+                        }
+
+                        setFormData({
+                            name: userData.name || "", surname: userData.surname || "", taxCode: userData.taxCode || "",
+                            birthDate: userData.birthDate?.toDate() || new Date(), birthPlace: userData.birthPlace || "",
+                            address: userData.address || "", streetNumber: userData.streetNumber || "", city: userData.city || "",
+                            zipCode: userData.zipCode || "", province: userData.province || "", phone: userData.phone || "",
+                            isMinor: userData.isMinor || false, parentData: userData.parentData, gym: userData.gym || ""
+                        });
+
+                        setGymSelection({
+                            gymId: userData.gym,
+                            gymName: gymsMap.get(userData.gym) || userData.gym,
+                            discipline: userData.discipline,
+                            trialLessons: userData.trialLessons
+                        });
+                        setFinalGrade(userData.lastGrade);
+                        setStep(4);
+                    }
                 }
                 
             } catch (error) {
@@ -740,3 +783,4 @@ export default function ClassSelectionPage() {
         </div>
     )
 }
+    
