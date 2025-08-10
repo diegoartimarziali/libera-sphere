@@ -286,8 +286,8 @@ export default function AdminCalendarPage() {
         try {
             const { startDate, endDate } = selectedPeriod;
             const selectedGym = gyms.find(g => g.id === gymFilter);
-            if (!selectedGym || !selectedGym.weeklySchedule) {
-                toast({ variant: "destructive", title: "Dati Palestra Mancanti", description: "La palestra selezionata non ha un orario settimanale configurato." });
+            if (!selectedGym) {
+                toast({ variant: "destructive", title: "Palestra non trovata", description: "La palestra selezionata non è valida." });
                 setIsGenerating(false);
                 return;
             }
@@ -300,44 +300,33 @@ export default function AdminCalendarPage() {
                 });
             }
 
-
             const allDates = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
-            const dayNames = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
             let generatedLessons: Lesson[] = [];
 
             allDates.forEach(date => {
                 const dateString = format(date, 'yyyy-MM-dd');
                 const isHoliday = exclusionDates.has(dateString);
                 
-                const dayOfWeekName = dayNames[getDay(date)];
-                const scheduleForDay = selectedGym.weeklySchedule?.find(d => d.dayOfWeek === dayOfWeekName);
+                // --- TEST LOGIC START ---
+                // Ignora l'orario settimanale e crea una lezione per ogni giorno
+                const eventStart = new Date(date);
+                eventStart.setHours(10, 0, 0, 0); // Orario fittizio 10:00
 
-                if (scheduleForDay && scheduleForDay.slots) {
-                    scheduleForDay.slots.forEach((slot: any, index: number) => {
-                        if (slot.discipline === disciplineFilter) {
-                            const [startHour, startMinute] = slot.startTime.split(':').map(Number);
-                            const [endHour, endMinute] = slot.endTime.split(':').map(Number);
-                            
-                            const eventStart = new Date(date);
-                            eventStart.setHours(startHour, startMinute, 0, 0);
+                const eventEnd = new Date(date);
+                eventEnd.setHours(11, 0, 0, 0); // Orario fittizio 11:00
 
-                            const eventEnd = new Date(date);
-                            eventEnd.setHours(endHour, endMinute, 0, 0);
-                            
-                            generatedLessons.push({
-                                id: `${dateString}-${disciplineFilter}-${index}`,
-                                title: isHoliday ? "Chiuso per festività" : disciplineFilter, 
-                                startTime: Timestamp.fromDate(eventStart),
-                                endTime: Timestamp.fromDate(eventEnd),
-                                gymId: selectedGym.id,
-                                gymName: `${selectedGym.id} - ${selectedGym.name}`,
-                                discipline: disciplineFilter,
-                                status: isHoliday ? 'festivita' : 'confermata',
-                                notes: isHoliday ? exclusionGroup?.name || 'Festività' : ''
-                            });
-                        }
-                    });
-                }
+                generatedLessons.push({
+                    id: `${dateString}-TEST-1`,
+                    title: isHoliday ? "Chiuso per festività" : disciplineFilter, 
+                    startTime: Timestamp.fromDate(eventStart),
+                    endTime: Timestamp.fromDate(eventEnd),
+                    gymId: selectedGym.id,
+                    gymName: `${selectedGym.id} - ${selectedGym.name}`,
+                    discipline: disciplineFilter,
+                    status: isHoliday ? 'festivita' : 'confermata',
+                    notes: isHoliday ? exclusionGroup?.name || 'Festività' : ''
+                });
+                // --- TEST LOGIC END ---
             });
 
             const operationalLessonsCount = generatedLessons.filter(l => l.status === 'confermata').length;
@@ -794,9 +783,3 @@ export default function AdminCalendarPage() {
         </div>
     );
 }
-
-    
-
-    
-
-    
