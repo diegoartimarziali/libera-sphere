@@ -13,9 +13,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge, badgeVariants } from "@/components/ui/badge"
-import { Loader2, User, Users, Search, ClipboardCheck } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
+import { Loader2, User, Users, ClipboardCheck } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Attendance {
@@ -61,7 +59,6 @@ const translateStatus = (status: Attendance['status']) => {
 export default function AdminAttendancesPage() {
     const [profiles, setProfiles] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
     const [gyms, setGyms] = useState<Gym[]>([]);
     const [gymFilter, setGymFilter] = useState("all");
     const [disciplineFilter, setDisciplineFilter] = useState("all");
@@ -136,17 +133,11 @@ export default function AdminAttendancesPage() {
             };
         })
         .filter(profile => {
-            // Then, filter the profiles themselves
-            const search = searchTerm.toLowerCase();
-            const fullName = `${profile.name} ${profile.surname}`.toLowerCase();
-            const email = profile.email.toLowerCase();
-            const nameOrEmailMatch = fullName.includes(search) || email.includes(search);
-
             const disciplineMatch = disciplineFilter === "all" || profile.discipline === disciplineFilter;
             
-            // A profile should be shown if it matches the search and discipline,
+            // A profile should be shown if it matches the discipline,
             // AND has attendances that match the gym filter (or if gym filter is 'all')
-            return nameOrEmailMatch && disciplineMatch;
+            return disciplineMatch;
         });
 
     return (
@@ -159,15 +150,6 @@ export default function AdminAttendancesPage() {
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                     <div className="relative w-full sm:w-auto flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Cerca per nome o email..."
-                            className="pl-9 w-full"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
                     <Select value={gymFilter} onValueChange={setGymFilter}>
                         <SelectTrigger className="w-full sm:w-[240px]">
                             <SelectValue placeholder="Filtra per palestra..." />
