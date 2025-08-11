@@ -20,6 +20,8 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, UploadCloud, CheckCircle, Eye } from "lucide-react"
 import { DatePicker } from "@/components/ui/date-picker"
+import { format as formatDate } from "date-fns"
+
 
 interface ExistingMedicalInfo {
     type?: 'certificate';
@@ -121,7 +123,6 @@ export default function RenewMedicalCertificatePage() {
     try {
         const userDocRef = doc(db, "users", user.uid);
         let medicalInfo: any = {
-            ...existingMedicalInfo,
             type: 'certificate',
             updatedAt: serverTimestamp()
         };
@@ -129,12 +130,21 @@ export default function RenewMedicalCertificatePage() {
         if (data.expiryDate) {
             // Se un nuovo file è stato caricato, esegui l'upload
             if (data.certificateFile) {
-                const fileRef = ref(storage, `medical-certificates/${user.uid}/${data.certificateFile.name}`);
+                const timestamp = formatDate(new Date(), "yyyy-MM-dd'T'HH-mm-ss");
+                const uniqueFileName = `certificato_medico_${timestamp}.${data.certificateFile.name.split('.').pop()}`;
+                
+                const fileRef = ref(storage, `medical-certificates/${user.uid}/${uniqueFileName}`);
                 const snapshot = await uploadBytes(fileRef, data.certificateFile);
                 const downloadURL = await getDownloadURL(snapshot.ref);
+
                 medicalInfo.fileUrl = downloadURL;
-                medicalInfo.fileName = data.certificateFile.name;
+                medicalInfo.fileName = uniqueFileName;
+            } else if (existingMedicalInfo) {
+                // Keep old file info if no new file is uploaded
+                medicalInfo.fileUrl = existingMedicalInfo.fileUrl;
+                medicalInfo.fileName = existingMedicalInfo.fileName;
             }
+
             medicalInfo.expiryDate = Timestamp.fromDate(data.expiryDate);
         } 
         

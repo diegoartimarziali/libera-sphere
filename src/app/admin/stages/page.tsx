@@ -483,4 +483,3 @@ export default function AdminStagesPage() {
     );
 }
 
-    
