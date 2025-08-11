@@ -2,8 +2,9 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
+import { db, storage } from "@/lib/firebase";
+import { collection, getDocs, query, orderBy, Timestamp, doc, updateDoc } from "firebase/firestore";
+import { ref, deleteObject } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, isPast, format, startOfDay } from "date-fns";
 import { it } from "date-fns/locale";
@@ -15,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -40,60 +42,94 @@ export default function AdminMedicalCertificatesPage() {
     const [profiles, setProfiles] = useState<UserProfile[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
 
-                const profilesList = usersSnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    let certificateStatus: UserProfile['certificateStatus'] = 'missing';
-                    let daysToExpire: number | undefined;
+            const profilesList = usersSnapshot.docs.map(doc => {
+                const data = doc.data();
+                let certificateStatus: UserProfile['certificateStatus'] = 'missing';
+                let daysToExpire: number | undefined;
 
-                    if (data.medicalInfo?.expiryDate) {
-                        const expiry = data.medicalInfo.expiryDate.toDate();
-                        const today = startOfDay(new Date());
-                        const expiryDate = startOfDay(expiry);
-                        const diff = differenceInDays(expiryDate, today);
-                        daysToExpire = diff;
+                if (data.medicalInfo?.expiryDate) {
+                    const expiry = data.medicalInfo.expiryDate.toDate();
+                    const today = startOfDay(new Date());
+                    const expiryDate = startOfDay(expiry);
+                    const diff = differenceInDays(expiryDate, today);
+                    daysToExpire = diff;
 
-                        if (diff < 0) {
-                            certificateStatus = 'expired';
-                        } else if (diff <= 20) {
-                            certificateStatus = 'expiring';
-                        } else {
-                            certificateStatus = 'valid';
-                        }
+                    if (diff < 0) {
+                        certificateStatus = 'expired';
+                    } else if (diff <= 20) {
+                        certificateStatus = 'expiring';
+                    } else {
+                        certificateStatus = 'valid';
                     }
+                }
 
-                    return {
-                        uid: doc.id,
-                        name: data.name,
-                        surname: data.surname,
-                        email: data.email,
-                        medicalInfo: data.medicalInfo,
-                        certificateStatus,
-                        daysToExpire,
-                    } as UserProfile;
-                });
+                return {
+                    uid: doc.id,
+                    name: data.name,
+                    surname: data.surname,
+                    email: data.email,
+                    medicalInfo: data.medicalInfo,
+                    certificateStatus,
+                    daysToExpire,
+                } as UserProfile;
+            });
 
-                setProfiles(profilesList);
+            setProfiles(profilesList);
 
-            } catch (error) {
-                console.error("Error fetching medical certificate data:", error);
-                toast({
-                    variant: "destructive",
-                    title: "Errore",
-                    description: "Impossibile caricare i dati dei certificati medici."
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
+        } catch (error) {
+            console.error("Error fetching medical certificate data:", error);
+            toast({
+                variant: "destructive",
+                title: "Errore",
+                description: "Impossibile caricare i dati dei certificati medici."
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
 
+
+    useEffect(() => {
         fetchData();
     }, [toast]);
+    
+    const handleDeleteCertificate = async (profile: UserProfile) => {
+        if (!profile.medicalInfo?.fileName) {
+            toast({ variant: "destructive", title: "Errore", description: "Nome del file non trovato." });
+            return;
+        }
+
+        try {
+            // 1. Delete file from Storage
+            const fileRef = ref(storage, `medical-certificates/${profile.uid}/${profile.medicalInfo.fileName}`);
+            await deleteObject(fileRef);
+            
+            // 2. Remove info from Firestore user document
+            const userDocRef = doc(db, "users", profile.uid);
+            await updateDoc(userDocRef, {
+                medicalInfo: null, // o un oggetto vuoto, a seconda della logica
+                medicalCertificateSubmitted: false
+            });
+
+            toast({
+                title: "Certificato Eliminato!",
+                description: "Il certificato è stato rimosso con successo.",
+                variant: "success",
+            });
+            
+            // 3. Refresh data
+            await fetchData();
+
+        } catch (error) {
+            console.error("Error deleting certificate:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare il certificato. Riprova." });
+        }
+    };
     
     const getStatusInfo = (profile: UserProfile): { variant: "success" | "warning" | "destructive" | "secondary", icon: React.ElementType, text: string } => {
         switch (profile.certificateStatus) {
@@ -185,11 +221,28 @@ export default function AdminMedicalCertificatesPage() {
                                                                     Visualizza
                                                                 </Link>
                                                             </DropdownMenuItem>
-                                                            {/* La funzionalità di eliminazione può essere aggiunta qui in futuro */}
-                                                            {/* <DropdownMenuItem className="text-destructive">
-                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                Elimina
-                                                            </DropdownMenuItem> */}
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                                        Elimina
+                                                                    </DropdownMenuItem>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent>
+                                                                    <AlertDialogHeader>
+                                                                        <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
+                                                                        <AlertDialogDescription>
+                                                                            Questa azione è irreversibile. Il certificato di <strong className="mx-1">{profile.name} {profile.surname}</strong> sarà eliminato permanentemente.
+                                                                        </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                                        <AlertDialogAction onClick={() => handleDeleteCertificate(profile)}>
+                                                                            Sì, elimina
+                                                                        </AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 ) : (
@@ -217,3 +270,5 @@ export default function AdminMedicalCertificatesPage() {
         </Card>
     );
 }
+
+    
