@@ -15,7 +15,7 @@ const firebaseConfig = {
   projectId: "libera-energia-soci",
   storageBucket: "libera-energia-soci.firebasestorage.app",
   messagingSenderId: "371255545862",
-  appId: "1:371255545862:web:6d6a51a3e465ef53baf387",
+  appId: "1:371255545862:web:295479b2e6d2dadebaf387",
   measurementId: "G-C7TYKHC5N8"
 };
 // =================================================================
