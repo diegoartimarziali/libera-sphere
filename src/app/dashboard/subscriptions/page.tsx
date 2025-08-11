@@ -472,18 +472,27 @@ export default function SubscriptionsPage() {
                                 isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
                             }
                         } else if (subData.type === 'monthly') {
-                             isAvailable = isWithinInterval(now, { 
-                                start: activitySettingsData.startDate.toDate(), 
-                                end: activitySettingsData.endDate.toDate() 
-                            });
+                             isAvailable = true; // Mensile sempre disponibile per ora
                         }
+                        
+                         if (subData.purchaseStartDate && subData.purchaseEndDate) {
+                            isAvailable = isWithinInterval(now, {
+                                start: subData.purchaseStartDate.toDate(),
+                                end: subData.purchaseEndDate.toDate()
+                            });
+                         } else {
+                            // Se non ci sono date, è sempre disponibile (es. mensili)
+                            isAvailable = true;
+                         }
+
 
                         return {
                             id: doc.id,
                             ...subData,
                             isAvailable: isAvailable
                         };
-                    }).sort((a,b) => b.price - a.price);
+                    }).filter(s => s.isAvailable) // Mostra solo quelli disponibili
+                    .sort((a,b) => b.price - a.price);
 
                     setSubscriptions(allSubs);
 
