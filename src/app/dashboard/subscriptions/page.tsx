@@ -126,18 +126,13 @@ function SubscriptionStatusCard({ userData }: { userData: UserData }) {
                         <CalendarClock className="h-4 w-4" />
                         <AlertTitle>Abbonamento Scaduto</AlertTitle>
                         <AlertDescription>
-                          Il tuo abbonamento non è più valido. Acquistane uno nuovo per continuare ad accedere ai corsi.
+                          Il tuo abbonamento non è più valido. Acquista uno nuovo per continuare ad accedere ai corsi.
                         </AlertDescription>
                     </Alert>
                 )}
                  <Button className="w-full" onClick={() => router.push('/dashboard/payments')}>
                     Visualizza i Miei Pagamenti
                 </Button>
-                 {subscriptionAccessStatus === 'expired' && (
-                     <Button className="w-full" variant="default" onClick={() => window.location.reload()}>
-                        Acquista un nuovo abbonamento
-                    </Button>
-                )}
             </CardFooter>
         </Card>
     );
