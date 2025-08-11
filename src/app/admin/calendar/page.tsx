@@ -933,5 +933,4 @@ export default function AdminCalendarPage() {
 
         </div>
     );
-
-    
+}
