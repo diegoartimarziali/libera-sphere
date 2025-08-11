@@ -188,11 +188,11 @@ export default function LiberaSpherePage() {
             dataToUpdate.firstYear = firstYear;
             dataToUpdate.lastGrade = lastGrade;
             dataToUpdate.qualification = qualification;
+            destination = "/dashboard/associates";
         } else { // isFormerMember === 'no'
             dataToUpdate.firstYear = new Date().getFullYear().toString();
             dataToUpdate.hasPracticedBefore = hasPracticedBefore;
             
-            // Logica del grado semplificata
             if (hasPracticedBefore === 'yes') {
                 dataToUpdate.lastGrade = lastGrade;
             } else {

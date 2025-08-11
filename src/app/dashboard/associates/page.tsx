@@ -395,6 +395,9 @@ export default function AssociatesPage() {
                 city: formData.city,
                 province: formData.province,
                 phone: formData.phone,
+                lastGrade: lastGrade, // Preserva il grado esistente
+                qualification: qualification, // Preserva la qualifica esistente
+                discipline: discipline, // Preserva la disciplina
                 applicationSubmitted: true,
                 associationStatus: "pending",
                 associationExpiryDate: seasonSettings.endDate,
