@@ -288,18 +288,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     return;
                 }
                 
-                const isUserWaiting = 
-                    fetchedUserData.associationStatus === 'pending' || 
-                    fetchedUserData.trialStatus === 'pending_payment';
+                 // Se l'utente ha completato la prova e non è socio, deve fare una scelta.
+                if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus === 'not_associated') {
+                    if (pathname !== '/dashboard/trial-completed') {
+                        router.push('/dashboard/trial-completed');
+                    }
+                    setLoadingData(false);
+                    return;
+                }
 
-                if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired' || fetchedUserData.role === 'admin' || fetchedUserData.trialStatus === 'active') {
-                     // L'utente è in uno stato "stabile" (attesa, attivo, scaduto, admin), lo lasciamo navigare.
+                const isUserStable = 
+                    fetchedUserData.associationStatus === 'pending' || 
+                    fetchedUserData.associationStatus === 'active' ||
+                    fetchedUserData.associationStatus === 'expired' ||
+                    fetchedUserData.trialStatus === 'pending_payment' ||
+                    fetchedUserData.trialStatus === 'active' ||
+                    fetchedUserData.role === 'admin';
+
+                // Se l'utente è in uno stato stabile, non fare nulla.
+                if (isUserStable) {
                      setLoadingData(false);
                      return;
-                } 
+                }
                 
-                // Se nessuna delle condizioni precedenti è vera, l'utente è in onboarding.
-                // Determiniamo la pagina corretta.
+                // Altrimenti, l'utente è in onboarding.
                 let targetPage = "";
                 if (!fetchedUserData.regulationsAccepted) {
                     targetPage = "/dashboard/regulations";
@@ -307,14 +319,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     targetPage = "/dashboard/medical-certificate";
                 } else if (!fetchedUserData.isFormerMember) {
                     targetPage = "/dashboard/liberasphere";
-                } else if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus === 'not_associated') {
-                    targetPage = "/dashboard/trial-completed";
-                } else if (
-                    fetchedUserData.isFormerMember === 'yes' || 
-                    (fetchedUserData.trialStatus === 'completed' && fetchedUserData.trialOutcome === 'accepted')
-                ) {
+                } else if (fetchedUserData.isFormerMember === 'yes') {
                      targetPage = "/dashboard/associates";
-                } else if (fetchedUserData.isFormerMember === 'no' && !['active', 'completed', 'pending_payment'].includes(fetchedUserData.trialStatus as string)) {
+                } else if (fetchedUserData.isFormerMember === 'no') {
                     targetPage = "/dashboard/class-selection";
                 }
                 
