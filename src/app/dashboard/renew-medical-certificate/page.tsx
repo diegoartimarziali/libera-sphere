@@ -7,7 +7,6 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { auth, db, storage } from "@/lib/firebase"
-import { signOut } from "firebase/auth"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
@@ -19,7 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, UploadCloud, CheckCircle, Eye, LogOut } from "lucide-react"
+import { Loader2, UploadCloud, CheckCircle, Eye } from "lucide-react"
 import { DatePicker } from "@/components/ui/date-picker"
 
 interface ExistingMedicalInfo {
@@ -36,7 +35,7 @@ const schema = z.object({
 
 type MedicalCertificateSchema = z.infer<typeof schema>;
 
-export default function MedicalCertificatePage() {
+export default function RenewMedicalCertificatePage() {
   const [user, authLoading] = useAuthState(auth)
   const router = useRouter()
   const { toast } = useToast()
@@ -67,6 +66,7 @@ export default function MedicalCertificatePage() {
                 expiryDate: userData.medicalInfo.expiryDate?.toDate(),
             };
             setExistingMedicalInfo(info);
+            // Pre-fill form
             form.reset({
                 expiryDate: info.expiryDate,
             });
@@ -89,6 +89,7 @@ export default function MedicalCertificatePage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      // Validate file type
       const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
       if (!allowedTypes.includes(file.type)) {
           toast({
@@ -96,7 +97,7 @@ export default function MedicalCertificatePage() {
               title: "Tipo di file non valido",
               description: "Puoi caricare solo file PDF, JPG o PNG.",
           });
-          event.target.value = ""; 
+          event.target.value = ""; // Clear the input
           return;
       }
       form.setValue("certificateFile", file, { shouldValidate: true })
@@ -126,6 +127,7 @@ export default function MedicalCertificatePage() {
         };
 
         if (data.expiryDate) {
+            // Se un nuovo file è stato caricato, esegui l'upload
             if (data.certificateFile) {
                 const fileRef = ref(storage, `medical-certificates/${user.uid}/${data.certificateFile.name}`);
                 const snapshot = await uploadBytes(fileRef, data.certificateFile);
@@ -145,11 +147,12 @@ export default function MedicalCertificatePage() {
         await updateDoc(userDocRef, dataToUpdate);
 
         toast({
-            title: "Dati inviati con successo!",
-            description: "Le tue informazioni mediche sono state aggiornate.",
+            title: "Certificato Aggiornato!",
+            description: "Le tue informazioni mediche sono state salvate con successo.",
         });
         
-        router.push('/dashboard/liberasphere');
+        memoizedUserDataFetch(user.uid); // Re-fetch data to show the latest info
+        router.refresh(); // Refresh server components if needed
 
     } catch (error) {
         console.error("Errore durante l'invio dei dati medici:", error);
@@ -158,20 +161,6 @@ export default function MedicalCertificatePage() {
         setIsSubmitting(false);
     }
   };
-
-  const handleLogout = async () => {
-      setIsSubmitting(true);
-      try {
-          await signOut(auth);
-          router.push('/');
-          toast({ title: "Logout effettuato", description: "Sei stato disconnesso con successo." });
-      } catch (error) {
-          console.error("Error during logout:", error);
-          toast({ variant: "destructive", title: "Errore di logout", description: "Impossibile disconnettersi. Riprova." });
-      } finally {
-          setIsSubmitting(false);
-      }
-  }
   
     if (isLoading) {
       return (
@@ -182,32 +171,18 @@ export default function MedicalCertificatePage() {
     }
 
   return (
-    <div className="flex h-full w-full items-center justify-center">
-      <Card className="w-full max-w-2xl">
+    <div>
+      <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Certificato Medico</CardTitle>
+          <CardTitle>Rinnovo Certificato Medico</CardTitle>
           <CardDescription>
-            <div className="space-y-2 pt-2">
-                <p>
-                    La certificazione medica per la pratica dell’attività sportiva non agonistica è regolato dal Decreto Ministeriale del 24 aprile 2013 e integrato dalle Linee-Guida emanate dal Ministro della Salute con Decreto dell’8 agosto 2014, nonché dalle successive circolari ministeriali (Nota Esplicativa del 17 giugno 2015 e nota integrativa del 28 ottobre 2015).
-                </p>
-                 <p>
-                    Sono soggetti al certificato non agonistico tutti gli associati ad una ASD e tesserati presso un ente, che svolgano attività.
-                    La certificazione è rilasciata dal proprio medico di medicina generale o pediatra o dal medico specialista in medicina dello sport, 
-                    Il certificato ha validità annuale dalla data di rilascio. 
-                    Può essere sostituito da un certificato agonistico, di qualsiasi sport, come da Circolare del Ministero della Salute del 01/02/2018.
-                    Senza il certificato medico viene a mancare la copertura assicurativa.
-                </p>
-                <p className="font-bold text-foreground">
-                    Sono accettati i certificati medici in corso di validità rilasciati per qualsiasi attività sportiva, e quelli rilasciati per attività parascolastiche.
-                </p>
-            </div>
+            Carica qui il tuo nuovo certificato medico per mantenere valida la tua copertura assicurativa e l'accesso alle attività.
           </CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
-               <div className="space-y-4 rounded-md border p-4 animate-in fade-in-50">
+               <div className="space-y-4 rounded-md border p-4">
                    <h4 className="font-semibold text-foreground">Carica o aggiorna il tuo certificato</h4>
                     <FormField
                         control={form.control}
@@ -269,21 +244,11 @@ export default function MedicalCertificatePage() {
                   />
                 </div>
             </CardContent>
-            <CardFooter className="flex-col items-stretch space-y-4">
+            <CardFooter>
               <Button type="submit" className="w-full" disabled={isSubmitting || !form.formState.isValid}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Salva e prosegui
+                Aggiorna Certificato
               </Button>
-                <>
-                    <div className="text-center text-sm text-muted-foreground pt-2">
-                        <p>Non hai il certificato a portata di mano?</p>
-                        <p>Puoi uscire e tornare più tardi. I tuoi dati sono salvi.</p>
-                    </div>
-                    <Button type="button" variant="outline" onClick={handleLogout} disabled={isSubmitting}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Esci e completa più tardi
-                    </Button>
-                </>
             </CardFooter>
           </form>
         </Form>

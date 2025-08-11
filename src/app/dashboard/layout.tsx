@@ -87,7 +87,7 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
     return (
         <>
             <NavLink href="/dashboard" icon={UserSquare} onClick={onLinkClick}>Scheda Personale</NavLink>
-            <NavLink href="/dashboard/medical-certificate" icon={HeartPulse} onClick={onLinkClick}>Certificato Medico</NavLink>
+            <NavLink href="/dashboard/renew-medical-certificate" icon={HeartPulse} onClick={onLinkClick}>Rinnovo Certificato Medico</NavLink>
             <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick}>I Miei Pagamenti</NavLink>
             <NavLink href="/dashboard/wallet" icon={Wallet} onClick={onLinkClick}>Portafoglio</NavLink>
 
@@ -356,6 +356,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   
   const onboardingPagesForMenu = [
     '/dashboard/regulations',
+    '/dashboard/medical-certificate',
     '/dashboard/liberasphere',
     '/dashboard/trial-completed',
     '/dashboard/class-selection',
