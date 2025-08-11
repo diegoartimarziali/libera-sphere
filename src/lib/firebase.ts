@@ -10,13 +10,13 @@ import { getAuth } from "firebase/auth";
 // che trovi nelle impostazioni del tuo progetto Firebase.
 // =================================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyCV3G4s-32K-1dKx772nVe9MnaoIqQ5M5M",
-  authDomain: "liberasphere.firebaseapp.com",
-  projectId: "liberasphere",
-  storageBucket: "liberasphere.appspot.com",
-  messagingSenderId: "389081515282",
-  appId: "1:389081515282:web:a8d1112435ea56a2973950",
-  measurementId: "G-5TE4V7G7P4"
+  apiKey: "AIzaSyAeNVPO7H0mlsM3FXjjZJqpeB5Fi6ITISw",
+  authDomain: "libera-energia-soci.firebaseapp.com",
+  projectId: "libera-energia-soci",
+  storageBucket: "libera-energia-soci.firebasestorage.app",
+  messagingSenderId: "371255545862",
+  appId: "1:371255545862:web:6d6a51a3e465ef53baf387",
+  measurementId: "G-C7TYKHC5N8"
 };
 // =================================================================
 // FINE DELLA SEZIONE DA MODIFICARE
