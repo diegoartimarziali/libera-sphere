@@ -1,0 +1,66 @@
+# The name of your backend server.
+run:
+  # The command to start your backend server.
+  # If you are using a framework, this is probably the command to start your server.
+  command: npm run start
+# The port that your backend server listens on.
+# This is the port that App Hosting will use to send traffic to your server.
+# This is NOT the port that your server will be available on the internet.
+# App Hosting will automatically configure the port for you.
+port: 9002
+# The amount of CPU to allocate to your backend server.
+cpu: 0.5
+# The amount of memory to allocate to your backend server.
+memory: 512Mi
+# The number of instances to run of your backend server.
+concurrency: 80
+# The maximum number of instances to run of your backend server.
+maxInstances: 1
+# The minimum number of instances to run of your backend server.
+minInstances: 0
+# The version of Node.js to use.
+# This should match the version you are using locally.
+nodejs: 20
+# The version of npm to use.
+npm: 10
+# The version of yarn to use.
+yarn: 1
+# The version of pnpm to use.
+pnpm: 8
+# The environment variables to set for your backend server.
+# These will be available to your server at runtime.
+# You can also use secrets to store sensitive information.
+# https://firebase.google.com/docs/app-hosting/configure-backend?#use-secrets
+env:
+  - variable: NODE_ENV
+    value: production
+  - variable: FIREBASE_CONFIG_BASE64
+    value: # Automatically populated by App Hosting.
+# The secrets to make available to your backend server.
+# You need to create these secrets in Google Cloud Secret Manager.
+# https://firebase.google.com/docs/app-hosting/configure-backend?#use-secrets
+secrets: []
+# The VPC connector to use for your backend server.
+# This allows your backend to connect to other resources in your VPC.
+# https://firebase.google.com/docs/app-hosting/configure-backend?#connect-vpc
+vpc:
+# The service account to use for your backend server.
+# This allows your backend to access other Google Cloud services.
+# https://firebase.google.com/docs/app-hosting/configure-backend?#service-account
+serviceAccount: # Automatically populated by App Hosting.
+# The custom headers to add to responses from your backend server.
+# https://firebase.google.com/docs/app-hosting/configure-backend?#custom-headers
+headers:
+  - header: X-Frame-Options
+    value: DENY
+# The rewrites to apply to requests before they are sent to your backend server.
+# https://firebase.google.com/docs/app-hosting/configure-backend?#rewrites
+rewrites:
+  - source: /
+    destination: /
+# The redirects to apply to requests before they are sent to your backend server.
+# https://firebase.google.com/docs/app-hosting/configure-backend?#redirects
+redirects:
+# The number of seconds to cache responses from your backend server.
+# https://firebase.google.com/docs/app-hosting/configure-backend?#caching
+cache: 300
