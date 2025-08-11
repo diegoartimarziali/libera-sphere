@@ -292,7 +292,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.trialStatus === 'pending_payment';
 
-                if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired' || fetchedUserData.role === 'admin') {
+                if (isUserWaiting || fetchedUserData.associationStatus === 'active' || fetchedUserData.associationStatus === 'expired' || fetchedUserData.role === 'admin' || fetchedUserData.trialStatus === 'active') {
                      // L'utente è in uno stato "stabile" (attesa, attivo, scaduto, admin), lo lasciamo navigare.
                      setLoadingData(false);
                      return;
@@ -380,3 +380,5 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+    
