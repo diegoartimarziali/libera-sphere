@@ -307,7 +307,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     targetPage = "/dashboard/medical-certificate";
                 } else if (!fetchedUserData.isFormerMember) {
                     targetPage = "/dashboard/liberasphere";
-                } else if (fetchedUserData.trialStatus === 'completed' && !fetchedUserData.trialOutcome) {
+                } else if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus === 'not_associated') {
                     targetPage = "/dashboard/trial-completed";
                 } else if (
                     fetchedUserData.isFormerMember === 'yes' || 
@@ -380,5 +380,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    
