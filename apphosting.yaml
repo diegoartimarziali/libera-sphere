@@ -1,3 +1,11 @@
+# apphosting.yaml
+framework: next.js
+source: .
+
+build:
+  command: npm run build
+  output: .next
+
 # The name of your backend server.
 run:
   # The command to start your backend server.
