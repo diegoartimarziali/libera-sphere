@@ -131,9 +131,10 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
                         const now = Timestamp.now();
                         const eventsQuery = query(
                             collection(db, "events"),
+                            where("type", "==", "lesson"),
+                            where("status", "==", "confermata"),
                             where("gymId", "==", gymId),
                             where("discipline", "==", discipline),
-                            where("status", "==", "confermata"),
                             where("startTime", ">=", now),
                             orderBy("startTime", "asc"),
                             limit(20)
