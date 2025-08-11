@@ -8,7 +8,7 @@ import { collection, doc, getDocs, serverTimestamp, updateDoc, addDoc, getDoc, T
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
-import { format, lastDayOfMonth, isWithinInterval, startOfMonth, differenceInDays, startOfDay } from "date-fns"
+import { format, lastDayOfMonth, isWithinInterval, startOfMonth, endOfMonth, addMonths, getDate, differenceInDays, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -31,28 +31,23 @@ interface Subscription {
     sumupLink: string;
     purchaseStartDate?: Timestamp;
     purchaseEndDate?: Timestamp;
-    isAvailable?: boolean;
+    isAvailableForPurchase?: boolean;
+    targetDate?: Date; // Data target per l'abbonamento mensile (es. 1 Novembre)
 }
 
 interface UserData {
     name: string;
     surname: string;
-}
-
-interface UserSubscription {
-    name: string;
-    type: 'monthly' | 'seasonal';
-    purchasedAt: Timestamp;
-    expiresAt?: Timestamp;
-    status: 'active' | 'pending' | 'expired';
+    activeSubscription?: {
+        name: string;
+        type: 'monthly' | 'seasonal';
+        purchasedAt: Timestamp;
+        expiresAt?: Timestamp;
+    };
+    subscriptionAccessStatus?: 'active' | 'pending' | 'expired';
 }
 
 type PaymentMethod = "in_person" | "online" | "bank_transfer"
-
-interface ActivitySettings {
-    startDate: Timestamp;
-    endDate: Timestamp;
-}
 
 interface BankDetails {
     recipientName: string;
@@ -61,12 +56,15 @@ interface BankDetails {
 }
 
 // Componente Card per lo stato dell'abbonamento
-function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSubscription }) {
+function SubscriptionStatusCard({ userData }: { userData: UserData }) {
+    if (!userData.activeSubscription || !userData.subscriptionAccessStatus) return null;
+
     const router = useRouter();
+    const { activeSubscription, subscriptionAccessStatus } = userData;
 
     const getStatusInfo = () => {
-        if (userSubscription.type === 'monthly' && userSubscription.status === 'active' && userSubscription.expiresAt) {
-            const expiryDate = startOfDay(userSubscription.expiresAt.toDate());
+        if (activeSubscription.type === 'monthly' && subscriptionAccessStatus === 'active' && activeSubscription.expiresAt) {
+            const expiryDate = startOfDay(activeSubscription.expiresAt.toDate());
             const today = startOfDay(new Date());
             const daysDiff = differenceInDays(expiryDate, today);
 
@@ -75,7 +73,7 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
             }
         }
         
-        switch(userSubscription.status) {
+        switch(subscriptionAccessStatus) {
             case 'active': return { label: 'Attivo', variant: "success" as const };
             case 'pending': return { label: 'In attesa di approvazione', variant: "warning" as const };
             case 'expired': return { label: 'Scaduto', variant: "destructive" as const };
@@ -84,7 +82,6 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
     }
     
     const statusInfo = getStatusInfo();
-
 
     return (
         <Card className="w-full max-w-lg mb-8">
@@ -95,16 +92,16 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
             <CardContent className="space-y-4">
                  <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Piano</span>
-                    <span className="font-semibold">{userSubscription.name}</span>
+                    <span className="font-semibold">{activeSubscription.name}</span>
                 </div>
                  <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Acquistato il</span>
-                    <span className="font-semibold">{format(userSubscription.purchasedAt.toDate(), "dd MMMM yyyy", { locale: it })}</span>
+                    <span className="font-semibold">{format(activeSubscription.purchasedAt.toDate(), "dd MMMM yyyy", { locale: it })}</span>
                 </div>
-                 {userSubscription.expiresAt && (
+                 {activeSubscription.expiresAt && (
                     <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Scade il</span>
-                        <span className="font-semibold">{format(userSubscription.expiresAt.toDate(), "dd MMMM yyyy", { locale: it })}</span>
+                        <span className="font-semibold">{format(activeSubscription.expiresAt.toDate(), "dd MMMM yyyy", { locale: it })}</span>
                     </div>
                 )}
                 <div className="flex items-center justify-between">
@@ -115,7 +112,7 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
                 </div>
             </CardContent>
             <CardFooter className="flex-col gap-4">
-                {userSubscription.status === 'pending' && (
+                {subscriptionAccessStatus === 'pending' && (
                      <Alert variant="warning">
                         <CalendarClock className="h-4 w-4" />
                         <AlertTitle>Pagamento in Verifica</AlertTitle>
@@ -124,7 +121,7 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
                         </AlertDescription>
                     </Alert>
                 )}
-                 {userSubscription.status === 'expired' && (
+                 {subscriptionAccessStatus === 'expired' && (
                      <Alert variant="destructive">
                         <CalendarClock className="h-4 w-4" />
                         <AlertTitle>Abbonamento Scaduto</AlertTitle>
@@ -136,7 +133,7 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
                  <Button className="w-full" onClick={() => router.push('/dashboard/payments')}>
                     Visualizza i Miei Pagamenti
                 </Button>
-                 {userSubscription.status === 'expired' && (
+                 {subscriptionAccessStatus === 'expired' && (
                      <Button className="w-full" variant="default" onClick={() => window.location.reload()}>
                         Acquista un nuovo abbonamento
                     </Button>
@@ -147,27 +144,20 @@ function SubscriptionStatusCard({ userSubscription }: { userSubscription: UserSu
 }
 
 // Componente per la selezione dell'abbonamento
-function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscription }: { subscriptions: Subscription[], onSelect: (sub: Subscription) => void, onBack: () => void, userSubscription: UserSubscription | null }) {
+function SubscriptionSelectionStep({ subscriptions, onSelect }: { subscriptions: Subscription[], onSelect: (sub: Subscription) => void }) {
     
     const containerClasses = subscriptions.length > 1
         ? "grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2"
         : "flex justify-center w-full";
         
     const cardContainerClasses = subscriptions.length === 1 ? "w-full max-w-md" : "";
-    
-    const now = new Date();
-    const firstDay = format(startOfMonth(now), "dd", { locale: it });
-    const month = format(now, "MMMM", { locale: it });
-    const year = format(now, "yyyy");
-    const dynamicMonthlyDescription = `Abbonamento valido dal ${firstDay}/${month}/${year}`;
-
 
     return (
         <div className="flex w-full flex-col items-center">
             <div className="mb-8 text-center max-w-2xl">
-                <h1 className="text-3xl font-bold">Acquista il tuo abbonamento mensile</h1>
+                <h1 className="text-3xl font-bold">Acquista il tuo abbonamento</h1>
                 <p className="mt-2 text-muted-foreground">
-                    ricordati di farlo ogni mese entro il 1° giorno, anche se paghi in palestra, in questo modo avrai sempre sotto controllo i tuoi pagamenti e potrai ottenere la tua attestazione di pagamento cumulativa che potrai scaricare.
+                    Scegli il piano più adatto a te per continuare ad allenarti.
                 </p>
             </div>
             
@@ -179,26 +169,24 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                     <CardContent>
                         <p className="text-muted-foreground">Al momento non ci sono abbonamenti acquistabili. Contatta la segreteria per maggiori informazioni.</p>
                     </CardContent>
-                    <CardFooter>
-                        <Button onClick={onBack} className="w-full">Torna alla Dashboard</Button>
-                    </CardFooter>
                  </Card>
             ) : (
                 <div className={containerClasses}>
                     {subscriptions.map((sub) => {
-                        let isPurchasable = sub.isAvailable ?? false;
+                        let isPurchasable = sub.isAvailableForPurchase ?? false;
+                        
                         let disabledReason = "";
-                        
-                        if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
-                           isPurchasable = false;
-                           disabledReason = "Hai già un abbonamento attivo o in attesa di approvazione.";
+                        if (!isPurchasable) {
+                             if (sub.type === 'seasonal' && sub.purchaseStartDate && sub.purchaseEndDate) {
+                                disabledReason = `Acquistabile dal ${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
+                             } else {
+                                disabledReason = "Hai già un abbonamento attivo per questo periodo.";
+                             }
                         }
-                        
-                        // Messaggio di default se non acquistabile per data
-                        if (!isPurchasable && !disabledReason && sub.type === 'seasonal' && sub.purchaseStartDate && sub.purchaseEndDate) {
-                             disabledReason = `Acquistabile dal ${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} al ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
-                        } else if (!isPurchasable && !disabledReason) {
-                            disabledReason = "Non Disponibile Ora";
+
+                        let dynamicDescription = sub.description;
+                        if (sub.type === 'monthly' && sub.targetDate) {
+                            dynamicDescription = `Abbonamento valido per il mese di ${format(sub.targetDate, "MMMM yyyy", { locale: it })}`;
                         }
 
 
@@ -216,7 +204,7 @@ function SubscriptionSelectionStep({ subscriptions, onSelect, onBack, userSubscr
                                     <CardHeader>
                                         <CardTitle className={cn("text-2xl", !isPurchasable && "text-muted-foreground")}>{sub.name}</CardTitle>
                                         <CardDescription className="font-bold text-foreground">
-                                            {sub.type === 'monthly' ? dynamicMonthlyDescription : sub.description}
+                                            {dynamicDescription}
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex-grow space-y-4">
@@ -400,12 +388,9 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, subscription, bankD
 export default function SubscriptionsPage() {
     const [user] = useAuthState(auth);
     const [step, setStep] = useState(1);
-    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+    const [availableSubscriptions, setAvailableSubscriptions] = useState<Subscription[]>([]);
     const [userData, setUserData] = useState<UserData | null>(null);
-    const [userSubscription, setUserSubscription] = useState<UserSubscription | null>(null);
     const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
-    const [activitySettings, setActivitySettings] = useState<ActivitySettings | null>(null);
     const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -422,84 +407,82 @@ export default function SubscriptionsPage() {
 
             try {
                 const userDocRef = doc(db, "users", user.uid);
-                const settingsDocRef = doc(db, "settings", "activity");
                 const bankDetailsRef = doc(db, "settings", "bankDetails");
                 const subsCollection = collection(db, 'subscriptions');
                 
-                const [userDocSnap, settingsDocSnap, subsSnapshot, bankDetailsSnap] = await Promise.all([
+                const [userDocSnap, subsSnapshot, bankDetailsSnap] = await Promise.all([
                     getDoc(userDocRef),
-                    getDoc(settingsDocRef),
                     getDocs(subsCollection),
                     getDoc(bankDetailsRef)
                 ]);
-
-                if (bankDetailsSnap.exists()) {
-                    setBankDetails(bankDetailsSnap.data() as BankDetails);
-                } else {
-                     toast({ title: "Errore", description: "Impossibile caricare i dati per il bonifico.", variant: "destructive" });
-                }
-
-                let currentUserSubscription: UserSubscription | null = null;
+                
+                let fetchedUserData: UserData | null = null;
                 if (userDocSnap.exists()) {
-                    const fetchedUserData = userDocSnap.data() as UserData;
+                    fetchedUserData = userDocSnap.data() as UserData;
                     setUserData(fetchedUserData);
-                    if (fetchedUserData.subscriptionAccessStatus && (fetchedUserData.subscriptionAccessStatus === 'active' || fetchedUserData.subscriptionAccessStatus === 'pending' || fetchedUserData.subscriptionAccessStatus === 'expired') && fetchedUserData.activeSubscription) {
-                        const subStatus: UserSubscription = {
-                            name: fetchedUserData.activeSubscription.name,
-                            type: fetchedUserData.activeSubscription.type,
-                            purchasedAt: fetchedUserData.activeSubscription.purchasedAt,
-                            expiresAt: fetchedUserData.activeSubscription.expiresAt,
-                            status: fetchedUserData.subscriptionAccessStatus
-                        };
-                        setUserSubscription(subStatus);
-                        currentUserSubscription = subStatus;
-                    }
                 }
                 
-                if (settingsDocSnap.exists()) {
-                     const activitySettingsData = settingsDocSnap.data() as ActivitySettings;
-                    setActivitySettings(activitySettingsData);
-                    
-                    const now = new Date();
-                    const allSubs = subsSnapshot.docs.map(doc => {
-                        const subData = doc.data() as Omit<Subscription, 'id' | 'isAvailable'>;
-                        let isAvailable = false;
-                        
-                        if (subData.type === 'seasonal') {
-                            if (subData.purchaseStartDate && subData.purchaseEndDate) {
-                                const startDate = subData.purchaseStartDate.toDate();
-                                const endDate = subData.purchaseEndDate.toDate();
-                                isAvailable = isWithinInterval(now, { start: startDate, end: endDate });
-                            }
-                        } else if (subData.type === 'monthly') {
-                             isAvailable = true; // Mensile sempre disponibile per ora
-                        }
-                        
-                         if (subData.purchaseStartDate && subData.purchaseEndDate) {
-                            isAvailable = isWithinInterval(now, {
+                if (bankDetailsSnap.exists()) {
+                    setBankDetails(bankDetailsSnap.data() as BankDetails);
+                }
+
+                // Logica per determinare gli abbonamenti disponibili
+                const now = new Date();
+                const dayOfMonth = getDate(now);
+                const lastDay = getDate(endOfMonth(now));
+                
+                let targetDate = startOfMonth(now);
+                // Se siamo negli ultimi 5 giorni del mese, l'abbonamento è per il mese successivo
+                if (lastDay - dayOfMonth < 5) {
+                    targetDate = startOfMonth(addMonths(now, 1));
+                }
+
+                const allSubs = subsSnapshot.docs.map(doc => {
+                    const subData = doc.data() as Omit<Subscription, 'id' | 'isAvailableForPurchase'>;
+                    let isAvailableForPurchase = false;
+                    let subTargetDate: Date | undefined = undefined;
+
+                    if (subData.type === 'seasonal') {
+                        if (subData.purchaseStartDate && subData.purchaseEndDate) {
+                            isAvailableForPurchase = isWithinInterval(now, {
                                 start: subData.purchaseStartDate.toDate(),
                                 end: subData.purchaseEndDate.toDate()
                             });
-                         } else {
-                            // Se non ci sono date, è sempre disponibile (es. mensili)
-                            isAvailable = true;
+                        }
+                    } else if (subData.type === 'monthly') {
+                        isAvailableForPurchase = true; // Disponibile per l'acquisto
+                        subTargetDate = targetDate; // Assegna il mese target
+                    }
+
+                    // Ulteriore controllo: l'utente ha già un abbonamento attivo per questo periodo?
+                    if (fetchedUserData?.activeSubscription && isAvailableForPurchase) {
+                         const expiry = fetchedUserData.activeSubscription.expiresAt?.toDate();
+                         if(expiry) {
+                             if (subData.type === 'seasonal') {
+                                // Se l'abbonamento attivo è stagionale, non può comprarne un altro
+                                if (fetchedUserData.activeSubscription.type === 'seasonal' && (fetchedUserData.subscriptionAccessStatus === 'active' || fetchedUserData.subscriptionAccessStatus === 'pending')) {
+                                    isAvailableForPurchase = false;
+                                }
+                             } else if (subData.type === 'monthly' && subTargetDate) {
+                                // Se la scadenza dell'abbonamento attivo è nello stesso mese del target, non può comprarlo
+                                if (startOfMonth(expiry).getTime() === startOfMonth(subTargetDate).getTime() && (fetchedUserData.subscriptionAccessStatus === 'active' || fetchedUserData.subscriptionAccessStatus === 'pending')) {
+                                     isAvailableForPurchase = false;
+                                }
+                             }
                          }
+                    }
+                    
+                    return {
+                        id: doc.id,
+                        ...subData,
+                        isAvailableForPurchase: isAvailableForPurchase,
+                        targetDate: subTargetDate,
+                    };
+                })
+                .filter(s => s.isAvailableForPurchase) // Mostra solo quelli acquistabili
+                .sort((a,b) => b.price - a.price); // Ordina per prezzo
 
-
-                        return {
-                            id: doc.id,
-                            ...subData,
-                            isAvailable: isAvailable
-                        };
-                    }).filter(s => s.isAvailable) // Mostra solo quelli disponibili
-                    .sort((a,b) => b.price - a.price);
-
-                    setSubscriptions(allSubs);
-
-                } else {
-                     toast({ title: "Errore di configurazione", description: "Impostazioni delle attività non trovate.", variant: "destructive" });
-                     setSubscriptions([]);
-                }
+                setAvailableSubscriptions(allSubs);
 
             } catch (error) {
                 console.error("Error fetching subscriptions data:", error);
@@ -518,7 +501,6 @@ export default function SubscriptionsPage() {
     };
     
     const handlePaymentSubmit = (method: PaymentMethod) => {
-        setPaymentMethod(method);
         switch (method) {
             case 'online':
                 if (selectedSubscription?.sumupLink) {
@@ -540,18 +522,10 @@ export default function SubscriptionsPage() {
         setIsBankTransferDialogOpen(false);
         handleConfirmPayment('bank_transfer');
     }
-    
-    const handleBack = () => {
-        if (step > 1) {
-            setStep(prev => prev - 1);
-        } else {
-            router.push('/dashboard');
-        }
-    }
 
     const handleConfirmPayment = async (finalPaymentMethod: PaymentMethod) => {
-        if (!user || !selectedSubscription || !activitySettings) {
-            toast({ title: "Errore", description: "Dati utente, abbonamento o impostazioni non validi.", variant: "destructive" });
+        if (!user || !selectedSubscription) {
+            toast({ title: "Errore", description: "Dati utente o abbonamento non validi.", variant: "destructive" });
             return;
         }
         
@@ -568,13 +542,16 @@ export default function SubscriptionsPage() {
                 paymentMethod: finalPaymentMethod,
                 relatedId: selectedSubscription.id,
             });
-
-            // Calcola la data di scadenza
+            
             let expiryDate: Date;
             if (selectedSubscription.type === 'seasonal') {
-                expiryDate = activitySettings.endDate.toDate();
-            } else { // monthly
-                expiryDate = lastDayOfMonth(new Date());
+                const settingsDocRef = doc(db, "settings", "activity");
+                const settingsDocSnap = await getDoc(settingsDocRef);
+                if (!settingsDocSnap.exists()) throw new Error("Activity settings not found");
+                expiryDate = (settingsDocSnap.data() as {endDate: Timestamp}).endDate.toDate();
+            } else {
+                const target = selectedSubscription.targetDate || new Date();
+                expiryDate = endOfMonth(target);
             }
 
             const userDocRef = doc(db, "users", user.uid);
@@ -596,7 +573,6 @@ export default function SubscriptionsPage() {
                 description: `La tua richiesta per l'abbonamento ${selectedSubscription.name} è in fase di verifica.`,
             });
             
-            // Ricarica la pagina per riflettere il nuovo stato
             window.location.reload(); 
 
         } catch (error) {
@@ -615,28 +591,22 @@ export default function SubscriptionsPage() {
         );
     }
     
-    let showPurchaseOptions = true;
-    
-    if (userSubscription && (userSubscription.status === 'active' || userSubscription.status === 'pending')) {
-        showPurchaseOptions = false;
-    }
+    const hasActiveOrPendingSubscription = userData?.subscriptionAccessStatus === 'active' || userData?.subscriptionAccessStatus === 'pending';
 
 
     return (
         <div className="flex w-full flex-col items-center justify-center space-y-8">
             
-             {userSubscription && (
-                <SubscriptionStatusCard userSubscription={userSubscription} />
+             {userData && (userData.subscriptionAccessStatus) && (
+                <SubscriptionStatusCard userData={userData} />
             )}
 
-            {showPurchaseOptions && (
+            {!hasActiveOrPendingSubscription && (
               <>
                 {step === 1 && (
                      <SubscriptionSelectionStep
-                        subscriptions={subscriptions}
+                        subscriptions={availableSubscriptions}
                         onSelect={handleSelectSubscription}
-                        onBack={() => router.push('/dashboard')}
-                        userSubscription={userSubscription}
                     />
                 )}
                 {step === 2 && selectedSubscription && (

@@ -125,15 +125,21 @@ export default function AdminSubscriptionsPage() {
 
     const handleSaveSubscription = async (data: SubscriptionFormData) => {
         setIsSubmitting(true);
-        const subData: Omit<Subscription, 'id'> = {
+        
+        const subData: { [key: string]: any } = {
             name: data.name,
             description: data.description,
             price: data.price,
             type: data.type,
             sumupLink: data.sumupLink || '',
-            purchaseStartDate: data.purchaseStartDate ? Timestamp.fromDate(data.purchaseStartDate) : undefined,
-            purchaseEndDate: data.purchaseEndDate ? Timestamp.fromDate(data.purchaseEndDate) : undefined,
         };
+
+        if (data.purchaseStartDate) {
+            subData.purchaseStartDate = Timestamp.fromDate(data.purchaseStartDate);
+        }
+        if (data.purchaseEndDate) {
+            subData.purchaseEndDate = Timestamp.fromDate(data.purchaseEndDate);
+        }
 
         try {
             if (editingSubscription) {
