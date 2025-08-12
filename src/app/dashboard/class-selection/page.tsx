@@ -283,7 +283,7 @@ function GymSelectionStep({ onNext }: { onNext: (data: GymSelectionData) => void
                     <h3 className="text-lg font-semibold">La tua scelta</h3>
                      <dl className="space-y-2">
                         <DataRow label="Disciplina" value={userDiscipline} icon={<Sparkles size={16} />} />
-                        <DataRow label="Palestra" value={`${userGymId}, ${userGymName}`} icon={<Building size={16} />} />
+                        <DataRow label="Palestra" value={userGymId ? `${userGymId} - ${userGymName}` : ''} icon={<Building size={16} />} />
                         <DataRow label="Orario Lezioni" value={selectionLessonsSchedule} icon={<CalendarClock size={16} />} />
                      </dl>
                 </div>
@@ -454,7 +454,7 @@ function ConfirmationStep({
                     <dl className="space-y-3">
                         <DataRow label="Disciplina" value={gymSelection.discipline} icon={<Sparkles size={16} />} />
                         <DataRow label="Grado" value={lastGrade} icon={<Sparkles size={16} />} />
-                        <DataRow label="Palestra" value={gymSelection.gymName} icon={<Building size={16} />} />
+                        <DataRow label="Palestra" value={`${gymSelection.gymId} - ${gymSelection.gymName}`} icon={<Building size={16} />} />
                         {gymSelection.trialLessons.map((lesson, index) => (
                            <DataRow 
                                 key={index}

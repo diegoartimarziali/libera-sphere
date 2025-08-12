@@ -348,7 +348,7 @@ export default function AdminPaymentsPage() {
                                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
                                                 <span>{profile.email}</span>
                                                 {profile.discipline && <span>{profile.discipline}</span>}
-                                                {profile.gym && <span>{gyms.get(profile.gym)}</span>}
+                                                {profile.gym && <span>{profile.gym} - {gyms.get(profile.gym)}</span>}
                                             </div>
                                         </div>
                                     </AccordionTrigger>

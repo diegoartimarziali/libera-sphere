@@ -263,7 +263,9 @@ export default function AdminSubscriptionsPage() {
                                     subscriptions.map((sub) => (
                                         <TableRow key={sub.id}>
                                             <TableCell className="font-medium">{sub.name}</TableCell>
-                                            <TableCell>{sub.gymId ? gymsMap.get(sub.gymId) : 'Tutte le Palestre'}</TableCell>
+                                            <TableCell>
+                                                {sub.gymId ? `${sub.gymId} - ${gymsMap.get(sub.gymId)}` : 'Tutte le Palestre'}
+                                            </TableCell>
                                             <TableCell><Badge variant={sub.type === 'monthly' ? 'secondary' : 'default'}>{sub.type === 'monthly' ? 'Mensile' : 'Stagionale'}</Badge></TableCell>
                                             <TableCell>{(sub.totalPrice || 0).toFixed(2)} €</TableCell>
                                             <TableCell>

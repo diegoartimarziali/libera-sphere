@@ -281,7 +281,7 @@ export default function AdminAwardsPage() {
      const handleDeleteAward = async (awardId: string) => {
         try {
              await deleteDoc(doc(db, "awards", awardId));
-             toast({ title: "Premio eliminato", variant: "success" });
+             toast({ title: "Premio eliminato" });
              await fetchAwards();
         } catch (error) {
             console.error("Error deleting award:", error);
@@ -321,7 +321,14 @@ export default function AdminAwardsPage() {
                                 awards.map((award) => (
                                     <TableRow key={award.id}>
                                         <TableCell className="font-medium">{award.name}</TableCell>
-                                        <TableCell>{award.gymIds && award.gymIds.length > 0 ? award.gymIds.map(id => allGyms.find(g => g.id === id)?.name || id).join(', ') : 'Tutte'}</TableCell>
+                                        <TableCell>
+                                            {award.gymIds && award.gymIds.length > 0 
+                                                ? award.gymIds.map(id => {
+                                                    const gym = allGyms.find(g => g.id === id);
+                                                    return gym ? `${gym.id} - ${gym.name}` : id;
+                                                  }).join(', ') 
+                                                : 'Tutte'}
+                                        </TableCell>
                                         <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
                                         <TableCell className="font-bold">{typeof award.value === 'number' ? `${award.value.toFixed(2)} €` : 'N/A'}</TableCell>
                                         <TableCell className="text-right space-x-1">
