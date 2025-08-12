@@ -672,7 +672,6 @@ export default function ClassSelectionPage() {
             const batch = writeBatch(db);
             const userDocRef = doc(db, "users", user.uid);
             
-            // Check if a pending trial payment already exists
             const paymentsRef = collection(db, 'users', user.uid, 'payments');
             const q = query(paymentsRef, where('type', '==', 'trial'), where('status', '==', 'pending'), limit(1));
             const existingPaymentSnap = await getDocs(q);
@@ -693,14 +692,14 @@ export default function ClassSelectionPage() {
                 trialExpiryDate: trialExpiryDate || null,
             });
 
-            // Logic for awarding prizes
+            // Logica per assegnare premio di benvenuto
             const gymName = gyms.get(gymSelection.gymId)?.name.toLowerCase() || '';
             let awardToAssign: Award | undefined;
             
-            if (gymName.includes('villeneuve') || gymName.includes('aosta')) {
-                awardToAssign = awards.find(a => a.name === "Premio Frequenza 1");
-            } else if (gymName.includes('verres')) {
-                awardToAssign = awards.find(a => a.name === "Premio Frequenza 2");
+            if (gymName.includes('verres')) {
+                awardToAssign = awards.find(a => a.name.includes("3 Lezioni"));
+            } else if (gymName.includes('aosta') || gymName.includes('villeneuve')) {
+                awardToAssign = awards.find(a => a.name.includes("5 Lezioni"));
             }
 
             if (awardToAssign) {
