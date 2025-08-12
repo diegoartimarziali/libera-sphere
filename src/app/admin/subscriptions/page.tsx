@@ -324,13 +324,16 @@ export default function AdminSubscriptionsPage() {
                             )} />
 
                              {subscriptionType === 'seasonal' && activitySettings && (
-                                <Alert variant="info">
-                                    <Calendar className="h-4 w-4" />
-                                    <AlertTitle>Validità Stagione</AlertTitle>
-                                    <AlertDescription>
-                                        L'abbonamento sarà valido dal <strong className="font-semibold">{activitySettings.startDate ? format(activitySettings.startDate.toDate(), 'dd/MM/yyyy') : 'N/D'}</strong> al <strong className="font-semibold">{activitySettings.endDate ? format(activitySettings.endDate.toDate(), 'dd/MM/yyyy') : 'N/D'}</strong>.
-                                    </AlertDescription>
-                                </Alert>
+                                <div className="space-y-2">
+                                    <FormLabel>Validità Stagione</FormLabel>
+                                    <div className="flex items-center gap-2 text-sm p-3 rounded-md border bg-muted">
+                                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                                        <span className="text-muted-foreground">Dal</span>
+                                        <span className="font-semibold text-foreground">{activitySettings.startDate ? format(activitySettings.startDate.toDate(), 'dd/MM/yyyy') : 'N/D'}</span>
+                                        <span className="text-muted-foreground">al</span>
+                                        <span className="font-semibold text-foreground">{activitySettings.endDate ? format(activitySettings.endDate.toDate(), 'dd/MM/yyyy') : 'N/D'}</span>
+                                    </div>
+                                </div>
                             )}
                             
                             <div className="space-y-2">
@@ -370,5 +373,3 @@ export default function AdminSubscriptionsPage() {
         </Card>
     );
 }
-
-    
