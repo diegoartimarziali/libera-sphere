@@ -1,6 +1,5 @@
 # apphosting.yaml
 framework: next.js
-source: .
 
 build:
   command: npm run build
