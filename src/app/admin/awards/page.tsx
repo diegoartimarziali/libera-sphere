@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -19,14 +19,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 interface Award {
     id: string;
     name: string;
     gymId?: string;
     lessonsCount?: number;
-    pricePerLesson?: number;
     value?: number;
+    lessonValues?: number[]; // Array per i valori delle singole lezioni
 }
 
 interface Gym {
@@ -36,9 +37,62 @@ interface Gym {
 
 const awardFormSchema = z.object({
     name: z.string().min(1, "La selezione del tipo di premio è obbligatoria."),
+    lessonsCount: z.number().optional(),
+    lessonValues: z.array(z.number().nonnegative("Il valore non può essere negativo.")).optional(),
+    total: z.number().optional(),
 });
 
 type AwardFormData = z.infer<typeof awardFormSchema>;
+
+const BonusFields = ({ control, lessonCount }: { control: any, lessonCount: number }) => {
+    const lessonValues = useWatch({ control, name: 'lessonValues' }) || [];
+    const total = lessonValues.reduce((acc: number, val: number | string) => acc + (Number(val) || 0), 0);
+
+    return (
+        <div className="space-y-4 rounded-md border p-4">
+             <FormField
+                control={control}
+                name="lessonsCount"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Numero di Lezioni</FormLabel>
+                    <FormControl>
+                        <Input type="number" {...field} readOnly disabled />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            {Array.from({ length: lessonCount }).map((_, index) => (
+                 <FormField
+                    key={index}
+                    control={control}
+                    name={`lessonValues.${index}`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Valore Lezione {index + 1} (€)</FormLabel>
+                            <FormControl>
+                                <Input 
+                                    type="number" 
+                                    step="0.01" 
+                                    placeholder="0.00"
+                                    {...field}
+                                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                            </FormControl>
+                             <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            ))}
+             <div className="pt-2 text-right">
+                <p className="text-sm text-muted-foreground">Valore Totale del Bonus:</p>
+                <p className="text-xl font-bold">{total.toFixed(2)} €</p>
+            </div>
+        </div>
+    )
+}
+
 
 export default function AdminAwardsPage() {
     const { toast } = useToast();
@@ -54,8 +108,28 @@ export default function AdminAwardsPage() {
 
     const form = useForm<AwardFormData>({
         resolver: zodResolver(awardFormSchema),
-        defaultValues: { name: '' }
+        defaultValues: { 
+            name: '',
+            lessonsCount: 0,
+            lessonValues: [],
+            total: 0
+        }
     });
+    
+    const selectedAwardType = form.watch('name');
+
+    useEffect(() => {
+        if (selectedAwardType?.includes('3 Lezioni')) {
+            form.setValue('lessonsCount', 3);
+            form.setValue('lessonValues', Array(3).fill(0));
+        } else if (selectedAwardType?.includes('5 Lezioni')) {
+            form.setValue('lessonsCount', 5);
+             form.setValue('lessonValues', Array(5).fill(0));
+        } else {
+            form.setValue('lessonsCount', undefined);
+            form.setValue('lessonValues', undefined);
+        }
+    }, [selectedAwardType, form]);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -106,14 +180,41 @@ export default function AdminAwardsPage() {
         setEditingAward(award);
         form.reset({ 
             name: award.name,
+            lessonsCount: award.lessonsCount,
+            lessonValues: award.lessonValues
         });
         setIsFormOpen(true);
     };
 
     const handleSaveAward = async (data: AwardFormData) => {
-        // La logica di salvataggio sarà implementata nei prossimi passi
-        console.log("Dati da salvare:", data);
-        toast({ title: "Logica da implementare", description: "La creazione del premio sarà completata in futuro."});
+        setIsSubmitting(true);
+        try {
+            const totalValue = data.lessonValues?.reduce((acc, val) => acc + (val || 0), 0) || 0;
+            
+            const awardData = {
+                name: data.name,
+                lessonsCount: data.lessonsCount,
+                lessonValues: data.lessonValues,
+                value: totalValue,
+            };
+
+            if (editingAward) {
+                const awardRef = doc(db, "awards", editingAward.id);
+                await updateDoc(awardRef, awardData);
+                toast({ title: "Premio aggiornato!" });
+            } else {
+                await addDoc(collection(db, "awards"), awardData);
+                toast({ title: "Premio creato!" });
+            }
+
+            await fetchAwards();
+            setIsFormOpen(false);
+        } catch (error) {
+            console.error("Error saving award:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile salvare il premio." });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
     
      const handleDeleteAward = async (awardId: string) => {
@@ -146,23 +247,19 @@ export default function AdminAwardsPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nome Premio</TableHead>
-                                <TableHead>Palestra</TableHead>
                                 <TableHead>N. Lezioni</TableHead>
-                                <TableHead>Valore Lezione</TableHead>
                                 <TableHead>Valore Totale</TableHead>
                                 <TableHead className="w-[180px] text-right">Azioni</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
-                                <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                             ) : awards.length > 0 ? (
                                 awards.map((award) => (
                                     <TableRow key={award.id}>
                                         <TableCell className="font-medium">{award.name}</TableCell>
-                                        <TableCell>{award.gymId ? gymsMap.get(award.gymId) || award.gymId : 'Tutte'}</TableCell>
                                         <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
-                                        <TableCell>{typeof award.pricePerLesson === 'number' ? `${award.pricePerLesson.toFixed(2)} €` : 'N/A'}</TableCell>
                                         <TableCell className="font-bold">{typeof award.value === 'number' ? `${award.value.toFixed(2)} €` : 'N/A'}</TableCell>
                                         <TableCell className="text-right space-x-1">
                                             <Button variant="outline" size="sm" onClick={() => openEditForm(award)}>Modifica</Button>
@@ -189,7 +286,7 @@ export default function AdminAwardsPage() {
                                     </TableRow>
                                 ))
                             ) : (
-                                <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Nessun premio trovato. Creane uno per iniziare.</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground">Nessun premio trovato. Creane uno per iniziare.</TableCell></TableRow>
                             )}
                         </TableBody>
                     </Table>
@@ -229,6 +326,13 @@ export default function AdminAwardsPage() {
                                 </FormItem>
                                 )}
                             />
+
+                            {selectedAwardType === 'Bonus di Inizio Percorso 3 Lezioni' && (
+                                <BonusFields control={form.control} lessonCount={3} />
+                            )}
+                             {selectedAwardType === 'Bonus di Inizio Percorso 5 Lezioni' && (
+                                <BonusFields control={form.control} lessonCount={5} />
+                            )}
                             
                             <DialogFooter>
                                 <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annulla</Button>
