@@ -213,7 +213,7 @@ export default function AdminAwardsPage() {
                                             <TableCell>{award.gymId ? gymsMap.get(award.gymId) || award.gymId : 'Tutte'}</TableCell>
                                             <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
                                             <TableCell>{award.pricePerLesson?.toFixed(2) || 'N/A'} €</TableCell>
-                                            <TableCell className="font-bold">{award.value.toFixed(2)} €</TableCell>
+                                            <TableCell className="font-bold">{(award.value || 0).toFixed(2)} €</TableCell>
                                             <TableCell className="text-right space-x-1">
                                                 <Button variant="outline" size="sm" onClick={() => openEditForm(award)}>Modifica</Button>
                                                 <AlertDialog>
@@ -297,4 +297,6 @@ export default function AdminAwardsPage() {
         </div>
     );
 }
+    
+
     
