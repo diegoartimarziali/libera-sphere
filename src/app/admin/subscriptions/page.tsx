@@ -15,8 +15,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Loader2, PlusCircle, Trash2, Edit } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -24,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface Gym {
     id: string;
@@ -33,12 +32,11 @@ interface Gym {
 interface Subscription {
     id: string;
     name: string;
-    description: string;
     type: 'monthly' | 'seasonal';
-    gymIds?: string[]; // Campo per ID multipli
+    gymIds?: string[];
     lessonsPerMonth: number;
     pricePerLesson: number;
-    totalPrice: number; // Campo calcolato
+    totalPrice: number;
     sumupLink: string;
     purchaseStartDate?: Timestamp;
     purchaseEndDate?: Timestamp;
@@ -47,7 +45,6 @@ interface Subscription {
 const subscriptionFormSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(3, "Il nome è obbligatorio."),
-    description: z.string().min(3, "La descrizione è obbligatoria."),
     type: z.enum(['monthly', 'seasonal'], { required_error: "La tipologia è obbligatoria." }),
     gymIds: z.array(z.string()).optional(),
     lessonsPerMonth: z.preprocess((val) => Number(val), z.number().min(1, "Deve esserci almeno 1 lezione.").max(30, "Massimo 30 lezioni.")),
@@ -81,7 +78,6 @@ export default function AdminSubscriptionsPage() {
         resolver: zodResolver(subscriptionFormSchema),
         defaultValues: {
             name: '',
-            description: '',
             type: 'monthly',
             gymIds: [],
             lessonsPerMonth: 4,
@@ -93,11 +89,15 @@ export default function AdminSubscriptionsPage() {
     const lessonsPerMonth = form.watch('lessonsPerMonth');
     const pricePerLesson = form.watch('pricePerLesson');
     const totalPrice = (lessonsPerMonth || 0) * (pricePerLesson || 0);
-
     const subscriptionType = form.watch('type');
-    const descriptionPlaceholder = subscriptionType === 'seasonal'
-        ? "Abbraccia l'intera stagione sportiva. Questo piano ti garantisce l'accesso a tutti i corsi, per un percorso di crescita completo e senza interruzioni fino alla fine. La scelta definitiva per chi non si ferma mai."
-        : "Dedica un mese alla tua crescita. Con questo abbonamento, hai la libertà di seguire il tuo percorso nel Dojo, lezione dopo lezione, per un mese di pura pratica. Rinnova la tua energia, affina la tua tecnica.";
+
+    useEffect(() => {
+        // Quando il tipo di abbonamento cambia a 'seasonal', svuota gli ID delle palestre
+        // perché la selezione non è visibile/applicabile
+        if (subscriptionType === 'seasonal') {
+            form.setValue('gymIds', []);
+        }
+    }, [subscriptionType, form]);
 
 
     const fetchInitialData = async () => {
@@ -141,7 +141,6 @@ export default function AdminSubscriptionsPage() {
         setEditingSubscription(null);
         form.reset({
             name: '',
-            description: '',
             type: 'monthly',
             gymIds: [],
             lessonsPerMonth: 4,
@@ -158,7 +157,6 @@ export default function AdminSubscriptionsPage() {
         form.reset({
             id: sub.id,
             name: sub.name,
-            description: sub.description,
             type: sub.type,
             gymIds: sub.gymIds || [],
             lessonsPerMonth: sub.lessonsPerMonth,
@@ -175,9 +173,8 @@ export default function AdminSubscriptionsPage() {
         
         const subData: { [key: string]: any } = {
             name: data.name,
-            description: data.description,
             type: data.type,
-            gymIds: data.gymIds || [],
+            gymIds: data.type === 'monthly' ? (data.gymIds || []) : [],
             lessonsPerMonth: data.lessonsPerMonth,
             pricePerLesson: data.pricePerLesson,
             totalPrice: data.lessonsPerMonth * data.pricePerLesson,
@@ -321,60 +318,58 @@ export default function AdminSubscriptionsPage() {
                             <FormField control={form.control} name="name" render={({ field }) => (
                                 <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
-                            
-                            <div className="space-y-2 rounded-md border p-4">
-                                <FormLabel>Palestre Associate</FormLabel>
-                                <p className="text-sm text-muted-foreground">Seleziona le palestre per cui questo abbonamento è valido. Lascia deselezionato per renderlo valido per tutte.</p>
-                                <FormField
-                                    control={form.control}
-                                    name="gymIds"
-                                    render={() => (
-                                        <FormItem className="space-y-2 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                        {gyms.map((gym) => (
-                                            <FormField
-                                            key={gym.id}
-                                            control={form.control}
-                                            name="gymIds"
-                                            render={({ field }) => {
-                                                return (
-                                                <FormItem
-                                                    key={gym.id}
-                                                    className="flex flex-row items-start space-x-3 space-y-0"
-                                                >
-                                                    <FormControl>
-                                                    <Checkbox
-                                                        checked={field.value?.includes(gym.id)}
-                                                        onCheckedChange={(checked) => {
-                                                        return checked
-                                                            ? field.onChange([...(field.value || []), gym.id])
-                                                            : field.onChange(
-                                                                (field.value || []).filter(
-                                                                (value) => value !== gym.id
-                                                                )
-                                                            )
-                                                        }}
-                                                    />
-                                                    </FormControl>
-                                                    <FormLabel className="font-normal">
-                                                        {gym.id} - {gym.name}
-                                                    </FormLabel>
-                                                </FormItem>
-                                                )
-                                            }}
-                                            />
-                                        ))}
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-
-                             <FormField control={form.control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel>Descrizione (visibile all'utente)</FormLabel><FormControl><Textarea {...field} placeholder={descriptionPlaceholder} /></FormControl><FormMessage /></FormItem>
-                            )} />
 
                              <FormField control={form.control} name="type" render={({ field }) => (
                                 <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="monthly">Mensile</SelectItem><SelectItem value="seasonal">Stagionale</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                             )} />
+
+                            {subscriptionType === 'monthly' && (
+                                <div className="space-y-2 rounded-md border p-4">
+                                    <FormLabel>Palestre Associate</FormLabel>
+                                    <p className="text-sm text-muted-foreground">Seleziona le palestre per cui questo abbonamento è valido. Lascia deselezionato per renderlo valido per tutte.</p>
+                                    <FormField
+                                        control={form.control}
+                                        name="gymIds"
+                                        render={() => (
+                                            <FormItem className="space-y-2 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                                            {gyms.map((gym) => (
+                                                <FormField
+                                                key={gym.id}
+                                                control={form.control}
+                                                name="gymIds"
+                                                render={({ field }) => {
+                                                    return (
+                                                    <FormItem
+                                                        key={gym.id}
+                                                        className="flex flex-row items-start space-x-3 space-y-0"
+                                                    >
+                                                        <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value?.includes(gym.id)}
+                                                            onCheckedChange={(checked) => {
+                                                            return checked
+                                                                ? field.onChange([...(field.value || []), gym.id])
+                                                                : field.onChange(
+                                                                    (field.value || []).filter(
+                                                                    (value) => value !== gym.id
+                                                                    )
+                                                                )
+                                                            }}
+                                                        />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">
+                                                            {gym.id} - {gym.name}
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                    )
+                                                }}
+                                                />
+                                            ))}
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            )}
                             
                              <div className="space-y-2 rounded-md border p-4">
                                 <h4 className="text-sm font-medium">Calcolo Prezzo</h4>
@@ -424,5 +419,3 @@ export default function AdminSubscriptionsPage() {
         </Card>
     );
 }
-
-    
