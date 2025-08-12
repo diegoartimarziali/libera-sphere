@@ -34,8 +34,8 @@ interface Subscription {
     name: string;
     type: 'monthly' | 'seasonal';
     gymIds?: string[];
-    lessonsPerMonth: number;
-    pricePerLesson: number;
+    lessonsPerMonth?: number;
+    pricePerLesson?: number;
     totalPrice: number;
     sumupLink: string;
     purchaseStartDate?: Timestamp;
@@ -47,8 +47,8 @@ const subscriptionFormSchema = z.object({
     name: z.string().min(3, "Il nome è obbligatorio."),
     type: z.enum(['monthly', 'seasonal'], { required_error: "La tipologia è obbligatoria." }),
     gymIds: z.array(z.string()).optional(),
-    totalPrice: z.preprocess((val) => Number(val), z.number().min(0, "Il prezzo non può essere negativo.")),
-    lessonsPerMonth: z.preprocess((val) => Number(val), z.number().min(1, "Deve esserci almeno 1 lezione.").max(30, "Massimo 30 lezioni.")),
+    totalPrice: z.preprocess((val) => Number(String(val).replace(',', '.')), z.number().min(0, "Il prezzo non può essere negativo.")),
+    lessonsPerMonth: z.preprocess((val) => Number(String(val)), z.number().min(1, "Deve esserci almeno 1 lezione.").max(30, "Massimo 30 lezioni.").optional()),
     sumupLink: z.string().url("Deve essere un URL SumUp valido.").optional().or(z.literal('')),
     purchaseStartDate: z.date().optional(),
     purchaseEndDate: z.date().optional(),
@@ -81,14 +81,10 @@ export default function AdminSubscriptionsPage() {
             type: 'monthly',
             gymIds: [],
             totalPrice: 0,
-            lessonsPerMonth: 4,
             sumupLink: '',
         }
     });
     
-    const totalPrice = form.watch('totalPrice');
-    const lessonsPerMonth = form.watch('lessonsPerMonth');
-    const pricePerLesson = (totalPrice || 0) / (lessonsPerMonth || 1);
     const subscriptionType = form.watch('type');
 
     useEffect(() => {
@@ -142,7 +138,6 @@ export default function AdminSubscriptionsPage() {
             type: 'monthly',
             gymIds: [],
             totalPrice: 0,
-            lessonsPerMonth: 4,
             sumupLink: '',
             purchaseStartDate: undefined,
             purchaseEndDate: undefined
@@ -174,10 +169,16 @@ export default function AdminSubscriptionsPage() {
             type: data.type,
             gymIds: data.type === 'monthly' ? (data.gymIds || []) : [],
             totalPrice: data.totalPrice,
-            lessonsPerMonth: data.lessonsPerMonth,
-            pricePerLesson: data.totalPrice / data.lessonsPerMonth,
             sumupLink: data.sumupLink || '',
         };
+        
+        if (data.type === 'monthly' && data.lessonsPerMonth) {
+            subData.lessonsPerMonth = data.lessonsPerMonth;
+            subData.pricePerLesson = data.totalPrice / data.lessonsPerMonth;
+        } else {
+            subData.lessonsPerMonth = null;
+            subData.pricePerLesson = null;
+        }
 
         if (data.purchaseStartDate) {
             subData.purchaseStartDate = Timestamp.fromDate(data.purchaseStartDate);
@@ -370,23 +371,17 @@ export default function AdminSubscriptionsPage() {
                             )}
                             
                              <div className="space-y-2 rounded-md border p-4">
-                                <h4 className="text-sm font-medium">Calcolo Prezzo</h4>
+                                <h4 className="text-sm font-medium">Prezzo</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                      <FormField control={form.control} name="totalPrice" render={({ field }) => (
                                         <FormItem><FormLabel>Prezzo Totale Abbonamento (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                      {subscriptionType === 'monthly' && (
                                         <FormField control={form.control} name="lessonsPerMonth" render={({ field }) => (
-                                            <FormItem><FormLabel>Lezioni nel mese</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>Lezioni nel mese (opzionale)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                      )}
                                 </div>
-                                 {subscriptionType === 'monthly' && (
-                                    <div className="pt-2 text-right">
-                                        <p className="text-sm text-muted-foreground">Costo per Lezione Calcolato:</p>
-                                        <p className="text-xl font-bold">{isFinite(pricePerLesson) ? pricePerLesson.toFixed(2) : '0.00'} €</p>
-                                    </div>
-                                 )}
                             </div>
 
 
