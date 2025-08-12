@@ -187,7 +187,7 @@ export default function AdminAwardsPage() {
                                         <TableCell>{award.gymId ? gymsMap.get(award.gymId) || award.gymId : 'Tutte'}</TableCell>
                                         <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
                                         <TableCell>{typeof award.pricePerLesson === 'number' ? `${award.pricePerLesson.toFixed(2)} €` : 'N/A'}</TableCell>
-                                        <TableCell className="font-bold">{award.value !== undefined ? `${award.value.toFixed(2)} €` : 'N/A'}</TableCell>
+                                        <TableCell className="font-bold">{typeof award.value === 'number' ? `${award.value.toFixed(2)} €` : 'N/A'}</TableCell>
                                         <TableCell className="text-right space-x-1">
                                             <Button variant="outline" size="sm" onClick={() => openEditForm(award)}>Modifica</Button>
                                             <AlertDialog>
