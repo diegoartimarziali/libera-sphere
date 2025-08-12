@@ -24,12 +24,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
+interface Gym {
+    id: string;
+    name: string;
+}
+
 interface Subscription {
     id: string;
     name: string;
     description: string;
-    price: number;
     type: 'monthly' | 'seasonal';
+    gymId: string;
+    lessonsPerMonth: number;
+    pricePerLesson: number;
+    totalPrice: number; // Campo calcolato
     sumupLink: string;
     purchaseStartDate?: Timestamp;
     purchaseEndDate?: Timestamp;
@@ -39,8 +47,10 @@ const subscriptionFormSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(3, "Il nome è obbligatorio."),
     description: z.string().min(3, "La descrizione è obbligatoria."),
-    price: z.preprocess((val) => Number(val), z.number().min(0, "Il prezzo non può essere negativo.")),
     type: z.enum(['monthly', 'seasonal'], { required_error: "La tipologia è obbligatoria." }),
+    gymId: z.string({ required_error: "La palestra è obbligatoria."}),
+    lessonsPerMonth: z.preprocess((val) => Number(val), z.number().min(1, "Deve esserci almeno 1 lezione.").max(30, "Massimo 30 lezioni.")),
+    pricePerLesson: z.preprocess((val) => Number(val), z.number().min(0, "Il prezzo non può essere negativo.")),
     sumupLink: z.string().url("Deve essere un URL SumUp valido.").optional().or(z.literal('')),
     purchaseStartDate: z.date().optional(),
     purchaseEndDate: z.date().optional(),
@@ -61,6 +71,8 @@ export default function AdminSubscriptionsPage() {
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+    const [gyms, setGyms] = useState<Gym[]>([]);
+    const [gymsMap, setGymsMap] = useState<Map<string, string>>(new Map());
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
 
@@ -69,14 +81,40 @@ export default function AdminSubscriptionsPage() {
         defaultValues: {
             name: '',
             description: '',
-            price: 0,
             type: 'monthly',
+            gymId: '',
+            lessonsPerMonth: 4,
+            pricePerLesson: 0,
             sumupLink: '',
         }
     });
+    
+    const lessonsPerMonth = form.watch('lessonsPerMonth');
+    const pricePerLesson = form.watch('pricePerLesson');
+    const totalPrice = (lessonsPerMonth || 0) * (pricePerLesson || 0);
+
+
+    const fetchInitialData = async () => {
+        setLoading(true);
+        try {
+            const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
+            const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
+            setGyms(gymsList);
+            const newGymsMap = new Map<string, string>();
+            gymsList.forEach(gym => newGymsMap.set(gym.id, gym.name));
+            setGymsMap(newGymsMap);
+            
+            await fetchSubscriptions();
+
+        } catch (error) {
+            console.error("Error fetching initial data: ", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i dati." });
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchSubscriptions = async () => {
-        setLoading(true);
         try {
             const q = query(collection(db, "subscriptions"), orderBy("name"));
             const querySnapshot = await getDocs(q);
@@ -85,22 +123,22 @@ export default function AdminSubscriptionsPage() {
         } catch (error) {
             console.error("Error fetching subscriptions: ", error);
             toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare gli abbonamenti." });
-        } finally {
-            setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchSubscriptions();
-    }, [toast]);
+        fetchInitialData();
+    }, []);
 
     const openCreateForm = () => {
         setEditingSubscription(null);
         form.reset({
             name: '',
             description: '',
-            price: 0,
             type: 'monthly',
+            gymId: '',
+            lessonsPerMonth: 4,
+            pricePerLesson: 0,
             sumupLink: '',
             purchaseStartDate: undefined,
             purchaseEndDate: undefined
@@ -114,8 +152,10 @@ export default function AdminSubscriptionsPage() {
             id: sub.id,
             name: sub.name,
             description: sub.description,
-            price: sub.price,
             type: sub.type,
+            gymId: sub.gymId,
+            lessonsPerMonth: sub.lessonsPerMonth,
+            pricePerLesson: sub.pricePerLesson,
             sumupLink: sub.sumupLink,
             purchaseStartDate: sub.purchaseStartDate?.toDate(),
             purchaseEndDate: sub.purchaseEndDate?.toDate(),
@@ -129,8 +169,11 @@ export default function AdminSubscriptionsPage() {
         const subData: { [key: string]: any } = {
             name: data.name,
             description: data.description,
-            price: data.price,
             type: data.type,
+            gymId: data.gymId,
+            lessonsPerMonth: data.lessonsPerMonth,
+            pricePerLesson: data.pricePerLesson,
+            totalPrice: data.lessonsPerMonth * data.pricePerLesson,
             sumupLink: data.sumupLink || '',
         };
 
@@ -194,8 +237,9 @@ export default function AdminSubscriptionsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Nome</TableHead>
+                                    <TableHead>Palestra</TableHead>
                                     <TableHead>Tipo</TableHead>
-                                    <TableHead>Prezzo</TableHead>
+                                    <TableHead>Prezzo Totale</TableHead>
                                     <TableHead>Periodo Acquisto</TableHead>
                                     <TableHead className="text-right">Azioni</TableHead>
                                 </TableRow>
@@ -205,8 +249,9 @@ export default function AdminSubscriptionsPage() {
                                     subscriptions.map((sub) => (
                                         <TableRow key={sub.id}>
                                             <TableCell className="font-medium">{sub.name}</TableCell>
+                                            <TableCell>{gymsMap.get(sub.gymId) || sub.gymId}</TableCell>
                                             <TableCell><Badge variant={sub.type === 'monthly' ? 'secondary' : 'default'}>{sub.type === 'monthly' ? 'Mensile' : 'Stagionale'}</Badge></TableCell>
-                                            <TableCell>{sub.price.toFixed(2)} €</TableCell>
+                                            <TableCell>{sub.totalPrice.toFixed(2)} €</TableCell>
                                             <TableCell>
                                                 {sub.purchaseStartDate && sub.purchaseEndDate
                                                     ? `${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} - ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`
@@ -244,7 +289,7 @@ export default function AdminSubscriptionsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                                             Nessun abbonamento trovato. Creane uno per iniziare.
                                         </TableCell>
                                     </TableRow>
@@ -270,13 +315,37 @@ export default function AdminSubscriptionsPage() {
                             )} />
 
                             <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="price" render={({ field }) => (
-                                    <FormItem><FormLabel>Prezzo (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
-                                )} />
                                 <FormField control={form.control} name="type" render={({ field }) => (
                                     <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="monthly">Mensile</SelectItem><SelectItem value="seasonal">Stagionale</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                                 )} />
+                                <FormField control={form.control} name="gymId" render={({ field }) => (
+                                    <FormItem><FormLabel>Palestra</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                {gyms.map(gym => <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    <FormMessage /></FormItem>
+                                )} />
                             </div>
+                            
+                             <div className="space-y-2 rounded-md border p-4">
+                                <h4 className="text-sm font-medium">Calcolo Prezzo</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField control={form.control} name="lessonsPerMonth" render={({ field }) => (
+                                        <FormItem><FormLabel>Lezioni nel mese</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="pricePerLesson" render={({ field }) => (
+                                        <FormItem><FormLabel>Prezzo a Lezione (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                </div>
+                                <div className="pt-2 text-right">
+                                    <p className="text-sm text-muted-foreground">Prezzo Totale Calcolato:</p>
+                                    <p className="text-xl font-bold">{totalPrice.toFixed(2)} €</p>
+                                </div>
+                            </div>
+
 
                              <FormField control={form.control} name="sumupLink" render={({ field }) => (
                                 <FormItem><FormLabel>Link Pagamento SumUp (Opzionale)</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
