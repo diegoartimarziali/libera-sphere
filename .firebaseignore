@@ -1,0 +1,22 @@
+# File generati dalla build locale, non necessari su App Hosting
+.next/
+out/
+build/
+
+# Dipendenze, verranno installate sul server
+node_modules/
+
+# File di configurazione e cache degli editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# File di sistema
+.DS_Store
+Thumbs.db
+
+# Log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
