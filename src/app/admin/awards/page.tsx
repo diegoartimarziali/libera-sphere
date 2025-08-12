@@ -37,18 +37,27 @@ interface Gym {
     name: string;
 }
 
+interface Subscription {
+    id: string;
+    name: string;
+    type: 'monthly' | 'seasonal';
+    totalPrice: number;
+}
+
+
 const awardFormSchema = z.object({
     name: z.string().min(1, "La selezione del tipo di premio è obbligatoria."),
     lessonsCount: z.number().optional(),
     lessonValues: z.array(z.number().nonnegative("Il valore non può essere negativo.")).optional(),
     gymIds: z.array(z.string()).optional(),
     total: z.number().optional(),
-    monthlyValue: z.number().optional(), // Nuovo campo
+    monthlyValue: z.number().optional(),
+    subscriptionId: z.string().optional(),
 });
 
 type AwardFormData = z.infer<typeof awardFormSchema>;
 
-const BonusFields = ({ control, lessonCount, form }: { control: any, lessonCount: number, form: any }) => {
+const BonusFields = ({ control, lessonCount, form, subscriptions }: { control: any, lessonCount: number, form: any, subscriptions: Subscription[] }) => {
     const lessonValues = useWatch({ control, name: 'lessonValues' }) || [];
     const monthlyValue = useWatch({ control, name: 'monthlyValue' }) || 0;
     
@@ -76,26 +85,36 @@ const BonusFields = ({ control, lessonCount, form }: { control: any, lessonCount
 
     return (
         <div className="space-y-4 rounded-md border p-4">
-             <FormField
+              <FormField
                 control={control}
-                name="monthlyValue"
+                name="subscriptionId"
                 render={({ field }) => (
                 <FormItem>
-                    <FormLabel>Valore Mensile Totale (€)</FormLabel>
-                     <FormControl>
-                        <Input 
-                            type="number" 
-                            step="0.01"
-                            placeholder="Es. 55.00"
-                            {...field}
-                            onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-                        />
-                    </FormControl>
+                    <FormLabel>Collega ad Abbonamento Mensile</FormLabel>
+                    <Select 
+                        onValueChange={(value) => {
+                            field.onChange(value);
+                            const selectedSub = subscriptions.find(s => s.id === value);
+                            form.setValue('monthlyValue', selectedSub?.totalPrice || 0);
+                        }} 
+                        defaultValue={field.value}
+                    >
+                        <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Seleziona un abbonamento..." />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {subscriptions
+                                .filter(s => s.type === 'monthly')
+                                .map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.totalPrice.toFixed(2)}€)</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                     <FormMessage />
                 </FormItem>
                 )}
             />
-            <div className="text-xs text-muted-foreground">Il valore mensile verrà diviso automaticamente per le lezioni.</div>
+            <div className="text-xs text-muted-foreground">Il valore dell'abbonamento verrà diviso automaticamente per le lezioni.</div>
             
             <FormField
                 control={control}
@@ -104,7 +123,7 @@ const BonusFields = ({ control, lessonCount, form }: { control: any, lessonCount
                 <FormItem>
                     <FormLabel>Numero di Lezioni</FormLabel>
                     <FormControl>
-                        <Input type="number" {...field} readOnly disabled />
+                        <Input type="number" {...field} readOnly disabled className="bg-muted/50" />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
@@ -155,6 +174,8 @@ export default function AdminAwardsPage() {
 
     const [allGyms, setAllGyms] = useState<Gym[]>([]);
     const [gymsMap, setGymsMap] = useState<Map<string, string>>(new Map());
+    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+
 
     const form = useForm<AwardFormData>({
         resolver: zodResolver(awardFormSchema),
@@ -171,6 +192,14 @@ export default function AdminAwardsPage() {
     const selectedAwardType = form.watch('name');
 
     useEffect(() => {
+        const resetBonusFields = () => {
+            form.setValue('lessonsCount', undefined);
+            form.setValue('lessonValues', undefined);
+            form.setValue('gymIds', undefined);
+            form.setValue('monthlyValue', undefined);
+            form.setValue('subscriptionId', undefined);
+        };
+
         if (selectedAwardType?.includes('3 Lezioni')) {
             form.setValue('lessonsCount', 3);
             form.setValue('lessonValues', Array(3).fill(0));
@@ -178,10 +207,7 @@ export default function AdminAwardsPage() {
             form.setValue('lessonsCount', 5);
              form.setValue('lessonValues', Array(5).fill(0));
         } else {
-            form.setValue('lessonsCount', undefined);
-            form.setValue('lessonValues', undefined);
-            form.setValue('gymIds', undefined);
-            form.setValue('monthlyValue', undefined);
+            resetBonusFields();
         }
     }, [selectedAwardType, form]);
 
@@ -195,6 +221,10 @@ export default function AdminAwardsPage() {
                 const newGymsMap = new Map<string, string>();
                 gymsList.forEach(gym => newGymsMap.set(gym.id, gym.name));
                 setGymsMap(newGymsMap);
+                
+                const subscriptionsSnapshot = await getDocs(query(collection(db, "subscriptions"), orderBy("name")));
+                const subscriptionsList = subscriptionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subscription));
+                setSubscriptions(subscriptionsList);
 
                 await fetchAwards();
                 
@@ -445,10 +475,10 @@ export default function AdminAwardsPage() {
                             )}
 
                             {selectedAwardType === 'Bonus di Inizio Percorso 3 Lezioni' && (
-                                <BonusFields control={form.control} lessonCount={3} form={form} />
+                                <BonusFields control={form.control} lessonCount={3} form={form} subscriptions={subscriptions} />
                             )}
                              {selectedAwardType === 'Bonus di Inizio Percorso 5 Lezioni' && (
-                                <BonusFields control={form.control} lessonCount={5} form={form} />
+                                <BonusFields control={form.control} lessonCount={5} form={form} subscriptions={subscriptions} />
                             )}
                             
                             <DialogFooter>
