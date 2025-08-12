@@ -361,7 +361,6 @@ export default function AdminSubscriptionsPage() {
                             )}
                             
                              <div className="space-y-2 rounded-md border p-4">
-                                <h4 className="text-sm font-medium">Prezzo</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                      <FormField control={form.control} name="totalPrice" render={({ field }) => (
                                         <FormItem><FormLabel>Prezzo Totale Abbonamento (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
