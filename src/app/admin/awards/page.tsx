@@ -33,17 +33,6 @@ interface Award {
     pricePerLesson?: number;
 }
 
-interface AssociateProfile {
-    uid: string;
-    name: string;
-    surname: string;
-    email: string;
-    discipline?: string;
-    gym?: string;
-    birthDate?: Timestamp;
-    lastGrade?: string;
-}
-
 interface Gym {
     id: string;
     name: string;
@@ -69,8 +58,6 @@ export default function AdminAwardsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAward, setEditingAward] = useState<Award | null>(null);
 
-    const [associates, setAssociates] = useState<AssociateProfile[]>([]);
-    const [loadingAssociates, setLoadingAssociates] = useState(true);
     const [allGyms, setAllGyms] = useState<Gym[]>([]);
     const [gymsMap, setGymsMap] = useState<Map<string, string>>(new Map());
 
@@ -101,7 +88,6 @@ export default function AdminAwardsPage() {
                 setGymsMap(newGymsMap);
 
                 await fetchAwards();
-                await fetchAssociates(newGymsMap);
                 
             } catch (error) {
                  console.error("Error fetching initial data:", error);
@@ -125,29 +111,6 @@ export default function AdminAwardsPage() {
             toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i premi." });
         }
     }
-    
-    const fetchAssociates = async (currentGymsMap: Map<string, string>) => {
-        setLoadingAssociates(true);
-        try {
-            const associatesQuery = query(
-                collection(db, "users"),
-                where("associationStatus", "==", "active"),
-                orderBy("surname")
-            );
-            const associatesSnapshot = await getDocs(associatesQuery);
-            const associatesList = associatesSnapshot.docs.map(doc => ({
-                uid: doc.id,
-                ...doc.data(),
-                gym: doc.data().gym ? currentGymsMap.get(doc.data().gym) || doc.data().gym : 'N/D'
-            } as AssociateProfile));
-            setAssociates(associatesList);
-        } catch (error) {
-            console.error("Error fetching associates:", error);
-            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare l'elenco degli atleti associati." });
-        } finally {
-            setLoadingAssociates(false);
-        }
-    };
     
     const openCreateForm = () => {
         setEditingAward(null);
@@ -210,11 +173,6 @@ export default function AdminAwardsPage() {
         }
     }
     
-    const calculateAge = (birthDate: Timestamp | undefined) => {
-        if (!birthDate) return 'N/D';
-        return differenceInYears(new Date(), birthDate.toDate()).toString();
-    }
-
     return (
         <div className="space-y-8">
             <Card>
@@ -336,50 +294,7 @@ export default function AdminAwardsPage() {
                 </DialogContent>
             </Dialog>
             
-             <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <Users className="h-8 w-8 text-primary" />
-                        <div>
-                            <CardTitle>Elenco Atleti Associati</CardTitle>
-                            <CardDescription>Lista di tutti gli atleti con associazione attiva.</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                     <div className="rounded-md border">
-                        <Table>
-                             <TableHeader>
-                                <TableRow>
-                                    <TableHead>Nome e Cognome</TableHead>
-                                    <TableHead>Età</TableHead>
-                                    <TableHead>Disciplina</TableHead>
-                                    <TableHead>Grado</TableHead>
-                                    <TableHead>Palestra</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loadingAssociates ? (
-                                    <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
-                                ) : associates.length > 0 ? (
-                                    associates.map((associate) => (
-                                        <TableRow key={associate.uid}>
-                                            <TableCell className="font-medium">{associate.name} {associate.surname}</TableCell>
-                                            <TableCell>{calculateAge(associate.birthDate)}</TableCell>
-                                            <TableCell><Badge variant="secondary">{associate.discipline || 'N/D'}</Badge></TableCell>
-                                            <TableCell>{associate.lastGrade || 'N/D'}</TableCell>
-                                            <TableCell>{associate.gym}</TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Nessun atleta con associazione attiva trovato.</TableCell></TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                     </div>
-                </CardContent>
-            </Card>
         </div>
     );
-
+}
     
