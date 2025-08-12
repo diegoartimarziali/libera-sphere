@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
@@ -34,7 +35,7 @@ interface Subscription {
     name: string;
     description: string;
     type: 'monthly' | 'seasonal';
-    gymId?: string; // Opzionale per stagionale
+    gymIds?: string[]; // Campo per ID multipli
     lessonsPerMonth: number;
     pricePerLesson: number;
     totalPrice: number; // Campo calcolato
@@ -48,20 +49,12 @@ const subscriptionFormSchema = z.object({
     name: z.string().min(3, "Il nome è obbligatorio."),
     description: z.string().min(3, "La descrizione è obbligatoria."),
     type: z.enum(['monthly', 'seasonal'], { required_error: "La tipologia è obbligatoria." }),
-    gymId: z.string().optional(),
+    gymIds: z.array(z.string()).optional(),
     lessonsPerMonth: z.preprocess((val) => Number(val), z.number().min(1, "Deve esserci almeno 1 lezione.").max(30, "Massimo 30 lezioni.")),
     pricePerLesson: z.preprocess((val) => Number(val), z.number().min(0, "Il prezzo non può essere negativo.")),
     sumupLink: z.string().url("Deve essere un URL SumUp valido.").optional().or(z.literal('')),
     purchaseStartDate: z.date().optional(),
     purchaseEndDate: z.date().optional(),
-}).refine(data => {
-    if (data.type === 'monthly' && !data.gymId) {
-        return false;
-    }
-    return true;
-}, {
-    message: "La palestra è obbligatoria per gli abbonamenti mensili.",
-    path: ["gymId"],
 }).refine(data => {
     if (data.purchaseStartDate && data.purchaseEndDate) {
         return data.purchaseEndDate >= data.purchaseStartDate;
@@ -90,7 +83,7 @@ export default function AdminSubscriptionsPage() {
             name: '',
             description: '',
             type: 'monthly',
-            gymId: '',
+            gymIds: [],
             lessonsPerMonth: 4,
             pricePerLesson: 0,
             sumupLink: '',
@@ -150,7 +143,7 @@ export default function AdminSubscriptionsPage() {
             name: '',
             description: '',
             type: 'monthly',
-            gymId: '',
+            gymIds: [],
             lessonsPerMonth: 4,
             pricePerLesson: 0,
             sumupLink: '',
@@ -167,7 +160,7 @@ export default function AdminSubscriptionsPage() {
             name: sub.name,
             description: sub.description,
             type: sub.type,
-            gymId: sub.gymId,
+            gymIds: sub.gymIds || [],
             lessonsPerMonth: sub.lessonsPerMonth,
             pricePerLesson: sub.pricePerLesson,
             sumupLink: sub.sumupLink,
@@ -184,7 +177,7 @@ export default function AdminSubscriptionsPage() {
             name: data.name,
             description: data.description,
             type: data.type,
-            gymId: data.type === 'monthly' ? data.gymId : null,
+            gymIds: data.gymIds || [],
             lessonsPerMonth: data.lessonsPerMonth,
             pricePerLesson: data.pricePerLesson,
             totalPrice: data.lessonsPerMonth * data.pricePerLesson,
@@ -251,7 +244,7 @@ export default function AdminSubscriptionsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Nome</TableHead>
-                                    <TableHead>Palestra</TableHead>
+                                    <TableHead>Palestre</TableHead>
                                     <TableHead>Tipo</TableHead>
                                     <TableHead>Prezzo Totale</TableHead>
                                     <TableHead>Periodo Acquisto</TableHead>
@@ -264,7 +257,9 @@ export default function AdminSubscriptionsPage() {
                                         <TableRow key={sub.id}>
                                             <TableCell className="font-medium">{sub.name}</TableCell>
                                             <TableCell>
-                                                {sub.gymId ? `${sub.gymId} - ${gymsMap.get(sub.gymId)}` : 'Tutte le Palestre'}
+                                                {sub.gymIds && sub.gymIds.length > 0
+                                                    ? sub.gymIds.map(id => gymsMap.get(id) || id).join(', ')
+                                                    : 'Tutte le Palestre'}
                                             </TableCell>
                                             <TableCell><Badge variant={sub.type === 'monthly' ? 'secondary' : 'default'}>{sub.type === 'monthly' ? 'Mensile' : 'Stagionale'}</Badge></TableCell>
                                             <TableCell>{(sub.totalPrice || 0).toFixed(2)} €</TableCell>
@@ -326,27 +321,60 @@ export default function AdminSubscriptionsPage() {
                             <FormField control={form.control} name="name" render={({ field }) => (
                                 <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
+                            
+                            <div className="space-y-2 rounded-md border p-4">
+                                <FormLabel>Palestre Associate</FormLabel>
+                                <p className="text-sm text-muted-foreground">Seleziona le palestre per cui questo abbonamento è valido. Lascia deselezionato per renderlo valido per tutte.</p>
+                                <FormField
+                                    control={form.control}
+                                    name="gymIds"
+                                    render={() => (
+                                        <FormItem className="space-y-2 pt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                                        {gyms.map((gym) => (
+                                            <FormField
+                                            key={gym.id}
+                                            control={form.control}
+                                            name="gymIds"
+                                            render={({ field }) => {
+                                                return (
+                                                <FormItem
+                                                    key={gym.id}
+                                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                                >
+                                                    <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value?.includes(gym.id)}
+                                                        onCheckedChange={(checked) => {
+                                                        return checked
+                                                            ? field.onChange([...(field.value || []), gym.id])
+                                                            : field.onChange(
+                                                                (field.value || []).filter(
+                                                                (value) => value !== gym.id
+                                                                )
+                                                            )
+                                                        }}
+                                                    />
+                                                    </FormControl>
+                                                    <FormLabel className="font-normal">
+                                                        {gym.id} - {gym.name}
+                                                    </FormLabel>
+                                                </FormItem>
+                                                )
+                                            }}
+                                            />
+                                        ))}
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
                              <FormField control={form.control} name="description" render={({ field }) => (
                                 <FormItem><FormLabel>Descrizione (visibile all'utente)</FormLabel><FormControl><Textarea {...field} placeholder={descriptionPlaceholder} /></FormControl><FormMessage /></FormItem>
                             )} />
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="type" render={({ field }) => (
-                                    <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="monthly">Mensile</SelectItem><SelectItem value="seasonal">Stagionale</SelectItem></SelectContent></Select><FormMessage /></FormItem>
-                                )} />
-                                {subscriptionType === 'monthly' && (
-                                     <FormField control={form.control} name="gymId" render={({ field }) => (
-                                        <FormItem><FormLabel>Palestra</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    {gyms.map(gym => <SelectItem key={gym.id} value={gym.id}>{gym.id} - {gym.name}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                        <FormMessage /></FormItem>
-                                    )} />
-                                )}
-                            </div>
+                             <FormField control={form.control} name="type" render={({ field }) => (
+                                <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="monthly">Mensile</SelectItem><SelectItem value="seasonal">Stagionale</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                            )} />
                             
                              <div className="space-y-2 rounded-md border p-4">
                                 <h4 className="text-sm font-medium">Calcolo Prezzo</h4>
