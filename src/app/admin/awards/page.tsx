@@ -3,34 +3,30 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, addDoc, deleteDoc, where, Timestamp } from "firebase/firestore";
+import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { differenceInYears } from 'date-fns';
-
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, Award, Users } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Award } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
 
 interface Award {
     id: string;
     name: string;
-    value: number; // Valore totale
-    gymId?: string; // opzionale, se non c'è è per tutte
+    gymId?: string;
     lessonsCount?: number;
     pricePerLesson?: number;
+    value?: number; // Valore totale
 }
 
 interface Gym {
@@ -41,13 +37,11 @@ interface Gym {
 const awardFormSchema = z.object({
     name: z.string().min(3, "Il nome del premio è obbligatorio (min. 3 caratteri)."),
     gymId: z.string().optional(),
-    lessonsCount: z.preprocess((val) => Number(val), z.number().min(0, "Il numero di lezioni non può essere negativo.")),
-    pricePerLesson: z.preprocess((val) => Number(val), z.number().min(0, "Il valore per lezione non può essere negativo.")),
-    value: z.number() // Questo verrà calcolato
+    lessonsCount: z.preprocess((val) => Number(val || 0), z.number().min(0, "Il numero di lezioni non può essere negativo.")),
+    pricePerLesson: z.preprocess((val) => Number(val || 0), z.number().min(0, "Il valore per lezione non può essere negativo.")),
 });
 
 type AwardFormData = z.infer<typeof awardFormSchema>;
-
 
 export default function AdminAwardsPage() {
     const { toast } = useToast();
@@ -63,17 +57,12 @@ export default function AdminAwardsPage() {
 
     const form = useForm<AwardFormData>({
         resolver: zodResolver(awardFormSchema),
-        defaultValues: { name: '', value: 0, lessonsCount: 0, pricePerLesson: 0 }
+        defaultValues: { name: '', lessonsCount: 0, pricePerLesson: 0, gymId: '' }
     });
     
     const lessonsCount = form.watch('lessonsCount');
     const pricePerLesson = form.watch('pricePerLesson');
     const totalValue = (lessonsCount || 0) * (pricePerLesson || 0);
-
-    useEffect(() => {
-        form.setValue('value', totalValue);
-    }, [totalValue, form]);
-
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -114,15 +103,14 @@ export default function AdminAwardsPage() {
     
     const openCreateForm = () => {
         setEditingAward(null);
-        form.reset({ name: '', value: 0, lessonsCount: 0, pricePerLesson: 0, gymId: '' });
+        form.reset({ name: '', lessonsCount: 0, pricePerLesson: 0, gymId: '' });
         setIsFormOpen(true);
     }
 
     const openEditForm = (award: Award) => {
         setEditingAward(award);
         form.reset({ 
-            name: award.name, 
-            value: award.value,
+            name: award.name,
             lessonsCount: award.lessonsCount,
             pricePerLesson: award.pricePerLesson,
             gymId: award.gymId
@@ -137,7 +125,7 @@ export default function AdminAwardsPage() {
             gymId: data.gymId || null,
             lessonsCount: data.lessonsCount,
             pricePerLesson: data.pricePerLesson,
-            value: data.value,
+            value: (data.lessonsCount || 0) * (data.pricePerLesson || 0),
         };
 
         try {
@@ -174,78 +162,73 @@ export default function AdminAwardsPage() {
     }
     
     return (
-        <div className="space-y-8">
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-4">
-                        <Award className="h-8 w-8 text-primary" />
-                        <div>
-                            <CardTitle>Gestione Premi e Valori</CardTitle>
-                            <CardDescription>Crea e gestisci i premi che possono essere accumulati dagli atleti.</CardDescription>
-                        </div>
+        <Card>
+            <CardHeader>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <CardTitle>Gestione Premi</CardTitle>
+                        <CardDescription>Crea e gestisci i premi che possono essere accumulati dagli atleti.</CardDescription>
                     </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex justify-end mb-4">
-                        <Button onClick={openCreateForm}>
-                            <PlusCircle className="mr-2" /> Aggiungi Premio
-                        </Button>
-                    </div>
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Nome Premio</TableHead>
-                                    <TableHead>Palestra</TableHead>
-                                    <TableHead>N. Lezioni</TableHead>
-                                    <TableHead>Valore Lezione</TableHead>
-                                    <TableHead>Valore Totale</TableHead>
-                                    <TableHead className="w-[180px] text-right">Azioni</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loading ? (
-                                    <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
-                                ) : awards.length > 0 ? (
-                                    awards.map((award) => (
-                                        <TableRow key={award.id}>
-                                            <TableCell className="font-medium">{award.name}</TableCell>
-                                            <TableCell>{award.gymId ? gymsMap.get(award.gymId) || award.gymId : 'Tutte'}</TableCell>
-                                            <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
-                                            <TableCell>{award.pricePerLesson?.toFixed(2) || 'N/A'} €</TableCell>
-                                            <TableCell className="font-bold">{(award.value || 0).toFixed(2)} €</TableCell>
-                                            <TableCell className="text-right space-x-1">
-                                                <Button variant="outline" size="sm" onClick={() => openEditForm(award)}>Modifica</Button>
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4 mr-1" />Elimina</Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                Eliminare il premio <strong className="mx-1">{award.name}</strong>? L'azione è irreversibile.
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>Annulla</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDeleteAward(award.id)}>
-                                                                Sì, elimina
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Nessun premio trovato. Creane uno per iniziare.</TableCell></TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
+                    <Button onClick={openCreateForm}>
+                        <PlusCircle className="mr-2" /> Aggiungi Premio
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Nome Premio</TableHead>
+                                <TableHead>Palestra</TableHead>
+                                <TableHead>N. Lezioni</TableHead>
+                                <TableHead>Valore Lezione</TableHead>
+                                <TableHead>Valore Totale</TableHead>
+                                <TableHead className="w-[180px] text-right">Azioni</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                            ) : awards.length > 0 ? (
+                                awards.map((award) => (
+                                    <TableRow key={award.id}>
+                                        <TableCell className="font-medium">{award.name}</TableCell>
+                                        <TableCell>{award.gymId ? gymsMap.get(award.gymId) || award.gymId : 'Tutte'}</TableCell>
+                                        <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
+                                        <TableCell>{typeof award.pricePerLesson === 'number' ? `${award.pricePerLesson.toFixed(2)} €` : 'N/A'}</TableCell>
+                                        <TableCell className="font-bold">{typeof award.value === 'number' ? `${award.value.toFixed(2)} €` : 'N/A'}</TableCell>
+                                        <TableCell className="text-right space-x-1">
+                                            <Button variant="outline" size="sm" onClick={() => openEditForm(award)}>Modifica</Button>
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Eliminare il premio <strong className="mx-1">{award.name}</strong>? L'azione è irreversibile.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteAward(award.id)}>
+                                                            Sì, elimina
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Nessun premio trovato. Creane uno per iniziare.</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+            </CardContent>
 
              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                 <DialogContent>
@@ -280,7 +263,7 @@ export default function AdminAwardsPage() {
                             </div>
                             <div>
                                 <Label>Valore Totale Calcolato</Label>
-                                <Input type="text" readOnly disabled value={`${totalValue.toFixed(2)} €`} className="font-bold text-lg h-12" />
+                                <Input type="text" readOnly disabled value={`${totalValue.toFixed(2)} €`} className="font-bold text-lg h-12 bg-muted/50" />
                             </div>
                             <DialogFooter>
                                 <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annulla</Button>
@@ -293,10 +276,8 @@ export default function AdminAwardsPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
-            
-        </div>
+        </Card>
     );
 }
-    
 
     
