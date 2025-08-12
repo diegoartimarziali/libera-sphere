@@ -312,7 +312,7 @@ export default function AdminSubscriptionsPage() {
                                 <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel>Descrizione (visibile all'utente)</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Descrizione (visibile all'utente)</FormLabel><FormControl><Textarea {...field} placeholder="Dedica un mese alla tua crescita. Con questo abbonamento, hai la libertà di seguire il tuo percorso nel Dojo, lezione dopo lezione, per un mese di pura pratica. Rinnova la tua energia, affina la tua tecnica." /></FormControl><FormMessage /></FormItem>
                             )} />
 
                             <div className="grid grid-cols-2 gap-4">
