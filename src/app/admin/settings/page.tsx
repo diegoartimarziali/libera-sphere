@@ -98,13 +98,13 @@ export default function AdminSettingsPage() {
                                     name="subscriptionWarningDays"
                                     render={({ field }) => (
                                         <FormItem className="max-w-md">
-                                            <FormLabel>Preavviso Scadenza Abbonamento (Giorni)</FormLabel>
+                                            <FormLabel>Giorni di preavviso per abbonamento in scadenza</FormLabel>
                                             <FormControl>
-                                                <Input type="number" {...field} />
+                                                <Input type="number" placeholder="Es. 5" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                             <p className="text-sm text-muted-foreground pt-1">
-                                                Indica quanti giorni prima della scadenza un abbonamento deve essere considerato "In scadenza".
+                                               Imposta il numero di giorni prima della scadenza per cui un abbonamento viene considerato "In scadenza".
                                             </p>
                                         </FormItem>
                                     )}
