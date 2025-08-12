@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from "firebase/firestore";
+import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, getDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -23,10 +23,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Calendar } from "lucide-react";
 
 interface Gym {
     id: string;
     name: string;
+}
+
+interface ActivitySettings {
+    startDate?: Timestamp;
+    endDate?: Timestamp;
 }
 
 interface Subscription {
@@ -35,11 +42,12 @@ interface Subscription {
     type: 'monthly' | 'seasonal';
     gymIds?: string[];
     lessonsPerMonth?: number;
-    pricePerLesson?: number;
     totalPrice: number;
     sumupLink: string;
     purchaseStartDate?: Timestamp;
     purchaseEndDate?: Timestamp;
+    validityStartDate?: Timestamp;
+    validityEndDate?: Timestamp;
 }
 
 const subscriptionFormSchema = z.object({
@@ -47,7 +55,7 @@ const subscriptionFormSchema = z.object({
     type: z.enum(['monthly', 'seasonal'], { required_error: "La tipologia è obbligatoria." }),
     gymIds: z.array(z.string()).optional(),
     totalPrice: z.preprocess((val) => Number(String(val).replace(',', '.')), z.number().min(0, "Il prezzo non può essere negativo.")),
-    lessonsPerMonth: z.preprocess((val) => Number(String(val)), z.number().min(1, "Deve esserci almeno 1 lezione.").max(30, "Massimo 30 lezioni.").optional()),
+    lessonsPerMonth: z.preprocess((val) => val ? Number(String(val)) : undefined, z.number().min(1, "Deve esserci almeno 1 lezione.").max(30, "Massimo 30 lezioni.").optional().nullable()),
     sumupLink: z.string().url("Deve essere un URL SumUp valido.").optional().or(z.literal('')),
     purchaseStartDate: z.date().optional(),
     purchaseEndDate: z.date().optional(),
@@ -72,6 +80,7 @@ export default function AdminSubscriptionsPage() {
     const [gymsMap, setGymsMap] = useState<Map<string, string>>(new Map());
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
+    const [activitySettings, setActivitySettings] = useState<ActivitySettings | null>(null);
 
     const form = useForm<SubscriptionFormData>({
         resolver: zodResolver(subscriptionFormSchema),
@@ -79,6 +88,7 @@ export default function AdminSubscriptionsPage() {
             type: 'monthly',
             gymIds: [],
             totalPrice: 0,
+            lessonsPerMonth: undefined,
             sumupLink: '',
         }
     });
@@ -88,6 +98,7 @@ export default function AdminSubscriptionsPage() {
     useEffect(() => {
         if (subscriptionType === 'seasonal') {
             form.setValue('gymIds', []);
+            form.setValue('lessonsPerMonth', null);
         }
     }, [subscriptionType, form]);
 
@@ -102,6 +113,13 @@ export default function AdminSubscriptionsPage() {
             gymsList.forEach(gym => newGymsMap.set(gym.id, `${gym.id} - ${gym.name}`));
             setGymsMap(newGymsMap);
             
+            const activitySettingsSnap = await getDoc(doc(db, "settings", "activity"));
+            if (activitySettingsSnap.exists()) {
+                setActivitySettings(activitySettingsSnap.data() as ActivitySettings);
+            } else {
+                 toast({ variant: "destructive", title: "Impostazioni mancanti", description: "Le impostazioni di validità della stagione (settings/activity) non sono state trovate." });
+            }
+
             await fetchSubscriptions();
 
         } catch (error) {
@@ -114,7 +132,7 @@ export default function AdminSubscriptionsPage() {
 
     const fetchSubscriptions = async () => {
         try {
-            const q = query(collection(db, "subscriptions"), orderBy("name"));
+            const q = query(collection(db, "subscriptions"), orderBy("type"));
             const querySnapshot = await getDocs(q);
             const subs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subscription));
             setSubscriptions(subs);
@@ -135,6 +153,7 @@ export default function AdminSubscriptionsPage() {
             type: 'monthly',
             gymIds: [],
             totalPrice: 0,
+            lessonsPerMonth: undefined,
             sumupLink: '',
             purchaseStartDate: undefined,
             purchaseEndDate: undefined
@@ -180,6 +199,14 @@ export default function AdminSubscriptionsPage() {
         if (data.purchaseEndDate) {
             subData.purchaseEndDate = Timestamp.fromDate(data.purchaseEndDate);
         }
+        
+        if (data.type === 'seasonal' && activitySettings) {
+            subData.validityStartDate = activitySettings.startDate;
+            subData.validityEndDate = activitySettings.endDate;
+        } else {
+             subData.validityStartDate = null;
+             subData.validityEndDate = null;
+        }
 
         try {
             if (editingSubscription) {
@@ -211,6 +238,17 @@ export default function AdminSubscriptionsPage() {
             toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare l'abbonamento." });
         }
     };
+    
+    const renderValidity = (sub: Subscription) => {
+        if (sub.type === 'seasonal' && sub.validityStartDate && sub.validityEndDate) {
+            return `${format(sub.validityStartDate.toDate(), 'dd/MM/yy')} - ${format(sub.validityEndDate.toDate(), 'dd/MM/yy')}`;
+        }
+        if (sub.purchaseStartDate && sub.purchaseEndDate) {
+            return `${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} - ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
+        }
+        return 'Sempre disponibile';
+    }
+
 
     return (
         <Card>
@@ -235,9 +273,8 @@ export default function AdminSubscriptionsPage() {
                                 <TableRow>
                                     <TableHead>Nome</TableHead>
                                     <TableHead>Palestre</TableHead>
-                                    <TableHead>Tipo</TableHead>
                                     <TableHead>Prezzo Totale</TableHead>
-                                    <TableHead>Periodo Acquisto</TableHead>
+                                    <TableHead>Validità</TableHead>
                                     <TableHead className="text-right">Azioni</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -245,19 +282,16 @@ export default function AdminSubscriptionsPage() {
                                 {subscriptions.length > 0 ? (
                                     subscriptions.map((sub) => (
                                         <TableRow key={sub.id}>
-                                            <TableCell className="font-medium">{sub.name}</TableCell>
+                                            <TableCell className="font-medium">
+                                                <Badge variant={sub.type === 'monthly' ? 'secondary' : 'default'}>{sub.name}</Badge>
+                                            </TableCell>
                                             <TableCell>
                                                 {sub.gymIds && sub.gymIds.length > 0
                                                     ? sub.gymIds.map(id => gymsMap.get(id) || id).join(', ')
                                                     : 'Tutte le Palestre'}
                                             </TableCell>
-                                            <TableCell><Badge variant={sub.type === 'monthly' ? 'secondary' : 'default'}>{sub.type === 'monthly' ? 'Mensile' : 'Stagionale'}</Badge></TableCell>
                                             <TableCell>{(sub.totalPrice || 0).toFixed(2)} €</TableCell>
-                                            <TableCell>
-                                                {sub.purchaseStartDate && sub.purchaseEndDate
-                                                    ? `${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} - ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`
-                                                    : 'Sempre disponibile'}
-                                            </TableCell>
+                                            <TableCell>{renderValidity(sub)}</TableCell>
                                             <TableCell className="text-right space-x-2">
                                                 <Button variant="outline" size="sm" onClick={() => openEditForm(sub)}>
                                                     <Edit className="h-4 w-4 mr-1" />
@@ -290,7 +324,7 @@ export default function AdminSubscriptionsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                             Nessun abbonamento trovato. Creane uno per iniziare.
                                         </TableCell>
                                     </TableRow>
@@ -359,15 +393,25 @@ export default function AdminSubscriptionsPage() {
                                     />
                                 </div>
                             )}
+
+                             {subscriptionType === 'seasonal' && activitySettings && (
+                                <Alert variant="info">
+                                    <Calendar className="h-4 w-4" />
+                                    <AlertTitle>Validità Stagione</AlertTitle>
+                                    <AlertDescription>
+                                        L'abbonamento sarà valido dal <strong className="font-semibold">{activitySettings.startDate ? format(activitySettings.startDate.toDate(), 'dd/MM/yyyy') : 'N/D'}</strong> al <strong className="font-semibold">{activitySettings.endDate ? format(activitySettings.endDate.toDate(), 'dd/MM/yyyy') : 'N/D'}</strong>.
+                                    </AlertDescription>
+                                </Alert>
+                            )}
                             
-                             <div className="space-y-2 rounded-md border p-4">
+                            <div className="space-y-2 rounded-md border p-4">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                      <FormField control={form.control} name="totalPrice" render={({ field }) => (
                                         <FormItem><FormLabel>Prezzo Totale Abbonamento (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                      {subscriptionType === 'monthly' && (
                                         <FormField control={form.control} name="lessonsPerMonth" render={({ field }) => (
-                                            <FormItem><FormLabel>Lezioni nel mese (opzionale)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                            <FormItem><FormLabel>Lezioni nel mese (opzionale)</FormLabel><FormControl><Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}/></FormControl><FormMessage /></FormItem>
                                         )} />
                                      )}
                                 </div>
