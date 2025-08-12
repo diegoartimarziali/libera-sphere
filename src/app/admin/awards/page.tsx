@@ -29,6 +29,7 @@ interface Award {
     lessonsCount?: number;
     value?: number;
     lessonValues?: number[]; // Array per i valori delle singole lezioni
+    monthlyValue?: number; // Nuovo campo per il valore mensile da dividere
 }
 
 interface Gym {
@@ -42,17 +43,57 @@ const awardFormSchema = z.object({
     lessonValues: z.array(z.number().nonnegative("Il valore non può essere negativo.")).optional(),
     gymIds: z.array(z.string()).optional(),
     total: z.number().optional(),
+    monthlyValue: z.number().optional(), // Nuovo campo
 });
 
 type AwardFormData = z.infer<typeof awardFormSchema>;
 
-const BonusFields = ({ control, lessonCount, allGyms }: { control: any, lessonCount: number, allGyms: Gym[] }) => {
+const BonusFields = ({ control, lessonCount, allGyms, form }: { control: any, lessonCount: number, allGyms: Gym[], form: any }) => {
     const lessonValues = useWatch({ control, name: 'lessonValues' }) || [];
     const total = lessonValues.reduce((acc: number, val: number | string) => acc + (Number(val) || 0), 0);
+    const monthlyValue = useWatch({ control, name: 'monthlyValue' }) || 0;
+    
+     useEffect(() => {
+        if (monthlyValue > 0 && lessonCount > 0) {
+            const perLessonValue = parseFloat((monthlyValue / lessonCount).toFixed(2));
+            const newLessonValues = Array(lessonCount).fill(perLessonValue);
+            
+            // Per aggiustare l'arrotondamento, aggiungo la differenza al primo elemento
+            const calculatedTotal = newLessonValues.reduce((acc, v) => acc + v, 0);
+            const remainder = parseFloat((monthlyValue - calculatedTotal).toFixed(2));
+            if (newLessonValues.length > 0) {
+                 newLessonValues[0] += remainder;
+                 newLessonValues[0] = parseFloat(newLessonValues[0].toFixed(2));
+            }
+
+            form.setValue('lessonValues', newLessonValues);
+        }
+    }, [monthlyValue, lessonCount, form]);
 
     return (
         <div className="space-y-4 rounded-md border p-4">
              <FormField
+                control={control}
+                name="monthlyValue"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Valore Mensile Totale (€)</FormLabel>
+                     <FormControl>
+                        <Input 
+                            type="number" 
+                            step="0.01"
+                            placeholder="Es. 55.00"
+                            {...field}
+                            onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                        />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <div className="text-xs text-muted-foreground">Il valore mensile verrà diviso automaticamente per le lezioni.</div>
+            
+            <FormField
                 control={control}
                 name="lessonsCount"
                 render={({ field }) => (
@@ -65,6 +106,7 @@ const BonusFields = ({ control, lessonCount, allGyms }: { control: any, lessonCo
                 </FormItem>
                 )}
             />
+
             {Array.from({ length: lessonCount }).map((_, index) => (
                  <FormField
                     key={index}
@@ -80,6 +122,8 @@ const BonusFields = ({ control, lessonCount, allGyms }: { control: any, lessonCo
                                     placeholder="0.00"
                                     {...field}
                                     onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                                    readOnly 
+                                    className="bg-muted/50"
                                 />
                             </FormControl>
                              <FormMessage />
@@ -160,7 +204,8 @@ export default function AdminAwardsPage() {
             lessonsCount: 0,
             lessonValues: [],
             gymIds: [],
-            total: 0
+            total: 0,
+            monthlyValue: 0
         }
     });
     
@@ -177,6 +222,7 @@ export default function AdminAwardsPage() {
             form.setValue('lessonsCount', undefined);
             form.setValue('lessonValues', undefined);
             form.setValue('gymIds', undefined);
+            form.setValue('monthlyValue', undefined);
         }
     }, [selectedAwardType, form]);
 
@@ -221,6 +267,9 @@ export default function AdminAwardsPage() {
         form.reset({
             name: '',
             gymIds: [],
+            lessonValues: [],
+            lessonsCount: 0,
+            monthlyValue: 0
         });
         setIsFormOpen(true);
     };
@@ -232,6 +281,7 @@ export default function AdminAwardsPage() {
             lessonsCount: award.lessonsCount,
             lessonValues: award.lessonValues,
             gymIds: award.gymIds || [],
+            monthlyValue: award.monthlyValue,
         });
         setIsFormOpen(true);
     };
@@ -247,6 +297,7 @@ export default function AdminAwardsPage() {
                 lessonValues: data.lessonValues,
                 value: totalValue,
                 gymIds: data.gymIds,
+                monthlyValue: data.monthlyValue
             };
 
             if (editingAward) {
@@ -381,10 +432,10 @@ export default function AdminAwardsPage() {
                             />
 
                             {selectedAwardType === 'Bonus di Inizio Percorso 3 Lezioni' && (
-                                <BonusFields control={form.control} lessonCount={3} allGyms={allGyms} />
+                                <BonusFields control={form.control} lessonCount={3} allGyms={allGyms} form={form} />
                             )}
                              {selectedAwardType === 'Bonus di Inizio Percorso 5 Lezioni' && (
-                                <BonusFields control={form.control} lessonCount={5} allGyms={allGyms} />
+                                <BonusFields control={form.control} lessonCount={5} allGyms={allGyms} form={form} />
                             )}
                             
                             <DialogFooter>
@@ -401,4 +452,3 @@ export default function AdminAwardsPage() {
         </Card>
     );
 }
-
