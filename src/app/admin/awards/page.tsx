@@ -26,7 +26,7 @@ interface Award {
     gymId?: string;
     lessonsCount?: number;
     pricePerLesson?: number;
-    value?: number; // Valore totale
+    value?: number;
 }
 
 interface Gym {
@@ -68,7 +68,6 @@ export default function AdminAwardsPage() {
         const fetchInitialData = async () => {
             setLoading(true);
             try {
-                // Fetch gyms first
                 const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
                 const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Gym));
                 setAllGyms(gymsList);
@@ -111,9 +110,9 @@ export default function AdminAwardsPage() {
         setEditingAward(award);
         form.reset({ 
             name: award.name,
-            lessonsCount: award.lessonsCount,
-            pricePerLesson: award.pricePerLesson,
-            gymId: award.gymId
+            lessonsCount: award.lessonsCount || 0,
+            pricePerLesson: award.pricePerLesson || 0,
+            gymId: award.gymId || ''
         });
         setIsFormOpen(true);
     };
@@ -278,6 +277,5 @@ export default function AdminAwardsPage() {
             </Dialog>
         </Card>
     );
-}
 
     
