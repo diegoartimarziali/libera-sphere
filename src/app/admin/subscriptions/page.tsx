@@ -34,7 +34,7 @@ interface Subscription {
     name: string;
     description: string;
     type: 'monthly' | 'seasonal';
-    gymId: string;
+    gymId?: string; // Opzionale per stagionale
     lessonsPerMonth: number;
     pricePerLesson: number;
     totalPrice: number; // Campo calcolato
@@ -48,12 +48,20 @@ const subscriptionFormSchema = z.object({
     name: z.string().min(3, "Il nome è obbligatorio."),
     description: z.string().min(3, "La descrizione è obbligatoria."),
     type: z.enum(['monthly', 'seasonal'], { required_error: "La tipologia è obbligatoria." }),
-    gymId: z.string({ required_error: "La palestra è obbligatoria."}),
+    gymId: z.string().optional(),
     lessonsPerMonth: z.preprocess((val) => Number(val), z.number().min(1, "Deve esserci almeno 1 lezione.").max(30, "Massimo 30 lezioni.")),
     pricePerLesson: z.preprocess((val) => Number(val), z.number().min(0, "Il prezzo non può essere negativo.")),
     sumupLink: z.string().url("Deve essere un URL SumUp valido.").optional().or(z.literal('')),
     purchaseStartDate: z.date().optional(),
     purchaseEndDate: z.date().optional(),
+}).refine(data => {
+    if (data.type === 'monthly' && !data.gymId) {
+        return false;
+    }
+    return true;
+}, {
+    message: "La palestra è obbligatoria per gli abbonamenti mensili.",
+    path: ["gymId"],
 }).refine(data => {
     if (data.purchaseStartDate && data.purchaseEndDate) {
         return data.purchaseEndDate >= data.purchaseStartDate;
@@ -176,7 +184,7 @@ export default function AdminSubscriptionsPage() {
             name: data.name,
             description: data.description,
             type: data.type,
-            gymId: data.gymId,
+            gymId: data.type === 'monthly' ? data.gymId : null,
             lessonsPerMonth: data.lessonsPerMonth,
             pricePerLesson: data.pricePerLesson,
             totalPrice: data.lessonsPerMonth * data.pricePerLesson,
@@ -255,7 +263,7 @@ export default function AdminSubscriptionsPage() {
                                     subscriptions.map((sub) => (
                                         <TableRow key={sub.id}>
                                             <TableCell className="font-medium">{sub.name}</TableCell>
-                                            <TableCell>{gymsMap.get(sub.gymId) || sub.gymId}</TableCell>
+                                            <TableCell>{sub.gymId ? gymsMap.get(sub.gymId) : 'Tutte le Palestre'}</TableCell>
                                             <TableCell><Badge variant={sub.type === 'monthly' ? 'secondary' : 'default'}>{sub.type === 'monthly' ? 'Mensile' : 'Stagionale'}</Badge></TableCell>
                                             <TableCell>{(sub.totalPrice || 0).toFixed(2)} €</TableCell>
                                             <TableCell>
@@ -324,16 +332,18 @@ export default function AdminSubscriptionsPage() {
                                 <FormField control={form.control} name="type" render={({ field }) => (
                                     <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="monthly">Mensile</SelectItem><SelectItem value="seasonal">Stagionale</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                                 )} />
-                                <FormField control={form.control} name="gymId" render={({ field }) => (
-                                    <FormItem><FormLabel>Palestra</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {gyms.map(gym => <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    <FormMessage /></FormItem>
-                                )} />
+                                {subscriptionType === 'monthly' && (
+                                     <FormField control={form.control} name="gymId" render={({ field }) => (
+                                        <FormItem><FormLabel>Palestra</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    {gyms.map(gym => <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        <FormMessage /></FormItem>
+                                    )} />
+                                )}
                             </div>
                             
                              <div className="space-y-2 rounded-md border p-4">
@@ -384,3 +394,5 @@ export default function AdminSubscriptionsPage() {
         </Card>
     );
 }
+
+    
