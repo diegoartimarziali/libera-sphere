@@ -50,7 +50,6 @@ const awardFormSchema = z.object({
     lessonsCount: z.number().optional(),
     lessonValues: z.array(z.number().nonnegative("Il valore non può essere negativo.")).optional(),
     gymIds: z.array(z.string()).optional(),
-    total: z.number().optional(),
     monthlyValue: z.number().optional(),
     subscriptionId: z.string().optional(),
 });
@@ -184,7 +183,6 @@ export default function AdminAwardsPage() {
             lessonsCount: 0,
             lessonValues: [],
             gymIds: [],
-            total: 0,
             monthlyValue: 0
         }
     });
@@ -265,12 +263,16 @@ export default function AdminAwardsPage() {
 
     const openEditForm = (award: Award) => {
         setEditingAward(award);
+        
+        const subToSelect = subscriptions.find(s => s.totalPrice === award.monthlyValue)
+        
         form.reset({ 
             name: award.name,
             lessonsCount: award.lessonsCount,
             lessonValues: award.lessonValues,
             gymIds: award.gymIds || [],
             monthlyValue: award.monthlyValue,
+            subscriptionId: subToSelect?.id
         });
         setIsFormOpen(true);
     };
@@ -280,14 +282,17 @@ export default function AdminAwardsPage() {
         try {
             const totalValue = data.lessonValues?.reduce((acc, val) => acc + (val || 0), 0) || 0;
             
-            const awardData = {
+            const awardData: Partial<Award> = {
                 name: data.name,
-                lessonsCount: data.lessonsCount,
-                lessonValues: data.lessonValues,
                 value: totalValue,
-                gymIds: data.gymIds,
-                monthlyValue: data.monthlyValue
             };
+
+            if (data.name?.includes("Bonus")) {
+                awardData.lessonsCount = data.lessonsCount;
+                awardData.lessonValues = data.lessonValues;
+                awardData.gymIds = data.gymIds;
+                awardData.monthlyValue = data.monthlyValue;
+            }
 
             if (editingAward) {
                 const awardRef = doc(db, "awards", editingAward.id);
