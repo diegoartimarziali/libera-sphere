@@ -93,6 +93,11 @@ export default function AdminSubscriptionsPage() {
     const pricePerLesson = form.watch('pricePerLesson');
     const totalPrice = (lessonsPerMonth || 0) * (pricePerLesson || 0);
 
+    const subscriptionType = form.watch('type');
+    const descriptionPlaceholder = subscriptionType === 'seasonal'
+        ? "Abbraccia l'intera stagione sportiva. Questo piano ti garantisce l'accesso a tutti i corsi, per un percorso di crescita completo e senza interruzioni fino alla fine. La scelta definitiva per chi non si ferma mai."
+        : "Dedica un mese alla tua crescita. Con questo abbonamento, hai la libertà di seguire il tuo percorso nel Dojo, lezione dopo lezione, per un mese di pura pratica. Rinnova la tua energia, affina la tua tecnica.";
+
 
     const fetchInitialData = async () => {
         setLoading(true);
@@ -312,7 +317,7 @@ export default function AdminSubscriptionsPage() {
                                 <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
                              <FormField control={form.control} name="description" render={({ field }) => (
-                                <FormItem><FormLabel>Descrizione (visibile all'utente)</FormLabel><FormControl><Textarea {...field} placeholder="Dedica un mese alla tua crescita. Con questo abbonamento, hai la libertà di seguire il tuo percorso nel Dojo, lezione dopo lezione, per un mese di pura pratica. Rinnova la tua energia, affina la tua tecnica." /></FormControl><FormMessage /></FormItem>
+                                <FormItem><FormLabel>Descrizione (visibile all'utente)</FormLabel><FormControl><Textarea {...field} placeholder={descriptionPlaceholder} /></FormControl><FormMessage /></FormItem>
                             )} />
 
                             <div className="grid grid-cols-2 gap-4">
