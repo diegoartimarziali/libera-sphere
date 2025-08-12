@@ -11,8 +11,6 @@ run:
   # The command to start your backend server.
   # If you are using a framework, this is probably the command to start your server.
   command: npm run start
-  # The source of your backend server code.
-  source: .
 # The port that your backend server listens on.
 # This is the port that App Hosting will use to send traffic to your server.
 # This is NOT the port that your server will be available on the internet.
