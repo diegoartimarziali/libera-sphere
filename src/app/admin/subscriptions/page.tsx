@@ -128,6 +128,7 @@ export default function AdminSubscriptionsPage() {
 
     useEffect(() => {
         fetchInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const openCreateForm = () => {
@@ -251,7 +252,7 @@ export default function AdminSubscriptionsPage() {
                                             <TableCell className="font-medium">{sub.name}</TableCell>
                                             <TableCell>{gymsMap.get(sub.gymId) || sub.gymId}</TableCell>
                                             <TableCell><Badge variant={sub.type === 'monthly' ? 'secondary' : 'default'}>{sub.type === 'monthly' ? 'Mensile' : 'Stagionale'}</Badge></TableCell>
-                                            <TableCell>{sub.totalPrice.toFixed(2)} €</TableCell>
+                                            <TableCell>{(sub.totalPrice || 0).toFixed(2)} €</TableCell>
                                             <TableCell>
                                                 {sub.purchaseStartDate && sub.purchaseEndDate
                                                     ? `${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} - ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`
