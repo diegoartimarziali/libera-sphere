@@ -102,6 +102,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <AdminNavLink href="/admin/awards">Premi</AdminNavLink>
                     <AdminNavLink href="/admin/subscriptions">Abbonamenti</AdminNavLink>
                     <AdminNavLink href="/admin/medical-certificates">Certificati</AdminNavLink>
+                    <AdminNavLink href="/admin/settings">Impostazioni</AdminNavLink>
                 </nav>
                  <div className="flex items-center gap-4">
                     <Button asChild variant="outline">
