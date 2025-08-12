@@ -21,12 +21,16 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 interface Award {
     id: string;
     name: string;
-    value: number;
+    value: number; // Valore totale
+    gymId?: string; // opzionale, se non c'è è per tutte
+    lessonsCount?: number;
+    pricePerLesson?: number;
 }
 
 interface AssociateProfile {
@@ -40,7 +44,6 @@ interface AssociateProfile {
     lastGrade?: string;
 }
 
-
 interface Gym {
     id: string;
     name: string;
@@ -48,7 +51,10 @@ interface Gym {
 
 const awardFormSchema = z.object({
     name: z.string().min(3, "Il nome del premio è obbligatorio (min. 3 caratteri)."),
-    value: z.preprocess((val) => Number(val), z.number().min(0, "Il valore non può essere negativo.")),
+    gymId: z.string().optional(),
+    lessonsCount: z.preprocess((val) => Number(val), z.number().min(0, "Il numero di lezioni non può essere negativo.")),
+    pricePerLesson: z.preprocess((val) => Number(val), z.number().min(0, "Il valore per lezione non può essere negativo.")),
+    value: z.number() // Questo verrà calcolato
 });
 
 type AwardFormData = z.infer<typeof awardFormSchema>;
@@ -65,90 +71,123 @@ export default function AdminAwardsPage() {
 
     const [associates, setAssociates] = useState<AssociateProfile[]>([]);
     const [loadingAssociates, setLoadingAssociates] = useState(true);
-    const [gyms, setGyms] = useState<Map<string, string>>(new Map());
+    const [allGyms, setAllGyms] = useState<Gym[]>([]);
+    const [gymsMap, setGymsMap] = useState<Map<string, string>>(new Map());
 
     const form = useForm<AwardFormData>({
         resolver: zodResolver(awardFormSchema),
-        defaultValues: { name: '', value: 0 }
+        defaultValues: { name: '', value: 0, lessonsCount: 0, pricePerLesson: 0 }
     });
     
+    const lessonsCount = form.watch('lessonsCount');
+    const pricePerLesson = form.watch('pricePerLesson');
+    const totalValue = (lessonsCount || 0) * (pricePerLesson || 0);
+
     useEffect(() => {
-        const fetchAwards = async () => {
+        form.setValue('value', totalValue);
+    }, [totalValue, form]);
+
+
+    useEffect(() => {
+        const fetchInitialData = async () => {
             setLoading(true);
             try {
-                const awardsSnapshot = await getDocs(query(collection(db, "awards"), orderBy("name")));
-                const awardsList = awardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Award));
-                setAwards(awardsList);
+                // Fetch gyms first
+                const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
+                const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Gym));
+                setAllGyms(gymsList);
+                const newGymsMap = new Map<string, string>();
+                gymsList.forEach(gym => newGymsMap.set(gym.id, gym.name));
+                setGymsMap(newGymsMap);
+
+                await fetchAwards();
+                await fetchAssociates(newGymsMap);
+                
             } catch (error) {
-                console.error("Error fetching awards:", error);
-                toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i premi." });
+                 console.error("Error fetching initial data:", error);
+                 toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i dati iniziali." });
             } finally {
                 setLoading(false);
             }
         };
-
-        const fetchAssociates = async () => {
-            setLoadingAssociates(true);
-            try {
-                // Fetch gyms first
-                const gymsSnapshot = await getDocs(collection(db, "gyms"));
-                const gymsMap = new Map<string, string>();
-                gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
-                setGyms(gymsMap);
-
-                // Fetch active associates
-                const associatesQuery = query(
-                    collection(db, "users"),
-                    where("associationStatus", "==", "active"),
-                    orderBy("surname")
-                );
-                const associatesSnapshot = await getDocs(associatesQuery);
-                const associatesList = associatesSnapshot.docs.map(doc => ({
-                    uid: doc.id,
-                    ...doc.data()
-                } as AssociateProfile));
-                setAssociates(associatesList);
-            } catch (error) {
-                console.error("Error fetching associates:", error);
-                toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare l'elenco degli atleti associati." });
-            } finally {
-                setLoadingAssociates(false);
-            }
-        };
-
-        fetchAwards();
-        fetchAssociates();
+        
+        fetchInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [toast]);
+    
+    const fetchAwards = async () => {
+        try {
+            const awardsSnapshot = await getDocs(query(collection(db, "awards"), orderBy("name")));
+            const awardsList = awardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Award));
+            setAwards(awardsList);
+        } catch (error) {
+            console.error("Error fetching awards:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i premi." });
+        }
+    }
+    
+    const fetchAssociates = async (currentGymsMap: Map<string, string>) => {
+        setLoadingAssociates(true);
+        try {
+            const associatesQuery = query(
+                collection(db, "users"),
+                where("associationStatus", "==", "active"),
+                orderBy("surname")
+            );
+            const associatesSnapshot = await getDocs(associatesQuery);
+            const associatesList = associatesSnapshot.docs.map(doc => ({
+                uid: doc.id,
+                ...doc.data(),
+                gym: doc.data().gym ? currentGymsMap.get(doc.data().gym) || doc.data().gym : 'N/D'
+            } as AssociateProfile));
+            setAssociates(associatesList);
+        } catch (error) {
+            console.error("Error fetching associates:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare l'elenco degli atleti associati." });
+        } finally {
+            setLoadingAssociates(false);
+        }
+    };
     
     const openCreateForm = () => {
         setEditingAward(null);
-        form.reset({ name: '', value: 0 });
+        form.reset({ name: '', value: 0, lessonsCount: 0, pricePerLesson: 0, gymId: '' });
         setIsFormOpen(true);
     }
 
     const openEditForm = (award: Award) => {
         setEditingAward(award);
-        form.reset({ name: award.name, value: award.value });
+        form.reset({ 
+            name: award.name, 
+            value: award.value,
+            lessonsCount: award.lessonsCount,
+            pricePerLesson: award.pricePerLesson,
+            gymId: award.gymId
+        });
         setIsFormOpen(true);
     };
 
     const handleSaveAward = async (data: AwardFormData) => {
         setIsSubmitting(true);
+        const awardData = {
+            name: data.name,
+            gymId: data.gymId || null,
+            lessonsCount: data.lessonsCount,
+            pricePerLesson: data.pricePerLesson,
+            value: data.value,
+        };
+
         try {
-            if (editingAward) { // Modalità modifica
+            if (editingAward) {
                 const awardDocRef = doc(db, "awards", editingAward.id);
-                await updateDoc(awardDocRef, { name: data.name, value: data.value });
+                await updateDoc(awardDocRef, awardData);
                 toast({ title: "Premio aggiornato!", variant: "success" });
-            } else { // Modalità creazione
-                await addDoc(collection(db, "awards"), { name: data.name, value: data.value });
+            } else {
+                await addDoc(collection(db, "awards"), awardData);
                 toast({ title: "Premio creato!", variant: "success" });
             }
             
-            // Re-fetch awards after saving
-            const awardsSnapshot = await getDocs(query(collection(db, "awards"), orderBy("name")));
-            const awardsList = awardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Award));
-            setAwards(awardsList);
-            
+            await fetchAwards();
             setIsFormOpen(false);
             setEditingAward(null);
 
@@ -164,10 +203,7 @@ export default function AdminAwardsPage() {
         try {
              await deleteDoc(doc(db, "awards", awardId));
              toast({ title: "Premio eliminato", variant: "success" });
-             // Re-fetch awards after deleting
-             const awardsSnapshot = await getDocs(query(collection(db, "awards"), orderBy("name")));
-             const awardsList = awardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Award));
-             setAwards(awardsList);
+             await fetchAwards();
         } catch (error) {
             console.error("Error deleting award:", error);
             toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare il premio." });
@@ -187,7 +223,7 @@ export default function AdminAwardsPage() {
                         <Award className="h-8 w-8 text-primary" />
                         <div>
                             <CardTitle>Gestione Premi e Valori</CardTitle>
-                            <CardDescription>Crea e gestisci i premi che possono essere accumulati dagli atleti. Questi premi sono globali e validi per tutti.</CardDescription>
+                            <CardDescription>Crea e gestisci i premi che possono essere accumulati dagli atleti.</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
@@ -202,18 +238,24 @@ export default function AdminAwardsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Nome Premio</TableHead>
-                                    <TableHead className="w-[150px]">Valore (Punti)</TableHead>
+                                    <TableHead>Palestra</TableHead>
+                                    <TableHead>N. Lezioni</TableHead>
+                                    <TableHead>Valore Lezione</TableHead>
+                                    <TableHead>Valore Totale</TableHead>
                                     <TableHead className="w-[180px] text-right">Azioni</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
-                                    <TableRow><TableCell colSpan={3} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={6} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                                 ) : awards.length > 0 ? (
                                     awards.map((award) => (
                                         <TableRow key={award.id}>
                                             <TableCell className="font-medium">{award.name}</TableCell>
-                                            <TableCell>{award.value}</TableCell>
+                                            <TableCell>{award.gymId ? gymsMap.get(award.gymId) || award.gymId : 'Tutte'}</TableCell>
+                                            <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
+                                            <TableCell>{award.pricePerLesson?.toFixed(2) || 'N/A'} €</TableCell>
+                                            <TableCell className="font-bold">{award.value.toFixed(2)} €</TableCell>
                                             <TableCell className="text-right space-x-1">
                                                 <Button variant="outline" size="sm" onClick={() => openEditForm(award)}>Modifica</Button>
                                                 <AlertDialog>
@@ -239,7 +281,7 @@ export default function AdminAwardsPage() {
                                         </TableRow>
                                     ))
                                 ) : (
-                                    <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground">Nessun premio trovato. Creane uno per iniziare.</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Nessun premio trovato. Creane uno per iniziare.</TableCell></TableRow>
                                 )}
                             </TableBody>
                         </Table>
@@ -257,9 +299,31 @@ export default function AdminAwardsPage() {
                              <FormField control={form.control} name="name" render={({ field }) => (
                                 <FormItem><FormLabel>Nome del Premio</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
-                             <FormField control={form.control} name="value" render={({ field }) => (
-                                <FormItem><FormLabel>Valore (Punti)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                             <FormField control={form.control} name="gymId" render={({ field }) => (
+                                <FormItem><FormLabel>Palestra</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl><SelectTrigger><SelectValue placeholder="Valido per tutte le palestre..." /></SelectTrigger></FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="">Tutte le Palestre</SelectItem>
+                                            {allGyms.map(gym => (
+                                                <SelectItem key={gym.id} value={gym.id}>{gym.id} - {gym.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                <FormMessage /></FormItem>
                             )} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="lessonsCount" render={({ field }) => (
+                                    <FormItem><FormLabel>Numero Lezioni</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="pricePerLesson" render={({ field }) => (
+                                    <FormItem><FormLabel>Prezzo a Lezione (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                            </div>
+                            <div>
+                                <Label>Valore Totale Calcolato</Label>
+                                <Input type="text" readOnly disabled value={`${totalValue.toFixed(2)} €`} className="font-bold text-lg h-12" />
+                            </div>
                             <DialogFooter>
                                 <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annulla</Button>
                                 <Button type="submit" disabled={isSubmitting}>
@@ -304,7 +368,7 @@ export default function AdminAwardsPage() {
                                             <TableCell>{calculateAge(associate.birthDate)}</TableCell>
                                             <TableCell><Badge variant="secondary">{associate.discipline || 'N/D'}</Badge></TableCell>
                                             <TableCell>{associate.lastGrade || 'N/D'}</TableCell>
-                                            <TableCell>{associate.gym ? gyms.get(associate.gym) || associate.gym : 'N/D'}</TableCell>
+                                            <TableCell>{associate.gym}</TableCell>
                                         </TableRow>
                                     ))
                                 ) : (
@@ -317,4 +381,5 @@ export default function AdminAwardsPage() {
             </Card>
         </div>
     );
-}
+
+    
