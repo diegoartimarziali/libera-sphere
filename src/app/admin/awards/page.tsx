@@ -100,12 +100,6 @@ export default function AdminAwardsPage() {
         }
     }
     
-    const openCreateForm = () => {
-        setEditingAward(null);
-        form.reset({ name: '', lessonsCount: 0, pricePerLesson: 0, gymId: '' });
-        setIsFormOpen(true);
-    }
-
     const openEditForm = (award: Award) => {
         setEditingAward(award);
         form.reset({ 
@@ -168,9 +162,6 @@ export default function AdminAwardsPage() {
                         <CardTitle>Gestione Premi</CardTitle>
                         <CardDescription>Crea e gestisci i premi che possono essere accumulati dagli atleti.</CardDescription>
                     </div>
-                    <Button onClick={openCreateForm}>
-                        <PlusCircle className="mr-2" /> Aggiungi Premio
-                    </Button>
                 </div>
             </CardHeader>
             <CardContent>
@@ -196,7 +187,7 @@ export default function AdminAwardsPage() {
                                         <TableCell>{award.gymId ? gymsMap.get(award.gymId) || award.gymId : 'Tutte'}</TableCell>
                                         <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
                                         <TableCell>{typeof award.pricePerLesson === 'number' ? `${award.pricePerLesson.toFixed(2)} €` : 'N/A'}</TableCell>
-                                        <TableCell className="font-bold">{typeof award.value === 'number' ? `${award.value.toFixed(2)} €` : 'N/A'}</TableCell>
+                                        <TableCell className="font-bold">{award.value !== undefined ? `${award.value.toFixed(2)} €` : 'N/A'}</TableCell>
                                         <TableCell className="text-right space-x-1">
                                             <Button variant="outline" size="sm" onClick={() => openEditForm(award)}>Modifica</Button>
                                             <AlertDialog>
@@ -277,5 +268,4 @@ export default function AdminAwardsPage() {
             </Dialog>
         </Card>
     );
-
-    
+}
