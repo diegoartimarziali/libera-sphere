@@ -3,163 +3,37 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
+import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useWatch, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, Award } from "lucide-react";
+import { Loader2, PlusCircle, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
 
 interface Award {
     id: string;
     name: string;
-    gymIds?: string[];
-    lessonsCount?: number;
-    value?: number;
-    lessonValues?: number[]; // Array per i valori delle singole lezioni
-    monthlyValue?: number; // Nuovo campo per il valore mensile da dividere
+    value: number;
 }
-
-interface Gym {
-    id: string;
-    name: string;
-}
-
-interface Subscription {
-    id: string;
-    name: string;
-    type: 'monthly' | 'seasonal';
-    totalPrice: number;
-}
-
 
 const awardFormSchema = z.object({
     name: z.string().min(1, "La selezione del tipo di premio è obbligatoria."),
-    lessonsCount: z.number().optional(),
-    lessonValues: z.array(z.number().nonnegative("Il valore non può essere negativo.")).optional(),
-    gymIds: z.array(z.string()).optional(),
-    monthlyValue: z.number().optional(),
-    subscriptionId: z.string().optional(),
+    value: z.preprocess(
+        (val) => Number(String(val).replace(',', '.')),
+        z.number().nonnegative("Il valore non può essere negativo.")
+    )
 });
 
 type AwardFormData = z.infer<typeof awardFormSchema>;
-
-const BonusFields = ({ control, lessonCount, form, subscriptions }: { control: any, lessonCount: number, form: any, subscriptions: Subscription[] }) => {
-    const lessonValues = useWatch({ control, name: 'lessonValues' }) || [];
-    const monthlyValue = useWatch({ control, name: 'monthlyValue' }) || 0;
-    
-     useEffect(() => {
-        if (monthlyValue > 0 && lessonCount > 0) {
-            const perLessonValue = parseFloat((monthlyValue / lessonCount).toFixed(2));
-            const newLessonValues = Array(lessonCount).fill(perLessonValue);
-            
-            // Per aggiustare l'arrotondamento, aggiungo la differenza al primo elemento
-            const calculatedTotal = newLessonValues.reduce((acc, v) => acc + v, 0);
-            const remainder = parseFloat((monthlyValue - calculatedTotal).toFixed(2));
-            if (newLessonValues.length > 0) {
-                 newLessonValues[0] += remainder;
-                 newLessonValues[0] = parseFloat(newLessonValues[0].toFixed(2));
-            }
-
-            form.setValue('lessonValues', newLessonValues);
-        } else if (monthlyValue === 0) {
-            // Se l'utente azzera il valore, azzera anche le lezioni
-            form.setValue('lessonValues', Array(lessonCount).fill(0));
-        }
-    }, [monthlyValue, lessonCount, form]);
-
-    const totalFromLessons = lessonValues.reduce((acc: number, val: number | string) => acc + (Number(val) || 0), 0);
-
-    return (
-        <div className="space-y-4 rounded-md border p-4">
-              <FormField
-                control={control}
-                name="subscriptionId"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Collega ad Abbonamento Mensile</FormLabel>
-                    <Select 
-                        onValueChange={(value) => {
-                            field.onChange(value);
-                            const selectedSub = subscriptions.find(s => s.id === value);
-                            form.setValue('monthlyValue', selectedSub?.totalPrice || 0);
-                        }} 
-                        defaultValue={field.value}
-                    >
-                        <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleziona un abbonamento..." />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {subscriptions
-                                .filter(s => s.type === 'monthly')
-                                .map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.totalPrice.toFixed(2)}€)</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-            <div className="text-xs text-muted-foreground">Il valore dell'abbonamento verrà diviso automaticamente per le lezioni.</div>
-            
-            <FormField
-                control={control}
-                name="lessonsCount"
-                render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Numero di Lezioni</FormLabel>
-                    <FormControl>
-                        <Input type="number" {...field} readOnly disabled className="bg-muted/50" />
-                    </FormControl>
-                    <FormMessage />
-                </FormItem>
-                )}
-            />
-
-            {Array.from({ length: lessonCount }).map((_, index) => (
-                 <FormField
-                    key={index}
-                    control={control}
-                    name={`lessonValues.${index}`}
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Valore Lezione {index + 1} (€)</FormLabel>
-                            <FormControl>
-                                <Input 
-                                    type="number" 
-                                    step="0.01" 
-                                    placeholder="0.00"
-                                    {...field}
-                                    onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-                                    readOnly 
-                                    className="bg-muted/50"
-                                />
-                            </FormControl>
-                             <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            ))}
-             <div className="pt-2 text-right">
-                <p className="text-sm text-muted-foreground">Valore Totale del Bonus:</p>
-                <p className="text-xl font-bold">{totalFromLessons.toFixed(2)} €</p>
-            </div>
-        </div>
-    )
-}
 
 
 export default function AdminAwardsPage() {
@@ -171,71 +45,29 @@ export default function AdminAwardsPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingAward, setEditingAward] = useState<Award | null>(null);
 
-    const [allGyms, setAllGyms] = useState<Gym[]>([]);
-    const [gymsMap, setGymsMap] = useState<Map<string, string>>(new Map());
-    const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-
-
     const form = useForm<AwardFormData>({
         resolver: zodResolver(awardFormSchema),
         defaultValues: { 
             name: '',
-            lessonsCount: 0,
-            lessonValues: [],
-            gymIds: [],
-            monthlyValue: 0
+            value: 0,
         }
     });
-    
-    const selectedAwardType = form.watch('name');
 
     useEffect(() => {
-        const resetBonusFields = () => {
-            form.setValue('lessonsCount', undefined);
-            form.setValue('lessonValues', undefined);
-            form.setValue('gymIds', undefined);
-            form.setValue('monthlyValue', undefined);
-            form.setValue('subscriptionId', undefined);
-        };
-
-        if (selectedAwardType?.includes('3 Lezioni')) {
-            form.setValue('lessonsCount', 3);
-            form.setValue('lessonValues', Array(3).fill(0));
-        } else if (selectedAwardType?.includes('5 Lezioni')) {
-            form.setValue('lessonsCount', 5);
-             form.setValue('lessonValues', Array(5).fill(0));
-        } else {
-            resetBonusFields();
-        }
-    }, [selectedAwardType, form]);
-
-    useEffect(() => {
-        const fetchInitialData = async () => {
+        const fetchAwards = async () => {
             setLoading(true);
             try {
-                const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
-                const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name } as Gym));
-                setAllGyms(gymsList);
-                const newGymsMap = new Map<string, string>();
-                gymsList.forEach(gym => newGymsMap.set(gym.id, gym.name));
-                setGymsMap(newGymsMap);
-                
-                const subscriptionsSnapshot = await getDocs(query(collection(db, "subscriptions"), orderBy("name")));
-                const subscriptionsList = subscriptionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subscription));
-                setSubscriptions(subscriptionsList);
-
-                await fetchAwards();
-                
+                const awardsSnapshot = await getDocs(query(collection(db, "awards"), orderBy("name")));
+                const awardsList = awardsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Award));
+                setAwards(awardsList);
             } catch (error) {
-                 console.error("Error fetching initial data:", error);
-                 toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i dati iniziali." });
+                 console.error("Error fetching awards:", error);
+                 toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i premi." });
             } finally {
                 setLoading(false);
             }
         };
-        
-        fetchInitialData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        fetchAwards();
     }, [toast]);
     
     const fetchAwards = async () => {
@@ -253,26 +85,16 @@ export default function AdminAwardsPage() {
         setEditingAward(null);
         form.reset({
             name: '',
-            gymIds: [],
-            lessonValues: [],
-            lessonsCount: 0,
-            monthlyValue: 0
+            value: 0
         });
         setIsFormOpen(true);
     };
 
     const openEditForm = (award: Award) => {
         setEditingAward(award);
-        
-        const subToSelect = subscriptions.find(s => s.totalPrice === award.monthlyValue)
-        
         form.reset({ 
             name: award.name,
-            lessonsCount: award.lessonsCount,
-            lessonValues: award.lessonValues,
-            gymIds: award.gymIds || [],
-            monthlyValue: award.monthlyValue,
-            subscriptionId: subToSelect?.id
+            value: award.value,
         });
         setIsFormOpen(true);
     };
@@ -280,19 +102,10 @@ export default function AdminAwardsPage() {
     const handleSaveAward = async (data: AwardFormData) => {
         setIsSubmitting(true);
         try {
-            const totalValue = data.lessonValues?.reduce((acc, val) => acc + (val || 0), 0) || 0;
-            
-            const awardData: Partial<Award> = {
+            const awardData: Omit<Award, 'id'> = {
                 name: data.name,
-                value: totalValue,
+                value: data.value,
             };
-
-            if (data.name?.includes("Bonus")) {
-                awardData.lessonsCount = data.lessonsCount;
-                awardData.lessonValues = data.lessonValues;
-                awardData.gymIds = data.gymIds;
-                awardData.monthlyValue = data.monthlyValue;
-            }
 
             if (editingAward) {
                 const awardRef = doc(db, "awards", editingAward.id);
@@ -330,7 +143,7 @@ export default function AdminAwardsPage() {
                 <div className="flex justify-between items-center">
                     <div>
                         <CardTitle>Gestione Premi</CardTitle>
-                        <CardDescription>Crea e gestisci i premi che possono essere accumulati dagli atleti.</CardDescription>
+                        <CardDescription>Crea e gestisci i premi e i bonus che possono essere accumulati dagli atleti.</CardDescription>
                     </div>
                      <Button onClick={openCreateForm}>
                         <PlusCircle className="mr-2 h-4 w-4" /> Crea Premio
@@ -343,29 +156,18 @@ export default function AdminAwardsPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nome Premio</TableHead>
-                                <TableHead>Palestre</TableHead>
-                                <TableHead>N. Lezioni</TableHead>
-                                <TableHead>Valore Totale</TableHead>
+                                <TableHead>Valore</TableHead>
                                 <TableHead className="w-[180px] text-right">Azioni</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
-                                <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={3} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                             ) : awards.length > 0 ? (
                                 awards.map((award) => (
                                     <TableRow key={award.id}>
                                         <TableCell className="font-medium">{award.name}</TableCell>
-                                        <TableCell>
-                                            {award.gymIds && award.gymIds.length > 0 
-                                                ? award.gymIds.map(id => {
-                                                    const gym = allGyms.find(g => g.id === id);
-                                                    return gym ? `${gym.id} - ${gym.name}` : id;
-                                                  }).join(', ') 
-                                                : 'Tutte'}
-                                        </TableCell>
-                                        <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
-                                        <TableCell className="font-bold">{typeof award.value === 'number' ? `${award.value.toFixed(2)} €` : 'N/A'}</TableCell>
+                                        <TableCell className="font-bold">{award.value.toFixed(2)} €</TableCell>
                                         <TableCell className="text-right space-x-1">
                                             <Button variant="outline" size="sm" onClick={() => openEditForm(award)}>Modifica</Button>
                                             <AlertDialog>
@@ -391,7 +193,7 @@ export default function AdminAwardsPage() {
                                     </TableRow>
                                 ))
                             ) : (
-                                <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Nessun premio trovato. Creane uno per iniziare.</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={3} className="text-center h-24 text-muted-foreground">Nessun premio trovato. Creane uno per iniziare.</TableCell></TableRow>
                             )}
                         </TableBody>
                     </Table>
@@ -418,8 +220,7 @@ export default function AdminAwardsPage() {
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="Bonus di Inizio Percorso 3 Lezioni">Bonus di Inizio Percorso 3 Lezioni</SelectItem>
-                                            <SelectItem value="Bonus di Inizio Percorso 5 Lezioni">Bonus di Inizio Percorso 5 Lezioni</SelectItem>
+                                            <SelectItem value="Bonus Inizio Percorso">Bonus Inizio Percorso</SelectItem>
                                             <SelectItem value="Premio Best Samurai">Premio Best Samurai</SelectItem>
                                             <SelectItem value="Premio Frequenza 1 lezione">Premio Frequenza 1 lezione</SelectItem>
                                             <SelectItem value="Premio Frequenza 2 lezioni">Premio Frequenza 2 lezioni</SelectItem>
@@ -431,60 +232,20 @@ export default function AdminAwardsPage() {
                                 </FormItem>
                                 )}
                             />
-                             {(selectedAwardType === 'Bonus di Inizio Percorso 3 Lezioni' || selectedAwardType === 'Bonus di Inizio Percorso 5 Lezioni') && (
-                                <div className="space-y-2 rounded-md border p-4">
-                                    <FormLabel>Palestre Associate</FormLabel>
-                                    <p className="text-sm text-muted-foreground">Seleziona una o più palestre per cui questo bonus è valido. Lascia deselezionato per renderlo valido per tutte.</p>
-                                    <FormField
-                                        control={form.control}
-                                        name="gymIds"
-                                        render={() => (
-                                            <FormItem className="space-y-2">
-                                            {allGyms.map((gym) => (
-                                                <FormField
-                                                key={gym.id}
-                                                control={form.control}
-                                                name="gymIds"
-                                                render={({ field }) => {
-                                                    return (
-                                                    <FormItem
-                                                        key={gym.id}
-                                                        className="flex flex-row items-start space-x-3 space-y-0"
-                                                    >
-                                                        <FormControl>
-                                                        <Checkbox
-                                                            checked={field.value?.includes(gym.id)}
-                                                            onCheckedChange={(checked) => {
-                                                            return checked
-                                                                ? field.onChange([...(field.value || []), gym.id])
-                                                                : field.onChange(
-                                                                    (field.value || []).filter(
-                                                                    (value) => value !== gym.id
-                                                                    )
-                                                                )
-                                                            }}
-                                                        />
-                                                        </FormControl>
-                                                        <FormLabel className="font-normal">
-                                                            {gym.id} - {gym.name}
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                    )
-                                                }}
-                                                />
-                                            ))}
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            )}
-
-                            {selectedAwardType === 'Bonus di Inizio Percorso 3 Lezioni' && (
-                                <BonusFields control={form.control} lessonCount={3} form={form} subscriptions={subscriptions} />
-                            )}
-                             {selectedAwardType === 'Bonus di Inizio Percorso 5 Lezioni' && (
-                                <BonusFields control={form.control} lessonCount={5} form={form} subscriptions={subscriptions} />
-                            )}
+                            
+                             <FormField
+                                control={form.control}
+                                name="value"
+                                render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Valore del Premio (€)</FormLabel>
+                                     <FormControl>
+                                        <Input type="number" step="0.01" placeholder="Es. 50.00" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                                )}
+                            />
                             
                             <DialogFooter>
                                 <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annulla</Button>
