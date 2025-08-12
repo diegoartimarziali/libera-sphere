@@ -44,7 +44,6 @@ interface Subscription {
 
 const subscriptionFormSchema = z.object({
     id: z.string().optional(),
-    name: z.string().min(3, "Il nome è obbligatorio."),
     type: z.enum(['monthly', 'seasonal'], { required_error: "La tipologia è obbligatoria." }),
     gymIds: z.array(z.string()).optional(),
     totalPrice: z.preprocess((val) => Number(String(val).replace(',', '.')), z.number().min(0, "Il prezzo non può essere negativo.")),
@@ -77,7 +76,6 @@ export default function AdminSubscriptionsPage() {
     const form = useForm<SubscriptionFormData>({
         resolver: zodResolver(subscriptionFormSchema),
         defaultValues: {
-            name: '',
             type: 'monthly',
             gymIds: [],
             totalPrice: 0,
@@ -134,7 +132,6 @@ export default function AdminSubscriptionsPage() {
     const openCreateForm = () => {
         setEditingSubscription(null);
         form.reset({
-            name: '',
             type: 'monthly',
             gymIds: [],
             totalPrice: 0,
@@ -149,7 +146,6 @@ export default function AdminSubscriptionsPage() {
         setEditingSubscription(sub);
         form.reset({
             id: sub.id,
-            name: sub.name,
             type: sub.type,
             gymIds: sub.gymIds || [],
             totalPrice: sub.totalPrice,
@@ -165,7 +161,7 @@ export default function AdminSubscriptionsPage() {
         setIsSubmitting(true);
         
         const subData: { [key: string]: any } = {
-            name: data.name,
+            name: data.type === 'monthly' ? "Abbonamento Mensile" : "Abbonamento Stagionale",
             type: data.type,
             gymIds: data.type === 'monthly' ? (data.gymIds || []) : [],
             totalPrice: data.totalPrice,
@@ -174,10 +170,8 @@ export default function AdminSubscriptionsPage() {
         
         if (data.type === 'monthly' && data.lessonsPerMonth) {
             subData.lessonsPerMonth = data.lessonsPerMonth;
-            subData.pricePerLesson = data.totalPrice / data.lessonsPerMonth;
         } else {
             subData.lessonsPerMonth = null;
-            subData.pricePerLesson = null;
         }
 
         if (data.purchaseStartDate) {
@@ -314,10 +308,6 @@ export default function AdminSubscriptionsPage() {
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(handleSaveSubscription)} className="space-y-4 py-4">
-                            <FormField control={form.control} name="name" render={({ field }) => (
-                                <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-
                              <FormField control={form.control} name="type" render={({ field }) => (
                                 <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="monthly">Mensile</SelectItem><SelectItem value="seasonal">Stagionale</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                             )} />
