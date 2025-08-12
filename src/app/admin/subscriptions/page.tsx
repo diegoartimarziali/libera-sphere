@@ -105,7 +105,7 @@ export default function AdminSubscriptionsPage() {
             const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
             setGyms(gymsList);
             const newGymsMap = new Map<string, string>();
-            gymsList.forEach(gym => newGymsMap.set(gym.id, gym.name));
+            gymsList.forEach(gym => newGymsMap.set(gym.id, `${gym.id} - ${gym.name}`));
             setGymsMap(newGymsMap);
             
             await fetchSubscriptions();
@@ -371,18 +371,22 @@ export default function AdminSubscriptionsPage() {
                             
                              <div className="space-y-2 rounded-md border p-4">
                                 <h4 className="text-sm font-medium">Calcolo Prezzo</h4>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                      <FormField control={form.control} name="totalPrice" render={({ field }) => (
                                         <FormItem><FormLabel>Prezzo Totale Abbonamento (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
-                                    <FormField control={form.control} name="lessonsPerMonth" render={({ field }) => (
-                                        <FormItem><FormLabel>Lezioni nel mese</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
+                                     {subscriptionType === 'monthly' && (
+                                        <FormField control={form.control} name="lessonsPerMonth" render={({ field }) => (
+                                            <FormItem><FormLabel>Lezioni nel mese</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                                        )} />
+                                     )}
                                 </div>
-                                <div className="pt-2 text-right">
-                                    <p className="text-sm text-muted-foreground">Costo per Lezione Calcolato:</p>
-                                    <p className="text-xl font-bold">{isFinite(pricePerLesson) ? pricePerLesson.toFixed(2) : '0.00'} €</p>
-                                </div>
+                                 {subscriptionType === 'monthly' && (
+                                    <div className="pt-2 text-right">
+                                        <p className="text-sm text-muted-foreground">Costo per Lezione Calcolato:</p>
+                                        <p className="text-xl font-bold">{isFinite(pricePerLesson) ? pricePerLesson.toFixed(2) : '0.00'} €</p>
+                                    </div>
+                                 )}
                             </div>
 
 
