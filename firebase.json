@@ -9,8 +9,8 @@
     "rewrites": [
       {
         "source": "**",
-        "apphosting": {
-          "backendId": "libera-energia-soci-backend",
+        "run": {
+          "serviceId": "libera-energia-soci-backend",
           "region": "us-central1"
         }
       }
