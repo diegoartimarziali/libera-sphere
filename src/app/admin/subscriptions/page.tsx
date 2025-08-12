@@ -338,7 +338,7 @@ export default function AdminSubscriptionsPage() {
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl><SelectTrigger><SelectValue placeholder="Seleziona..." /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    {gyms.map(gym => <SelectItem key={gym.id} value={gym.id}>{gym.name}</SelectItem>)}
+                                                    {gyms.map(gym => <SelectItem key={gym.id} value={gym.id}>{gym.id} - {gym.name}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         <FormMessage /></FormItem>
