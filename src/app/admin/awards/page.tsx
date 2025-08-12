@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm, useWatch, Controller } from "react-hook-form";
 import { z } from "zod";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -19,12 +19,13 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
 interface Award {
     id: string;
     name: string;
-    gymId?: string;
+    gymIds?: string[];
     lessonsCount?: number;
     value?: number;
     lessonValues?: number[]; // Array per i valori delle singole lezioni
@@ -39,12 +40,13 @@ const awardFormSchema = z.object({
     name: z.string().min(1, "La selezione del tipo di premio è obbligatoria."),
     lessonsCount: z.number().optional(),
     lessonValues: z.array(z.number().nonnegative("Il valore non può essere negativo.")).optional(),
+    gymIds: z.array(z.string()).optional(),
     total: z.number().optional(),
 });
 
 type AwardFormData = z.infer<typeof awardFormSchema>;
 
-const BonusFields = ({ control, lessonCount }: { control: any, lessonCount: number }) => {
+const BonusFields = ({ control, lessonCount, allGyms }: { control: any, lessonCount: number, allGyms: Gym[] }) => {
     const lessonValues = useWatch({ control, name: 'lessonValues' }) || [];
     const total = lessonValues.reduce((acc: number, val: number | string) => acc + (Number(val) || 0), 0);
 
@@ -85,6 +87,51 @@ const BonusFields = ({ control, lessonCount }: { control: any, lessonCount: numb
                     )}
                 />
             ))}
+            <div className="space-y-2">
+                <FormLabel>Palestre Associate</FormLabel>
+                <p className="text-sm text-muted-foreground">Seleziona una o più palestre per cui questo bonus è valido. Lascia deselezionato per renderlo valido per tutte.</p>
+                <FormField
+                    control={control}
+                    name="gymIds"
+                    render={() => (
+                        <FormItem className="space-y-2">
+                        {allGyms.map((gym) => (
+                            <FormField
+                            key={gym.id}
+                            control={control}
+                            name="gymIds"
+                            render={({ field }) => {
+                                return (
+                                <FormItem
+                                    key={gym.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                >
+                                    <FormControl>
+                                    <Checkbox
+                                        checked={field.value?.includes(gym.id)}
+                                        onCheckedChange={(checked) => {
+                                        return checked
+                                            ? field.onChange([...(field.value || []), gym.id])
+                                            : field.onChange(
+                                                (field.value || []).filter(
+                                                (value) => value !== gym.id
+                                                )
+                                            )
+                                        }}
+                                    />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                        {gym.id} - {gym.name}
+                                    </FormLabel>
+                                </FormItem>
+                                )
+                            }}
+                            />
+                        ))}
+                        </FormItem>
+                    )}
+                />
+            </div>
              <div className="pt-2 text-right">
                 <p className="text-sm text-muted-foreground">Valore Totale del Bonus:</p>
                 <p className="text-xl font-bold">{total.toFixed(2)} €</p>
@@ -112,6 +159,7 @@ export default function AdminAwardsPage() {
             name: '',
             lessonsCount: 0,
             lessonValues: [],
+            gymIds: [],
             total: 0
         }
     });
@@ -128,6 +176,7 @@ export default function AdminAwardsPage() {
         } else {
             form.setValue('lessonsCount', undefined);
             form.setValue('lessonValues', undefined);
+            form.setValue('gymIds', undefined);
         }
     }, [selectedAwardType, form]);
 
@@ -171,17 +220,18 @@ export default function AdminAwardsPage() {
         setEditingAward(null);
         form.reset({
             name: '',
+            gymIds: [],
         });
         setIsFormOpen(true);
     };
 
     const openEditForm = (award: Award) => {
-        // Questa funzione sarà estesa in futuro
         setEditingAward(award);
         form.reset({ 
             name: award.name,
             lessonsCount: award.lessonsCount,
-            lessonValues: award.lessonValues
+            lessonValues: award.lessonValues,
+            gymIds: award.gymIds || [],
         });
         setIsFormOpen(true);
     };
@@ -196,6 +246,7 @@ export default function AdminAwardsPage() {
                 lessonsCount: data.lessonsCount,
                 lessonValues: data.lessonValues,
                 value: totalValue,
+                gymIds: data.gymIds,
             };
 
             if (editingAward) {
@@ -247,6 +298,7 @@ export default function AdminAwardsPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nome Premio</TableHead>
+                                <TableHead>Palestre</TableHead>
                                 <TableHead>N. Lezioni</TableHead>
                                 <TableHead>Valore Totale</TableHead>
                                 <TableHead className="w-[180px] text-right">Azioni</TableHead>
@@ -254,11 +306,12 @@ export default function AdminAwardsPage() {
                         </TableHeader>
                         <TableBody>
                             {loading ? (
-                                <TableRow><TableCell colSpan={4} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
+                                <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                             ) : awards.length > 0 ? (
                                 awards.map((award) => (
                                     <TableRow key={award.id}>
                                         <TableCell className="font-medium">{award.name}</TableCell>
+                                        <TableCell>{award.gymIds && award.gymIds.length > 0 ? award.gymIds.join(', ') : 'Tutte'}</TableCell>
                                         <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
                                         <TableCell className="font-bold">{typeof award.value === 'number' ? `${award.value.toFixed(2)} €` : 'N/A'}</TableCell>
                                         <TableCell className="text-right space-x-1">
@@ -286,7 +339,7 @@ export default function AdminAwardsPage() {
                                     </TableRow>
                                 ))
                             ) : (
-                                <TableRow><TableCell colSpan={4} className="text-center h-24 text-muted-foreground">Nessun premio trovato. Creane uno per iniziare.</TableCell></TableRow>
+                                <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Nessun premio trovato. Creane uno per iniziare.</TableCell></TableRow>
                             )}
                         </TableBody>
                     </Table>
@@ -328,10 +381,10 @@ export default function AdminAwardsPage() {
                             />
 
                             {selectedAwardType === 'Bonus di Inizio Percorso 3 Lezioni' && (
-                                <BonusFields control={form.control} lessonCount={3} />
+                                <BonusFields control={form.control} lessonCount={3} allGyms={allGyms} />
                             )}
                              {selectedAwardType === 'Bonus di Inizio Percorso 5 Lezioni' && (
-                                <BonusFields control={form.control} lessonCount={5} />
+                                <BonusFields control={form.control} lessonCount={5} allGyms={allGyms} />
                             )}
                             
                             <DialogFooter>
@@ -348,3 +401,4 @@ export default function AdminAwardsPage() {
         </Card>
     );
 }
+
