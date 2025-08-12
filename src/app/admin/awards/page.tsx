@@ -50,7 +50,6 @@ type AwardFormData = z.infer<typeof awardFormSchema>;
 
 const BonusFields = ({ control, lessonCount, form }: { control: any, lessonCount: number, form: any }) => {
     const lessonValues = useWatch({ control, name: 'lessonValues' }) || [];
-    const total = lessonValues.reduce((acc: number, val: number | string) => acc + (Number(val) || 0), 0);
     const monthlyValue = useWatch({ control, name: 'monthlyValue' }) || 0;
     
      useEffect(() => {
@@ -67,8 +66,13 @@ const BonusFields = ({ control, lessonCount, form }: { control: any, lessonCount
             }
 
             form.setValue('lessonValues', newLessonValues);
+        } else if (monthlyValue === 0) {
+            // Se l'utente azzera il valore, azzera anche le lezioni
+            form.setValue('lessonValues', Array(lessonCount).fill(0));
         }
     }, [monthlyValue, lessonCount, form]);
+
+    const totalFromLessons = lessonValues.reduce((acc: number, val: number | string) => acc + (Number(val) || 0), 0);
 
     return (
         <div className="space-y-4 rounded-md border p-4">
@@ -133,7 +137,7 @@ const BonusFields = ({ control, lessonCount, form }: { control: any, lessonCount
             ))}
              <div className="pt-2 text-right">
                 <p className="text-sm text-muted-foreground">Valore Totale del Bonus:</p>
-                <p className="text-xl font-bold">{total.toFixed(2)} €</p>
+                <p className="text-xl font-bold">{totalFromLessons.toFixed(2)} €</p>
             </div>
         </div>
     )
@@ -317,7 +321,7 @@ export default function AdminAwardsPage() {
                                 awards.map((award) => (
                                     <TableRow key={award.id}>
                                         <TableCell className="font-medium">{award.name}</TableCell>
-                                        <TableCell>{award.gymIds && award.gymIds.length > 0 ? award.gymIds.join(', ') : 'Tutte'}</TableCell>
+                                        <TableCell>{award.gymIds && award.gymIds.length > 0 ? award.gymIds.map(id => allGyms.find(g => g.id === id)?.name || id).join(', ') : 'Tutte'}</TableCell>
                                         <TableCell>{award.lessonsCount || 'N/A'}</TableCell>
                                         <TableCell className="font-bold">{typeof award.value === 'number' ? `${award.value.toFixed(2)} €` : 'N/A'}</TableCell>
                                         <TableCell className="text-right space-x-1">
