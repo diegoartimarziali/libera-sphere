@@ -48,7 +48,7 @@ const awardFormSchema = z.object({
 
 type AwardFormData = z.infer<typeof awardFormSchema>;
 
-const BonusFields = ({ control, lessonCount, allGyms, form }: { control: any, lessonCount: number, allGyms: Gym[], form: any }) => {
+const BonusFields = ({ control, lessonCount, form }: { control: any, lessonCount: number, form: any }) => {
     const lessonValues = useWatch({ control, name: 'lessonValues' }) || [];
     const total = lessonValues.reduce((acc: number, val: number | string) => acc + (Number(val) || 0), 0);
     const monthlyValue = useWatch({ control, name: 'monthlyValue' }) || 0;
@@ -131,51 +131,6 @@ const BonusFields = ({ control, lessonCount, allGyms, form }: { control: any, le
                     )}
                 />
             ))}
-            <div className="space-y-2">
-                <FormLabel>Palestre Associate</FormLabel>
-                <p className="text-sm text-muted-foreground">Seleziona una o più palestre per cui questo bonus è valido. Lascia deselezionato per renderlo valido per tutte.</p>
-                <FormField
-                    control={control}
-                    name="gymIds"
-                    render={() => (
-                        <FormItem className="space-y-2">
-                        {allGyms.map((gym) => (
-                            <FormField
-                            key={gym.id}
-                            control={control}
-                            name="gymIds"
-                            render={({ field }) => {
-                                return (
-                                <FormItem
-                                    key={gym.id}
-                                    className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                    <FormControl>
-                                    <Checkbox
-                                        checked={field.value?.includes(gym.id)}
-                                        onCheckedChange={(checked) => {
-                                        return checked
-                                            ? field.onChange([...(field.value || []), gym.id])
-                                            : field.onChange(
-                                                (field.value || []).filter(
-                                                (value) => value !== gym.id
-                                                )
-                                            )
-                                        }}
-                                    />
-                                    </FormControl>
-                                    <FormLabel className="font-normal">
-                                        {gym.id} - {gym.name}
-                                    </FormLabel>
-                                </FormItem>
-                                )
-                            }}
-                            />
-                        ))}
-                        </FormItem>
-                    )}
-                />
-            </div>
              <div className="pt-2 text-right">
                 <p className="text-sm text-muted-foreground">Valore Totale del Bonus:</p>
                 <p className="text-xl font-bold">{total.toFixed(2)} €</p>
@@ -430,12 +385,59 @@ export default function AdminAwardsPage() {
                                 </FormItem>
                                 )}
                             />
+                             {(selectedAwardType === 'Bonus di Inizio Percorso 3 Lezioni' || selectedAwardType === 'Bonus di Inizio Percorso 5 Lezioni') && (
+                                <div className="space-y-2 rounded-md border p-4">
+                                    <FormLabel>Palestre Associate</FormLabel>
+                                    <p className="text-sm text-muted-foreground">Seleziona una o più palestre per cui questo bonus è valido. Lascia deselezionato per renderlo valido per tutte.</p>
+                                    <FormField
+                                        control={form.control}
+                                        name="gymIds"
+                                        render={() => (
+                                            <FormItem className="space-y-2">
+                                            {allGyms.map((gym) => (
+                                                <FormField
+                                                key={gym.id}
+                                                control={form.control}
+                                                name="gymIds"
+                                                render={({ field }) => {
+                                                    return (
+                                                    <FormItem
+                                                        key={gym.id}
+                                                        className="flex flex-row items-start space-x-3 space-y-0"
+                                                    >
+                                                        <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value?.includes(gym.id)}
+                                                            onCheckedChange={(checked) => {
+                                                            return checked
+                                                                ? field.onChange([...(field.value || []), gym.id])
+                                                                : field.onChange(
+                                                                    (field.value || []).filter(
+                                                                    (value) => value !== gym.id
+                                                                    )
+                                                                )
+                                                            }}
+                                                        />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">
+                                                            {gym.id} - {gym.name}
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                    )
+                                                }}
+                                                />
+                                            ))}
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            )}
 
                             {selectedAwardType === 'Bonus di Inizio Percorso 3 Lezioni' && (
-                                <BonusFields control={form.control} lessonCount={3} allGyms={allGyms} form={form} />
+                                <BonusFields control={form.control} lessonCount={3} form={form} />
                             )}
                              {selectedAwardType === 'Bonus di Inizio Percorso 5 Lezioni' && (
-                                <BonusFields control={form.control} lessonCount={5} allGyms={allGyms} form={form} />
+                                <BonusFields control={form.control} lessonCount={5} form={form} />
                             )}
                             
                             <DialogFooter>
