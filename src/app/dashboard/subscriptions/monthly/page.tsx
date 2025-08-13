@@ -5,9 +5,9 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { collection, query, where, getDocs, Timestamp, addDoc, serverTimestamp, writeBatch, doc } from "firebase/firestore"
+import { collection, query, where, getDocs, Timestamp, addDoc, serverTimestamp, writeBatch, doc, orderBy } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
-import { format } from "date-fns"
+import { format, isAfter } from "date-fns"
 import { it } from "date-fns/locale"
 import Link from "next/link"
 
@@ -39,21 +39,28 @@ export default function MonthlySubscriptionPage() {
         const fetchCurrentSubscription = async () => {
             try {
                 const now = Timestamp.now();
+                // Query a Firestore per ottenere i potenziali abbonamenti mensili
+                // Ordiniamo per data di inizio decrescente per avere il più recente per primo
                 const q = query(
                     collection(db, "subscriptions"),
                     where("type", "==", "monthly"),
                     where("validityStartDate", "<=", now),
-                    where("validityEndDate", ">=", now)
+                    orderBy("validityStartDate", "desc")
                 );
                 
                 const querySnapshot = await getDocs(q);
                 
-                if (!querySnapshot.empty) {
-                    const subDoc = querySnapshot.docs[0];
-                    setSubscription({ id: subDoc.id, ...subDoc.data() } as Subscription);
+                // Filtriamo i risultati in locale per trovare quello ancora valido
+                const validSubscription = querySnapshot.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() } as Subscription))
+                    .find(sub => isAfter(sub.validityEndDate.toDate(), now.toDate()));
+
+                if (validSubscription) {
+                    setSubscription(validSubscription);
                 } else {
                     setSubscription(null);
                 }
+
             } catch (error) {
                 console.error("Error fetching monthly subscription:", error);
                 toast({
