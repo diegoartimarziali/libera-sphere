@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -12,58 +13,65 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
-    const [displayValue, setDisplayValue] = React.useState("");
+    const [inputValue, setInputValue] = React.useState("");
 
+    // Effect to update the input value when the external `value` prop changes
     React.useEffect(() => {
         if (value && isValid(value)) {
-            setDisplayValue(format(value, "dd/MM/yyyy"));
+            setInputValue(format(value, "dd/MM/yyyy"));
         } else {
-            setDisplayValue("");
+            // This handles the case where the parent form resets the date
+            setInputValue("");
         }
     }, [value]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        let input = e.target.value.replace(/[^0-9]/g, '');
-        
-        if (input.length > 8) {
-            input = input.substring(0, 8);
+        const rawValue = e.target.value.replace(/[^0-9]/g, '');
+        let formattedValue = rawValue;
+
+        if (rawValue.length > 2) {
+            formattedValue = `${rawValue.slice(0, 2)}/${rawValue.slice(2)}`;
+        }
+        if (rawValue.length > 4) {
+            formattedValue = `${formattedValue.slice(0, 5)}/${rawValue.slice(4, 8)}`;
         }
 
-        let formattedInput = '';
-        if (input.length > 4) {
-            formattedInput = `${input.substring(0, 2)}/${input.substring(2, 4)}/${input.substring(4)}`;
-        } else if (input.length > 2) {
-            formattedInput = `${input.substring(0, 2)}/${input.substring(2)}`;
-        } else {
-            formattedInput = input;
-        }
+        setInputValue(formattedValue);
 
-        setDisplayValue(formattedInput);
-
-        if (formattedInput.length === 10) {
-            const parsedDate = parse(formattedInput, "dd/MM/yyyy", new Date());
+        // If the formatted text is a full date, try to parse it and update the parent
+        if (formattedValue.length === 10) {
+            const parsedDate = parse(formattedValue, 'dd/MM/yyyy', new Date());
             if (isValid(parsedDate)) {
-                onChange(parsedDate);
+                // Only call onChange if the new date is different from the current prop `value`
+                if (!value || parsedDate.getTime() !== value.getTime()) {
+                    onChange(parsedDate);
+                }
             } else {
-                onChange(undefined);
+                onChange(undefined); // Invalid date format
             }
-        } else {
-             onChange(undefined);
         }
     };
     
-     const handleBlur = () => {
-        if (displayValue.length > 0 && displayValue.length < 10) {
-            onChange(undefined); // Invalida la data se non completa
-        }
-    };
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const finalValue = e.target.value;
+        const parsedDate = parse(finalValue, "dd/MM/yyyy", new Date());
 
+        if (!isValid(parsedDate)) {
+            onChange(undefined);
+            // Optionally reset to the last valid value if the input is invalid on blur
+            if (value && isValid(value)) {
+                 setInputValue(format(value, "dd/MM/yyyy"));
+            } else {
+                 setInputValue("");
+            }
+        }
+    }
 
     return (
         <Input
             type="text"
             placeholder="GG/MM/AAAA"
-            value={displayValue}
+            value={inputValue}
             onChange={handleInputChange}
             onBlur={handleBlur}
             disabled={disabled}
@@ -71,6 +79,7 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
                 "w-full justify-start text-left font-normal",
                 !value && "text-muted-foreground"
             )}
+            maxLength={10}
         />
     );
 }
