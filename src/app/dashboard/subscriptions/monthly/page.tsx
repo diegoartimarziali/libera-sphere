@@ -7,7 +7,7 @@ import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { collection, query, where, getDocs, Timestamp, addDoc, serverTimestamp, writeBatch, doc, orderBy } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
-import { format, isAfter } from "date-fns"
+import { format, isAfter, isBefore, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
 import Link from "next/link"
 
@@ -38,22 +38,26 @@ export default function MonthlySubscriptionPage() {
     useEffect(() => {
         const fetchCurrentSubscription = async () => {
             try {
-                const now = Timestamp.now();
-                // Query a Firestore per ottenere i potenziali abbonamenti mensili
-                // Ordiniamo per data di inizio decrescente per avere il più recente per primo
+                const now = new Date();
+                
+                // Query semplice che non richiede indici complessi
                 const q = query(
                     collection(db, "subscriptions"),
-                    where("type", "==", "monthly"),
-                    where("validityStartDate", "<=", now),
-                    orderBy("validityStartDate", "desc")
+                    where("type", "==", "monthly")
                 );
                 
                 const querySnapshot = await getDocs(q);
                 
-                // Filtriamo i risultati in locale per trovare quello ancora valido
-                const validSubscription = querySnapshot.docs
-                    .map(doc => ({ id: doc.id, ...doc.data() } as Subscription))
-                    .find(sub => isAfter(sub.validityEndDate.toDate(), now.toDate()));
+                // Filtra i risultati in locale per trovare quello valido
+                const allMonthlySubs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subscription));
+
+                const validSubscription = allMonthlySubs.find(sub => {
+                    const startDate = sub.validityStartDate.toDate();
+                    const endDate = sub.validityEndDate.toDate();
+                    // L'abbonamento è valido se la data di oggi è uguale o successiva alla data di inizio
+                    // E se la data di oggi è precedente alla data di fine
+                    return isAfter(now, startDate) && isBefore(now, endDate);
+                });
 
                 if (validSubscription) {
                     setSubscription(validSubscription);
