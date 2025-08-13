@@ -325,7 +325,7 @@ export default function AdminSubscriptionsPage() {
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField control={form.control} name="name" render={({ field }) => (
-                                    <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input placeholder="Es. Abbonamento Ottobre" {...field} disabled={subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input placeholder="Es. Abbonamento Ottobre" {...field} disabled={!editingSubscription && subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <FormField control={form.control} name="totalPrice" render={({ field }) => (
                                     <FormItem><FormLabel>Prezzo Totale (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
