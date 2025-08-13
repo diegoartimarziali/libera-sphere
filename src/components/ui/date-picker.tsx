@@ -2,49 +2,75 @@
 
 import * as React from "react"
 import { format, parse, isValid } from "date-fns"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Calendar as CalendarIcon } from "lucide-react"
-
-import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 
 interface DatePickerProps {
     value?: Date | null;
     onChange: (date?: Date) => void;
+    disabled?: boolean;
 }
 
-export function DatePicker({ value, onChange }: DatePickerProps) {
-    const handleSelect = (selectedDate: Date | undefined) => {
-        if (selectedDate) {
-            onChange(selectedDate);
+export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
+    const [displayValue, setDisplayValue] = React.useState("");
+
+    React.useEffect(() => {
+        if (value && isValid(value)) {
+            setDisplayValue(format(value, "dd/MM/yyyy"));
         } else {
-            onChange(undefined);
+            setDisplayValue("");
+        }
+    }, [value]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let input = e.target.value.replace(/[^0-9]/g, '');
+        
+        if (input.length > 8) {
+            input = input.substring(0, 8);
+        }
+
+        let formattedInput = '';
+        if (input.length > 4) {
+            formattedInput = `${input.substring(0, 2)}/${input.substring(2, 4)}/${input.substring(4)}`;
+        } else if (input.length > 2) {
+            formattedInput = `${input.substring(0, 2)}/${input.substring(2)}`;
+        } else {
+            formattedInput = input;
+        }
+
+        setDisplayValue(formattedInput);
+
+        if (formattedInput.length === 10) {
+            const parsedDate = parse(formattedInput, "dd/MM/yyyy", new Date());
+            if (isValid(parsedDate)) {
+                onChange(parsedDate);
+            } else {
+                onChange(undefined);
+            }
+        } else {
+             onChange(undefined);
         }
     };
+    
+     const handleBlur = () => {
+        if (displayValue.length > 0 && displayValue.length < 10) {
+            onChange(undefined); // Invalida la data se non completa
+        }
+    };
+
+
     return (
-        <Popover>
-            <PopoverTrigger asChild>
-                <Button
-                    variant={"outline"}
-                    className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !value && "text-muted-foreground"
-                    )}
-                >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {value ? format(value, "PPP") : <span>Scegli una data</span>}
-                </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-                <Calendar
-                    mode="single"
-                    selected={value || undefined}
-                    onSelect={handleSelect}
-                    initialFocus
-                />
-            </PopoverContent>
-        </Popover>
+        <Input
+            type="text"
+            placeholder="GG/MM/AAAA"
+            value={displayValue}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            disabled={disabled}
+            className={cn(
+                "w-full justify-start text-left font-normal",
+                !value && "text-muted-foreground"
+            )}
+        />
     );
 }

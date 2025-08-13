@@ -97,15 +97,16 @@ export default function AdminSubscriptionsPage() {
     const subscriptionType = form.watch('type');
 
     useEffect(() => {
-        // Applica i valori di default per lo stagionale SOLO in modalità creazione
-        if (!editingSubscription && subscriptionType === 'seasonal' && activitySettings?.startDate && activitySettings?.endDate) {
-            form.setValue('validityStartDate', activitySettings.startDate.toDate());
-            form.setValue('validityEndDate', activitySettings.endDate.toDate());
+        if (isFormOpen && !editingSubscription && subscriptionType === 'seasonal' && activitySettings?.startDate && activitySettings?.endDate) {
+            form.setValue('validityStartDate', activitySettings.startDate.toDate(), { shouldValidate: true });
+            form.setValue('validityEndDate', activitySettings.endDate.toDate(), { shouldValidate: true });
             form.setValue('name', 'Abbonamento Stagionale');
-        } else if (!editingSubscription && subscriptionType === 'monthly') {
+        } else if (isFormOpen && !editingSubscription && subscriptionType === 'monthly') {
              form.setValue('name', '');
+             form.setValue('validityStartDate', undefined);
+             form.setValue('validityEndDate', undefined);
         }
-    }, [subscriptionType, activitySettings, form, editingSubscription]);
+    }, [subscriptionType, activitySettings, form, editingSubscription, isFormOpen]);
 
     const fetchInitialData = async () => {
         setLoading(true);
@@ -325,7 +326,7 @@ export default function AdminSubscriptionsPage() {
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField control={form.control} name="name" render={({ field }) => (
-                                    <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input placeholder="Es. Abbonamento Ottobre" {...field} disabled={!editingSubscription && subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input placeholder="Es. Abbonamento Ottobre" {...field} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <FormField control={form.control} name="totalPrice" render={({ field }) => (
                                     <FormItem><FormLabel>Prezzo Totale (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
