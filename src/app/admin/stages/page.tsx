@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format, parse } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -16,7 +16,6 @@ import { Button } from "@/components/ui/button";
 import { Loader2, PlusCircle, Trash2, Save, Calendar, MapPin, Tag, Users, ExternalLink, Clock, Image as ImageIcon, Award, FileText, Sparkles, LayoutGrid, List } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -47,13 +46,24 @@ export interface Stage {
     type: 'stage' | 'exam' | 'course' | 'other';
 }
 
+// Helper per trasformare una data in una stringa 'yyyy-MM-dd HH:mm' o undefined
+const dateTimeToInputString = (date?: Date | Timestamp): { date: string, time: string } | undefined => {
+    if (!date) return undefined;
+    const dateObj = date instanceof Timestamp ? date.toDate() : date;
+    return {
+        date: format(dateObj, 'yyyy-MM-dd'),
+        time: format(dateObj, 'HH:mm')
+    };
+};
+
+
 const stageFormSchema = z.object({
     id: z.string().optional(),
     type: z.enum(['stage', 'exam', 'course', 'other'], { required_error: "La tipologia è obbligatoria." }),
     title: z.string().min(3, "Il titolo è obbligatorio."),
-    startDate: z.date({ required_error: "La data di inizio è obbligatoria." }),
+    startDate: z.string({ required_error: "La data di inizio è obbligatoria." }),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
-    endDate: z.date({ required_error: "La data di fine è obbligatoria." }),
+    endDate: z.string({ required_error: "La data di fine è obbligatoria." }),
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
     location: z.string().min(3, "Il luogo è obbligatorio."),
     description: z.string().optional(),
@@ -111,8 +121,8 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
         defaultValues: stage || {
             title: '',
             type: 'stage',
-            startDate: new Date(),
-            endDate: new Date(),
+            startDate: format(new Date(), 'yyyy-MM-dd'),
+            endDate: format(new Date(), 'yyyy-MM-dd'),
             startTime: '09:00',
             endTime: '18:00',
             location: '',
@@ -123,8 +133,6 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
         }
     });
     
-    const locationType = form.watch('location');
-
     const onSubmit = (data: StageFormData) => {
         onSave(data);
     };
@@ -152,7 +160,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                 
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
-                        <FormItem><FormLabel>Data Inizio</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Data Inizio</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="startTime" render={({ field }) => (
                         <FormItem><FormLabel>Ora Inizio</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
@@ -160,7 +168,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                 </div>
                  <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel>Data Fine</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Data Fine</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="endTime" render={({ field }) => (
                         <FormItem><FormLabel>Ora Fine</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
@@ -275,8 +283,10 @@ export default function AdminStagesPage() {
         setIsSubmitting(true);
         
         const { startDate, startTime, endDate, endTime, ...restData } = data;
-        const startDateTime = new Date(`${format(startDate, 'yyyy-MM-dd')}T${startTime}`);
-        const endDateTime = new Date(`${format(endDate, 'yyyy-MM-dd')}T${endTime}`);
+        
+        // Combina stringa data e stringa ora, poi parsa in un oggetto Date valido
+        const startDateTime = parseISO(`${startDate}T${startTime}`);
+        const endDateTime = parseISO(`${endDate}T${endTime}`);
         
         const stageData = {
             ...restData,
@@ -319,16 +329,17 @@ export default function AdminStagesPage() {
     }
 
     const openEditForm = (stage: Stage) => {
-        const start = stage.startTime.toDate();
-        const end = stage.endTime.toDate();
+        const startDateTime = dateTimeToInputString(stage.startTime);
+        const endDateTime = dateTimeToInputString(stage.endTime);
+
         setEditingStage({
             id: stage.id,
             type: stage.type,
             title: stage.title,
-            startDate: start,
-            startTime: format(start, 'HH:mm'),
-            endDate: end,
-            endTime: format(end, 'HH:mm'),
+            startDate: startDateTime?.date,
+            startTime: startDateTime?.time,
+            endDate: endDateTime?.date,
+            endTime: endDateTime?.time,
             location: stage.location,
             description: stage.description,
             price: stage.price,
@@ -496,4 +507,3 @@ export default function AdminStagesPage() {
         </div>
     );
 }
-

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, University, Sparkles, Award, Star } from "lucide-react"
-import { format } from "date-fns"
+import { format, parseISO } from "date-fns"
 import { it } from "date-fns/locale"
 import { Checkbox } from "@/components/ui/checkbox"
 import { auth, db } from "@/lib/firebase"
@@ -226,7 +226,7 @@ function ConfirmationStep({
                         <DataRow label="Nome" value={formData.name} />
                         <DataRow label="Cognome" value={formData.surname} />
                         <DataRow label="Codice Fiscale" value={formData.taxCode} />
-                        <DataRow label="Data di Nascita" value={formData.birthDate ? format(formData.birthDate, "PPP", { locale: it }) : ''} />
+                        <DataRow label="Data di Nascita" value={formData.birthDate ? format(parseISO(formData.birthDate), "PPP", { locale: it }) : ''} />
                         <DataRow label="Luogo di Nascita" value={formData.birthPlace} />
                         <DataRow label="Indirizzo" value={`${formData.address}, ${formData.streetNumber}`} />
                         <DataRow label="Città" value={`${formData.city} (${formData.province}), ${formData.zipCode}`} />
@@ -387,7 +387,7 @@ export default function AssociatesPage() {
                 name: formData.name,
                 surname: formData.surname,
                 birthPlace: formData.birthPlace,
-                birthDate: formData.birthDate,
+                birthDate: Timestamp.fromDate(parseISO(formData.birthDate)),
                 taxCode: formData.taxCode,
                 address: formData.address,
                 streetNumber: formData.streetNumber,

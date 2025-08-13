@@ -20,8 +20,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, UploadCloud, CheckCircle, Eye, LogOut } from "lucide-react"
-import { DatePicker } from "@/components/ui/date-picker"
-import { format as formatDate } from "date-fns"
+import { format as formatDate, parseISO } from "date-fns"
 
 
 interface ExistingMedicalInfo {
@@ -33,10 +32,16 @@ interface ExistingMedicalInfo {
 
 const schema = z.object({
     certificateFile: z.instanceof(File).optional(),
-    expiryDate: z.date({ required_error: "La data di scadenza è obbligatoria." }),
+    expiryDate: z.string({ required_error: "La data di scadenza è obbligatoria." }),
 });
 
 type MedicalCertificateSchema = z.infer<typeof schema>;
+
+const dateToInputString = (date?: Date | Timestamp): string | undefined => {
+    if (!date) return undefined;
+    const dateObj = date instanceof Timestamp ? date.toDate() : date;
+    return formatDate(dateObj, 'yyyy-MM-dd');
+};
 
 export default function MedicalCertificatePage() {
   const [user, authLoading] = useAuthState(auth)
@@ -70,7 +75,7 @@ export default function MedicalCertificatePage() {
             };
             setExistingMedicalInfo(info);
             form.reset({
-                expiryDate: info.expiryDate,
+                expiryDate: dateToInputString(info.expiryDate),
             });
             if(info.fileName) {
                 setFileName(info.fileName);
@@ -139,7 +144,7 @@ export default function MedicalCertificatePage() {
                 medicalInfo.fileUrl = downloadURL;
                 medicalInfo.fileName = uniqueFileName;
             }
-            medicalInfo.expiryDate = Timestamp.fromDate(data.expiryDate);
+            medicalInfo.expiryDate = Timestamp.fromDate(parseISO(data.expiryDate));
         } 
         
         const dataToUpdate = {
@@ -264,10 +269,7 @@ export default function MedicalCertificatePage() {
                       <FormItem>
                         <FormLabel>Data di scadenza del certificato</FormLabel>
                         <FormControl>
-                           <DatePicker
-                                value={field.value}
-                                onChange={field.onChange}
-                            />
+                           <Input type="date" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

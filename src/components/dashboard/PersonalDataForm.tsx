@@ -5,10 +5,10 @@ import { useState, useEffect, useCallback } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { differenceInYears } from "date-fns"
+import { differenceInYears, format, parseISO } from "date-fns"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, getDoc, collection, getDocs } from "firebase/firestore"
+import { doc, getDoc, collection, getDocs, Timestamp } from "firebase/firestore"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -16,8 +16,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
-import { DatePicker } from "@/components/ui/date-picker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
+
+// Helper per trasformare una data in una stringa 'yyyy-MM-dd' o undefined
+const dateToInputString = (date?: Date | Timestamp): string | undefined => {
+    if (!date) return undefined;
+    const dateObj = date instanceof Timestamp ? date.toDate() : date;
+    return format(dateObj, 'yyyy-MM-dd');
+};
 
 // Schema combinato
 const parentDataSchema = z.object({
@@ -30,7 +36,7 @@ const personalDataSchema = z.object({
   name: z.string().min(2, "Il nome è obbligatorio."),
   surname: z.string().min(2, "Il cognome è obbligatorio."),
   taxCode: z.string().length(16, "Il codice fiscale deve essere di 16 caratteri."),
-  birthDate: z.date({ required_error: "La data di nascita è obbligatoria." }),
+  birthDate: z.string({ required_error: "La data di nascita è obbligatoria." }),
   birthPlace: z.string().min(1, "Il luogo di nascita è obbligatorio."),
   address: z.string().min(1, "L'indirizzo è obbligatorio."),
   streetNumber: z.string().min(1, "Il N° civico è obbligatorio."),
@@ -125,15 +131,20 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
 
   useEffect(() => {
       if (birthDate) {
-          const age = differenceInYears(new Date(), birthDate);
-          const minor = age < 18;
-          setIsMinor(minor);
-          if (form.getValues("isMinor") !== minor) {
-            form.setValue("isMinor", minor, { shouldValidate: true });
-          }
-          if (!minor) {
-            form.setValue("parentData", undefined);
-            form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
+          try {
+            const parsedDate = parseISO(birthDate);
+            const age = differenceInYears(new Date(), parsedDate);
+            const minor = age < 18;
+            setIsMinor(minor);
+            if (form.getValues("isMinor") !== minor) {
+              form.setValue("isMinor", minor, { shouldValidate: true });
+            }
+            if (!minor) {
+              form.setValue("parentData", undefined);
+              form.clearErrors(["parentData.parentName", "parentData.parentSurname", "parentData.parentTaxCode"]);
+            }
+          } catch(e){
+            // Invalid date string, do nothing
           }
       } else {
           setIsMinor(null);
@@ -147,7 +158,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         
-        const birthDateValue = userData.birthDate?.toDate() || undefined;
+        const birthDateValue = userData.birthDate?.toDate();
         let existingIsMinor = false;
         if(birthDateValue){
              const age = differenceInYears(new Date(), birthDateValue);
@@ -158,7 +169,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
             name: userData.name || "",
             surname: userData.surname || "",
             taxCode: userData.taxCode || "",
-            birthDate: birthDateValue,
+            birthDate: dateToInputString(birthDateValue),
             birthPlace: userData.birthPlace || "",
             address: userData.address || "",
             streetNumber: userData.streetNumber || "",
@@ -314,10 +325,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                     <FormItem>
                       <FormLabel>Data di Nascita</FormLabel>
                       <FormControl>
-                         <DatePicker 
-                            value={field.value} 
-                            onChange={field.onChange}
-                          />
+                         <Input type="date" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

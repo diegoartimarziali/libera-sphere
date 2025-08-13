@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -21,7 +21,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DatePicker } from "@/components/ui/date-picker";
 
 interface ActivitySettings {
     startDate?: Timestamp;
@@ -41,32 +40,39 @@ interface Subscription {
     expiryWarningDate?: Timestamp;
 }
 
+// Helper per trasformare una data in una stringa 'yyyy-MM-dd' o undefined
+const dateToInputString = (date?: Date | Timestamp): string | undefined => {
+    if (!date) return undefined;
+    const dateObj = date instanceof Timestamp ? date.toDate() : date;
+    return format(dateObj, 'yyyy-MM-dd');
+};
+
 const subscriptionFormSchema = z.object({
     id: z.string().optional(),
     type: z.enum(['monthly', 'seasonal'], { required_error: "La tipologia è obbligatoria." }),
     name: z.string().min(3, "Il nome è obbligatorio (es. Abbonamento Ottobre)."),
     totalPrice: z.preprocess((val) => Number(String(val).replace(',', '.')), z.number().min(0, "Il prezzo non può essere negativo.")),
     sumupLink: z.string().url("Deve essere un URL SumUp valido.").optional().or(z.literal('')),
-    purchaseStartDate: z.date().optional(),
-    purchaseEndDate: z.date().optional(),
-    validityStartDate: z.date({ required_error: "La data di inizio validità è obbligatoria." }),
-    validityEndDate: z.date({ required_error: "La data di fine validità è obbligatoria." }),
-    expiryWarningDate: z.date({ required_error: "La data per l'avviso di scadenza è obbligatoria." }),
+    purchaseStartDate: z.string().optional(),
+    purchaseEndDate: z.string().optional(),
+    validityStartDate: z.string({ required_error: "La data di inizio validità è obbligatoria." }),
+    validityEndDate: z.string({ required_error: "La data di fine validità è obbligatoria." }),
+    expiryWarningDate: z.string({ required_error: "La data per l'avviso di scadenza è obbligatoria." }),
 }).refine(data => {
     if (data.purchaseStartDate && data.purchaseEndDate) {
-        return data.purchaseEndDate >= data.purchaseStartDate;
+        return parseISO(data.purchaseEndDate) >= parseISO(data.purchaseStartDate);
     }
     return true;
 }, {
     message: "La data di fine acquisto non può precedere quella di inizio.",
     path: ["purchaseEndDate"],
 }).refine(data => {
-    return data.validityEndDate >= data.validityStartDate;
+    return parseISO(data.validityEndDate) >= parseISO(data.validityStartDate);
 }, {
     message: "La data di fine validità non può precedere quella di inizio.",
     path: ["validityEndDate"],
 }).refine(data => {
-    return data.expiryWarningDate <= data.validityEndDate && data.expiryWarningDate >= data.validityStartDate;
+    return parseISO(data.expiryWarningDate) <= parseISO(data.validityEndDate) && parseISO(data.expiryWarningDate) >= parseISO(data.validityStartDate);
 }, {
     message: "La data di avviso deve essere compresa nel periodo di validità.",
     path: ["expiryWarningDate"],
@@ -98,8 +104,8 @@ export default function AdminSubscriptionsPage() {
 
     useEffect(() => {
         if (isFormOpen && !editingSubscription && subscriptionType === 'seasonal' && activitySettings?.startDate && activitySettings?.endDate) {
-            form.setValue('validityStartDate', activitySettings.startDate.toDate(), { shouldValidate: true });
-            form.setValue('validityEndDate', activitySettings.endDate.toDate(), { shouldValidate: true });
+            form.setValue('validityStartDate', dateToInputString(activitySettings.startDate.toDate()), { shouldValidate: true });
+            form.setValue('validityEndDate', dateToInputString(activitySettings.endDate.toDate()), { shouldValidate: true });
             form.setValue('name', 'Abbonamento Stagionale');
         } else if (isFormOpen && !editingSubscription && subscriptionType === 'monthly') {
              form.setValue('name', '');
@@ -169,11 +175,11 @@ export default function AdminSubscriptionsPage() {
             name: sub.name,
             totalPrice: sub.totalPrice,
             sumupLink: sub.sumupLink,
-            purchaseStartDate: sub.purchaseStartDate?.toDate(),
-            purchaseEndDate: sub.purchaseEndDate?.toDate(),
-            validityStartDate: sub.validityStartDate?.toDate(),
-            validityEndDate: sub.validityEndDate?.toDate(),
-            expiryWarningDate: sub.expiryWarningDate?.toDate(),
+            purchaseStartDate: dateToInputString(sub.purchaseStartDate),
+            purchaseEndDate: dateToInputString(sub.purchaseEndDate),
+            validityStartDate: dateToInputString(sub.validityStartDate),
+            validityEndDate: dateToInputString(sub.validityEndDate),
+            expiryWarningDate: dateToInputString(sub.expiryWarningDate),
         });
         setIsFormOpen(true);
     };
@@ -186,11 +192,11 @@ export default function AdminSubscriptionsPage() {
             type: data.type,
             totalPrice: data.totalPrice,
             sumupLink: data.sumupLink || '',
-            validityStartDate: Timestamp.fromDate(data.validityStartDate),
-            validityEndDate: Timestamp.fromDate(data.validityEndDate),
-            expiryWarningDate: Timestamp.fromDate(data.expiryWarningDate),
-            purchaseStartDate: data.purchaseStartDate ? Timestamp.fromDate(data.purchaseStartDate) : null,
-            purchaseEndDate: data.purchaseEndDate ? Timestamp.fromDate(data.purchaseEndDate) : null,
+            validityStartDate: Timestamp.fromDate(parseISO(data.validityStartDate)),
+            validityEndDate: Timestamp.fromDate(parseISO(data.validityEndDate)),
+            expiryWarningDate: Timestamp.fromDate(parseISO(data.expiryWarningDate)),
+            purchaseStartDate: data.purchaseStartDate ? Timestamp.fromDate(parseISO(data.purchaseStartDate)) : null,
+            purchaseEndDate: data.purchaseEndDate ? Timestamp.fromDate(parseISO(data.purchaseEndDate)) : null,
         };
         
         try {
@@ -337,10 +343,10 @@ export default function AdminSubscriptionsPage() {
                                  <h4 className="text-sm font-medium">Periodo di Validità</h4>
                                  <div className="grid grid-cols-2 gap-4 pt-2">
                                      <FormField control={form.control} name="validityStartDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Valido Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Valido Dal</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                      <FormField control={form.control} name="validityEndDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Valido Fino Al</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Valido Fino Al</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                  </div>
                                   {subscriptionType === 'seasonal' && activitySettings?.startDate && (
@@ -354,7 +360,7 @@ export default function AdminSubscriptionsPage() {
                                 <h4 className="text-sm font-medium">Impostazioni Avanzate</h4>
                                 <div className="grid grid-cols-2 gap-4 pt-2">
                                      <FormField control={form.control} name="expiryWarningDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Avviso Scadenza Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Avviso Scadenza Dal</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                     <FormField control={form.control} name="sumupLink" render={({ field }) => (
                                         <FormItem><FormLabel>Link Pagamento SumUp (Opzionale)</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
@@ -362,10 +368,10 @@ export default function AdminSubscriptionsPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 pt-2">
                                      <FormField control={form.control} name="purchaseStartDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Acquistabile Dal (Opzionale)</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Acquistabile Dal (Opzionale)</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                      <FormField control={form.control} name="purchaseEndDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Acquistabile Fino Al (Opzionale)</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Acquistabile Fino Al (Opzionale)</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                 </div>
                             </div>

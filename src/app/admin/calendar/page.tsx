@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { format, parse, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay, isWithinInterval, getYear, startOfYear, endOfYear } from "date-fns";
+import { format, parseISO, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay, isWithinInterval, getYear, startOfYear, endOfYear } from "date-fns";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -75,12 +74,19 @@ interface PeriodOption {
     endDate: Date;
 }
 
+// Helper per trasformare una data in una stringa 'yyyy-MM-dd' o undefined
+const dateToInputString = (date?: Date | Timestamp): string | undefined => {
+    if (!date) return undefined;
+    const dateObj = date instanceof Timestamp ? date.toDate() : date;
+    return format(dateObj, 'yyyy-MM-dd');
+};
+
 const lessonFormSchema = z.object({
     id: z.string().optional(),
     title: z.string().min(3, "Il titolo è obbligatorio."),
-    startDate: z.date({ required_error: "La data di inizio è obbligatoria." }),
+    startDate: z.string({ required_error: "La data di inizio è obbligatoria." }),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
-    endDate: z.date({ required_error: "La data di fine è obbligatoria." }),
+    endDate: z.string({ required_error: "La data di fine è obbligatoria." }),
     endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
     discipline: z.string().optional(),
     gymId: z.string().optional(),
@@ -91,11 +97,11 @@ const lessonFormSchema = z.object({
 type LessonFormData = z.infer<typeof lessonFormSchema>;
 
 const testCalendarFormSchema = z.object({
-    startDate: z.date({ required_error: "La data di inizio è obbligatoria." }),
-    endDate: z.date({ required_error: "La data di fine è obbligatoria." }),
+    startDate: z.string({ required_error: "La data di inizio è obbligatoria." }),
+    endDate: z.string({ required_error: "La data di fine è obbligatoria." }),
     gymId: z.string({ required_error: "La palestra è obbligatoria." }),
     discipline: z.enum(['Karate', 'Aikido'], { required_error: "La disciplina è obbligatoria." }),
-}).refine(data => data.endDate >= data.startDate, {
+}).refine(data => parseISO(data.endDate) >= parseISO(data.startDate), {
     message: "La data di fine non può essere precedente a quella di inizio.",
     path: ["endDate"],
 });
@@ -111,8 +117,8 @@ function LessonForm({ lesson, gyms, onSave, onCancel }: { lesson?: LessonFormDat
         resolver: zodResolver(lessonFormSchema),
         defaultValues: lesson || {
             title: '',
-            startDate: new Date(),
-            endDate: new Date(),
+            startDate: format(new Date(), 'yyyy-MM-dd'),
+            endDate: format(new Date(), 'yyyy-MM-dd'),
             startTime: '00:00',
             endTime: '00:00',
             status: 'confermata',
@@ -133,7 +139,7 @@ function LessonForm({ lesson, gyms, onSave, onCancel }: { lesson?: LessonFormDat
 
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
-                        <FormItem><FormLabel>Data Inizio</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Data Inizio</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="startTime" render={({ field }) => (
                         <FormItem><FormLabel>Ora Inizio</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
@@ -141,7 +147,7 @@ function LessonForm({ lesson, gyms, onSave, onCancel }: { lesson?: LessonFormDat
                 </div>
                  <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel>Data Fine</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Data Fine</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="endTime" render={({ field }) => (
                         <FormItem><FormLabel>Ora Fine</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
@@ -177,8 +183,8 @@ function TestCalendarDialog({ gyms, onGenerate, onOpenChange }: { gyms: Gym[], o
     const testForm = useForm<TestCalendarFormData>({
         resolver: zodResolver(testCalendarFormSchema),
         defaultValues: {
-            startDate: startOfDay(new Date()),
-            endDate: addDays(startOfDay(new Date()), 7),
+            startDate: dateToInputString(startOfDay(new Date())),
+            endDate: dateToInputString(addDays(startOfDay(new Date()), 7)),
         }
     });
 
@@ -192,10 +198,10 @@ function TestCalendarDialog({ gyms, onGenerate, onOpenChange }: { gyms: Gym[], o
             <form onSubmit={testForm.handleSubmit(handleFormSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={testForm.control} name="startDate" render={({ field }) => (
-                        <FormItem><FormLabel>Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Dal</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={testForm.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel>Al</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Al</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                  <FormField control={testForm.control} name="gymId" render={({ field }) => (
@@ -420,7 +426,7 @@ export default function AdminCalendarPage() {
                 return;
             }
 
-            const allDates = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
+            const allDates = eachDayOfInterval({ start: startOfDay(parseISO(startDate)), end: startOfDay(parseISO(endDate)) });
             let generatedLessons: Lesson[] = [];
             
             allDates.forEach(date => {
@@ -551,8 +557,8 @@ export default function AdminCalendarPage() {
     
     const handleSaveLesson = async (data: LessonFormData) => {
         const { startDate, startTime, endDate, endTime, ...restData } = data;
-        const startDateTime = new Date(`${format(startDate, 'yyyy-MM-dd')}T${startTime}`);
-        const endDateTime = new Date(`${format(endDate, 'yyyy-MM-dd')}T${endTime}`);
+        const startDateTime = parseISO(`${startDate}T${startTime}`);
+        const endDateTime = parseISO(`${endDate}T${endTime}`);
         const selectedGym = gyms.find(g => g.id === restData.gymId)
         
         const newOrUpdatedLesson: Lesson = {
@@ -592,9 +598,9 @@ export default function AdminCalendarPage() {
         setEditingLesson({
             id: lesson.id,
             title: lesson.title,
-            startDate: start,
+            startDate: format(start, 'yyyy-MM-dd'),
             startTime: format(start, 'HH:mm'),
-            endDate: end,
+            endDate: format(end, 'yyyy-MM-dd'),
             endTime: format(end, 'HH:mm'),
             discipline: lesson.discipline,
             gymId: lesson.gymId,
