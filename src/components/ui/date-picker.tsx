@@ -2,67 +2,49 @@
 
 import * as React from "react"
 import { format, parse, isValid } from "date-fns"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import { Calendar as CalendarIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 
-interface DatePickerProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface DatePickerProps {
     value?: Date | null;
     onChange: (date?: Date) => void;
 }
 
-export function DatePicker({ value, onChange, ...props }: DatePickerProps) {
-    const [inputValue, setInputValue] = React.useState("");
-
-    // Questo effect sincronizza l'input field solo quando il valore esterno (prop) cambia.
-    React.useEffect(() => {
-        if (value && isValid(value)) {
-            setInputValue(format(value, "dd/MM/yyyy"));
-        } else if (value === null || value === undefined) {
-             setInputValue("");
-        }
-    }, [value]);
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const rawValue = e.target.value.replace(/\D/g, ''); // Rimuove tutto tranne i numeri
-        setInputValue(formatInput(rawValue));
-
-        if (rawValue.length === 8) {
-            const parsedDate = parse(rawValue, "ddMMyyyy", new Date());
-            if (isValid(parsedDate)) {
-                // Notifica al parent il cambiamento con un oggetto Date valido
-                onChange(parsedDate);
-            } else {
-                 onChange(undefined);
-            }
+export function DatePicker({ value, onChange }: DatePickerProps) {
+    const handleSelect = (selectedDate: Date | undefined) => {
+        if (selectedDate) {
+            onChange(selectedDate);
         } else {
-            // Se la data non è completa, notifica che non è valida
             onChange(undefined);
         }
     };
-    
-    const formatInput = (text: string): string => {
-        if (!text) return "";
-        let formatted = text;
-        if (text.length > 2) {
-            formatted = `${text.slice(0, 2)}/${text.slice(2)}`;
-        }
-        if (text.length > 4) {
-            formatted = `${text.slice(0, 2)}/${text.slice(2, 4)}/${text.slice(4, 8)}`;
-        }
-        return formatted;
-    }
-
-
     return (
-       <Input
-            type="text"
-            placeholder="GG/MM/AAAA"
-            value={inputValue}
-            onChange={handleInputChange}
-            maxLength={10}
-            {...props}
-       />
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant={"outline"}
+                    className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !value && "text-muted-foreground"
+                    )}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {value ? format(value, "PPP") : <span>Scegli una data</span>}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+                <Calendar
+                    mode="single"
+                    selected={value || undefined}
+                    onSelect={handleSelect}
+                    initialFocus
+                />
+            </PopoverContent>
+        </Popover>
     );
 }
