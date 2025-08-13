@@ -9,6 +9,7 @@ import { collection, query, where, getDocs, Timestamp, addDoc, serverTimestamp, 
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
+import Link from "next/link"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
