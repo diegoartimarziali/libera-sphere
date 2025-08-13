@@ -336,15 +336,15 @@ export default function AdminSubscriptionsPage() {
                                  <h4 className="text-sm font-medium">Periodo di Validità</h4>
                                  <div className="grid grid-cols-2 gap-4 pt-2">
                                      <FormField control={form.control} name="validityStartDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Valido Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} disabled={subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Valido Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                      <FormField control={form.control} name="validityEndDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Valido Fino Al</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} disabled={subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Valido Fino Al</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                  </div>
                                   {subscriptionType === 'seasonal' && activitySettings?.startDate && (
                                      <div className="text-sm text-muted-foreground pt-2">
-                                         Le date per l'abbonamento stagionale sono impostate automaticamente: <strong>{format(activitySettings.startDate.toDate(), 'dd/MM/yy')} - {format(activitySettings.endDate.toDate(), 'dd/MM/yy')}</strong>.
+                                         Le date per l'abbonamento stagionale vengono pre-compilate automaticamente ma possono essere modificate: <strong>{format(activitySettings.startDate.toDate(), 'dd/MM/yy')} - {format(activitySettings.endDate.toDate(), 'dd/MM/yy')}</strong>.
                                      </div>
                                  )}
                             </div>
