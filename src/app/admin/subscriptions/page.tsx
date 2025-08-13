@@ -19,16 +19,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-
-interface Gym {
-    id: string;
-    name: string;
-}
 
 interface ActivitySettings {
     startDate?: Timestamp;
@@ -39,23 +32,26 @@ interface Subscription {
     id: string;
     name: string;
     type: 'monthly' | 'seasonal';
-    gymIds?: string[];
-    lessonsPerMonth?: number;
     totalPrice: number;
     sumupLink: string;
     purchaseStartDate?: Timestamp;
     purchaseEndDate?: Timestamp;
     validityStartDate?: Timestamp;
     validityEndDate?: Timestamp;
+    expiryWarningDate?: Timestamp;
 }
 
 const subscriptionFormSchema = z.object({
     id: z.string().optional(),
     type: z.enum(['monthly', 'seasonal'], { required_error: "La tipologia è obbligatoria." }),
+    name: z.string().min(3, "Il nome è obbligatorio (es. Abbonamento Ottobre)."),
     totalPrice: z.preprocess((val) => Number(String(val).replace(',', '.')), z.number().min(0, "Il prezzo non può essere negativo.")),
     sumupLink: z.string().url("Deve essere un URL SumUp valido.").optional().or(z.literal('')),
     purchaseStartDate: z.date().optional(),
     purchaseEndDate: z.date().optional(),
+    validityStartDate: z.date({ required_error: "La data di inizio validità è obbligatoria." }),
+    validityEndDate: z.date({ required_error: "La data di fine validità è obbligatoria." }),
+    expiryWarningDate: z.date({ required_error: "La data per l'avviso di scadenza è obbligatoria." }),
 }).refine(data => {
     if (data.purchaseStartDate && data.purchaseEndDate) {
         return data.purchaseEndDate >= data.purchaseStartDate;
@@ -64,7 +60,18 @@ const subscriptionFormSchema = z.object({
 }, {
     message: "La data di fine acquisto non può precedere quella di inizio.",
     path: ["purchaseEndDate"],
+}).refine(data => {
+    return data.validityEndDate >= data.validityStartDate;
+}, {
+    message: "La data di fine validità non può precedere quella di inizio.",
+    path: ["validityEndDate"],
+}).refine(data => {
+    return data.expiryWarningDate <= data.validityEndDate && data.expiryWarningDate >= data.validityStartDate;
+}, {
+    message: "La data di avviso deve essere compresa nel periodo di validità.",
+    path: ["expiryWarningDate"],
 });
+
 
 type SubscriptionFormData = z.infer<typeof subscriptionFormSchema>;
 
@@ -73,8 +80,6 @@ export default function AdminSubscriptionsPage() {
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-    const [gyms, setGyms] = useState<Gym[]>([]);
-    const [gymsMap, setGymsMap] = useState<Map<string, string>>(new Map());
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingSubscription, setEditingSubscription] = useState<Subscription | null>(null);
     const [activitySettings, setActivitySettings] = useState<ActivitySettings | null>(null);
@@ -83,6 +88,7 @@ export default function AdminSubscriptionsPage() {
         resolver: zodResolver(subscriptionFormSchema),
         defaultValues: {
             type: 'monthly',
+            name: '',
             totalPrice: 0,
             sumupLink: '',
         }
@@ -90,16 +96,19 @@ export default function AdminSubscriptionsPage() {
     
     const subscriptionType = form.watch('type');
 
+    useEffect(() => {
+        if (subscriptionType === 'seasonal' && activitySettings?.startDate && activitySettings?.endDate) {
+            form.setValue('validityStartDate', activitySettings.startDate.toDate());
+            form.setValue('validityEndDate', activitySettings.endDate.toDate());
+            form.setValue('name', 'Abbonamento Stagionale');
+        } else if (subscriptionType === 'monthly') {
+             form.setValue('name', '');
+        }
+    }, [subscriptionType, activitySettings, form]);
+
     const fetchInitialData = async () => {
         setLoading(true);
         try {
-            const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
-            const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
-            setGyms(gymsList);
-            const newGymsMap = new Map<string, string>();
-            gymsList.forEach(gym => newGymsMap.set(gym.id, `${gym.id} - ${gym.name}`));
-            setGymsMap(newGymsMap);
-            
             const activitySettingsSnap = await getDoc(doc(db, "settings", "activity"));
             if (activitySettingsSnap.exists()) {
                 setActivitySettings(activitySettingsSnap.data() as ActivitySettings);
@@ -138,10 +147,14 @@ export default function AdminSubscriptionsPage() {
         setEditingSubscription(null);
         form.reset({
             type: 'monthly',
+            name: '',
             totalPrice: 0,
             sumupLink: '',
             purchaseStartDate: undefined,
-            purchaseEndDate: undefined
+            purchaseEndDate: undefined,
+            validityStartDate: undefined,
+            validityEndDate: undefined,
+            expiryWarningDate: undefined
         });
         setIsFormOpen(true);
     };
@@ -151,10 +164,14 @@ export default function AdminSubscriptionsPage() {
         form.reset({
             id: sub.id,
             type: sub.type,
+            name: sub.name,
             totalPrice: sub.totalPrice,
             sumupLink: sub.sumupLink,
             purchaseStartDate: sub.purchaseStartDate?.toDate(),
             purchaseEndDate: sub.purchaseEndDate?.toDate(),
+            validityStartDate: sub.validityStartDate?.toDate(),
+            validityEndDate: sub.validityEndDate?.toDate(),
+            expiryWarningDate: sub.expiryWarningDate?.toDate(),
         });
         setIsFormOpen(true);
     };
@@ -163,29 +180,17 @@ export default function AdminSubscriptionsPage() {
         setIsSubmitting(true);
         
         const subData: { [key: string]: any } = {
-            name: data.type === 'monthly' ? "Abbonamento Mensile" : "Abbonamento Stagionale",
+            name: data.name,
             type: data.type,
-            gymIds: [],
             totalPrice: data.totalPrice,
             sumupLink: data.sumupLink || '',
-            lessonsPerMonth: null,
+            validityStartDate: Timestamp.fromDate(data.validityStartDate),
+            validityEndDate: Timestamp.fromDate(data.validityEndDate),
+            expiryWarningDate: Timestamp.fromDate(data.expiryWarningDate),
+            purchaseStartDate: data.purchaseStartDate ? Timestamp.fromDate(data.purchaseStartDate) : null,
+            purchaseEndDate: data.purchaseEndDate ? Timestamp.fromDate(data.purchaseEndDate) : null,
         };
         
-        if (data.purchaseStartDate) {
-            subData.purchaseStartDate = Timestamp.fromDate(data.purchaseStartDate);
-        }
-        if (data.purchaseEndDate) {
-            subData.purchaseEndDate = Timestamp.fromDate(data.purchaseEndDate);
-        }
-        
-        if (data.type === 'seasonal' && activitySettings) {
-            subData.validityStartDate = activitySettings.startDate;
-            subData.validityEndDate = activitySettings.endDate;
-        } else {
-             subData.validityStartDate = null;
-             subData.validityEndDate = null;
-        }
-
         try {
             if (editingSubscription) {
                 const subDocRef = doc(db, "subscriptions", editingSubscription.id);
@@ -218,13 +223,10 @@ export default function AdminSubscriptionsPage() {
     };
     
     const renderValidity = (sub: Subscription) => {
-        if (sub.type === 'seasonal' && sub.validityStartDate && sub.validityEndDate) {
+        if (sub.validityStartDate && sub.validityEndDate) {
             return `${format(sub.validityStartDate.toDate(), 'dd/MM/yy')} - ${format(sub.validityEndDate.toDate(), 'dd/MM/yy')}`;
         }
-        if (sub.purchaseStartDate && sub.purchaseEndDate) {
-            return `${format(sub.purchaseStartDate.toDate(), 'dd/MM/yy')} - ${format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}`;
-        }
-        return 'Sempre disponibile';
+        return 'Non definita';
     };
 
 
@@ -250,9 +252,9 @@ export default function AdminSubscriptionsPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Nome</TableHead>
-                                    <TableHead>Palestre</TableHead>
                                     <TableHead>Prezzo Totale</TableHead>
-                                    <TableHead>Validità</TableHead>
+                                    <TableHead>Validità Abbonamento</TableHead>
+                                    <TableHead>Acquistabile Fino al</TableHead>
                                     <TableHead className="text-right">Azioni</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -263,11 +265,9 @@ export default function AdminSubscriptionsPage() {
                                             <TableCell className="font-medium">
                                                 <Badge variant={sub.type === 'monthly' ? 'secondary' : 'default'}>{sub.name}</Badge>
                                             </TableCell>
-                                            <TableCell>
-                                                {'Tutte le Palestre'}
-                                            </TableCell>
                                             <TableCell>{(sub.totalPrice || 0).toFixed(2)} €</TableCell>
                                             <TableCell>{renderValidity(sub)}</TableCell>
+                                            <TableCell>{sub.purchaseEndDate ? format(sub.purchaseEndDate.toDate(), 'dd/MM/yyyy') : 'Sempre'}</TableCell>
                                             <TableCell className="text-right space-x-2">
                                                 <Button variant="outline" size="sm" onClick={() => openEditForm(sub)}>
                                                     <Edit className="h-4 w-4 mr-1" />
@@ -321,41 +321,48 @@ export default function AdminSubscriptionsPage() {
                              <FormField control={form.control} name="type" render={({ field }) => (
                                 <FormItem><FormLabel>Tipo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="monthly">Mensile</SelectItem><SelectItem value="seasonal">Stagionale</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                             )} />
-
-                             {subscriptionType === 'seasonal' && activitySettings && (
-                                <div className="space-y-2">
-                                    <FormLabel>Validità Stagione</FormLabel>
-                                    <div className="flex items-center gap-2 text-sm p-3 rounded-md border bg-muted">
-                                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                                        <span className="text-muted-foreground">Dal</span>
-                                        <span className="font-semibold text-foreground">{activitySettings.startDate ? format(activitySettings.startDate.toDate(), 'dd/MM/yyyy') : 'N/D'}</span>
-                                        <span className="text-muted-foreground">al</span>
-                                        <span className="font-semibold text-foreground">{activitySettings.endDate ? format(activitySettings.endDate.toDate(), 'dd/MM/yyyy') : 'N/D'}</span>
-                                    </div>
-                                </div>
-                            )}
                             
-                            <FormField control={form.control} name="totalPrice" render={({ field }) => (
-                                <FormItem><FormLabel>Prezzo Totale Abbonamento (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            
-
-                             <FormField control={form.control} name="sumupLink" render={({ field }) => (
-                                <FormItem><FormLabel>Link Pagamento SumUp (Opzionale)</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
-                            )} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="name" render={({ field }) => (
+                                    <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input placeholder="Es. Abbonamento Ottobre" {...field} disabled={subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                                <FormField control={form.control} name="totalPrice" render={({ field }) => (
+                                    <FormItem><FormLabel>Prezzo Totale (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                                )} />
+                            </div>
                             
                             <div className="space-y-2 rounded-md border p-4">
-                                <h4 className="text-sm font-medium">Periodo di Acquistabilità (Opzionale)</h4>
-                                <p className="text-xs text-muted-foreground">Lascia vuoto per rendere l'abbonamento sempre acquistabile (es. mensili). Imposta le date per abbonamenti a tempo (es. stagionali).</p>
+                                 <h4 className="text-sm font-medium">Periodo di Validità</h4>
+                                 <div className="grid grid-cols-2 gap-4 pt-2">
+                                     <FormField control={form.control} name="validityStartDate" render={({ field }) => (
+                                        <FormItem><FormLabel>Valido Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} disabled={subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                     <FormField control={form.control} name="validityEndDate" render={({ field }) => (
+                                        <FormItem><FormLabel>Valido Fino Al</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} disabled={subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                 </div>
+                            </div>
+                            
+                            <div className="space-y-2 rounded-md border p-4">
+                                <h4 className="text-sm font-medium">Impostazioni Avanzate</h4>
+                                <div className="grid grid-cols-2 gap-4 pt-2">
+                                     <FormField control={form.control} name="expiryWarningDate" render={({ field }) => (
+                                        <FormItem><FormLabel>Avviso Scadenza Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="sumupLink" render={({ field }) => (
+                                        <FormItem><FormLabel>Link Pagamento SumUp (Opzionale)</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
+                                    )} />
+                                </div>
                                 <div className="grid grid-cols-2 gap-4 pt-2">
                                      <FormField control={form.control} name="purchaseStartDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Acquistabile Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Acquistabile Dal (Opzionale)</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                      <FormField control={form.control} name="purchaseEndDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Acquistabile Fino Al</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Acquistabile Fino Al (Opzionale)</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                 </div>
                             </div>
+
 
                             <DialogFooter>
                                 <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annulla</Button>
@@ -371,5 +378,3 @@ export default function AdminSubscriptionsPage() {
         </Card>
     );
 }
-
-    
