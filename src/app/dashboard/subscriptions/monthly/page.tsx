@@ -13,8 +13,12 @@ import Link from "next/link"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2, CalendarClock, ArrowLeft, ShieldCheck, Zap, AlertTriangle } from "lucide-react"
+import { Loader2, CalendarClock, ArrowLeft, ShieldCheck, Zap, AlertTriangle, CreditCard, Landmark, University } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+
 
 interface Subscription {
     id: string;
@@ -30,14 +34,29 @@ interface Subscription {
 }
 
 interface UserData {
+    name?: string;
+    surname?: string;
     activeSubscription?: {
         subscriptionId: string;
     };
     subscriptionAccessStatus?: 'active' | 'pending' | 'expired';
 }
 
-function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrPending }: { subscription: Subscription; onPurchase: (sub: Subscription) => void; isSubmitting: boolean; hasActiveOrPending: boolean }) {
+interface BankDetails {
+    recipientName: string;
+    bankName: string;
+    iban: string;
+}
+
+type PaymentMethod = "online" | "in_person" | "bank_transfer";
+
+function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrPending, onOpenPaymentDialog }: { subscription: Subscription; onPurchase: (sub: Subscription, method: PaymentMethod) => void; isSubmitting: boolean; hasActiveOrPending: boolean; onOpenPaymentDialog: () => void }) {
     const now = new Date();
+    const isPurchaseWindowOpen = 
+        subscription.purchaseStartDate && subscription.purchaseEndDate ?
+        isAfter(now, subscription.purchaseStartDate.toDate()) && isBefore(now, subscription.purchaseEndDate.toDate())
+        : true; // Se non ci sono date, è sempre acquistabile
+
     const isExpiring = subscription.expiryWarningDate && isAfter(now, subscription.expiryWarningDate.toDate());
 
     return (
@@ -79,13 +98,13 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
             </CardContent>
             <CardFooter className="flex-col gap-2">
                  <Button 
-                    onClick={() => onPurchase(subscription)} 
-                    disabled={isSubmitting || hasActiveOrPending}
+                    onClick={onOpenPaymentDialog} 
+                    disabled={isSubmitting || hasActiveOrPending || !isPurchaseWindowOpen}
                     className="w-full" 
                     size="lg"
                 >
                     {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
-                    {hasActiveOrPending ? "Pagamento già in corso" : "Acquista Ora"}
+                    {hasActiveOrPending ? "Pagamento già in corso" : !isPurchaseWindowOpen ? "Non ancora acquistabile" : "Acquista Ora"}
                 </Button>
                 <Button asChild variant="outline" className="w-full">
                     <Link href="/dashboard/subscriptions">
@@ -108,6 +127,13 @@ export default function MonthlySubscriptionPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [availableSubscription, setAvailableSubscription] = useState<Subscription | null>(null);
     const [userData, setUserData] = useState<UserData | null>(null);
+    const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
+    
+    // Stati per il modale di pagamento
+    const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+    const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
+
 
     useEffect(() => {
         const fetchSubscriptionData = async () => {
@@ -117,46 +143,52 @@ export default function MonthlySubscriptionPage() {
             }
 
             try {
-                // Fetch all monthly subscriptions
-                const subsQuery = query(collection(db, "subscriptions"), where("type", "==", "monthly"));
-                const subsSnapshot = await getDocs(subsQuery);
-                const allMonthlySubs = subsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subscription));
+                 const [subsSnapshot, userDocSnap, bankDetailsSnap] = await Promise.all([
+                    getDocs(query(collection(db, "subscriptions"), where("type", "==", "monthly"))),
+                    getDoc(doc(db, "users", user.uid)),
+                    getDoc(doc(db, "settings", "bankDetails"))
+                ]);
+                
+                if (bankDetailsSnap.exists()) {
+                    setBankDetails(bankDetailsSnap.data() as BankDetails);
+                }
 
-                // Fetch user data
-                const userDocRef = doc(db, "users", user.uid);
-                const userDocSnap = await getDoc(userDocRef);
+                const allMonthlySubs = subsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subscription));
                 const currentUserData = userDocSnap.exists() ? userDocSnap.data() as UserData : null;
                 setUserData(currentUserData);
-
-                // Determine which subscription to show
+                
                 const now = new Date();
                 let subToShow: Subscription | null = null;
                 
-                // Sort by purchase start date to find the most relevant
-                allMonthlySubs.sort((a,b) => (b.purchaseStartDate?.toMillis() || 0) - (a.purchaseStartDate?.toMillis() || 0));
-
-                // 1. Find currently purchasable subscription
-                subToShow = allMonthlySubs.find(sub => 
-                    sub.purchaseStartDate && sub.purchaseEndDate &&
-                    isAfter(now, sub.purchaseStartDate.toDate()) &&
-                    isBefore(now, sub.purchaseEndDate.toDate())
-                ) || null;
-
-                // 2. If none, find the one that is currently valid (already purchased)
-                if (!subToShow && currentUserData?.activeSubscription?.subscriptionId) {
-                     subToShow = allMonthlySubs.find(sub => sub.id === currentUserData.activeSubscription!.subscriptionId) || null;
-                }
-                
-                // 3. If none, find the next one available for purchase
-                if (!subToShow) {
-                    const futureSubs = allMonthlySubs
-                        .filter(sub => sub.purchaseStartDate && isAfter(sub.purchaseStartDate.toDate(), now))
-                        .sort((a,b) => (a.purchaseStartDate?.toMillis() || 0) - (b.purchaseStartDate?.toMillis() || 0));
-                    if (futureSubs.length > 0) {
-                        subToShow = futureSubs[0];
+                if (allMonthlySubs.length > 0) {
+                     // Priorità 1: C'è una finestra di acquisto attiva?
+                    const purchasableSub = allMonthlySubs.find(sub => 
+                        sub.purchaseStartDate && sub.purchaseEndDate &&
+                        isAfter(now, sub.purchaseStartDate.toDate()) && isBefore(now, sub.purchaseEndDate.toDate())
+                    );
+                    
+                    if (purchasableSub) {
+                        subToShow = purchasableSub;
+                    } else {
+                        // Priorità 2: Se no, c'è un abbonamento la cui validità copre oggi? (per mostrare info all'utente)
+                        const validSub = allMonthlySubs.find(sub =>
+                            isAfter(now, sub.validityStartDate.toDate()) && isBefore(now, sub.validityEndDate.toDate())
+                        );
+                        if (validSub) {
+                             subToShow = validSub;
+                        } else {
+                            // Priorità 3: Se no, c'è un abbonamento futuro acquistabile?
+                            const futureSubs = allMonthlySubs
+                                .filter(sub => sub.purchaseStartDate && isAfter(sub.purchaseStartDate.toDate(), now))
+                                .sort((a, b) => a.purchaseStartDate!.toMillis() - b.purchaseStartDate!.toMillis());
+                            
+                            if (futureSubs.length > 0) {
+                                subToShow = futureSubs[0];
+                            }
+                        }
                     }
                 }
-
+                
                 setAvailableSubscription(subToShow);
 
             } catch (error) {
@@ -170,7 +202,7 @@ export default function MonthlySubscriptionPage() {
         fetchSubscriptionData();
     }, [user, toast]);
     
-    const handlePurchase = async (subscription: Subscription) => {
+    const handlePurchase = async (subscription: Subscription, method: PaymentMethod) => {
         if (!user) {
             toast({ title: "Utente non trovato", variant: "destructive" });
             return;
@@ -189,7 +221,7 @@ export default function MonthlySubscriptionPage() {
                 description: subscription.name,
                 type: 'subscription',
                 status: 'pending',
-                paymentMethod: 'online', // Default a online, poi si potrà scegliere
+                paymentMethod: method,
                 subscriptionId: subscription.id,
             });
 
@@ -210,18 +242,43 @@ export default function MonthlySubscriptionPage() {
 
             toast({ title: "Richiesta Inviata!", description: "La tua richiesta di abbonamento è in attesa di approvazione." });
 
-            if (subscription.sumupLink) {
+            if (method === 'online' && subscription.sumupLink) {
                 window.open(subscription.sumupLink, '_blank');
             }
             
-            router.push('/dashboard');
+            // Refresh data on the page
+             setUserData(prev => prev ? ({...prev, subscriptionAccessStatus: 'pending'}) : null);
+             setIsPaymentDialogOpen(false);
+
 
         } catch (error) {
             console.error("Error purchasing subscription: ", error);
             toast({ title: "Errore", description: "Impossibile completare l'acquisto. Riprova.", variant: "destructive" });
+        } finally {
             setIsSubmitting(false);
         }
     }
+    
+    const handlePaymentDialogSubmit = () => {
+        if (!availableSubscription || !selectedPaymentMethod) {
+            toast({ title: "Selezione mancante", description: "Per favore, scegli un metodo di pagamento.", variant: "destructive" });
+            return;
+        }
+        
+        if (selectedPaymentMethod === 'bank_transfer') {
+            setIsBankTransferDialogOpen(true);
+        } else {
+            handlePurchase(availableSubscription, selectedPaymentMethod);
+        }
+    }
+    
+    const handleBankTransferConfirm = () => {
+        if (availableSubscription) {
+            handlePurchase(availableSubscription, 'bank_transfer');
+        }
+        setIsBankTransferDialogOpen(false);
+    }
+
 
     if (loading) {
         return (
@@ -233,18 +290,108 @@ export default function MonthlySubscriptionPage() {
     
     const hasActiveOrPending = userData?.subscriptionAccessStatus === 'active' || userData?.subscriptionAccessStatus === 'pending';
 
-
     return (
         <div className="flex w-full flex-col items-center justify-center">
             {availableSubscription ? (
-                <SubscriptionCard 
-                    subscription={availableSubscription} 
-                    onPurchase={handlePurchase}
-                    isSubmitting={isSubmitting}
-                    hasActiveOrPending={hasActiveOrPending}
-                />
+                <>
+                    <SubscriptionCard 
+                        subscription={availableSubscription} 
+                        onPurchase={handlePurchase}
+                        isSubmitting={isSubmitting}
+                        hasActiveOrPending={!!hasActiveOrPending}
+                        onOpenPaymentDialog={() => setIsPaymentDialogOpen(true)}
+                    />
+
+                    <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Scegli Metodo di Pagamento</DialogTitle>
+                                <DialogDescription>
+                                    Come preferisci saldare la quota di {availableSubscription.totalPrice.toFixed(2)}€ per {availableSubscription.name}?
+                                </DialogDescription>
+                            </DialogHeader>
+                            <RadioGroup
+                                value={selectedPaymentMethod || ""}
+                                onValueChange={(value) => setSelectedPaymentMethod(value as PaymentMethod)}
+                                className="space-y-4 py-4"
+                            >
+                               <Label
+                                    htmlFor="online"
+                                    className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                >
+                                    <RadioGroupItem value="online" id="online" className="mt-1" />
+                                    <div className="flex-1 space-y-1">
+                                        <h4 className="font-semibold">Online (Carta di Credito)</h4>
+                                        <p className="text-sm text-muted-foreground">
+                                            Paga in modo sicuro con SumUp. Verrai reindirizzato al sito del gestore.
+                                        </p>
+                                    </div>
+                                    <CreditCard className="h-6 w-6 text-muted-foreground" />
+                                </Label>
+
+                                <Label
+                                    htmlFor="bank_transfer"
+                                    className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                >
+                                    <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" />
+                                    <div className="flex-1 space-y-1">
+                                        <h4 className="font-semibold">Bonifico Bancario</h4>
+                                        <p className="text-sm text-muted-foreground">
+                                            Visualizza i dati per effettuare il bonifico. L'attivazione richiede verifica manuale.
+                                        </p>
+                                    </div>
+                                    <University className="h-6 w-6 text-muted-foreground" />
+                                </Label>
+
+                                <Label
+                                    htmlFor="in_person"
+                                    className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                >
+                                    <RadioGroupItem value="in_person" id="in_person" className="mt-1" />
+                                    <div className="flex-1 space-y-1">
+                                        <h4 className="font-semibold">In Sede (Contanti o Bancomat)</h4>
+                                        <p className="text-sm text-muted-foreground">
+                                           Paga direttamente in palestra. L'attivazione richiede verifica manuale.
+                                        </p>
+                                    </div>
+                                    <Landmark className="h-6 w-6 text-muted-foreground" />
+                                </Label>
+                            </RadioGroup>
+                            <DialogFooter>
+                                <Button variant="ghost" onClick={() => setIsPaymentDialogOpen(false)}>Annulla</Button>
+                                <Button onClick={handlePaymentDialogSubmit} disabled={!selectedPaymentMethod || isSubmitting}>
+                                    {isSubmitting && <Loader2 className="animate-spin mr-2" />}
+                                    Conferma
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                    
+                     <Dialog open={isBankTransferDialogOpen} onOpenChange={setIsBankTransferDialogOpen}>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Dati per Bonifico Bancario</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4 text-sm">
+                                {bankDetails ? (
+                                    <>
+                                        <div className="space-y-1"><p className="font-semibold">Intestatario:</p><p>{bankDetails.recipientName}</p></div>
+                                        <div className="space-y-1"><p className="font-semibold">Banca:</p><p>{bankDetails.bankName}</p></div>
+                                        <div className="space-y-1"><p className="font-semibold">IBAN:</p><p className="font-mono bg-muted p-2 rounded-md">{bankDetails.iban}</p></div>
+                                    </>
+                                ) : <Loader2 className="h-6 w-6 animate-spin" />}
+                                <div className="space-y-1"><p className="font-semibold">Importo:</p><p>{availableSubscription.totalPrice.toFixed(2)} €</p></div>
+                                <div className="space-y-1"><p className="font-semibold">Causale:</p><p className="font-mono bg-muted p-2 rounded-md">{`${availableSubscription.name} ${userData?.name || ''} ${userData?.surname || ''}`.trim()}</p></div>
+                            </div>
+                            <DialogFooter>
+                                <Button onClick={handleBankTransferConfirm} className="w-full">Ho copiato i dati, invia richiesta</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+
+                </>
             ) : (
-                <Card>
+                <Card className="w-full max-w-lg">
                     <CardHeader>
                         <CardTitle>Nessun Abbonamento Disponibile</CardTitle>
                         <CardDescription>
@@ -270,5 +417,3 @@ export default function MonthlySubscriptionPage() {
         </div>
     );
 }
-
-    
