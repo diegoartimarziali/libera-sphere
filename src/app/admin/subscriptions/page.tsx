@@ -97,14 +97,15 @@ export default function AdminSubscriptionsPage() {
     const subscriptionType = form.watch('type');
 
     useEffect(() => {
-        if (subscriptionType === 'seasonal' && activitySettings?.startDate && activitySettings?.endDate) {
+        // Applica i valori di default per lo stagionale SOLO in modalità creazione
+        if (!editingSubscription && subscriptionType === 'seasonal' && activitySettings?.startDate && activitySettings?.endDate) {
             form.setValue('validityStartDate', activitySettings.startDate.toDate());
             form.setValue('validityEndDate', activitySettings.endDate.toDate());
             form.setValue('name', 'Abbonamento Stagionale');
-        } else if (subscriptionType === 'monthly') {
+        } else if (!editingSubscription && subscriptionType === 'monthly') {
              form.setValue('name', '');
         }
-    }, [subscriptionType, activitySettings, form]);
+    }, [subscriptionType, activitySettings, form, editingSubscription]);
 
     const fetchInitialData = async () => {
         setLoading(true);
@@ -324,7 +325,7 @@ export default function AdminSubscriptionsPage() {
                             
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField control={form.control} name="name" render={({ field }) => (
-                                    <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input placeholder="Es. Abbonamento Ottobre" {...field} disabled={subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem><FormLabel>Nome Abbonamento</FormLabel><FormControl><Input placeholder="Es. Abbonamento Ottobre" {...field} disabled={!editingSubscription && subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
                                 )} />
                                 <FormField control={form.control} name="totalPrice" render={({ field }) => (
                                     <FormItem><FormLabel>Prezzo Totale (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
@@ -335,10 +336,10 @@ export default function AdminSubscriptionsPage() {
                                  <h4 className="text-sm font-medium">Periodo di Validità</h4>
                                  <div className="grid grid-cols-2 gap-4 pt-2">
                                      <FormField control={form.control} name="validityStartDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Valido Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} disabled={subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Valido Dal</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} disabled={!editingSubscription && subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                      <FormField control={form.control} name="validityEndDate" render={({ field }) => (
-                                        <FormItem><FormLabel>Valido Fino Al</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} disabled={subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem><FormLabel>Valido Fino Al</FormLabel><FormControl><DatePicker value={field.value} onChange={field.onChange} disabled={!editingSubscription && subscriptionType === 'seasonal'} /></FormControl><FormMessage /></FormItem>
                                     )} />
                                  </div>
                             </div>
