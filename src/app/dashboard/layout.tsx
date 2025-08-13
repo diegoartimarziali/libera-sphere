@@ -130,12 +130,12 @@ function DashboardHeader({
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     return (
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6 justify-between">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-dark-brown text-title-yellow px-4 sm:px-6 justify-between">
             <div className="flex items-center gap-4">
                  {showMenu && (
                      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="outline">
+                            <Button variant="outline" className="border-title-yellow text-title-yellow hover:bg-white/20 hover:text-title-yellow">
                                 <Menu className="h-5 w-5" />
                                 <span className="ml-2 font-semibold hidden sm:inline">MENU</span>
                             </Button>
@@ -175,7 +175,7 @@ function DashboardHeader({
             </div>
 
             <div className="flex items-center gap-4">
-                <Button variant="outline" onClick={onLogout}>
+                <Button variant="outline" onClick={onLogout} className="border-title-yellow text-title-yellow hover:bg-white/20 hover:text-title-yellow">
                     <LogOut className="h-4 w-4 mr-2" />
                     <span className="uppercase font-bold">Log out</span>
                 </Button>
