@@ -43,7 +43,7 @@ export interface Stage {
     location: string;
     price: number;
     imageUrl?: string;
-    open_to: string;
+    open_to: 'Tutti' | 'Cinture Nere';
     type: 'stage' | 'exam' | 'course' | 'other';
 }
 
@@ -58,7 +58,7 @@ const stageFormSchema = z.object({
     location: z.string().min(3, "Il luogo è obbligatorio."),
     description: z.string().optional(),
     price: z.preprocess((val) => Number(val), z.number().min(0, "Il prezzo non può essere negativo.")),
-    open_to: z.string().min(2, "Specifica a chi è rivolto l'evento."),
+    open_to: z.enum(['Tutti', 'Cinture Nere'], { required_error: "Specifica a chi è rivolto l'evento." }),
     imageUrl: z.string().url("Deve essere un URL valido (es. https://images.unsplash.com/...).")
         .refine(val => !val || val.startsWith('https://images.unsplash.com/') || val.startsWith('https://firebasestorage.googleapis.com/'), {
             message: "Solo URL da Unsplash o Firebase Storage sono permessi."
@@ -118,7 +118,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
             location: '',
             description: '',
             price: 0,
-            open_to: '',
+            open_to: 'Tutti',
             imageUrl: ''
         }
     });
@@ -190,7 +190,21 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         <FormItem><FormLabel>Prezzo (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                      <FormField control={form.control} name="open_to" render={({ field }) => (
-                        <FormItem><FormLabel>Aperto a</FormLabel><FormControl><Input {...field} placeholder="Es. Cinture Nere, Adulti, Tutti" /></FormControl><FormMessage /></FormItem>
+                        <FormItem>
+                            <FormLabel>Aperto a</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seleziona a chi è rivolto..." />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="Tutti">Tutti</SelectItem>
+                                    <SelectItem value="Cinture Nere">Cinture Nere</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
                     )} />
                 </div>
 
@@ -482,5 +496,4 @@ export default function AdminStagesPage() {
         </div>
     );
 }
-
 
