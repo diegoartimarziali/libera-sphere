@@ -112,6 +112,8 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
         'text-green-600': props.subscriptionStatus === 'Attivo',
         'text-destructive': props.subscriptionStatus === 'Scaduto',
     });
+    
+    const subscriptionValidityClassName = "font-bold text-muted-foreground";
 
     const socioDalClassName = 'text-foreground font-black';
 
@@ -125,7 +127,10 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <div className="text-base pt-1">
                     <span className="font-semibold">Disciplina:</span> {props.discipline}
                     {props.grade && <><span className="font-semibold ml-2">Grado:</span> {props.grade}</>}
-                </div>
+                 </div>
+                 <div className="text-base pt-1">
+                    {props.qualifica && props.qualifica !== 'Nessuna' && <><span className="font-semibold">Qualifica:</span> {props.qualifica}</>}
+                 </div>
                  <div className="text-base pt-1">
                     <span className="font-semibold">Palestra:</span> {props.gymName}
                 </div>
@@ -171,7 +176,6 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                         <InfoRow icon={<HeartPulse size={16} />} label="Certificato Medico" value={props.medicalStatus} valueClassName={medicalStatusClassName} />
                         <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} valueClassName={insuredStatusClassName} />
                         <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} valueClassName={membershipStatusClassName} />
-                        <InfoRow icon={<Star size={16} />} label="Qualifica" value={props.qualifica} />
                     </div>
                  </div>
                  
@@ -185,7 +189,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <div className="pl-8 space-y-3">
                         <InfoRow icon={<Activity size={16} />} label="Stato Prova" value={props.trialStatus} valueClassName={trialStatusClassName} />
                         <InfoRow icon={<Repeat size={16}/>} label="Abbonamento" value={props.subscriptionType} valueClassName={subscriptionTypeClassName} />
-                        <InfoRow icon={<CalendarClock size={16}/>} label="Valido per il mese di" value={props.subscriptionValidity} />
+                        <InfoRow icon={<CalendarClock size={16}/>} label="Valido per il mese di" value={props.subscriptionValidity} valueClassName={subscriptionValidityClassName} />
                         <InfoRow icon={<KeyRound size={16} />} label="Stato Abbonamento" value={props.subscriptionStatus} valueClassName={subscriptionStatusClassName} />
                     </div>
                  </div>
