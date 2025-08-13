@@ -15,57 +15,55 @@ interface DatePickerProps {
 export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
     const [inputValue, setInputValue] = React.useState("");
 
-    // This effect synchronizes the input field when the external `value` prop changes.
-    // It's crucial for loading initial data into the form.
+    // Effect to synchronize the input field when the external `value` prop changes.
+    // This is crucial for loading initial data or for external updates.
     React.useEffect(() => {
         if (value && isValid(value)) {
-            setInputValue(format(value, "dd/MM/yyyy"));
+            const formattedDate = format(value, "dd/MM/yyyy");
+            // Only update if the input value is different, to avoid interrupting user typing
+            if (parse(inputValue, "dd/MM/yyyy", new Date()).getTime() !== value.getTime()) {
+                setInputValue(formattedDate);
+            }
         } else {
+            // If the external value is null/undefined, clear the input
             setInputValue("");
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [value]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const rawValue = e.target.value.replace(/[^0-9]/g, '');
-        let formattedValue = rawValue;
+        const userInput = e.target.value;
+        setInputValue(userInput);
 
-        // Auto-insert slashes for dd/MM/yyyy format
-        if (rawValue.length > 2 && rawValue.length <= 4) {
-            formattedValue = `${rawValue.slice(0, 2)}/${rawValue.slice(2)}`;
-        } else if (rawValue.length > 4) {
-            formattedValue = `${rawValue.slice(0, 2)}/${rawValue.slice(2, 4)}/${rawValue.slice(4, 8)}`;
-        }
+        // Try to parse the date as the user types
+        const parsedDate = parse(userInput, 'dd/MM/yyyy', new Date());
 
-        setInputValue(formattedValue);
-
-        // Try to parse the date and call onChange if it's valid
-        if (formattedValue.length === 10) {
-            const parsedDate = parse(formattedValue, 'dd/MM/yyyy', new Date());
-            if (isValid(parsedDate)) {
-                 onChange(parsedDate);
-            } else {
-                // If user types an invalid date like "99/99/9999"
-                onChange(undefined);
-            }
+        // Check if the input string is a potentially valid date structure (e.g., "dd/MM/yyyy")
+        // and if the parsed date is a valid date.
+        if (userInput.length === 10 && isValid(parsedDate)) {
+            // The date is valid and complete, call onChange with the Date object
+            onChange(parsedDate);
         } else {
-             // If the date is incomplete, the value is not valid yet.
-             onChange(undefined);
+            // The date is incomplete or invalid, call onChange with undefined
+            // This tells react-hook-form that the field is currently invalid.
+            onChange(undefined);
         }
     };
     
-    // When the user leaves the input, we ensure the format is correct
-    // or reset it if it's invalid.
-    const handleBlur = () => {
-        const parsedDate = parse(inputValue, "dd/MM/yyyy", new Date());
-        if (!isValid(parsedDate)) {
-             // If the input is invalid on blur, reset to the last valid prop value
-             if (value && isValid(value)) {
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+        const userInput = e.target.value;
+        const parsedDate = parse(userInput, "dd/MM/yyyy", new Date());
+
+        // If the input is invalid or incomplete on blur,
+        // reset it to the last known valid 'value' prop.
+        if (!isValid(parsedDate) || userInput.length !== 10) {
+            if (value && isValid(value)) {
                 setInputValue(format(value, "dd/MM/yyyy"));
-             } else {
+            } else {
                 setInputValue("");
-             }
+            }
         }
-    }
+    };
 
 
     return (
@@ -84,4 +82,3 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
         />
     );
 }
-
