@@ -15,12 +15,12 @@ interface DatePickerProps {
 export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
     const [inputValue, setInputValue] = React.useState("");
 
-    // Effect to update the input value when the external `value` prop changes
+    // This effect synchronizes the input field when the external `value` prop changes.
+    // It's crucial for loading initial data into the form.
     React.useEffect(() => {
         if (value && isValid(value)) {
             setInputValue(format(value, "dd/MM/yyyy"));
         } else {
-            // This handles the case where the parent form resets the date
             setInputValue("");
         }
     }, [value]);
@@ -29,43 +29,44 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
         const rawValue = e.target.value.replace(/[^0-9]/g, '');
         let formattedValue = rawValue;
 
-        if (rawValue.length > 2) {
+        // Auto-insert slashes for dd/MM/yyyy format
+        if (rawValue.length > 2 && rawValue.length <= 4) {
             formattedValue = `${rawValue.slice(0, 2)}/${rawValue.slice(2)}`;
-        }
-        if (rawValue.length > 4) {
-            formattedValue = `${formattedValue.slice(0, 5)}/${rawValue.slice(4, 8)}`;
+        } else if (rawValue.length > 4) {
+            formattedValue = `${rawValue.slice(0, 2)}/${rawValue.slice(2, 4)}/${rawValue.slice(4, 8)}`;
         }
 
         setInputValue(formattedValue);
 
-        // If the formatted text is a full date, try to parse it and update the parent
+        // Try to parse the date and call onChange if it's valid
         if (formattedValue.length === 10) {
             const parsedDate = parse(formattedValue, 'dd/MM/yyyy', new Date());
             if (isValid(parsedDate)) {
-                // Only call onChange if the new date is different from the current prop `value`
-                if (!value || parsedDate.getTime() !== value.getTime()) {
-                    onChange(parsedDate);
-                }
+                 onChange(parsedDate);
             } else {
-                onChange(undefined); // Invalid date format
+                // If user types an invalid date like "99/99/9999"
+                onChange(undefined);
             }
+        } else {
+             // If the date is incomplete, the value is not valid yet.
+             onChange(undefined);
         }
     };
     
-    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-        const finalValue = e.target.value;
-        const parsedDate = parse(finalValue, "dd/MM/yyyy", new Date());
-
+    // When the user leaves the input, we ensure the format is correct
+    // or reset it if it's invalid.
+    const handleBlur = () => {
+        const parsedDate = parse(inputValue, "dd/MM/yyyy", new Date());
         if (!isValid(parsedDate)) {
-            onChange(undefined);
-            // Optionally reset to the last valid value if the input is invalid on blur
-            if (value && isValid(value)) {
-                 setInputValue(format(value, "dd/MM/yyyy"));
-            } else {
-                 setInputValue("");
-            }
+             // If the input is invalid on blur, reset to the last valid prop value
+             if (value && isValid(value)) {
+                setInputValue(format(value, "dd/MM/yyyy"));
+             } else {
+                setInputValue("");
+             }
         }
     }
+
 
     return (
         <Input
@@ -83,3 +84,4 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
         />
     );
 }
+
