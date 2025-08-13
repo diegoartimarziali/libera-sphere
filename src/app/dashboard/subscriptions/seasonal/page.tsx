@@ -1,8 +1,10 @@
 
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarClock } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { CalendarClock, ArrowLeft } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export default function SeasonalSubscriptionPage() {
     return (
@@ -20,6 +22,14 @@ export default function SeasonalSubscriptionPage() {
                     <p className="mt-2">Qui potrai acquistare il tuo abbonamento per l'intera stagione.</p>
                 </div>
             </CardContent>
+            <CardFooter>
+                <Button asChild variant="outline">
+                    <Link href="/dashboard/subscriptions">
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Torna Indietro
+                    </Link>
+                </Button>
+            </CardFooter>
         </Card>
     )
 }
