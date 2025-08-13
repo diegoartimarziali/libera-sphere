@@ -97,6 +97,11 @@ export default function AdminSubscriptionsPage() {
             name: '',
             totalPrice: 0,
             sumupLink: '',
+            purchaseStartDate: '',
+            purchaseEndDate: '',
+            validityStartDate: '',
+            validityEndDate: '',
+            expiryWarningDate: ''
         }
     });
     
@@ -109,8 +114,8 @@ export default function AdminSubscriptionsPage() {
             form.setValue('name', 'Abbonamento Stagionale');
         } else if (isFormOpen && !editingSubscription && subscriptionType === 'monthly') {
              form.setValue('name', '');
-             form.setValue('validityStartDate', undefined);
-             form.setValue('validityEndDate', undefined);
+             form.setValue('validityStartDate', '');
+             form.setValue('validityEndDate', '');
         }
     }, [subscriptionType, activitySettings, form, editingSubscription, isFormOpen]);
 
@@ -158,11 +163,11 @@ export default function AdminSubscriptionsPage() {
             name: '',
             totalPrice: 0,
             sumupLink: '',
-            purchaseStartDate: undefined,
-            purchaseEndDate: undefined,
-            validityStartDate: undefined,
-            validityEndDate: undefined,
-            expiryWarningDate: undefined
+            purchaseStartDate: '',
+            purchaseEndDate: '',
+            validityStartDate: '',
+            validityEndDate: '',
+            expiryWarningDate: ''
         });
         setIsFormOpen(true);
     };
@@ -175,11 +180,11 @@ export default function AdminSubscriptionsPage() {
             name: sub.name,
             totalPrice: sub.totalPrice,
             sumupLink: sub.sumupLink,
-            purchaseStartDate: dateToInputString(sub.purchaseStartDate),
-            purchaseEndDate: dateToInputString(sub.purchaseEndDate),
-            validityStartDate: dateToInputString(sub.validityStartDate),
-            validityEndDate: dateToInputString(sub.validityEndDate),
-            expiryWarningDate: dateToInputString(sub.expiryWarningDate),
+            purchaseStartDate: dateToInputString(sub.purchaseStartDate) || '',
+            purchaseEndDate: dateToInputString(sub.purchaseEndDate) || '',
+            validityStartDate: dateToInputString(sub.validityStartDate) || '',
+            validityEndDate: dateToInputString(sub.validityEndDate) || '',
+            expiryWarningDate: dateToInputString(sub.expiryWarningDate) || '',
         });
         setIsFormOpen(true);
     };
