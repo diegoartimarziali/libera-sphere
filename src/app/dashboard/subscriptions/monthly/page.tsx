@@ -104,7 +104,7 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
                     size="lg"
                 >
                     {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
-                    {hasActiveOrPending ? "Pagamento già in corso" : !isPurchaseWindowOpen ? "Non ancora acquistabile" : "Acquista Ora"}
+                    {hasActiveOrPending ? "Pagamento in fase di approvazione" : !isPurchaseWindowOpen ? "Non ancora acquistabile" : "Acquista Ora"}
                 </Button>
                 <Button asChild variant="outline" className="w-full">
                     <Link href="/dashboard/subscriptions">
