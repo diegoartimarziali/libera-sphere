@@ -15,7 +15,7 @@ export default {
         code: ['monospace'],
       },
       colors: {
-        'custom-pink': '#e1a5a5',
+        'dark-brown': '#2d190d',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
