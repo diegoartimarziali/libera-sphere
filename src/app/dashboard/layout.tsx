@@ -25,6 +25,7 @@ interface UserData {
   regulationsAccepted: boolean
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
+  medicalCertificateStatus?: 'invalid'; // Nuovo campo
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   associationExpiryDate?: Timestamp;
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
@@ -303,7 +304,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     fetchedUserData.associationStatus === 'expired' ||
                     fetchedUserData.trialStatus === 'pending_payment' ||
                     fetchedUserData.trialStatus === 'active' ||
-                    fetchedUserData.role === 'admin';
+                    fetchedUserData.role === 'admin' ||
+                    fetchedUserData.medicalCertificateStatus === 'invalid'; // Aggiunta condizione
+
 
                 // Se l'utente è in uno stato stabile, non fare nulla.
                 if (isUserStable) {

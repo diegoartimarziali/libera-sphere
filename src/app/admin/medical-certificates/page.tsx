@@ -96,7 +96,8 @@ export default function AdminMedicalCertificatesPage() {
 
     useEffect(() => {
         fetchData();
-    }, [toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     
     const handleDeleteCertificate = async (profile: UserProfile) => {
         if (!profile.medicalInfo?.fileName) {
@@ -109,16 +110,17 @@ export default function AdminMedicalCertificatesPage() {
             const fileRef = ref(storage, `medical-certificates/${profile.uid}/${profile.medicalInfo.fileName}`);
             await deleteObject(fileRef);
             
-            // 2. Remove info from Firestore user document
+            // 2. Remove info from Firestore user document and mark as invalid
             const userDocRef = doc(db, "users", profile.uid);
             await updateDoc(userDocRef, {
-                medicalInfo: null, // o un oggetto vuoto, a seconda della logica
-                medicalCertificateSubmitted: false
+                medicalInfo: null,
+                medicalCertificateSubmitted: false,
+                medicalCertificateStatus: 'invalid'
             });
 
             toast({
                 title: "Certificato Eliminato!",
-                description: "Il certificato è stato rimosso con successo.",
+                description: `Il certificato di ${profile.name} ${profile.surname} è stato rimosso. L'utente sarà notificato.`,
                 variant: "success",
             });
             
@@ -232,7 +234,7 @@ export default function AdminMedicalCertificatesPage() {
                                                                     <AlertDialogHeader>
                                                                         <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
                                                                         <AlertDialogDescription>
-                                                                            Questa azione è irreversibile. Il certificato di <strong className="mx-1">{profile.name} {profile.surname}</strong> sarà eliminato permanentemente.
+                                                                            Questa azione è irreversibile. Il certificato di <strong className="mx-1">{profile.name} {profile.surname}</strong> sarà eliminato permanentemente. L'utente sarà invitato a caricarne uno nuovo.
                                                                         </AlertDialogDescription>
                                                                     </AlertDialogHeader>
                                                                     <AlertDialogFooter>

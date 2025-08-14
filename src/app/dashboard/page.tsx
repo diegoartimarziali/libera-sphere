@@ -4,12 +4,15 @@
 import { useEffect, useState } from "react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { doc, getDoc, Timestamp, collection, getDocs } from "firebase/firestore"
+import { doc, getDoc, Timestamp, collection, getDocs, updateDoc } from "firebase/firestore"
 import { differenceInDays, isPast, format, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
+import { useRouter } from "next/navigation"
+
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed, Mail, CheckCircle } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
@@ -51,6 +54,7 @@ interface UserData {
     type: 'certificate';
     expiryDate?: Timestamp;
   };
+  medicalCertificateStatus?: 'invalid';
   trialLessons?: { eventId: string, startTime: Timestamp, endTime: Timestamp }[];
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialOutcome?: 'declined' | 'accepted';
@@ -73,6 +77,7 @@ interface Gym {
 
 export default function DashboardPage() {
   const [user, authLoading] = useAuthState(auth)
+  const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null)
   const [dataLoading, setDataLoading] = useState(true)
   const [certificateStatus, setCertificateStatus] = useState<'valid' | 'expiring' | 'expired' | null>(null);
@@ -280,8 +285,31 @@ export default function DashboardPage() {
     }
   }, [user, authLoading])
 
+  const handleRenewCertificate = async () => {
+    if (!user) return;
+    // Rimuovi lo stato invalid prima di reindirizzare
+    const userDocRef = doc(db, "users", user.uid);
+    await updateDoc(userDocRef, { medicalCertificateStatus: null });
+    router.push('/dashboard/renew-medical-certificate');
+  }
+
   const renderInfoAlerts = () => {
       const alerts = [];
+
+      if (userData?.medicalCertificateStatus === 'invalid') {
+          alerts.push(
+              <Alert key="cert-invalid" variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Certificato Medico non Valido</AlertTitle>
+                  <AlertDescription>
+                      Il certificato che hai caricato è stato respinto. Caricane uno nuovo per ripristinare la tua copertura assicurativa e l'accesso completo alle attività.
+                  </AlertDescription>
+                  <Button onClick={handleRenewCertificate} variant="secondary" className="mt-4">
+                      Aggiorna Certificato
+                  </Button>
+              </Alert>
+          );
+      }
 
       if (showDataCorrectionMessage) {
         alerts.push(
