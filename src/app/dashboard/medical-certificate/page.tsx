@@ -56,7 +56,7 @@ export default function MedicalCertificatePage() {
     resolver: zodResolver(schema),
     defaultValues: {
         certificateFile: undefined,
-        expiryDate: undefined,
+        expiryDate: "",
     }
   });
 
@@ -299,3 +299,5 @@ export default function MedicalCertificatePage() {
     </div>
   )
 }
+
+    
