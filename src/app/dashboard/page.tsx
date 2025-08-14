@@ -60,11 +60,14 @@ interface UserData {
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialOutcome?: 'declined' | 'accepted';
   subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
+  subscriptionPaymentFailed?: boolean;
   activeSubscription?: {
+      subscriptionId: string;
       name: string;
       type: 'monthly' | 'seasonal';
+      purchasedAt: Timestamp;
       expiresAt?: Timestamp;
-  }
+  };
 }
 
 interface SeasonSettings {
@@ -307,6 +310,21 @@ export default function DashboardPage() {
                   </AlertDescription>
                    <Button onClick={() => router.push('/dashboard/associates?step=2')} variant="secondary" className="mt-4">
                       Procedi al Pagamento
+                  </Button>
+              </Alert>
+          );
+      }
+      
+      if (userData?.subscriptionPaymentFailed) {
+          alerts.push(
+              <Alert key="sub-failed" variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Pagamento Abbonamento Fallito</AlertTitle>
+                  <AlertDescription>
+                      La tua richiesta di abbonamento non è andata a buon fine. Per favore, procedi a un nuovo acquisto.
+                  </AlertDescription>
+                   <Button onClick={() => router.push('/dashboard/subscriptions')} variant="secondary" className="mt-4">
+                      Vai agli Abbonamenti
                   </Button>
               </Alert>
           );

@@ -163,8 +163,9 @@ export default function MonthlySubscriptionPage() {
                 if (allMonthlySubs.length > 0) {
                      // Priorità 1: C'è una finestra di acquisto attiva?
                     const purchasableSub = allMonthlySubs.find(sub => 
-                        sub.purchaseStartDate && sub.purchaseEndDate &&
+                        sub.purchaseStartDate && sub.purchaseEndDate ?
                         isAfter(now, sub.purchaseStartDate.toDate()) && isBefore(now, sub.purchaseEndDate.toDate())
+                        : true
                     );
                     
                     if (purchasableSub) {
@@ -229,6 +230,7 @@ export default function MonthlySubscriptionPage() {
             const userRef = doc(db, "users", user.uid);
             batch.update(userRef, {
                 subscriptionAccessStatus: 'pending',
+                subscriptionPaymentFailed: false, // Rimuove il flag di fallimento
                 activeSubscription: {
                     subscriptionId: subscription.id,
                     name: subscription.name,
@@ -247,7 +249,7 @@ export default function MonthlySubscriptionPage() {
             }
             
             // Refresh data on the page
-             setUserData(prev => prev ? ({...prev, subscriptionAccessStatus: 'pending'}) : null);
+             setUserData(prev => prev ? ({...prev, subscriptionAccessStatus: 'pending', subscriptionPaymentFailed: false}) : null);
              setIsPaymentDialogOpen(false);
 
 

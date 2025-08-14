@@ -47,6 +47,7 @@ interface UserProfile {
     trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
     subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
     subscriptionActivationDate?: Timestamp;
+    subscriptionPaymentFailed?: boolean;
     payments: Payment[];
 }
 
@@ -137,6 +138,7 @@ export default function AdminPaymentsPage() {
                     trialStatus: userData.trialStatus,
                     subscriptionAccessStatus: userData.subscriptionAccessStatus,
                     subscriptionActivationDate: userData.subscriptionActivationDate,
+                    subscriptionPaymentFailed: userData.subscriptionPaymentFailed,
                     payments: payments
                 };
             }));
@@ -180,7 +182,7 @@ export default function AdminPaymentsPage() {
                     batch.update(userDocRef, { 
                         associationStatus: 'active',
                         isInsured: true,
-                        associationPaymentFailed: false, // Rimuove il flag di fallimento
+                        associationPaymentFailed: false,
                     });
                 } else if (payment.type === 'trial') {
                     batch.update(userDocRef, { 
@@ -190,7 +192,8 @@ export default function AdminPaymentsPage() {
                 } else if (payment.type === 'subscription') {
                     batch.update(userDocRef, { 
                         subscriptionAccessStatus: 'active',
-                        subscriptionActivationDate: serverTimestamp()
+                        subscriptionActivationDate: serverTimestamp(),
+                        subscriptionPaymentFailed: false, 
                     });
                     sessionStorage.setItem('showSubscriptionActivatedMessage', new Date().toISOString());
                 }
@@ -198,12 +201,16 @@ export default function AdminPaymentsPage() {
                  if (payment.type === 'association') {
                     batch.update(userDocRef, { 
                         associationStatus: 'not_associated',
-                        associationPaymentFailed: true, // Aggiunge il flag di fallimento
+                        associationPaymentFailed: true,
                     });
                 } else if (payment.type === 'trial') {
                     batch.update(userDocRef, { trialStatus: 'not_applicable' });
                 } else if (payment.type === 'subscription') {
-                    batch.update(userDocRef, { subscriptionAccessStatus: 'expired' });
+                     batch.update(userDocRef, { 
+                        subscriptionAccessStatus: 'expired',
+                        subscriptionPaymentFailed: true,
+                        activeSubscription: null,
+                    });
                 }
             }
             
@@ -232,6 +239,7 @@ export default function AdminPaymentsPage() {
                             if (payment.type === 'subscription') {
                                 updatedProfile.subscriptionAccessStatus = 'active';
                                 updatedProfile.subscriptionActivationDate = Timestamp.now();
+                                updatedProfile.subscriptionPaymentFailed = false;
                             }
                         } else { 
                             if (payment.type === 'association') {
@@ -239,7 +247,10 @@ export default function AdminPaymentsPage() {
                                 updatedProfile.associationPaymentFailed = true;
                             }
                             if (payment.type === 'trial') updatedProfile.trialStatus = 'not_applicable';
-                            if (payment.type === 'subscription') updatedProfile.subscriptionAccessStatus = 'expired';
+                            if (payment.type === 'subscription') {
+                                updatedProfile.subscriptionAccessStatus = 'expired';
+                                updatedProfile.subscriptionPaymentFailed = true;
+                            }
                         }
                         
                         return updatedProfile;
