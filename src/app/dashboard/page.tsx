@@ -345,7 +345,7 @@ export default function DashboardPage() {
                   <Smile className="h-4 w-4" />
                   <AlertTitle>Associazione Approvata!</AlertTitle>
                   <AlertDescription>
-                      La tua associazione è stata approvata, ora puoi procedere con la scelta del tuo abbonamento dal menu/Abbonamenti.
+                      La tua Associazione è stata Approvata. Ora puoi procedere alla scelta del tuo Abbonamento dal menu: Abbonamenti.
                   </AlertDescription>
               </Alert>
           );
