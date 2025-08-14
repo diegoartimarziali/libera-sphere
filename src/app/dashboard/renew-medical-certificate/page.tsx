@@ -76,7 +76,7 @@ export default function RenewMedicalCertificatePage() {
             setExistingMedicalInfo(info);
             // Pre-fill form
             form.reset({
-                expiryDate: dateToInputString(info.expiryDate),
+                expiryDate: dateToInputString(info.expiryDate) || "",
             });
             if(info.fileName) {
                 setFileName(info.fileName);
@@ -154,10 +154,11 @@ export default function RenewMedicalCertificatePage() {
             medicalInfo.expiryDate = Timestamp.fromDate(parseISO(data.expiryDate));
         } 
         
-        const dataToUpdate = {
+        const dataToUpdate:any = {
              medicalCertificateSubmitted: true,
              medicalInfo: medicalInfo,
-             updatedAt: serverTimestamp()
+             updatedAt: serverTimestamp(),
+             medicalCertificateStatus: null, // Rimuove lo stato di invalidità
         };
 
         await updateDoc(userDocRef, dataToUpdate);
@@ -167,8 +168,7 @@ export default function RenewMedicalCertificatePage() {
             description: "Le tue informazioni mediche sono state salvate con successo.",
         });
         
-        memoizedUserDataFetch(user.uid); // Re-fetch data to show the latest info
-        router.refresh(); // Refresh server components if needed
+        router.push("/dashboard");
 
     } catch (error) {
         console.error("Errore durante l'invio dei dati medici:", error);
@@ -260,7 +260,7 @@ export default function RenewMedicalCertificatePage() {
             <CardFooter>
               <Button type="submit" className="w-full" disabled={isSubmitting || !form.formState.isValid}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Aggiorna Certificato
+                Aggiorna Certificato e torna alla Dashboard
               </Button>
             </CardFooter>
           </form>

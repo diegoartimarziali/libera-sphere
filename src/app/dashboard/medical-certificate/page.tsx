@@ -75,7 +75,7 @@ export default function MedicalCertificatePage() {
             };
             setExistingMedicalInfo(info);
             form.reset({
-                expiryDate: dateToInputString(info.expiryDate),
+                expiryDate: dateToInputString(info.expiryDate) || "",
             });
             if(info.fileName) {
                 setFileName(info.fileName);
@@ -299,5 +299,7 @@ export default function MedicalCertificatePage() {
     </div>
   )
 }
+
+    
 
     
