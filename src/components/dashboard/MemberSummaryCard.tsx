@@ -110,7 +110,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
     const subscriptionStatusClassName = cn('font-bold', {
         'text-orange-500': props.subscriptionStatus === 'In attesa di approvazione' || props.subscriptionStatus === 'In scadenza',
         'text-green-600': props.subscriptionStatus === 'Attivo',
-        'text-destructive': props.subscriptionStatus === 'Scaduto',
+        'text-destructive': props.subscriptionStatus === 'Scaduto' || props.subscriptionStatus === 'Non Approvato',
     });
     
     const subscriptionValidityClassName = "font-bold text-muted-foreground";

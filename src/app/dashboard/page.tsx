@@ -202,7 +202,9 @@ export default function DashboardPage() {
             let subscriptionStatusLabel: string | undefined = undefined;
             let subscriptionValidityMonth: string | undefined = undefined;
 
-            if (data.subscriptionAccessStatus && data.activeSubscription && data.activeSubscription.type === 'monthly') {
+            if (data.subscriptionPaymentFailed) {
+                subscriptionStatusLabel = "Non Approvato";
+            } else if (data.subscriptionAccessStatus && data.activeSubscription && data.activeSubscription.type === 'monthly') {
                  switch(data.subscriptionAccessStatus) {
                     case 'pending': 
                         subscriptionStatusLabel = 'In attesa di approvazione'; 
