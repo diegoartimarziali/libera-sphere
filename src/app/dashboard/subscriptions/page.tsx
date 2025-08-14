@@ -40,6 +40,10 @@ interface UserData {
     surname?: string;
     activeSubscription?: {
         subscriptionId: string;
+        name: string;
+        type: 'monthly' | 'seasonal';
+        purchasedAt: Timestamp;
+        expiresAt?: Timestamp;
     };
     subscriptionAccessStatus?: 'active' | 'pending' | 'expired';
 }
@@ -135,24 +139,25 @@ function SeasonalPaymentDialog({
     seasonalSub: Subscription, 
     bankDetails: BankDetails | null, 
     userData: UserData | null,
-    onPurchase: (sub: Subscription, method: PaymentMethod) => void
+    onPurchase: (sub: Subscription, method: PaymentMethod) => void 
 }) {
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (!selectedPaymentMethod) return;
         setIsSubmitting(true);
         if (selectedPaymentMethod === 'bank_transfer') {
             setIsBankTransferDialogOpen(true);
         } else {
-            onPurchase(seasonalSub, selectedPaymentMethod);
+            await onPurchase(seasonalSub, selectedPaymentMethod);
         }
+        setIsSubmitting(false);
     };
     
-    const handleBankTransferConfirm = () => {
-        onPurchase(seasonalSub, 'bank_transfer');
+    const handleBankTransferConfirm = async () => {
+        await onPurchase(seasonalSub, 'bank_transfer');
         setIsBankTransferDialogOpen(false);
     }
 
@@ -245,7 +250,7 @@ function SubscriptionSelection({
     seasonalSub: Subscription | null, 
     bankDetails: BankDetails | null, 
     userData: UserData | null,
-    onPurchase: (sub: Subscription, method: PaymentMethod) => void 
+    onPurchase: (sub: Subscription, method: PaymentMethod) => Promise<void> 
 }) {
     return (
         <div className="flex w-full flex-col items-center">
@@ -401,7 +406,8 @@ export default function SubscriptionsPage() {
             await batch.commit();
 
             toast({ title: "Richiesta Inviata!", description: "La tua richiesta di abbonamento è in attesa di approvazione." });
-
+            
+            // This needs to be the last step before routing
             if (method === 'online' && subscription.sumupLink) {
                 window.open(subscription.sumupLink, '_blank');
             }
@@ -439,5 +445,3 @@ export default function SubscriptionsPage() {
         </div>
     );
 }
-
-    
