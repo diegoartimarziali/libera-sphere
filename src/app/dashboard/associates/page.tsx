@@ -93,7 +93,7 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails, u
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={onConfirm}>Prosegui al Riepilogo</Button>
+                    <Button onClick={onConfirm}>Ho copiato i dati, invia richiesta</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -298,22 +298,55 @@ function AssociatesPageContent() {
         }
     }, [searchParams]);
 
+    // Pre-fetch user data to avoid blank summary pages
+     useEffect(() => {
+        const preFetchUserData = async () => {
+            if (!user) return;
+            try {
+                const userDocRef = doc(db, "users", user.uid);
+                const userDocSnap = await getDoc(userDocRef);
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    setFormData({
+                        name: userData.name || "",
+                        surname: userData.surname || "",
+                        taxCode: userData.taxCode || "",
+                        birthDate: userData.birthDate ? format(userData.birthDate.toDate(), 'yyyy-MM-dd') : "",
+                        birthPlace: userData.birthPlace || "",
+                        address: userData.address || "",
+                        streetNumber: userData.streetNumber || "",
+                        city: userData.city || "",
+                        zipCode: userData.zipCode || "",
+                        province: userData.province || "",
+                        phone: userData.phone || "",
+                        isMinor: !!userData.isMinor,
+                        parentData: userData.parentData,
+                    });
+                    setDiscipline(userData.discipline || null);
+                    setLastGrade(userData.lastGrade || null);
+                    setQualification(userData.qualification || null);
+                }
+            } catch (error) {
+                console.error("Error pre-fetching user data:", error);
+                toast({ title: "Errore", description: "Impossibile recuperare i dati utente.", variant: "destructive" });
+            }
+        };
+        preFetchUserData();
+    }, [user, toast]);
+
     useEffect(() => {
         const fetchInitialData = async () => {
              if (!user) return;
+             setLoading(true);
             try {
-                // Questa pagina ora carica solo i dati statici necessari.
-                // La gestione degli step è interamente locale.
                 const feeDocRef = doc(db, "fees", "association");
                 const seasonSettingsRef = doc(db, "settings", "season");
                 const bankDetailsRef = doc(db, "settings", "bankDetails");
-                const userDocRef = doc(db, "users", user.uid);
                 
-                const [feeDocSnap, seasonDocSnap, bankDetailsSnap, userDocSnap] = await Promise.all([
+                const [feeDocSnap, seasonDocSnap, bankDetailsSnap] = await Promise.all([
                     getDoc(feeDocRef),
                     getDoc(seasonSettingsRef),
                     getDoc(bankDetailsRef),
-                    getDoc(userDocRef)
                 ]);
 
                 if (bankDetailsSnap.exists()) {
@@ -334,13 +367,6 @@ function AssociatesPageContent() {
                      toast({ title: "Errore", description: "Impossibile caricare le impostazioni della stagione.", variant: "destructive" });
                 }
 
-                if (userDocSnap.exists()) {
-                    const userData = userDocSnap.data();
-                    setDiscipline(userData.discipline || null);
-                    setLastGrade(userData.lastGrade || null);
-                    setQualification(userData.qualification || null);
-                }
-
             } catch (error) {
                 console.error("Error fetching initial data:", error);
                 toast({ title: "Errore di connessione", description: "Impossibile recuperare i dati iniziali. Riprova.", variant: "destructive" });
@@ -358,31 +384,37 @@ function AssociatesPageContent() {
 
     const handlePaymentSubmit = (method: PaymentMethod) => {
         setPaymentMethod(method);
-        switch (method) {
-            case 'online':
-                if (feeData?.sumupLink) {
-                    window.open(feeData.sumupLink, '_blank');
-                }
-                setStep(4); // Vai direttamente al riepilogo
-                break;
-            case 'bank_transfer':
-                setIsBankTransferDialogOpen(true); // Apri il popup del bonifico
-                break;
-            case 'in_person':
-            default:
-                setStep(4); // Per il pagamento in sede, vai al riepilogo
-                break;
+        // If this is a retry of a failed payment, submit immediately.
+        if (searchParams.get('step') === '2') {
+             if (method === 'bank_transfer') {
+                setIsBankTransferDialogOpen(true);
+            } else {
+                submitApplication(method);
+            }
+        } else {
+            // Otherwise, go to summary page.
+            setStep(4);
+             if (method === 'online' && feeData?.sumupLink) {
+                window.open(feeData.sumupLink, '_blank');
+            } else if (method === 'bank_transfer') {
+                 setIsBankTransferDialogOpen(true);
+            }
         }
     };
     
     const handleBankTransferConfirm = () => {
-        // L'utente ha confermato di aver letto i dati del bonifico
         setIsBankTransferDialogOpen(false);
-        setStep(4);
+        // If this is a retry, submit now. Otherwise, go to summary.
+        if (searchParams.get('step') === '2') {
+             submitApplication('bank_transfer');
+        } else {
+             setStep(4);
+        }
     }
 
-    const submitApplication = async () => {
-         if (!user || !formData || !feeData || !seasonSettings || !paymentMethod) {
+    const submitApplication = async (finalPaymentMethod?: PaymentMethod) => {
+         const methodToUse = finalPaymentMethod || paymentMethod;
+         if (!user || !formData || !feeData || !seasonSettings || !methodToUse) {
              toast({ title: "Errore", description: "Dati mancanti per completare la richiesta.", variant: "destructive" });
              return;
          }
@@ -402,14 +434,14 @@ function AssociatesPageContent() {
                 city: formData.city,
                 province: formData.province,
                 phone: formData.phone,
-                lastGrade: lastGrade, // Preserva il grado esistente
-                qualification: qualification, // Preserva la qualifica esistente
-                discipline: discipline, // Preserva la disciplina
+                lastGrade: lastGrade,
+                qualification: qualification,
+                discipline: discipline,
                 applicationSubmitted: true,
                 associationStatus: "pending",
                 associationExpiryDate: seasonSettings.endDate,
                 isInsured: false,
-                associationPaymentFailed: false, // Resetta il flag di fallimento
+                associationPaymentFailed: false, // Reset the failure flag
             };
 
             if (formData.isMinor && formData.parentData) {
@@ -425,16 +457,21 @@ function AssociatesPageContent() {
                 description: feeData.name,
                 type: 'association',
                 status: 'pending',
-                paymentMethod: paymentMethod,
+                paymentMethod: methodToUse,
             });
+            
+            // Handle online payment for retries
+            if(searchParams.get('step') === '2' && methodToUse === 'online' && feeData.sumupLink){
+                window.open(feeData.sumupLink, '_blank');
+            }
 
             await Promise.all([updateDoc(userDocRef, dataToUpdate), paymentDocPromise]);
             
-            // Set a flag in session storage to show the message on the dashboard
             sessionStorage.setItem('showDataCorrectionMessage', new Date().toISOString());
 
-            toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata con successo. Verrai reindirizzato al prossimo passo." });
+            toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata. Verrai reindirizzato alla dashboard." });
             router.push("/dashboard");
+
          } catch (error) {
             console.error("Errore durante l'invio della domanda:", error);
             toast({ title: "Errore", description: "Impossibile inviare la domanda. Riprova.", variant: "destructive" });
@@ -497,7 +534,7 @@ function AssociatesPageContent() {
                         formData={formData}
                         paymentMethod={paymentMethod}
                         onBack={handleBack}
-                        onComplete={submitApplication}
+                        onComplete={() => submitApplication()}
                         isSubmitting={isSubmitting}
                         fee={feeData}
                         discipline={discipline}
@@ -527,3 +564,5 @@ export default function AssociatesPage() {
         </Suspense>
     )
 }
+
+    
