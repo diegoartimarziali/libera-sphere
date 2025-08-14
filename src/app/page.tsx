@@ -150,8 +150,8 @@ export default function AuthPage() {
          <Image 
             src={logoUrl} 
             alt="Logo LiberaSphere"
-            width={80}
-            height={80}
+            width={120}
+            height={120}
             className="mb-4"
             priority
          />
