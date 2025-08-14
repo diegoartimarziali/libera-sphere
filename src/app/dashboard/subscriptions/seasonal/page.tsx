@@ -1,35 +1,19 @@
 
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-import { CalendarClock, ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export default function SeasonalSubscriptionPage() {
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Abbonamento Stagionale</CardTitle>
-                <CardDescription>
-                    Questa sezione è in fase di sviluppo.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground border-2 border-dashed rounded-lg">
-                    <CalendarClock className="h-16 w-16 mb-4" />
-                    <h2 className="text-xl font-semibold">Prossimamente</h2>
-                    <p className="mt-2">Qui potrai acquistare il tuo abbonamento per l'intera stagione.</p>
-                </div>
-            </CardContent>
-            <CardFooter>
-                <Button asChild variant="outline">
-                    <Link href="/dashboard/subscriptions">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Torna Indietro
-                    </Link>
-                </Button>
-            </CardFooter>
-        </Card>
-    )
+// This page is no longer used and will be removed.
+// It redirects to the main subscriptions page.
+export default function SeasonalSubscriptionRedirectPage() {
+    const router = useRouter();
+
+    useEffect(() => {
+        router.replace('/dashboard/subscriptions');
+    }, [router]);
+
+    return null; // Render nothing while redirecting
 }
+
+    
