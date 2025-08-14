@@ -11,7 +11,7 @@ import { it } from "date-fns/locale"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed, Mail } from "lucide-react"
+import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed, Mail, CheckCircle } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
 import { AttendancePrompt } from "@/components/dashboard/AttendancePrompt"
 
@@ -79,6 +79,7 @@ export default function DashboardPage() {
   const [daysToExpire, setDaysToExpire] = useState<number | null>(null);
   const [memberCardProps, setMemberCardProps] = useState<MemberSummaryProps | null>(null);
   const [showDataCorrectionMessage, setShowDataCorrectionMessage] = useState(false);
+  const [showSubscriptionActivatedMessage, setShowSubscriptionActivatedMessage] = useState(false);
 
   useEffect(() => {
     // Check for the data correction message flag on component mount
@@ -93,6 +94,14 @@ export default function DashboardPage() {
             // Clean up if the hour has passed
             sessionStorage.removeItem('showDataCorrectionMessage');
         }
+    }
+    
+    // Check for subscription activation message
+    const subActivationTimestamp = sessionStorage.getItem('showSubscriptionActivatedMessage');
+     if (subActivationTimestamp) {
+        setShowSubscriptionActivatedMessage(true);
+        // Clean up immediately after showing
+        sessionStorage.removeItem('showSubscriptionActivatedMessage');
     }
 
     if (authLoading) return
@@ -284,6 +293,18 @@ export default function DashboardPage() {
                 </AlertDescription>
             </Alert>
         );
+      }
+
+      if (showSubscriptionActivatedMessage && userData?.activeSubscription) {
+          alerts.push(
+            <Alert key="sub-activated" variant="success" className="mb-6">
+                <CheckCircle className="h-4 w-4" />
+                <AlertTitle>Abbonamento Attivato!</AlertTitle>
+                <AlertDescription>
+                    Il tuo abbonamento "{userData.activeSubscription.name}" è attivo!
+                </AlertDescription>
+            </Alert>
+          );
       }
 
       if (

@@ -190,6 +190,8 @@ export default function AdminPaymentsPage() {
                         subscriptionAccessStatus: 'active',
                         subscriptionActivationDate: serverTimestamp()
                     });
+                    // Set flag for one-time message on dashboard
+                    sessionStorage.setItem('showSubscriptionActivatedMessage', new Date().toISOString());
                 }
             } else { // se il pagamento viene messo a FAILED
                  if (payment.type === 'association') {
