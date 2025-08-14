@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, Timestamp, collection, getDocs, updateDoc } from "firebase/firestore"
@@ -305,8 +305,8 @@ export default function DashboardPage() {
                   <AlertDescription>
                       La tua domanda non è stata approvata in quanto l'importo non è stato trasferito sul nostro conto corrente. Verifica ed effettua un nuovo pagamento.
                   </AlertDescription>
-                   <Button onClick={() => router.push('/dashboard/payments')} variant="secondary" className="mt-4">
-                      Vai ai Miei Pagamenti
+                   <Button onClick={() => router.push('/dashboard/associates?step=2')} variant="secondary" className="mt-4">
+                      Procedi al Pagamento
                   </Button>
               </Alert>
           );
@@ -448,7 +448,9 @@ export default function DashboardPage() {
          {dataLoading ? <Skeleton className="h-9 w-64" /> : `Benvenuto, ${userData?.name?.split(' ')[0] || ''}!`}
       </h1>
 
-      <AttendancePrompt />
+      <Suspense fallback={<div><Skeleton className="h-24 w-full mb-6" /></div>}>
+        <AttendancePrompt />
+      </Suspense>
 
       {dataLoading ? <Skeleton className="h-24 w-full mb-6" /> : renderInfoAlerts()}
       

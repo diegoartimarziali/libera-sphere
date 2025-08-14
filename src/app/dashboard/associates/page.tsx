@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { PersonalDataForm, type PersonalDataSchemaType } from "@/components/dashboard/PersonalDataForm"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -272,7 +272,7 @@ function ConfirmationStep({
     )
 }
 
-export default function AssociatesPage() {
+function AssociatesPageContent() {
     const [step, setStep] = useState(1)
     const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null)
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
@@ -287,9 +287,16 @@ export default function AssociatesPage() {
     const [qualification, setQualification] = useState<string | null>(null);
     const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
 
-
     const { toast } = useToast()
     const router = useRouter()
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const stepParam = searchParams.get('step');
+        if (stepParam === '2') {
+            setStep(2);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -510,5 +517,13 @@ export default function AssociatesPage() {
                 userSurname={formData?.surname}
             />
         </div>
+    )
+}
+
+export default function AssociatesPage() {
+    return (
+        <Suspense fallback={<div className="flex h-full w-full items-center justify-center"><Loader2 className="h-16 w-16 animate-spin text-primary" /></div>}>
+            <AssociatesPageContent />
+        </Suspense>
     )
 }
