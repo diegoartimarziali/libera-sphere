@@ -9,6 +9,7 @@ import * as z from "zod"
 import { auth, db } from "@/lib/firebase"
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"
+import Image from "next/image"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -142,23 +143,19 @@ export default function AuthPage() {
     setActiveTab(value)
   }
 
+  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.appspot.com/o/grafimg%2Flogo.png?alt=media";
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8" style={{ background: 'var(--background)' }}>
       <div className="flex flex-col items-center text-center mb-8">
-         <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="hsl(var(--primary))"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-16 w-16 mb-4"
-        >
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-          <path d="M12 12L16 8"></path>
-          <path d="M12 6v6l4 2"></path>
-        </svg>
+         <Image 
+            src={logoUrl} 
+            alt="Logo LiberaSphere"
+            width={80}
+            height={80}
+            className="mb-4"
+            priority
+         />
         <h1 className="text-4xl font-bold text-foreground">LiberaSphere</h1>
         <p className="text-lg text-muted-foreground mt-2">Pronti a ricominciare.</p>
       </div>
