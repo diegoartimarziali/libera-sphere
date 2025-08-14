@@ -286,6 +286,22 @@ export default function DashboardPage() {
         );
       }
 
+      if (
+          userData?.associationStatus === 'active' &&
+          userData.subscriptionAccessStatus !== 'active' &&
+          userData.subscriptionAccessStatus !== 'pending'
+      ) {
+          alerts.push(
+              <Alert key="sub-choice" variant="success" className="mb-6">
+                  <Smile className="h-4 w-4" />
+                  <AlertTitle>Associazione Approvata!</AlertTitle>
+                  <AlertDescription>
+                      La tua associazione è stata approvata, ora puoi procedere con la scelta del tuo abbonamento dal menu/Abbonamenti.
+                  </AlertDescription>
+              </Alert>
+          );
+      }
+
       if (userData?.subscriptionAccessStatus === 'pending') {
           alerts.push(
             <Alert key="sub-pending" variant="warning" className="mb-6">
