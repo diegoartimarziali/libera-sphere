@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -143,7 +142,7 @@ export default function AuthPage() {
     setActiveTab(value)
   }
 
-  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.appspot.com/o/grafimg%2Flogo.png?alt=media";
+  const logoUrl = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Flogo.png?alt=media&token=d1a26a21-2c18-43c5-8cd5-bb9074f84797";
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8" style={{ background: 'var(--background)' }}>
