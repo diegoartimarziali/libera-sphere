@@ -27,6 +27,7 @@ interface UserData {
   medicalCertificateSubmitted: boolean
   medicalCertificateStatus?: 'invalid'; // Nuovo campo
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
+  associationPaymentFailed?: boolean;
   associationExpiryDate?: Timestamp;
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialExpiryDate?: Timestamp;
@@ -305,7 +306,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     fetchedUserData.trialStatus === 'pending_payment' ||
                     fetchedUserData.trialStatus === 'active' ||
                     fetchedUserData.role === 'admin' ||
-                    fetchedUserData.medicalCertificateStatus === 'invalid'; // Aggiunta condizione
+                    fetchedUserData.associationPaymentFailed === true ||
+                    fetchedUserData.medicalCertificateStatus === 'invalid';
 
 
                 // Se l'utente è in uno stato stabile, non fare nulla.
@@ -390,5 +392,3 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-    

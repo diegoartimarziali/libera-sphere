@@ -43,6 +43,7 @@ interface UserProfile {
     discipline?: string;
     gym?: string;
     associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
+    associationPaymentFailed?: boolean;
     trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
     subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
     subscriptionActivationDate?: Timestamp;
@@ -132,6 +133,7 @@ export default function AdminPaymentsPage() {
                     discipline: userData.discipline,
                     gym: userData.gym,
                     associationStatus: userData.associationStatus,
+                    associationPaymentFailed: userData.associationPaymentFailed,
                     trialStatus: userData.trialStatus,
                     subscriptionAccessStatus: userData.subscriptionAccessStatus,
                     subscriptionActivationDate: userData.subscriptionActivationDate,
@@ -177,7 +179,8 @@ export default function AdminPaymentsPage() {
                  if (payment.type === 'association') {
                     batch.update(userDocRef, { 
                         associationStatus: 'active',
-                        isInsured: true
+                        isInsured: true,
+                        associationPaymentFailed: false, // Rimuove il flag di fallimento
                     });
                 } else if (payment.type === 'trial') {
                     batch.update(userDocRef, { 
@@ -191,9 +194,12 @@ export default function AdminPaymentsPage() {
                     });
                     sessionStorage.setItem('showSubscriptionActivatedMessage', new Date().toISOString());
                 }
-            } else { 
+            } else { // newStatus === 'failed'
                  if (payment.type === 'association') {
-                    batch.update(userDocRef, { associationStatus: 'not_associated' });
+                    batch.update(userDocRef, { 
+                        associationStatus: 'not_associated',
+                        associationPaymentFailed: true, // Aggiunge il flag di fallimento
+                    });
                 } else if (payment.type === 'trial') {
                     batch.update(userDocRef, { trialStatus: 'not_applicable' });
                 } else if (payment.type === 'subscription') {
@@ -218,14 +224,20 @@ export default function AdminPaymentsPage() {
                         let updatedProfile = { ...profile, payments: updatedPayments };
 
                         if (newStatus === 'completed') {
-                            if (payment.type === 'association') updatedProfile.associationStatus = 'active';
+                            if (payment.type === 'association') {
+                                updatedProfile.associationStatus = 'active';
+                                updatedProfile.associationPaymentFailed = false;
+                            }
                             if (payment.type === 'trial') updatedProfile.trialStatus = 'active';
                             if (payment.type === 'subscription') {
                                 updatedProfile.subscriptionAccessStatus = 'active';
                                 updatedProfile.subscriptionActivationDate = Timestamp.now();
                             }
                         } else { 
-                            if (payment.type === 'association') updatedProfile.associationStatus = 'not_associated';
+                            if (payment.type === 'association') {
+                                updatedProfile.associationStatus = 'not_associated';
+                                updatedProfile.associationPaymentFailed = true;
+                            }
                             if (payment.type === 'trial') updatedProfile.trialStatus = 'not_applicable';
                             if (payment.type === 'subscription') updatedProfile.subscriptionAccessStatus = 'expired';
                         }
@@ -510,7 +522,3 @@ export default function AdminPaymentsPage() {
         </Card>
     );
 }
-
-    
-
-    

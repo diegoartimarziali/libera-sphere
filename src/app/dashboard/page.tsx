@@ -45,6 +45,7 @@ interface UserData {
       parentTaxCode: string;
   };
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
+  associationPaymentFailed?: boolean;
   associationExpiryDate?: Timestamp;
   applicationSubmitted: boolean;
   regulationsAccepted: boolean;
@@ -296,6 +297,21 @@ export default function DashboardPage() {
   const renderInfoAlerts = () => {
       const alerts = [];
 
+      if (userData?.associationPaymentFailed) {
+          alerts.push(
+              <Alert key="assoc-failed" variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Domanda di Associazione Rifiutata</AlertTitle>
+                  <AlertDescription>
+                      La tua domanda non è stata approvata in quanto l'importo non è stato trasferito sul nostro conto corrente. Verifica ed effettua un nuovo pagamento.
+                  </AlertDescription>
+                   <Button onClick={() => router.push('/dashboard/payments')} variant="secondary" className="mt-4">
+                      Vai ai Miei Pagamenti
+                  </Button>
+              </Alert>
+          );
+      }
+
       if (userData?.medicalCertificateStatus === 'invalid') {
           alerts.push(
               <Alert key="cert-invalid" variant="destructive" className="mb-6">
@@ -472,5 +488,3 @@ export default function DashboardPage() {
     </div>
   )
 }
-
-    

@@ -402,6 +402,7 @@ export default function AssociatesPage() {
                 associationStatus: "pending",
                 associationExpiryDate: seasonSettings.endDate,
                 isInsured: false,
+                associationPaymentFailed: false, // Resetta il flag di fallimento
             };
 
             if (formData.isMinor && formData.parentData) {
