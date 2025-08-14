@@ -2,22 +2,25 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { db, auth } from "@/lib/firebase"
+import { db, auth, storage } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
-import { collection, getDocs, query, orderBy, collectionGroup, where, doc, writeBatch, Timestamp, updateDoc, getDoc, serverTimestamp } from "firebase/firestore"
+import { collection, getDocs, query, orderBy, collectionGroup, where, doc, writeBatch, Timestamp, updateDoc, getDoc, serverTimestamp, deleteDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import type { VariantProps } from "class-variance-authority"
+import { ref, deleteObject, listAll } from "firebase/storage";
+
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge, badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, Check, X, User, Users, Search, ShieldPlus } from "lucide-react"
+import { Loader2, Check, X, User, Users, Search, ShieldPlus, Trash2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
 
 interface Payment {
@@ -89,78 +92,76 @@ export default function AdminPaymentsPage() {
 
     const { toast } = useToast();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                 // 0. Get current admin user role
+    const fetchAdminData = async () => {
+        setLoading(true);
+        try {
                 if (user) {
-                    const userDoc = await getDoc(doc(db, "users", user.uid));
-                    if (userDoc.exists()) {
-                        setCurrentUserRole(userDoc.data().role);
-                    }
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    setCurrentUserRole(userDoc.data().role);
                 }
-
-                // 1. Fetch all gyms
-                const gymsSnapshot = await getDocs(collection(db, "gyms"));
-                const gymsMap = new Map<string, string>();
-                gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
-                setGyms(gymsMap);
-
-                // 2. Fetch all users
-                const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
-                
-                // 3. For each user, fetch their payments and build the profile
-                const userProfiles = await Promise.all(usersSnapshot.docs.map(async (userDoc) => {
-                    const userData = userDoc.data();
-                    const userId = userDoc.id;
-
-                    const paymentsRef = collection(db, 'users', userId, 'payments');
-                    const paymentsQuery = query(paymentsRef, orderBy('createdAt', 'desc'));
-                    const paymentsSnapshot = await getDocs(paymentsQuery);
-
-                    const payments = paymentsSnapshot.docs.map(paymentDoc => ({
-                        id: paymentDoc.id,
-                        userId: userId, // Correctly assign userId
-                        ...paymentDoc.data()
-                    } as Payment));
-
-                    return {
-                        uid: userId,
-                        name: userData.name,
-                        surname: userData.surname,
-                        email: userData.email,
-                        role: userData.role,
-                        discipline: userData.discipline,
-                        gym: userData.gym,
-                        associationStatus: userData.associationStatus,
-                        trialStatus: userData.trialStatus,
-                        subscriptionAccessStatus: userData.subscriptionAccessStatus,
-                        subscriptionActivationDate: userData.subscriptionActivationDate,
-                        payments: payments
-                    };
-                }));
-                
-                setProfiles(userProfiles);
-
-            } catch (error) {
-                console.error("Error fetching admin data: ", error);
-                toast({
-                    variant: "destructive",
-                    title: "Errore",
-                    description: "Impossibile caricare i dati degli utenti e dei pagamenti."
-                });
-            } finally {
-                setLoading(false);
             }
-        };
 
+            const gymsSnapshot = await getDocs(collection(db, "gyms"));
+            const gymsMap = new Map<string, string>();
+            gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
+            setGyms(gymsMap);
+
+            const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
+            
+            const userProfiles = await Promise.all(usersSnapshot.docs.map(async (userDoc) => {
+                const userData = userDoc.data();
+                const userId = userDoc.id;
+
+                const paymentsRef = collection(db, 'users', userId, 'payments');
+                const paymentsQuery = query(paymentsRef, orderBy('createdAt', 'desc'));
+                const paymentsSnapshot = await getDocs(paymentsQuery);
+
+                const payments = paymentsSnapshot.docs.map(paymentDoc => ({
+                    id: paymentDoc.id,
+                    userId: userId,
+                    ...paymentDoc.data()
+                } as Payment));
+
+                return {
+                    uid: userId,
+                    name: userData.name,
+                    surname: userData.surname,
+                    email: userData.email,
+                    role: userData.role,
+                    discipline: userData.discipline,
+                    gym: userData.gym,
+                    associationStatus: userData.associationStatus,
+                    trialStatus: userData.trialStatus,
+                    subscriptionAccessStatus: userData.subscriptionAccessStatus,
+                    subscriptionActivationDate: userData.subscriptionActivationDate,
+                    payments: payments
+                };
+            }));
+            
+            setProfiles(userProfiles);
+
+        } catch (error) {
+            console.error("Error fetching admin data: ", error);
+            toast({
+                variant: "destructive",
+                title: "Errore",
+                description: "Impossibile caricare i dati degli utenti e dei pagamenti."
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    useEffect(() => {
         if(user) {
-            fetchData();
+            fetchAdminData();
         } else {
             setLoading(false);
         }
-    }, [toast, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
     
     const handlePaymentUpdate = async (payment: Payment, newStatus: 'completed' | 'failed') => {
         setUpdatingPaymentId(payment.id);
@@ -170,10 +171,8 @@ export default function AdminPaymentsPage() {
             const userDocRef = doc(db, 'users', payment.userId);
             const paymentDocRef = doc(db, 'users', payment.userId, 'payments', payment.id);
 
-            // 1. Aggiorna lo stato del pagamento
             batch.update(paymentDocRef, { status: newStatus });
 
-            // 2. Logica specifica se il pagamento viene APPROVATO
             if (newStatus === 'completed') {
                  if (payment.type === 'association') {
                     batch.update(userDocRef, { 
@@ -190,10 +189,9 @@ export default function AdminPaymentsPage() {
                         subscriptionAccessStatus: 'active',
                         subscriptionActivationDate: serverTimestamp()
                     });
-                    // Set flag for one-time message on dashboard
                     sessionStorage.setItem('showSubscriptionActivatedMessage', new Date().toISOString());
                 }
-            } else { // se il pagamento viene messo a FAILED
+            } else { 
                  if (payment.type === 'association') {
                     batch.update(userDocRef, { associationStatus: 'not_associated' });
                 } else if (payment.type === 'trial') {
@@ -210,7 +208,6 @@ export default function AdminPaymentsPage() {
                 description: `Lo stato del pagamento di ${payment.description} è stato aggiornato.`
             });
             
-            // Aggiorna lo stato locale per riflettere il cambiamento senza ricaricare
              setProfiles(prevProfiles => {
                 return prevProfiles.map(profile => {
                     if (profile.uid === payment.userId) {
@@ -225,10 +222,9 @@ export default function AdminPaymentsPage() {
                             if (payment.type === 'trial') updatedProfile.trialStatus = 'active';
                             if (payment.type === 'subscription') {
                                 updatedProfile.subscriptionAccessStatus = 'active';
-                                // Simula il server timestamp con la data corrente per l'aggiornamento UI
                                 updatedProfile.subscriptionActivationDate = Timestamp.now();
                             }
-                        } else { // failed
+                        } else { 
                             if (payment.type === 'association') updatedProfile.associationStatus = 'not_associated';
                             if (payment.type === 'trial') updatedProfile.trialStatus = 'not_applicable';
                             if (payment.type === 'subscription') updatedProfile.subscriptionAccessStatus = 'expired';
@@ -267,7 +263,6 @@ export default function AdminPaymentsPage() {
                 description: "L'utente è ora un amministratore.",
             });
 
-            // Aggiorna lo stato locale
             setProfiles(prevProfiles => prevProfiles.map(p => 
                 p.uid === userId ? { ...p, role: 'admin' } : p
             ));
@@ -281,6 +276,54 @@ export default function AdminPaymentsPage() {
             });
         }
     }
+
+    const handleDeleteUser = async (profileToDelete: UserProfile) => {
+        try {
+            const batch = writeBatch(db);
+
+            // 1. Delete user document
+            const userDocRef = doc(db, "users", profileToDelete.uid);
+            batch.delete(userDocRef);
+
+            // 2. Delete payments subcollection
+            const paymentsRef = collection(db, "users", profileToDelete.uid, "payments");
+            const paymentsSnapshot = await getDocs(paymentsRef);
+            paymentsSnapshot.forEach(doc => batch.delete(doc.ref));
+
+            // 3. Delete attendances
+            const attendancesRef = collection(db, "attendances");
+            const attendancesQuery = query(attendancesRef, where("userId", "==", profileToDelete.uid));
+            const attendancesSnapshot = await getDocs(attendancesQuery);
+            attendancesSnapshot.forEach(doc => batch.delete(doc.ref));
+
+            // 4. Delete files from Storage
+            const userStorageRef = ref(storage, `medical-certificates/${profileToDelete.uid}`);
+            const filesList = await listAll(userStorageRef);
+            await Promise.all(filesList.items.map(fileRef => deleteObject(fileRef)));
+
+            // Commit all batched writes to Firestore
+            await batch.commit();
+
+            toast({
+                title: "Utente Eliminato",
+                description: `${profileToDelete.name} ${profileToDelete.surname} e tutti i suoi dati sono stati rimossi. L'account di autenticazione deve essere rimosso manualmente dalla Console Firebase.`,
+                variant: "success",
+                duration: 9000,
+            });
+
+            // Refresh UI
+            setProfiles(prev => prev.filter(p => p.uid !== profileToDelete.uid));
+
+        } catch (error) {
+            console.error("Error deleting user:", error);
+            toast({
+                variant: "destructive",
+                title: "Errore Eliminazione",
+                description: `Impossibile eliminare l'utente. Dettagli: ${error instanceof Error ? error.message : 'Sconosciuto'}`
+            });
+        }
+    };
+
 
     const filteredProfiles = profiles
         .filter(profile => {
@@ -354,20 +397,47 @@ export default function AdminPaymentsPage() {
                                             </div>
                                         </div>
                                     </AccordionTrigger>
-                                     {currentUserRole === 'admin' && profile.role !== 'admin' && (
-                                        <Button 
-                                            variant="outline"
-                                            size="sm"
-                                            className="ml-4"
-                                            onClick={(e) => {
-                                                e.stopPropagation(); 
-                                                handleMakeAdmin(profile.uid);
-                                            }}
-                                        >
-                                            <ShieldPlus className="h-4 w-4 mr-2" />
-                                            Rendi Admin
-                                        </Button>
-                                    )}
+                                     <div className="flex items-center gap-2 ml-4">
+                                        {currentUserRole === 'admin' && profile.role !== 'admin' && (
+                                            <Button 
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={(e) => {
+                                                    e.stopPropagation(); 
+                                                    handleMakeAdmin(profile.uid);
+                                                }}
+                                            >
+                                                <ShieldPlus className="h-4 w-4 mr-2" />
+                                                Rendi Admin
+                                            </Button>
+                                        )}
+                                        {currentUserRole === 'admin' && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button variant="destructive" size="sm" onClick={(e) => e.stopPropagation()}>
+                                                        <Trash2 className="h-4 w-4 mr-2" />
+                                                        Elimina Utente
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Sei assolutamente sicuro?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Questa azione è irreversibile. Eliminerà permanentemente l'utente <strong className="mx-1">{profile.name} {profile.surname}</strong> e tutti i suoi dati (pagamenti, presenze, certificati).
+                                                            <br/><br/>
+                                                            <strong className="text-destructive">L'account di accesso (email/password) dovrà essere rimosso manualmente dalla Console Firebase.</strong>
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => handleDeleteUser(profile)}>
+                                                            Sì, elimina tutto
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
+                                    </div>
                                 </div>
                                 <AccordionContent className="p-4 bg-muted/20">
                                     {profile.payments.length > 0 ? (
@@ -440,3 +510,5 @@ export default function AdminPaymentsPage() {
         </Card>
     );
 }
+
+    
