@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { format, addDays, nextDay } from "date-fns"
+import { format, addDays, nextDay, parseISO } from "date-fns"
 import { it } from "date-fns/locale"
 import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar as CalendarIconDay, CalendarCheck, Info, Sparkles, MessageSquareQuote, CalendarClock } from "lucide-react"
 import { auth, db } from "@/lib/firebase"
@@ -429,7 +429,7 @@ function ConfirmationStep({
                         <DataRow label="Nome" value={formData.name} />
                         <DataRow label="Cognome" value={formData.surname} />
                         <DataRow label="Codice Fiscale" value={formData.taxCode} />
-                        <DataRow label="Data di Nascita" value={formData.birthDate ? format(formData.birthDate, "PPP", { locale: it }) : ''} />
+                        <DataRow label="Data di Nascita" value={formData.birthDate ? format(parseISO(formData.birthDate), "PPP", { locale: it }) : ''} />
                         <DataRow label="Luogo di Nascita" value={formData.birthPlace} />
                         <DataRow label="Indirizzo" value={`${formData.address}, ${formData.streetNumber}`} />
                         <DataRow label="Città" value={`${formData.city} (${formData.province}), ${formData.zipCode}`} />
@@ -563,7 +563,8 @@ export default function ClassSelectionPage() {
 
                             setFormData({
                                 name: userData.name || "", surname: userData.surname || "", taxCode: userData.taxCode || "",
-                                birthDate: userData.birthDate?.toDate() || new Date(), birthPlace: userData.birthPlace || "",
+                                birthDate: userData.birthDate ? format(userData.birthDate.toDate(), 'yyyy-MM-dd') : "",
+                                birthPlace: userData.birthPlace || "",
                                 address: userData.address || "", streetNumber: userData.streetNumber || "", city: userData.city || "",
                                 zipCode: userData.zipCode || "", province: userData.province || "", phone: userData.phone || "",
                                 isMinor: userData.isMinor || false, parentData: userData.parentData,
@@ -603,7 +604,8 @@ export default function ClassSelectionPage() {
         try {
             const userDocRef = doc(db, "users", user.uid);
             const personalDataToUpdate: any = {
-                name: data.name, surname: data.surname, birthPlace: data.birthPlace, birthDate: data.birthDate,
+                name: data.name, surname: data.surname, birthPlace: data.birthPlace,
+                birthDate: data.birthDate ? Timestamp.fromDate(parseISO(data.birthDate)) : null,
                 taxCode: data.taxCode, address: data.address, streetNumber: data.streetNumber, zipCode: data.zipCode,
                 city: data.city, province: data.province, phone: data.phone, isMinor: data.isMinor,
                 parentData: data.isMinor ? data.parentData : null,

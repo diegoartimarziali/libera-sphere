@@ -9,7 +9,7 @@ build:
 run:
   # The command to start your backend server.
   # If you are using a framework, this is probably the command to start your server.
-  command: npm run start
+  command: cd . && npm run start
 # The port that your backend server listens on.
 # This is the port that App Hosting will use to send traffic to your server.
 # This is NOT the port that your server will be available on the internet.

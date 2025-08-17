@@ -158,10 +158,10 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         
-        const birthDateValue = userData.birthDate?.toDate();
+        const birthDateValue = userData.birthDate;
         let existingIsMinor = false;
-        if(birthDateValue){
-             const age = differenceInYears(new Date(), birthDateValue);
+        if(birthDateValue && birthDateValue.toDate){
+             const age = differenceInYears(new Date(), birthDateValue.toDate());
              existingIsMinor = age < 18;
         }
 
@@ -474,5 +474,3 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     </Card>
   )
 }
-
-    

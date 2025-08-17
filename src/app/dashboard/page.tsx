@@ -271,7 +271,7 @@ export default function DashboardPage() {
                 subscriptionValidity: subscriptionValidityMonth,
                 taxCode: data.taxCode,
                 phone: data.phone,
-                birthDate: data.birthDate?.toDate(),
+                birthDate: data.birthDate instanceof Timestamp ? data.birthDate.toDate() : data.birthDate,
                 birthPlace: data.birthPlace,
                 fullAddress: data.address ? `${data.address}, ${data.streetNumber}, ${data.zipCode} ${data.city} (${data.province})` : undefined,
                 isMinor: data.isMinor,
