@@ -301,12 +301,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 }
 
                 const isUserStable = 
+                    fetchedUserData.trialPaymentFailed === true || // NUOVA REGOLA CON PRIORITA'
                     fetchedUserData.associationStatus === 'pending' || 
                     fetchedUserData.associationStatus === 'active' ||
                     fetchedUserData.associationStatus === 'expired' ||
                     fetchedUserData.trialStatus === 'pending_payment' ||
                     fetchedUserData.trialStatus === 'active' ||
-                    fetchedUserData.trialPaymentFailed === true ||
                     fetchedUserData.role === 'admin' ||
                     fetchedUserData.associationPaymentFailed === true ||
                     fetchedUserData.medicalCertificateStatus === 'invalid';
