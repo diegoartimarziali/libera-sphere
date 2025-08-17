@@ -462,7 +462,7 @@ export default function AdminPaymentsPage() {
                                                         <AlertDialogDescription>
                                                             Questa azione è irreversibile. Eliminerà permanentemente l'utente <strong className="mx-1">{profile.name} {profile.surname}</strong> e tutti i suoi dati (pagamenti, presenze, certificati).
                                                             <br/><br/>
-                                                            <strong className="text-destructive">L'account di accesso (email/password) dovrà essere rimosso manualmente dalla Console Firebase.</strong>
+                                                            <strong className="text-destructive">L'account di accesso (email/password) dovrà essere rimosso manually dalla Console Firebase.</strong>
                                                         </AlertDialogDescription>
                                                     </AlertDialogHeader>
                                                     <AlertDialogFooter>

@@ -30,6 +30,7 @@ interface UserData {
   associationPaymentFailed?: boolean;
   associationExpiryDate?: Timestamp;
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
+  trialPaymentFailed?: boolean;
   trialExpiryDate?: Timestamp;
   trialOutcome?: 'declined' | 'accepted';
   isFormerMember: 'yes' | 'no';
@@ -305,6 +306,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     fetchedUserData.associationStatus === 'expired' ||
                     fetchedUserData.trialStatus === 'pending_payment' ||
                     fetchedUserData.trialStatus === 'active' ||
+                    fetchedUserData.trialPaymentFailed === true ||
                     fetchedUserData.role === 'admin' ||
                     fetchedUserData.associationPaymentFailed === true ||
                     fetchedUserData.medicalCertificateStatus === 'invalid';
