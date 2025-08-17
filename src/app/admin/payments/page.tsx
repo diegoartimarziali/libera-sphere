@@ -45,6 +45,7 @@ interface UserProfile {
     associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
     associationPaymentFailed?: boolean;
     trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
+    trialPaymentFailed?: boolean;
     subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
     subscriptionActivationDate?: Timestamp;
     subscriptionPaymentFailed?: boolean;
@@ -136,6 +137,7 @@ export default function AdminPaymentsPage() {
                     associationStatus: userData.associationStatus,
                     associationPaymentFailed: userData.associationPaymentFailed,
                     trialStatus: userData.trialStatus,
+                    trialPaymentFailed: userData.trialPaymentFailed,
                     subscriptionAccessStatus: userData.subscriptionAccessStatus,
                     subscriptionActivationDate: userData.subscriptionActivationDate,
                     subscriptionPaymentFailed: userData.subscriptionPaymentFailed,
@@ -187,6 +189,7 @@ export default function AdminPaymentsPage() {
                 } else if (payment.type === 'trial') {
                     batch.update(userDocRef, { 
                         trialStatus: 'active',
+                        trialPaymentFailed: false,
                         isInsured: true
                     });
                 } else if (payment.type === 'subscription') {
@@ -204,7 +207,12 @@ export default function AdminPaymentsPage() {
                         associationPaymentFailed: true,
                     });
                 } else if (payment.type === 'trial') {
-                    batch.update(userDocRef, { trialStatus: 'not_applicable' });
+                    batch.update(userDocRef, { 
+                        trialStatus: 'not_applicable',
+                        trialPaymentFailed: true,
+                        trialLessons: null,
+                        trialExpiryDate: null,
+                    });
                 } else if (payment.type === 'subscription') {
                      batch.update(userDocRef, { 
                         subscriptionAccessStatus: 'expired',
@@ -235,7 +243,10 @@ export default function AdminPaymentsPage() {
                                 updatedProfile.associationStatus = 'active';
                                 updatedProfile.associationPaymentFailed = false;
                             }
-                            if (payment.type === 'trial') updatedProfile.trialStatus = 'active';
+                            if (payment.type === 'trial') {
+                                updatedProfile.trialStatus = 'active';
+                                updatedProfile.trialPaymentFailed = false;
+                            }
                             if (payment.type === 'subscription') {
                                 updatedProfile.subscriptionAccessStatus = 'active';
                                 updatedProfile.subscriptionActivationDate = Timestamp.now();
@@ -246,7 +257,10 @@ export default function AdminPaymentsPage() {
                                 updatedProfile.associationStatus = 'not_associated';
                                 updatedProfile.associationPaymentFailed = true;
                             }
-                            if (payment.type === 'trial') updatedProfile.trialStatus = 'not_applicable';
+                            if (payment.type === 'trial') {
+                                updatedProfile.trialStatus = 'not_applicable';
+                                updatedProfile.trialPaymentFailed = true;
+                            }
                             if (payment.type === 'subscription') {
                                 updatedProfile.subscriptionAccessStatus = 'expired';
                                 updatedProfile.subscriptionPaymentFailed = true;
@@ -472,7 +486,7 @@ export default function AdminPaymentsPage() {
                                                     <TableHead>Metodo</TableHead>
                                                     <TableHead>Importo</TableHead>
                                                     <TableHead>Stato</TableHead>
-                                                    <TableHead className="text-right">Azione</TableHead>
+                                                    <TableHead className="text-left">Azione</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -487,9 +501,9 @@ export default function AdminPaymentsPage() {
                                                                 {translateStatus(p.status)}
                                                             </Badge>
                                                         </TableCell>
-                                                        <TableCell className="text-right">
+                                                        <TableCell className="text-left">
                                                             {p.status === 'pending' && (
-                                                                <div className="flex gap-2 justify-end">
+                                                                <div className="flex gap-2 justify-start">
                                                                     <Button
                                                                         variant="destructive"
                                                                         size="icon"

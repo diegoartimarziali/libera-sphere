@@ -58,6 +58,7 @@ interface UserData {
   medicalCertificateStatus?: 'invalid';
   trialLessons?: { eventId: string, startTime: Timestamp, endTime: Timestamp }[];
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
+  trialPaymentFailed?: boolean;
   trialOutcome?: 'declined' | 'accepted';
   subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
   subscriptionPaymentFailed?: boolean;
@@ -317,6 +318,21 @@ export default function DashboardPage() {
           );
       }
       
+       if (userData?.trialPaymentFailed) {
+          alerts.push(
+              <Alert key="trial-failed" variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Pagamento Lezioni di Prova Fallito</AlertTitle>
+                  <AlertDescription>
+                      La tua iscrizione alle lezioni di prova non è andata a buon fine. Per favore, ripeti la procedura di iscrizione.
+                  </AlertDescription>
+                   <Button onClick={() => router.push('/dashboard/class-selection')} variant="secondary" className="mt-4">
+                      Iscriviti alle Lezioni
+                  </Button>
+              </Alert>
+          );
+      }
+
       if (userData?.subscriptionPaymentFailed) {
           alerts.push(
               <Alert key="sub-failed" variant="destructive" className="mb-6">
