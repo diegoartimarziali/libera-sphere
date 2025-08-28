@@ -367,12 +367,13 @@ export default function AdminCalendarPage() {
             allDates.forEach(date => {
                 const dateString = format(date, 'yyyy-MM-dd');
                 const isHoliday = exclusionDates.has(dateString);
-                const dayOfWeek = getDay(date); // Domenica = 0, Lunedì = 1, etc.
+                // Ottiene il nome del giorno in italiano con la prima lettera maiuscola
+                const dayName = format(date, 'EEEE', { locale: it }).charAt(0).toUpperCase() + format(date, 'EEEE', { locale: it }).slice(1);
                 
-                const scheduleForDay = selectedGym.weeklySchedule?.find(s => s.dayOfWeek === dayOfWeek);
-
-                if (scheduleForDay) {
-                    scheduleForDay.timeSlots.forEach((slot: {startTime: string, endTime: string, discipline: string}, index: number) => {
+                const scheduleForDay = selectedGym.weeklySchedule?.find(s => s.dayOfWeek === dayName);
+                
+                if (scheduleForDay?.slots) {
+                    scheduleForDay.slots.forEach((slot: {startTime: string, endTime: string, discipline: string}, index: number) => {
                         if (slot.discipline === disciplineFilter) {
                             const [startHour, startMinute] = slot.startTime.split(':').map(Number);
                             const [endHour, endMinute] = slot.endTime.split(':').map(Number);
@@ -534,7 +535,7 @@ export default function AdminCalendarPage() {
             toast({
                 title: "Calendario Salvato!",
                 description: `Un nuovo calendario con ${operationalLessonsCount} lezioni operative è stato salvato con successo.`,
-                variant: "success",
+                variant: "default",
             });
 
             setLessons([]);
@@ -658,7 +659,7 @@ export default function AdminCalendarPage() {
             toast({ 
                 title: "Calendario Eliminato", 
                 description: "Il calendario e tutte le sue lezioni associate sono stati rimossi con successo.", 
-                variant: "success" 
+                variant: "default" 
             });
 
         } catch (error) {
