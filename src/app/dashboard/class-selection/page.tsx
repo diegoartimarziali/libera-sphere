@@ -333,11 +333,11 @@ function PaymentStep({
     onBack,
     fee
 }: { 
-    onNext: (method: PaymentMethod) => void,
+    onNext: (method: PaymentMethodData) => void,
     onBack: () => void,
     fee: FeeData | null
 }) {
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethodData | null>(null)
 
     return (
         <Card>
@@ -349,8 +349,8 @@ function PaymentStep({
             </CardHeader>
             <CardContent>
                 <RadioGroup 
-                    value={paymentMethod || ""} 
-                    onValueChange={(value) => setPaymentMethod(value as PaymentMethod)} 
+                    value={paymentMethod ? String(paymentMethod) : ""} 
+                    onValueChange={(value) => setPaymentMethod(value as unknown as PaymentMethodData)} 
                     className="space-y-4"
                 >
                     <Label
@@ -402,7 +402,7 @@ function ConfirmationStep({
 }: { 
     formData: PersonalDataSchemaType,
     gymSelection: GymSelectionData,
-    paymentMethod: PaymentMethod,
+    paymentMethod: PaymentMethodData,
     onComplete: () => void,
     isSubmitting: boolean,
     fee: FeeData | null,
@@ -471,11 +471,11 @@ function ConfirmationStep({
                     <dl className="space-y-2">
                        <DataRow 
                           label="Metodo Scelto" 
-                          value={paymentMethod === 'in_person' ? 'In Palestra' : 'Online con Carta'} 
+                          value={String(paymentMethod) === 'in_person' ? 'In Palestra' : 'Online con Carta'} 
                        />
                        <DataRow 
-                          label={paymentMethod === 'in_person' ? "Importo da Pagare" : "Importo"}
-                          value={paymentMethod === 'in_person' ? `${fee.price.toFixed(2)} €` : `${fee.price.toFixed(2)} € (In attesa di conferma)`}
+                          label={String(paymentMethod) === 'in_person' ? "Importo da Pagare" : "Importo"}
+                          value={String(paymentMethod) === 'in_person' ? `${fee.price.toFixed(2)} €` : `${fee.price.toFixed(2)} € (In attesa di conferma)`}
                        />
                     </dl>
                 </div>
@@ -495,7 +495,7 @@ export default function ClassSelectionPage() {
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null);
     const [gymSelection, setGymSelection] = useState<GymSelectionData | null>(null);
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethodData | null>(null);
     const [feeData, setFeeData] = useState<FeeData | null>(null);
     const [settings, setSettings] = useState<Settings | null>(null);
     const [loading, setLoading] = useState(true);
@@ -559,7 +559,7 @@ export default function ClassSelectionPage() {
                         
                         if (!paymentSnap.empty && userData.trialLessons?.length > 0) {
                             const lastPayment = paymentSnap.docs[0].data();
-                            setPaymentMethod(lastPayment.paymentMethod as PaymentMethod);
+                            setPaymentMethod(lastPayment.paymentMethod as PaymentMethodData);
 
                             setFormData({
                                 name: userData.name || "", surname: userData.surname || "", taxCode: userData.taxCode || "",
@@ -667,7 +667,7 @@ export default function ClassSelectionPage() {
         }
     }
 
-    const handleNextStep3 = async (method: PaymentMethod) => {
+    const handleNextStep3 = async (method: PaymentMethodData) => {
         if (!user || !gymSelection || !feeData) return;
         setIsSubmitting(true);
         try {
@@ -720,7 +720,7 @@ export default function ClassSelectionPage() {
             
             setPaymentMethod(method);
             
-            if (method === 'online' && feeData?.sumupLink) {
+            if (String(method) === 'online' && feeData?.sumupLink) {
                 window.open(feeData.sumupLink, '_blank');
             }
             setStep(4);
