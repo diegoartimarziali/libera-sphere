@@ -17,67 +17,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 
-function FeedbackForm({ onFeedbackSubmit, onBack }: { onFeedbackSubmit: (rating: number, comment: string) => void, onBack: () => void }) {
-    const [rating, setRating] = useState(0);
-    const [hoverRating, setHoverRating] = useState(0);
-    const [comment, setComment] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    const handleSubmit = () => {
-        setIsSubmitting(true);
-        onFeedbackSubmit(rating, comment);
-        // isSubmitting will stay true as the page navigates away
-    }
-
-    return (
-        <div className="w-full space-y-6 pt-6 border-t animate-in fade-in-50">
-             <CardHeader className="p-0">
-                <CardTitle className="text-xl">La tua opinione conta</CardTitle>
-                <CardDescription>
-                   Siamo dispiaciuti che tu non voglia proseguire. Se ti va, lasciaci un feedback (opzionale) per aiutarci a migliorare.
-                </CardDescription>
-            </CardHeader>
-            <div className="space-y-2">
-                <Label>Come valuteresti la tua esperienza?</Label>
-                <div className="flex items-center space-x-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                            key={star}
-                            className={cn(
-                                "h-8 w-8 cursor-pointer transition-colors",
-                                star <= (hoverRating || rating)
-                                ? "text-yellow-400 fill-yellow-400"
-                                : "text-muted-foreground/50"
-                            )}
-                            onMouseEnter={() => setHoverRating(star)}
-                            onMouseLeave={() => setHoverRating(0)}
-                            onClick={() => setRating(star)}
-                        />
-                    ))}
-                </div>
-            </div>
-             <div className="space-y-2">
-                <Label htmlFor="comment">Qualche commento o suggerimento?</Label>
-                <Textarea 
-                    id="comment"
-                    placeholder="Scrivi qui il tuo feedback..."
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button onClick={onBack} variant="outline" disabled={isSubmitting}>
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Torna Indietro
-                </Button>
-                <Button onClick={handleSubmit} disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="animate-spin" /> : <LogOut />}
-                    <span className="ml-2">Invia Feedback ed Esci</span>
-                </Button>
-            </div>
-        </div>
-    )
-}
+import { FeedbackCard } from "@/components/dashboard/FeedbackCard";
 
 
 export default function TrialCompletedPage() {
@@ -95,7 +35,7 @@ export default function TrialCompletedPage() {
         setChoice(null);
     }
     
-    const handleFeedbackSubmit = async (rating: number, comment: string) => {
+    const handleFeedbackSubmit = async (rating: number, comment: string, afterFeedback?: () => void) => {
         if (!user) {
             toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
             return;
@@ -105,10 +45,7 @@ export default function TrialCompletedPage() {
             const batch = writeBatch(db);
             const userDocRef = doc(db, "users", user.uid);
             
-            // 1. Aggiorna lo stato dell'utente
-            batch.update(userDocRef, { trialOutcome: 'declined' });
-
-            // 2. Se c'è un feedback, lo salva nella collezione apposita
+            // Se c'è un feedback, lo salva nella collezione apposita
             if(rating > 0 || comment.trim() !== '') {
                  const userDocSnap = await getDoc(userDocRef);
                  const userData = userDocSnap.data();
@@ -127,12 +64,16 @@ export default function TrialCompletedPage() {
             await batch.commit();
 
             toast({
-                title: "Grazie per la tua scelta!",
-                description: "La tua opinione è preziosa per noi. Verrai disconnesso."
+                title: "Grazie per il tuo feedback!",
+                description: "La tua opinione è preziosa per noi."
             });
             
-            await signOut(auth);
-            router.push("/");
+            if (afterFeedback) {
+                afterFeedback();
+            } else {
+                await signOut(auth);
+                router.push("/");
+            }
 
         } catch (error) {
             console.error("Error submitting feedback:", error);
@@ -140,7 +81,11 @@ export default function TrialCompletedPage() {
         }
     }
     
-    const handleYesChoice = async () => {
+    const handleYesChoice = () => {
+        setChoice('yes');
+    };
+
+    const handleAcceptAndContinue = async () => {
         if (!user) {
             toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
             return;
@@ -163,9 +108,9 @@ export default function TrialCompletedPage() {
         <div className="flex w-full flex-col items-center justify-center">
             <Card className="w-full max-w-2xl">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-3xl">Periodo di Prova Terminato</CardTitle>
+                    <CardTitle className="text-3xl">Lascia la Tua Opinione</CardTitle>
                     <CardDescription className="text-lg pt-2">
-                        Grazie per aver provato le nostre lezioni!
+                        Dicci cosa pensi della nostra associazione
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center space-y-6">
@@ -185,7 +130,25 @@ export default function TrialCompletedPage() {
                     )}
                     
                     {choice === 'no' && (
-                        <FeedbackForm onFeedbackSubmit={handleFeedbackSubmit} onBack={handleGoBack} />
+                        <FeedbackCard 
+                            onFeedbackSubmit={(rating, comment) => handleFeedbackSubmit(rating, comment)}
+                            onBack={handleGoBack}
+                            title="La tua opinione conta"
+                            description="Il tuo feedback ci aiuta a migliorare"
+                            submitButtonText="Invia Feedback ed Esci"
+                            backButtonText="Torna Indietro"
+                        />
+                    )}
+
+                    {choice === 'yes' && (
+                        <FeedbackCard 
+                            onFeedbackSubmit={(rating, comment) => handleFeedbackSubmit(rating, comment, handleAcceptAndContinue)}
+                            onBack={handleGoBack}
+                            title="La tua opinione conta"
+                            description="Il tuo feedback ci aiuta a migliorare"
+                            submitButtonText="Invia Feedback e Continua"
+                            backButtonText="Torna Indietro"
+                        />
                     )}
 
                 </CardContent>
