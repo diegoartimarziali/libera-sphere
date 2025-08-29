@@ -8,6 +8,7 @@ import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
 import { format, isAfter, isBefore, startOfDay } from "date-fns"
+import { Gift } from "lucide-react"
 import { it } from "date-fns/locale"
 import Link from "next/link"
 
@@ -118,37 +119,46 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
 }
 
 
+
 export default function MonthlySubscriptionPage() {
+    // Stati
+    const [bonusDisponibili, setBonusDisponibili] = useState<{id: string, value: number, used?: boolean}[]>([]);
+    const [totaleBonus, setTotaleBonus] = useState(0);
     const [user] = useAuthState(auth);
     const router = useRouter();
     const { toast } = useToast();
-
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [availableSubscription, setAvailableSubscription] = useState<Subscription | null>(null);
     const [userData, setUserData] = useState<UserData | null>(null);
     const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
-    
-    // Stati per il modale di pagamento
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
 
-
+    // Carica bonus e dati abbonamento/utente
     useEffect(() => {
-        const fetchSubscriptionData = async () => {
-            if (!user) {
-                setLoading(false);
-                return;
-            }
-
+        if (!user) {
+            setLoading(false);
+            return;
+        }
+        const fetchAll = async () => {
             try {
-                 const [subsSnapshot, userDocSnap, bankDetailsSnap] = await Promise.all([
+                // Bonus
+                const bonusSnap = await getDocs(query(collection(db, "userAwards"), where("userId", "==", user.uid)));
+                const bonus = bonusSnap.docs
+                    .map(doc => ({ id: doc.id, value: doc.data().value, used: doc.data().used }))
+                    .filter(b => !b.used);
+                setBonusDisponibili(bonus);
+                setTotaleBonus(bonus.reduce((acc, b) => acc + (b.value || 0), 0));
+
+                // Abbonamenti, utente, banca
+                const [subsSnapshot, userDocSnap, bankDetailsSnap] = await Promise.all([
                     getDocs(query(collection(db, "subscriptions"), where("type", "==", "monthly"))),
                     getDoc(doc(db, "users", user.uid)),
                     getDoc(doc(db, "settings", "bankDetails"))
                 ]);
-                
+
                 if (bankDetailsSnap.exists()) {
                     setBankDetails(bankDetailsSnap.data() as BankDetails);
                 }
@@ -156,81 +166,70 @@ export default function MonthlySubscriptionPage() {
                 const allMonthlySubs = subsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Subscription));
                 const currentUserData = userDocSnap.exists() ? userDocSnap.data() as UserData : null;
                 setUserData(currentUserData);
-                
+
+                // Scegli abbonamento da mostrare
                 const now = new Date();
                 let subToShow: Subscription | null = null;
-                
                 if (allMonthlySubs.length > 0) {
-                     // Priorità 1: C'è una finestra di acquisto attiva?
-                    const purchasableSub = allMonthlySubs.find(sub => 
+                    // Priorità 1: finestra acquisto attiva
+                    const purchasableSub = allMonthlySubs.find(sub =>
                         sub.purchaseStartDate && sub.purchaseEndDate ?
                         isAfter(now, sub.purchaseStartDate.toDate()) && isBefore(now, sub.purchaseEndDate.toDate())
                         : true
                     );
-                    
                     if (purchasableSub) {
                         subToShow = purchasableSub;
                     } else {
-                        // Priorità 2: Se no, c'è un abbonamento la cui validità copre oggi? (per mostrare info all'utente)
+                        // Priorità 2: validità copre oggi
                         const validSub = allMonthlySubs.find(sub =>
                             isAfter(now, sub.validityStartDate.toDate()) && isBefore(now, sub.validityEndDate.toDate())
                         );
                         if (validSub) {
-                             subToShow = validSub;
+                            subToShow = validSub;
                         } else {
-                            // Priorità 3: Se no, c'è un abbonamento futuro acquistabile?
+                            // Priorità 3: abbonamento futuro acquistabile
                             const futureSubs = allMonthlySubs
                                 .filter(sub => sub.purchaseStartDate && isAfter(sub.purchaseStartDate.toDate(), now))
                                 .sort((a, b) => a.purchaseStartDate!.toMillis() - b.purchaseStartDate!.toMillis());
-                            
                             if (futureSubs.length > 0) {
                                 subToShow = futureSubs[0];
                             }
                         }
                     }
                 }
-                
                 setAvailableSubscription(subToShow);
-
             } catch (error) {
-                console.error("Error fetching subscription data:", error);
-                toast({ title: "Errore", description: "Impossibile caricare i dati degli abbonamenti.", variant: "destructive" });
+                console.error("Error fetching dati:", error);
+                toast({ title: "Errore", description: "Impossibile caricare i dati.", variant: "destructive" });
             } finally {
                 setLoading(false);
             }
         };
-
-        fetchSubscriptionData();
+        fetchAll();
     }, [user, toast]);
-    
-    const handlePurchase = async (subscription: Subscription, method: PaymentMethod) => {
-        if (!user) {
-            toast({ title: "Utente non trovato", variant: "destructive" });
-            return;
-        }
-        setIsSubmitting(true);
-        
-        try {
-            const batch = writeBatch(db);
-            
-            // 1. Create a new payment document
-            const paymentRef = doc(collection(db, "users", user.uid, "payments"));
-            batch.set(paymentRef, {
-                userId: user.uid,
-                createdAt: serverTimestamp(),
-                amount: subscription.totalPrice,
-                description: subscription.name,
-                type: 'subscription',
-                status: 'pending',
-                paymentMethod: method,
-                subscriptionId: subscription.id,
-            });
 
-            // 2. Update user's status
-            const userRef = doc(db, "users", user.uid);
+    // Funzione acquisto con bonus
+    const handlePurchase = async (subscription: Subscription, method: PaymentMethod) => {
+        setIsSubmitting(true);
+        try {
+            // Calcola bonus da usare
+            let valoreUsato = 0;
+            let bonusUsati: {id: string, value: number}[] = [];
+            let prezzoResiduo = subscription.totalPrice;
+            for (const b of bonusDisponibili) {
+                if (prezzoResiduo <= 0) break;
+                const valore = Math.min(b.value, prezzoResiduo);
+                valoreUsato += valore;
+                prezzoResiduo -= valore;
+                bonusUsati.push({ id: b.id, value: valore });
+            }
+
+            // Aggiorna Firestore
+            const batch = writeBatch(db);
+            const userRef = doc(db, "users", user!.uid);
             batch.update(userRef, {
                 subscriptionAccessStatus: 'pending',
-                subscriptionPaymentFailed: false, // Rimuove il flag di fallimento
+                subscriptionPaymentFailed: false,
                 activeSubscription: {
                     subscriptionId: subscription.id,
                     name: subscription.name,
@@ -239,48 +238,47 @@ export default function MonthlySubscriptionPage() {
                     expiresAt: subscription.validityEndDate,
                 }
             });
-            
+            // Segna bonus usati
+            for (const b of bonusUsati) {
+                batch.update(doc(db, "userAwards", b.id), {
+                    used: true,
+                    usedValue: b.value
+                });
+            }
             await batch.commit();
 
-            toast({ title: "Richiesta Inviata!", description: "La tua richiesta di abbonamento è in attesa di approvazione." });
-
-            if (method === 'online' && subscription.sumupLink) {
+            toast({ title: "Richiesta Inviata!", description: `Pagamento: €${Math.max(0, subscription.totalPrice - valoreUsato).toFixed(2)}. Bonus usati: €${valoreUsato.toFixed(2)}.`, });
+            if (method === 'online' && subscription.sumupLink && Math.max(0, subscription.totalPrice - valoreUsato) > 0) {
                 window.open(subscription.sumupLink, '_blank');
             }
-            
-            // Refresh data on the page
-             setUserData(prev => prev ? ({...prev, subscriptionAccessStatus: 'pending', subscriptionPaymentFailed: false}) : null);
-             setIsPaymentDialogOpen(false);
-
-
+            setUserData(prev => prev ? ({...prev, subscriptionAccessStatus: 'pending', subscriptionPaymentFailed: false}) : null);
+            setIsPaymentDialogOpen(false);
         } catch (error) {
             console.error("Error purchasing subscription: ", error);
             toast({ title: "Errore", description: "Impossibile completare l'acquisto. Riprova.", variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }
-    }
-    
+    };
+
+    // Gestione dialog
     const handlePaymentDialogSubmit = () => {
         if (!availableSubscription || !selectedPaymentMethod) {
             toast({ title: "Selezione mancante", description: "Per favore, scegli un metodo di pagamento.", variant: "destructive" });
             return;
         }
-        
         if (selectedPaymentMethod === 'bank_transfer') {
             setIsBankTransferDialogOpen(true);
         } else {
             handlePurchase(availableSubscription, selectedPaymentMethod);
         }
-    }
-    
+    };
     const handleBankTransferConfirm = () => {
         if (availableSubscription) {
             handlePurchase(availableSubscription, 'bank_transfer');
         }
         setIsBankTransferDialogOpen(false);
-    }
-
+    };
 
     if (loading) {
         return (
@@ -289,7 +287,6 @@ export default function MonthlySubscriptionPage() {
             </div>
         );
     }
-    
     const hasActiveOrPending = userData?.subscriptionAccessStatus === 'active' || userData?.subscriptionAccessStatus === 'pending';
 
     return (
@@ -303,13 +300,32 @@ export default function MonthlySubscriptionPage() {
                         hasActiveOrPending={!!hasActiveOrPending}
                         onOpenPaymentDialog={() => setIsPaymentDialogOpen(true)}
                     />
-
+                    {/* Bonus disponibili e totale */}
+                    <div className="w-full max-w-lg my-4 p-4 border rounded-lg bg-muted/40">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Gift className="h-6 w-6 text-yellow-500" />
+                            <span className="font-bold">Bonus disponibili:</span>
+                            <span className="text-lg">€{totaleBonus.toFixed(2)}</span>
+                        </div>
+                        {bonusDisponibili.length > 0 ? (
+                            <ul className="text-sm">
+                                {bonusDisponibili.map(b => (
+                                    <li key={b.id} className="flex justify-between">
+                                        <span>ID: {b.id}</span>
+                                        <span>Valore: €{typeof b.value === "number" ? b.value.toFixed(2) : "0.00"}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : <span className="text-muted-foreground">Nessun bonus disponibile</span>}
+                    </div>
                     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>Scegli Metodo di Pagamento</DialogTitle>
                                 <DialogDescription>
-                                    Come preferisci saldare la quota di {availableSubscription.totalPrice.toFixed(2)}€ per {availableSubscription.name}?
+                                    Prezzo abbonamento: <b>€{availableSubscription.totalPrice.toFixed(2)}</b><br />
+                                    Bonus utilizzabili: <b>€{totaleBonus.toFixed(2)}</b><br />
+                                    <span className="text-green-700">Prezzo finale: <b>€{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</b></span>
                                 </DialogDescription>
                             </DialogHeader>
                             <RadioGroup
@@ -330,7 +346,6 @@ export default function MonthlySubscriptionPage() {
                                     </div>
                                     <CreditCard className="h-6 w-6 text-muted-foreground" />
                                 </Label>
-
                                 <Label
                                     htmlFor="bank_transfer"
                                     className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
@@ -344,7 +359,6 @@ export default function MonthlySubscriptionPage() {
                                     </div>
                                     <University className="h-6 w-6 text-muted-foreground" />
                                 </Label>
-
                                 <Label
                                     htmlFor="in_person"
                                     className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
@@ -368,8 +382,7 @@ export default function MonthlySubscriptionPage() {
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
-                    
-                     <Dialog open={isBankTransferDialogOpen} onOpenChange={setIsBankTransferDialogOpen}>
+                    <Dialog open={isBankTransferDialogOpen} onOpenChange={setIsBankTransferDialogOpen}>
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>Dati per Bonifico Bancario</DialogTitle>
@@ -390,7 +403,6 @@ export default function MonthlySubscriptionPage() {
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
-
                 </>
             ) : (
                 <Card className="w-full max-w-lg">

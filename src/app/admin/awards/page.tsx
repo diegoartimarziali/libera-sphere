@@ -37,6 +37,10 @@ const awardFormSchema = z.object({
 type AwardFormData = z.infer<typeof awardFormSchema>;
 
 export default function AdminAwardsPage() {
+    useEffect(() => {
+        fetchAwards();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     // Funzione per assegnare il premio selezionato all'utente selezionato
     const handleAssignAward = async () => {
         if (!selectedAward || !selectedUserId) return;

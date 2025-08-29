@@ -13,7 +13,7 @@ import { isPast, startOfDay } from "date-fns"
 import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, CalendarDays, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { getAuth } from "firebase/auth"
+// import { getAuth } from "firebase/auth"
 // import getAuth from "firebase/auth"
 // import { signOut } from "firebase/auth";
 import { cn } from "@/lib/utils"
@@ -205,7 +205,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const handleLogout = useCallback(async () => {
       try {
-          await getAuth().signOut();
+          await auth.signOut();
           router.push('/');
           toast({ title: "Logout effettuato", description: "Sei stato disconnesso con successo." });
       } catch (error) {
