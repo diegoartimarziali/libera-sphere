@@ -104,7 +104,7 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
                 <>
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
                     <NavLink href="/dashboard/attendances" icon={ClipboardList} onClick={onLinkClick}>Le Mie Presenze</NavLink>
-                    <NavLink href="/dashboard/calendar" icon={CalendarDays} onClick={onLinkClick}>Calendari Attività</NavLink>
+                    <NavLink href="/dashboard/calendar" icon={CalendarDays} onClick={onLinkClick}>Stages, Esami e Corsi</NavLink>
                 </>
             )}
             

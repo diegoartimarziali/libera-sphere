@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Image from "next/image";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -85,6 +86,8 @@ const stageFormSchema = z.object({
         })
         .optional()
         .or(z.literal('')),
+        sumupUrl: z.string().url("Inserisci un link SumUp valido (https://...)").optional().or(z.literal('')),
+        iconUrl: z.string().url("Inserisci un URL icona quadrata valido (https://...)").optional().or(z.literal('')),
 });
 
 type StageFormData = z.infer<typeof stageFormSchema>;
@@ -257,6 +260,28 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                 <FormField control={form.control} name="imageUrl" render={({ field }) => (
                     <FormItem><FormLabel>URL Immagine</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
                 )} />
+                <FormField control={form.control} name="sumupUrl" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Link SumUp Pagamento</FormLabel>
+                        <FormDescription>
+                            Inserisci il link SumUp per il pagamento online dello stage. Il link deve essere generato da SumUp e iniziare con <b>https://</b>.<br />
+                            Se lasci vuoto, il pagamento online non sarà disponibile per questo evento.
+                        </FormDescription>
+                        <FormControl><Input {...field} placeholder="https://sumup.it/pay/xyz" /></FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                    <FormField control={form.control} name="iconUrl" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>URL Icona Quadrata Evento</FormLabel>
+                            <FormDescription>
+                                Inserisci l'URL di un'immagine quadrata (preferibilmente 1:1) che verrà usata come icona per la visualizzazione compatta dell'evento nella pagina utente.<br />
+                                Esempio: https://images.unsplash.com/...
+                            </FormDescription>
+                            <FormControl><Input {...field} placeholder="https://..." /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
                 <DialogFooter>
                     <Button type="button" variant="ghost" onClick={onCancel}>Annulla</Button>
                     <Button type="submit">Salva Evento</Button>
@@ -345,6 +370,7 @@ export default function AdminStagesPage() {
             // Prepara i dati per Firestore
             const eventData = {
                 ...data,
+                sumupUrl: data.sumupUrl ?? "",
                 startTime: Timestamp.fromDate(new Date(`${data.startDate}T${data.startTime}`)),
                 endTime: Timestamp.fromDate(new Date(`${data.endDate}T${data.endTime}`)),
             };
@@ -399,7 +425,7 @@ export default function AdminStagesPage() {
                     ) : viewMode === 'card' ? (
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {stages.map(stage => (
-                                <Card key={stage.id} className="flex flex-col overflow-hidden">
+                                <Card key={stage.id} className="flex flex-col overflow-hidden max-h-[600px] overflow-y-auto">
                                      {stage.imageUrl && (
                                         <div className="relative h-64 w-full bg-[var(--my-gialchiar)]">
                                             <Image
@@ -413,15 +439,20 @@ export default function AdminStagesPage() {
                                     )}
                                     <CardHeader className="p-0">
                                         <div className="flex flex-col space-y-1.5 p-6 bg-[var(--my-gialchiar)] rounded-t-md">
-                                            <div className="flex items-center text-sm text-primary font-semibold">
-                                                {getEventTypeIcon(stage.type)}
-                                                {getEventTypeLabel(stage.type)}
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center text-sm text-primary font-semibold">
+                                                    {getEventTypeIcon(stage.type)}
+                                                    {getEventTypeLabel(stage.type)}
+                                                </div>
+                                                <div className="text-xs font-medium text-[var(--my-marscuro)]">
+                                                    {stage.discipline ? `Disciplina: ${stage.discipline.charAt(0).toUpperCase() + stage.discipline.slice(1)}` : ''}
+                                                </div>
                                             </div>
                                             <CardTitle className="font-semibold tracking-tight text-xl capitalize">{stage.title}</CardTitle>
                                             <CardDescription className="text-sm text-muted-foreground">{stage.description}</CardDescription>
                                         </div>
                                     </CardHeader>
-                                    <CardContent className="flex-grow space-y-3 bg-[var(--my-gialchiar)]">
+                                    <CardContent className="flex-grow space-y-3 bg-[var(--my-gialchiar)] overflow-y-auto max-h-[350px]">
                                         <InfoRow icon={Calendar} text={stage.startTime ? format(stage.startTime.toDate(), "eeee d MMMM yyyy", { locale: it }) : "Data da definire"} />
                                         <InfoRow icon={Clock} text={stage.startTime && stage.endTime ? `${format(stage.startTime.toDate(), "HH:mm")} - ${format(stage.endTime.toDate(), "HH:mm")}` : "Orario da definire"} />
                                         <InfoRow icon={MapPin} text={stage.location} />

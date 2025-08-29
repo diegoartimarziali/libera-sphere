@@ -76,9 +76,14 @@ export function StageCard({ stage }: StageCardProps) {
       )}
       <CardHeader className="p-0 bg-[var(--my-gialchiar)] text-[var(--my-marscuro)]">
         <div className="flex flex-col space-y-1.5 p-6 rounded-t-md">
-          <div className="flex items-center text-sm font-semibold text-[var(--my-marscuro)]">
-            {getEventTypeIcon(stage.type)}
-            {getEventTypeLabel(stage.type)}
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center text-sm font-semibold text-[var(--my-marscuro)]">
+              {getEventTypeIcon(stage.type)}
+              {getEventTypeLabel(stage.type)}
+            </div>
+            <div className="text-xs font-bold text-[var(--my-marscuro)]">
+              {stage.discipline ? `Disciplina: ${stage.discipline.charAt(0).toUpperCase() + stage.discipline.slice(1)}` : ''}
+            </div>
           </div>
           <CardTitle className="font-semibold tracking-tight text-xl capitalize text-[var(--my-marscuro)]">{stage.title}</CardTitle>
           <CardDescription className="text-sm text-[var(--my-marscuro)]">{stage.description}</CardDescription>

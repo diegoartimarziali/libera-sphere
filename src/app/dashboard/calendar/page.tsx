@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
 import { StageCard } from "@/components/dashboard/StageCard";
+import { StageGridItem } from "@/components/dashboard/StageGridItem";
 import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, MapPin, Tag, Users, Clock, Award, FileText, Sparkles, List, LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -82,13 +83,12 @@ export default function CalendarPage() {
     const [user] = useAuthState(auth);
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
-    
     const [lessons, setLessons] = useState<Event[]>([]);
     const [specialEvents, setSpecialEvents] = useState<Event[]>([]);
-    
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [userDiscipline, setUserDiscipline] = useState<string | null>(null);
     const [userGymName, setUserGymName] = useState<string | null>(null);
+    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -183,92 +183,92 @@ export default function CalendarPage() {
     return (
         <div className="space-y-8">
             <div className="text-center md:text-left">
-                <h1 className="text-3xl font-bold">Calendari Attività</h1>
+                <h1 className="text-3xl font-bold">Stages, Esami e Corsi</h1>
                 <p className="text-muted-foreground">
-                    Qui trovi il calendario dei tuoi allenamenti e degli eventi speciali come stage ed esami.
+                    Qui trovi tutti gli stage, esami e corsi in programma e il calendario delle lezioni.
                 </p>
             </div>
             
-            <Card>
-                <CardHeader>
-                    <CardTitle>I Tuoi Allenamenti</CardTitle>
-                    {loading ? <div className="animate-pulse bg-muted h-5 w-1/2 rounded-md mt-2"></div> : (
-                        <CardDescription>
-                            Calendario delle lezioni di {userDiscipline} presso {userGymName || 'la tua palestra'}.
-                        </CardDescription>
-                    )}
-                </CardHeader>
-                <CardContent className="p-2 sm:p-4">
-                     {loading ? (
-                        <div className="flex justify-center items-center h-96"><Loader2 className="w-8 h-8 animate-spin" /></div>
-                    ) : lessons.length > 0 || specialEvents.length > 0 ? (
-                        <CalendarComponent
-                            mode="single"
-                            month={currentMonth}
-                            onMonthChange={setCurrentMonth}
-                            className="w-full"
-                            classNames={{
-                                day_selected: "bg-transparent text-primary hover:bg-transparent",
-                                day: "h-12 w-12 text-base",
-                                head_cell: "w-12",
-                            }}
-                            components={{
-                                Day: ({ date }) => <DayWithDot date={date}>{format(date, "d")}</DayWithDot>,
-                            }}
-                            modifiers={{
-                                specialEvent: specialEvents.map(e => e.startTime.toDate())
-                            }}
-                            modifiersClassNames={{
-                                specialEvent: 'bg-primary/10 text-primary font-bold rounded-md',
-                            }}
-                        />
-                    ) : (
-                        <div className="text-center py-16 text-muted-foreground">
-                            <h2 className="text-xl font-semibold">Nessuna Lezione Trovata</h2>
-                            <p className="mt-2">
-                               Non sono state ancora caricate lezioni per la tua disciplina.
-                            </p>
-                        </div>
-                    )}
-                </CardContent>
-             </Card>
-             
-             <Separator />
+            {/* Calendario delle lezioni rimosso su richiesta */}
 
              <div>
                 <h2 className="text-2xl font-bold mb-4">Eventi Speciali in Programma</h2>
                  {loading ? (
-                    <div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>
-                ) : specialEvents.length > 0 ? (
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {specialEvents.map(event => (
-                                                        <StageCard
-                                                            key={event.id}
-                                                            stage={{
-                                                                id: event.id,
-                                                                title: event.title,
-                                                                description: event.description ?? "",
-                                                                startTime: event.startTime,
-                                                                endTime: event.endTime,
-                                                                location: event.location ?? "",
-                                                                price: event.price ?? 0,
-                                                                imageUrl: event.imageUrl,
-                                                                open_to: event.open_to === "Cinture Nere" ? "Cinture Nere" : "Tutti",
-                                                                type: event.type as "stage" | "exam" | "course" | "other",
-                                                                discipline: event.discipline === "karate" || event.discipline === "aikido" ? event.discipline : undefined,
-                                                                requireConfirmation: event.requireConfirmation ?? false,
-                                                            }}
-                                                        />
-                        ))}
+                    <div className="flex justify-center items-center h-64">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
                     </div>
-                 ) : (
-                     <div className="text-center py-16 border rounded-lg">
+                ) : specialEvents.length > 0 ? (
+                    <>
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {specialEvents.map(event => (
+                                <StageGridItem
+                                    key={event.id}
+                                    event={{
+                                        id: event.id,
+                                        iconUrl: (event as any).iconUrl || event.imageUrl,
+                                        type: event.type,
+                                        discipline: event.discipline,
+                                        open_to: event.open_to,
+                                        startTime: event.startTime,
+                                        onClick: () => setSelectedEvent(event)
+                                    }}
+                                />
+                            ))}
+                        </div>
+                        {/* Dialog/modal per card dettagliata evento */}
+                        {selectedEvent && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedEvent(null)}>
+                                <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-4" onClick={e => e.stopPropagation()}>
+                                    <StageCard
+                                        stage={{
+                                            id: selectedEvent.id,
+                                            title: selectedEvent.title,
+                                            description: selectedEvent.description ?? "",
+                                            startTime: selectedEvent.startTime,
+                                            endTime: selectedEvent.endTime,
+                                            location: selectedEvent.location ?? "",
+                                            price: selectedEvent.price ?? 0,
+                                            imageUrl: selectedEvent.imageUrl,
+                                            open_to: selectedEvent.open_to === "Cinture Nere" ? "Cinture Nere" : "Tutti",
+                                            type: selectedEvent.type as "stage" | "exam" | "course" | "other",
+                                            discipline: selectedEvent.discipline === "karate" || selectedEvent.discipline === "aikido" ? selectedEvent.discipline : undefined,
+                                            requireConfirmation: selectedEvent.requireConfirmation ?? false,
+                                        }}
+                                    />
+                                    <div className="mt-6 flex justify-end">
+                                        {selectedEvent.sumupUrl ? (
+                                            <a
+                                                href={selectedEvent.sumupUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <button
+                                                    className="w-full px-6 py-3 text-lg font-bold rounded-lg bg-green-600 text-white shadow-lg hover:bg-green-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
+                                                >
+                                                    Iscriviti
+                                                </button>
+                                            </a>
+                                        ) : (
+                                            <button
+                                                className="w-full px-6 py-3 text-lg font-bold rounded-lg bg-green-600 text-white shadow-lg hover:bg-green-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
+                                                onClick={() => alert('Funzione iscrizione non ancora disponibile.')}
+                                            >
+                                                Iscriviti
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="text-center py-16 border rounded-lg">
                         <h2 className="text-xl font-semibold">Nessun Evento Speciale</h2>
                         <p className="text-muted-foreground mt-2">
-                           Non ci sono stage, esami o corsi in programma.
+                            Non ci sono stage, esami o corsi in programma.
                         </p>
                     </div>
-                 )}
+                )}
              </div>
 
         </div>
