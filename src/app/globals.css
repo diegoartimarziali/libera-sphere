@@ -35,21 +35,21 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --my-marscuro: 22.5, 55%, 11%; /*marrone scuro */
-    --my-marchiaro: 35.294, 25%, 74%; /*marrone chiaro */
-    --my-arancio: 34, 95%, 58%; /*arancio */
-    --my-gialoro: 44, 100%, 78%; /* giallo oro */
-    --my-gialchiar: 47, 100%, 90%; /* giallo chiaro */
-    --my-rosscuro: 17, 100%, 21%; /* rosso scuro */
-    --my-rosschiaro: 0, 86%, 75%; /* rosso chiaro */
-    --my-verscur: 115, 100%, 12%; /* verde scuro */
-    --my-verchiaro: 115, 100%, 80%; /* verde chiaro */
-    --my-aranscuro: 25, 100%, 31%; /* arancio scuro */
-    --my-aranchiaro: 29, 100%, 71%; /* arancio chiaro */
-    --my-bluscuro: 239, 100%, 23%; /* blu scuro */
-    --my-bluchiaro: 230, 100%, 78%; /* blu chiaro */
-    --my-grigioscu: 0, 8%, 22%; /* grigio scuro */
-    --my-grigiochia: 10, 8%, 71%; /* grigio chiaro */
+  --my-marscuro: hsl(22.5, 55%, 11%); /*marrone scuro */
+  --my-marchiaro: hsl(35.294, 25%, 74%); /*marrone chiaro */
+  --my-arancio: hsl(34, 95%, 58%); /*arancio */
+  --my-gialoro: hsl(44, 100%, 78%); /* giallo oro */
+  --my-gialchiar: hsl(47, 100%, 90%); /* giallo chiaro */
+  --my-rosscuro: hsl(17, 100%, 21%); /* rosso scuro */
+  --my-rosschiaro: hsl(0, 86%, 75%); /* rosso chiaro */
+  --my-verscur: hsl(115, 100%, 12%); /* verde scuro */
+  --my-verchiaro: hsl(115, 100%, 80%); /* verde chiaro */
+  --my-aranscuro: hsl(25, 100%, 31%); /* arancio scuro */
+  --my-aranchiaro: hsl(29, 100%, 71%); /* arancio chiaro */
+  --my-bluscuro: hsl(239, 100%, 23%); /* blu scuro */
+  --my-bluchiaro: hsl(230, 100%, 78%); /* blu chiaro */
+  --my-grigioscu: hsl(0, 8%, 22%); /* grigio scuro */
+  --my-grigiochia: hsl(10, 8%, 71%); /* grigio chiaro */
 
   }
 

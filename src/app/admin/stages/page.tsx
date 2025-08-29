@@ -1,4 +1,4 @@
-
+"use client"
 "use client"
 
 import { useState, useEffect } from "react";
@@ -29,8 +29,9 @@ import { cn } from "@/lib/utils";
 // TIPI E SCHEMI
 // =================================================================
 interface Gym {
-  id: string;
-  name: string;
+    id: string;
+    name: string;
+    address?: string;
 }
 
 export interface Stage {
@@ -44,6 +45,9 @@ export interface Stage {
     imageUrl?: string;
     open_to: 'Tutti' | 'Cinture Nere';
     type: 'stage' | 'exam' | 'course' | 'other';
+    discipline?: 'karate' | 'aikido';
+    alertDate?: string;
+    requireConfirmation?: boolean;
 }
 
 // Helper per trasformare una data in una stringa 'yyyy-MM-dd HH:mm' o undefined
@@ -58,8 +62,11 @@ const dateTimeToInputString = (date?: Date | Timestamp): { date: string, time: s
 
 
 const stageFormSchema = z.object({
+    alertDate: z.string().optional(),
+    requireConfirmation: z.boolean().optional(),
     id: z.string().optional(),
     type: z.enum(['stage', 'exam', 'course', 'other'], { required_error: "La tipologia è obbligatoria." }),
+    discipline: z.enum(['karate', 'aikido'], { required_error: "La disciplina è obbligatoria." }),
     title: z.string().min(3, "Il titolo è obbligatorio."),
     startDate: z.string({ required_error: "La data di inizio è obbligatoria." }),
     startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
@@ -94,7 +101,6 @@ const getEventTypeIcon = (type: Stage['type']) => {
         default: return <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />;
     }
 }
-
 const getEventTypeLabel = (type: Stage['type']) => {
     switch (type) {
         case 'stage': return 'Stage';
@@ -120,7 +126,10 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
         resolver: zodResolver(stageFormSchema),
         defaultValues: stage || {
             title: '',
+            alertDate: '',
+            requireConfirmation: false,
             type: 'stage',
+            discipline: 'karate',
             startDate: format(new Date(), 'yyyy-MM-dd'),
             endDate: format(new Date(), 'yyyy-MM-dd'),
             startTime: '09:00',
@@ -132,7 +141,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
             imageUrl: ''
         }
     });
-    
+
     const onSubmit = (data: StageFormData) => {
         onSave(data);
     };
@@ -140,24 +149,73 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                 <FormField control={form.control} name="type" render={({ field }) => (
-                    <FormItem><FormLabel>Tipologia Evento</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Seleziona una tipologia..." /></SelectTrigger></FormControl>
-                            <SelectContent>
-                                <SelectItem value="stage">Stage</SelectItem>
-                                <SelectItem value="exam">Esami</SelectItem>
-                                <SelectItem value="course">Corso</SelectItem>
-                                <SelectItem value="other">Altro</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    <FormMessage /></FormItem>
-                )} />
-
-                <FormField control={form.control} name="title" render={({ field }) => (
-                    <FormItem><FormLabel>Titolo Evento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                
+                <div className="grid grid-cols-3 gap-4">
+                    <FormField control={form.control} name="type" render={({ field }) => (
+                        <FormItem><FormLabel>Tipologia Evento</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Seleziona una tipologia..." /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value="stage">Stage</SelectItem>
+                                    <SelectItem value="exam">Esami</SelectItem>
+                                    <SelectItem value="course">Corso</SelectItem>
+                                    <SelectItem value="other">Altro</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        <FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="discipline" render={({ field }) => (
+                        <FormItem><FormLabel>Disciplina</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Seleziona disciplina..." /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value="karate">Karate</SelectItem>
+                                    <SelectItem value="aikido">Aikido</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        <FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="alertDate" render={({ field }) => (
+                        <FormItem><FormLabel>Data Alert</FormLabel>
+                            <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormMessage /></FormItem>
+                    )} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="location" render={({ field }) => (
+                        <FormItem><FormLabel>Luogo</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Seleziona una palestra..." /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    {gyms.map(g => (
+                                        <SelectItem key={g.id} value={g.name + (g.address ? ` - ${g.address}` : '')}>
+                                            {g.name}{g.address ? ` - ${g.address}` : ''}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <FormField control={form.control} name="description" render={({ field }) => (
+                        <FormItem><FormLabel>Descrizione</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="title" render={({ field }) => (
+                        <FormItem><FormLabel>Titolo Evento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="requireConfirmation" render={({ field }) => (
+                        <FormItem><FormLabel>Richiedi Partecipazione</FormLabel>
+                            <Select onValueChange={v => field.onChange(v === 'true')} defaultValue={field.value ? 'true' : 'false'}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="SI/NO" /></SelectTrigger></FormControl>
+                                <SelectContent>
+                                    <SelectItem value="true">SI</SelectItem>
+                                    <SelectItem value="false">NO</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        <FormMessage /></FormItem>
+                    )} />
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
                         <FormItem><FormLabel>Data Inizio</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
@@ -166,7 +224,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         <FormItem><FormLabel>Ora Inizio</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
-                 <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="endDate" render={({ field }) => (
                         <FormItem><FormLabel>Data Fine</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
@@ -174,30 +232,11 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         <FormItem><FormLabel>Ora Fine</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
-
-                <FormField control={form.control} name="location" render={({ field }) => (
-                    <FormItem><FormLabel>Luogo</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Seleziona un luogo..." /></SelectTrigger></FormControl>
-                             <SelectContent>
-                                {gyms.map(g => (
-                                    <SelectItem key={g.id} value={`${g.id} - ${g.name}`}>{g.id} - {g.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                
-                <FormField control={form.control} name="description" render={({ field }) => (
-                    <FormItem><FormLabel>Descrizione</FormLabel><FormControl><Textarea {...field} placeholder="Descrivi l'evento, il programma, ecc." /></FormControl><FormMessage /></FormItem>
-                )} />
-                
-                 <div className="grid grid-cols-2 gap-4">
-                     <FormField control={form.control} name="price" render={({ field }) => (
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="price" render={({ field }) => (
                         <FormItem><FormLabel>Prezzo (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
-                     <FormField control={form.control} name="open_to" render={({ field }) => (
+                    <FormField control={form.control} name="open_to" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Aperto a</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -215,12 +254,9 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         </FormItem>
                     )} />
                 </div>
-
-                 <FormField control={form.control} name="imageUrl" render={({ field }) => (
+                <FormField control={form.control} name="imageUrl" render={({ field }) => (
                     <FormItem><FormLabel>URL Immagine</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
                 )} />
-
-
                 <DialogFooter>
                     <Button type="button" variant="ghost" onClick={onCancel}>Annulla</Button>
                     <Button type="submit">Salva Evento</Button>
@@ -236,6 +272,17 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
 // =================================================================
 
 export default function AdminStagesPage() {
+    const openEditForm = (stage: Stage) => {
+        setEditingStage({
+            ...stage,
+            discipline: stage.discipline ?? "karate",
+            startDate: stage.startTime ? format(stage.startTime.toDate(), 'yyyy-MM-dd') : '',
+            startTime: stage.startTime ? format(stage.startTime.toDate(), 'HH:mm') : '',
+            endDate: stage.endTime ? format(stage.endTime.toDate(), 'yyyy-MM-dd') : '',
+            endTime: stage.endTime ? format(stage.endTime.toDate(), 'HH:mm') : '',
+        });
+        setIsFormOpen(true);
+    };
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -246,6 +293,19 @@ export default function AdminStagesPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingStage, setEditingStage] = useState<StageFormData | undefined>(undefined);
 
+    const handleDeleteStage = async (stageId: string) => {
+        setLoading(true);
+        try {
+            await deleteDoc(doc(db, "events", stageId));
+            setStages(prev => prev.filter(s => s.id !== stageId));
+            toast({ variant: "success", title: "Evento eliminato", description: "Lo stage è stato rimosso correttamente." });
+        } catch (error) {
+            console.error("Errore eliminazione stage:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare l'evento." });
+        } finally {
+            setLoading(false);
+        }
+    };
     const fetchInitialData = async () => {
         setLoading(true);
         try {
@@ -262,7 +322,7 @@ export default function AdminStagesPage() {
             
             setStages(stagesList);
 
-            const gymsSnapshot = await getDocs(query(collection(db, "gyms"), doc(db, "gyms", "name")));
+            const gymsSnapshot = await getDocs(collection(db, "gyms"));
             const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()} as Gym));
             setGyms(gymsList);
 
@@ -281,72 +341,30 @@ export default function AdminStagesPage() {
 
     const handleSaveStage = async (data: StageFormData) => {
         setIsSubmitting(true);
-        
-        const { startDate, startTime, endDate, endTime, ...restData } = data;
-        
-        // Combina stringa data e stringa ora, poi parsa in un oggetto Date valido
-        const startDateTime = parseISO(`${startDate}T${startTime}`);
-        const endDateTime = parseISO(`${endDate}T${endTime}`);
-        
-        const stageData = {
-            ...restData,
-            startTime: Timestamp.fromDate(startDateTime),
-            endTime: Timestamp.fromDate(endDateTime),
-        };
-
         try {
-            if (data.id) { // Modifica
-                const stageRef = doc(db, "events", data.id);
-                await updateDoc(stageRef, stageData);
-                toast({ title: "Evento Aggiornato!", variant: "success" });
-            } else { // Creazione
-                await addDoc(collection(db, "events"), {
-                    ...stageData,
-                    createdAt: serverTimestamp()
-                });
-                toast({ title: "Evento Creato!", variant: "success" });
+            // Prepara i dati per Firestore
+            const eventData = {
+                ...data,
+                startTime: Timestamp.fromDate(new Date(`${data.startDate}T${data.startTime}`)),
+                endTime: Timestamp.fromDate(new Date(`${data.endDate}T${data.endTime}`)),
+            };
+            if (data.id) {
+                // Modifica evento esistente
+                await updateDoc(doc(db, "events", data.id), eventData);
+                toast({ variant: "success", title: "Evento aggiornato", description: "Le modifiche sono state salvate." });
+            } else {
+                // Crea nuovo evento
+                const docRef = await addDoc(collection(db, "events"), eventData);
+                toast({ variant: "success", title: "Evento creato", description: "Il nuovo evento è stato salvato." });
             }
-            await fetchInitialData(); // Ricarica la lista
             setIsFormOpen(false);
-            setEditingStage(undefined);
+            fetchInitialData();
         } catch (error) {
-            console.error("Error saving stage:", error);
+            console.error("Errore salvataggio evento:", error);
             toast({ variant: "destructive", title: "Errore", description: "Impossibile salvare l'evento." });
         } finally {
             setIsSubmitting(false);
         }
-    };
-    
-    const handleDeleteStage = async (stageId: string) => {
-        try {
-            await deleteDoc(doc(db, "events", stageId));
-            toast({ title: "Evento Eliminato", variant: "success" });
-            await fetchInitialData();
-        } catch (error) {
-            console.error("Error deleting stage:", error);
-            toast({ variant: "destructive", title: "Errore", description: "Impossibile eliminare l'evento." });
-        }
-    }
-
-    const openEditForm = (stage: Stage) => {
-        const startDateTime = dateTimeToInputString(stage.startTime);
-        const endDateTime = dateTimeToInputString(stage.endTime);
-
-        setEditingStage({
-            id: stage.id,
-            type: stage.type,
-            title: stage.title,
-            startDate: startDateTime?.date,
-            startTime: startDateTime?.time,
-            endDate: endDateTime?.date,
-            endTime: endDateTime?.time,
-            location: stage.location,
-            description: stage.description,
-            price: stage.price,
-            open_to: stage.open_to,
-            imageUrl: stage.imageUrl,
-        });
-        setIsFormOpen(true);
     };
 
     const openCreateForm = () => {
@@ -383,7 +401,7 @@ export default function AdminStagesPage() {
                             {stages.map(stage => (
                                 <Card key={stage.id} className="flex flex-col overflow-hidden">
                                      {stage.imageUrl && (
-                                        <div className="relative h-40 w-full">
+                                        <div className="relative h-64 w-full bg-[var(--my-gialchiar)]">
                                             <Image
                                                 src={stage.imageUrl}
                                                 alt={`Immagine per ${stage.title}`}
@@ -393,15 +411,17 @@ export default function AdminStagesPage() {
                                             />
                                         </div>
                                     )}
-                                    <CardHeader>
-                                        <div className="flex items-center text-sm text-primary font-semibold">
-                                            {getEventTypeIcon(stage.type)}
-                                            {getEventTypeLabel(stage.type)}
+                                    <CardHeader className="p-0">
+                                        <div className="flex flex-col space-y-1.5 p-6 bg-[var(--my-gialchiar)] rounded-t-md">
+                                            <div className="flex items-center text-sm text-primary font-semibold">
+                                                {getEventTypeIcon(stage.type)}
+                                                {getEventTypeLabel(stage.type)}
+                                            </div>
+                                            <CardTitle className="font-semibold tracking-tight text-xl capitalize">{stage.title}</CardTitle>
+                                            <CardDescription className="text-sm text-muted-foreground">{stage.description}</CardDescription>
                                         </div>
-                                        <CardTitle className="text-xl capitalize">{stage.title}</CardTitle>
-                                        <CardDescription>{stage.description}</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="flex-grow space-y-3">
+                                    <CardContent className="flex-grow space-y-3 bg-[var(--my-gialchiar)]">
                                         <InfoRow icon={Calendar} text={stage.startTime ? format(stage.startTime.toDate(), "eeee d MMMM yyyy", { locale: it }) : "Data da definire"} />
                                         <InfoRow icon={Clock} text={stage.startTime && stage.endTime ? `${format(stage.startTime.toDate(), "HH:mm")} - ${format(stage.endTime.toDate(), "HH:mm")}` : "Orario da definire"} />
                                         <InfoRow icon={MapPin} text={stage.location} />

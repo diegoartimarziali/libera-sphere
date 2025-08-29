@@ -9,7 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { format, isSameDay, isSameMonth, startOfMonth } from "date-fns";
 import { it } from "date-fns/locale";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
+import { StageCard } from "@/components/dashboard/StageCard";
 import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, MapPin, Tag, Users, Clock, Award, FileText, Sparkles, List, LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +41,7 @@ interface Event {
     gymName?: string;
     gymId?: string;
     discipline?: string;
+    requireConfirmation?: boolean;
 }
 
 const getEventTypeIcon = (type: Event['type']) => {
@@ -238,37 +242,23 @@ export default function CalendarPage() {
                 ) : specialEvents.length > 0 ? (
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {specialEvents.map(event => (
-                           <Card key={event.id} className="flex flex-col overflow-hidden">
-                                 {event.imageUrl && (
-                                    <div className="relative h-40 w-full">
-                                        <Image
-                                            src={event.imageUrl}
-                                            alt={`Immagine per ${event.title}`}
-                                            fill
-                                            style={{ objectFit: 'cover' }}
-                                            data-ai-hint="event martial-arts"
-                                        />
-                                    </div>
-                                )}
-                                <CardHeader>
-                                    <div className="flex items-center text-sm text-primary font-semibold">
-                                        {getEventTypeIcon(event.type)}
-                                        {getEventTypeLabel(event.type)}
-                                    </div>
-                                    <CardTitle className="text-xl capitalize">{event.title}</CardTitle>
-                                    {event.description && <CardDescription>{event.description}</CardDescription>}
-                                </CardHeader>
-                                <CardContent className="flex-grow space-y-3">
-                                    <InfoRow icon={Calendar} text={format(event.startTime.toDate(), "eeee d MMMM yyyy", { locale: it })} />
-                                    <InfoRow icon={Clock} text={`${format(event.startTime.toDate(), "HH:mm")} - ${format(event.endTime.toDate(), "HH:mm")}`} />
-                                    <InfoRow icon={MapPin} text={event.location} />
-                                    <InfoRow icon={Users} text={`Aperto a: ${event.open_to}`} />
-                                    <InfoRow icon={Tag} text={`Costo: ${event.price?.toFixed(2)} €`} />
-                                </CardContent>
-                                <CardFooter className="bg-muted/50 p-3">
-                                     <Button className="w-full">Maggiori Dettagli</Button>
-                                </CardFooter>
-                            </Card>
+                                                        <StageCard
+                                                            key={event.id}
+                                                            stage={{
+                                                                id: event.id,
+                                                                title: event.title,
+                                                                description: event.description ?? "",
+                                                                startTime: event.startTime,
+                                                                endTime: event.endTime,
+                                                                location: event.location ?? "",
+                                                                price: event.price ?? 0,
+                                                                imageUrl: event.imageUrl,
+                                                                open_to: event.open_to === "Cinture Nere" ? "Cinture Nere" : "Tutti",
+                                                                type: event.type as "stage" | "exam" | "course" | "other",
+                                                                discipline: event.discipline === "karate" || event.discipline === "aikido" ? event.discipline : undefined,
+                                                                requireConfirmation: event.requireConfirmation ?? false,
+                                                            }}
+                                                        />
                         ))}
                     </div>
                  ) : (
