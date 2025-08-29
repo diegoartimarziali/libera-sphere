@@ -29,9 +29,17 @@ interface Payment {
     amount: number;
     createdAt: Timestamp;
     description: string;
-    paymentMethod: 'online' | 'in_person' | 'bank_transfer';
+    paymentMethod: 'online' | 'in_person' | 'bank_transfer' | 'bonus';
     status: 'pending' | 'completed' | 'failed';
     type: 'association' | 'trial' | 'subscription';
+}
+
+interface UserAward {
+    id: string;
+    awardId: string;
+    title?: string;
+    value?: number;
+    assignedAt?: Timestamp;
 }
 
 interface UserProfile {
@@ -50,6 +58,7 @@ interface UserProfile {
     subscriptionActivationDate?: Timestamp;
     subscriptionPaymentFailed?: boolean;
     payments: Payment[];
+    awards?: UserAward[];
 }
 
 interface Gym {
@@ -79,6 +88,7 @@ const translatePaymentMethod = (method: Payment['paymentMethod']) => {
         case 'online': return 'Online';
         case 'in_person': return 'In Sede';
         case 'bank_transfer': return 'Bonifico';
+        case 'bonus': return 'Premio';
         default: return method;
     }
 }
@@ -95,10 +105,34 @@ export default function AdminPaymentsPage() {
 
     const { toast } = useToast();
 
+    const handleDeleteAward = async (awardId: string, userId: string) => {
+        try {
+            await deleteDoc(doc(db, "userAwards", awardId));
+            toast({
+                title: "Premio eliminato",
+                description: "Il premio è stato rimosso dall'utente.",
+                variant: "success"
+            });
+            setProfiles(prev =>
+                prev.map(profile =>
+                    profile.uid === userId
+                        ? { ...profile, awards: profile.awards?.filter(a => a.id !== awardId) }
+                        : profile
+                )
+            );
+        } catch (error) {
+            toast({
+                title: "Errore eliminazione premio",
+                description: "Impossibile eliminare il premio.",
+                variant: "destructive"
+            });
+        }
+    };
+
     const fetchAdminData = async () => {
         setLoading(true);
         try {
-                if (user) {
+            if (user) {
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 if (userDoc.exists()) {
                     setCurrentUserRole(userDoc.data().role);
@@ -111,7 +145,7 @@ export default function AdminPaymentsPage() {
             setGyms(gymsMap);
 
             const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
-            
+
             const userProfiles = await Promise.all(usersSnapshot.docs.map(async (userDoc) => {
                 const userData = userDoc.data();
                 const userId = userDoc.id;
@@ -125,6 +159,34 @@ export default function AdminPaymentsPage() {
                     userId: userId,
                     ...paymentDoc.data()
                 } as Payment));
+
+                // Recupera premi assegnati
+                const awardsRef = collection(db, 'userAwards');
+                const awardsQuery = query(awardsRef, where('userId', '==', userId));
+                const awardsSnapshot = await getDocs(awardsQuery);
+                const awards = await Promise.all(awardsSnapshot.docs.map(async aDoc => {
+                    const awardData = aDoc.data();
+                    let title = awardData.title;
+                    let value = awardData.value;
+                    // Se manca il titolo/valore, recupera da awards
+                    if (!title || typeof value !== "number") {
+                        try {
+                            const awardDoc = await getDoc(doc(db, "awards", awardData.awardId));
+                            if (awardDoc.exists()) {
+                                const ad = awardDoc.data();
+                                title = ad.name;
+                                value = ad.value;
+                            }
+                        } catch {}
+                    }
+                    return {
+                        id: aDoc.id,
+                        awardId: awardData.awardId,
+                        title,
+                        value,
+                        assignedAt: awardData.assignedAt
+                    };
+                }));
 
                 return {
                     uid: userId,
@@ -141,10 +203,10 @@ export default function AdminPaymentsPage() {
                     subscriptionAccessStatus: userData.subscriptionAccessStatus,
                     subscriptionActivationDate: userData.subscriptionActivationDate,
                     subscriptionPaymentFailed: userData.subscriptionPaymentFailed,
-                    payments: payments
+                    payments: payments,
+                    awards: awards
                 };
             }));
-            
             setProfiles(userProfiles);
 
         } catch (error) {
@@ -477,6 +539,46 @@ export default function AdminPaymentsPage() {
                                     </div>
                                 </div>
                                 <AccordionContent className="p-4 bg-muted/20">
+                                    {/* Premi assegnati */}
+                                    {profile.awards && profile.awards.length > 0 && (
+                                        <div className="mb-4">
+                                            <h4 className="font-semibold mb-2">Premi assegnati</h4>
+                                            <ul className="space-y-2">
+                                                {profile.awards.map(a => (
+                                                    <li key={a.id} className="flex items-center justify-between bg-card rounded px-3 py-2">
+                                                        <div>
+                                                            <span className="font-bold">{a.title || "Premio"}</span>
+                                                            <span className="ml-2 text-muted-foreground">Valore: €{typeof a.value === "number" ? a.value.toFixed(2) : "0.00"}</span>
+                                                            <span className="ml-2 text-xs text-muted-foreground">Assegnato il {a.assignedAt ? format(a.assignedAt.toDate(), "dd/MM/yyyy") : "N/D"}</span>
+                                                        </div>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button variant="destructive" size="sm">
+                                                                    <Trash2 className="h-4 w-4 mr-1" />
+                                                                    Elimina
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Elimina premio assegnato?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        Questa azione rimuoverà il premio assegnato all'utente. Sei sicuro?
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => handleDeleteAward(a.id, profile.uid)}>
+                                                                        Sì, elimina
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    {/* Pagamenti */}
                                     {profile.payments.length > 0 ? (
                                         <Table>
                                             <TableHeader>
@@ -493,7 +595,7 @@ export default function AdminPaymentsPage() {
                                                 {profile.payments.map(p => (
                                                     <TableRow key={p.id}>
                                                         <TableCell>{p.createdAt ? format(p.createdAt.toDate(), 'dd/MM/yy HH:mm') : 'N/D'}</TableCell>
-                                                        <TableCell>{p.description}</TableCell>
+                                                        <TableCell>{p.description || (p.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '')}</TableCell>
                                                         <TableCell>{translatePaymentMethod(p.paymentMethod)}</TableCell>
                                                         <TableCell>{p.amount.toFixed(2)} €</TableCell>
                                                         <TableCell>

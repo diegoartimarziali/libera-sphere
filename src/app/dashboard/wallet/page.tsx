@@ -7,32 +7,22 @@ import { Wallet as WalletIcon, Gift } from "lucide-react"
 import { useEffect, useState } from "react"
 import { db } from "@/lib/firebase"
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore"
-import { onAuthStateChanged } from "firebase/auth"
+import { useAuthState } from "react-firebase-hooks/auth"
+
 import { auth } from "@/lib/firebase"
 
 export default function WalletPage() {
+
     const [loading, setLoading] = useState(true);
     const [userAwards, setUserAwards] = useState<any[]>([]);
-    const [userId, setUserId] = useState<string | null>(null);
-
-    useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user: any) => {
-            if (user) {
-                setUserId(user.uid);
-            } else {
-                setUserId(null);
-                setUserAwards([]);
-            }
-        });
-        return () => unsubscribe();
-    }, []);
+    const [user] = useAuthState(auth);
 
     useEffect(() => {
         const fetchUserAwards = async () => {
-            if (!userId) return;
+            if (!user) return;
             setLoading(true);
             try {
-                const awardsSnap = await getDocs(query(collection(db, "userAwards"), where("userId", "==", userId)));
+                const awardsSnap = await getDocs(query(collection(db, "userAwards"), where("userId", "==", user.uid)));
                 const awardsData = [];
                 for (const docSnap of awardsSnap.docs) {
                     const awardRef = doc(db, "awards", docSnap.data().awardId);
@@ -53,7 +43,7 @@ export default function WalletPage() {
             }
         };
         fetchUserAwards();
-    }, [userId]);
+    }, [user]);
 
     return (
         <Card>

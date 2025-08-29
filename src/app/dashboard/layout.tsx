@@ -146,34 +146,36 @@ function DashboardHeader({
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="sm:max-w-xs">
-                            <SheetHeader>
-                                <SheetTitle className="sr-only">Menu Principale</SheetTitle>
-                            </SheetHeader>
-                            <nav className="grid gap-6 text-lg font-medium">
-                                <SheetClose asChild>
-                                    <Link
-                                        href="/dashboard"
-                                        className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="h-5 w-5 transition-all group-hover:scale-110"
+                            <div>
+                                <SheetHeader>
+                                    <SheetTitle className="sr-only">Menu Principale</SheetTitle>
+                                </SheetHeader>
+                                <nav className="grid gap-6 text-lg font-medium">
+                                    <SheetClose asChild>
+                                        <Link
+                                            href="/dashboard"
+                                            className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
                                         >
-                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                                            <path d="M12 12L16 8"></path>
-                                            <path d="M12 6v6l4 2"></path>
-                                        </svg>
-                                        <span className="sr-only">LiberaSphere</span>
-                                    </Link>
-                                </SheetClose>
-                                <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
-                            </nav>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                className="h-5 w-5 transition-all group-hover:scale-110"
+                                            >
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                                                <path d="M12 12L16 8"></path>
+                                                <path d="M12 6v6l4 2"></path>
+                                            </svg>
+                                            <span className="sr-only">LiberaSphere</span>
+                                        </Link>
+                                    </SheetClose>
+                                    <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
+                                </nav>
+                            </div>
                         </SheetContent>
                     </Sheet>
                  )}

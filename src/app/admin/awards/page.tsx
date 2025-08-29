@@ -256,10 +256,15 @@ export default function AdminAwardsPage() {
 
              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                 <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingAward ? `Modifica Premio` : `Crea Nuovo Premio`}</DialogTitle>
-                    </DialogHeader>
-                     <Form {...form}>
+                    {/* DialogHeader e DialogTitle personalizzato, nessun titolo generico */}
+                    {/* DialogTitle nascosto per accessibilità */}
+                    <DialogTitle style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(1px, 1px, 1px, 1px)" }}>
+                        {editingAward ? `Modifica Premio` : `Crea Nuovo Premio`}
+                    </DialogTitle>
+                    <div className="flex flex-col space-y-1.5 text-center sm:text-left">
+                        <h2 className="text-lg font-semibold leading-none tracking-tight">{editingAward ? `Modifica Premio` : `Crea Nuovo Premio`}</h2>
+                    </div>
+                    <Form {...form}>
                         <form onSubmit={form.handleSubmit(handleSaveAward)} className="space-y-4 py-4">
                             <FormField
                                 control={form.control}

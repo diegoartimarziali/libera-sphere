@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { doc, getDoc, Timestamp, collection, getDocs, query, where, writeBatch, serverTimestamp } from "firebase/firestore"
+import { doc, getDoc, Timestamp, collection, getDocs, query, where, writeBatch, serverTimestamp, addDoc } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
@@ -49,7 +49,7 @@ interface BankDetails {
     iban: string;
 }
 
-type PaymentMethod = "online" | "in_person" | "bank_transfer";
+type PaymentMethod = "online" | "in_person" | "bank_transfer" | "bonus";
 
 function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrPending, onOpenPaymentDialog }: { subscription: Subscription; onPurchase: (sub: Subscription, method: PaymentMethod) => void; isSubmitting: boolean; hasActiveOrPending: boolean; onOpenPaymentDialog: () => void }) {
     const now = new Date();
@@ -144,13 +144,27 @@ export default function MonthlySubscriptionPage() {
         }
         const fetchAll = async () => {
             try {
-                // Bonus
+                // Bonus: recupera valore dal documento awards
                 const bonusSnap = await getDocs(query(collection(db, "userAwards"), where("userId", "==", user.uid)));
-                const bonus = bonusSnap.docs
-                    .map(doc => ({ id: doc.id, value: doc.data().value, used: doc.data().used }))
-                    .filter(b => !b.used);
-                setBonusDisponibili(bonus);
-                setTotaleBonus(bonus.reduce((acc, b) => acc + (b.value || 0), 0));
+                const bonus = await Promise.all(bonusSnap.docs.map(async docSnap => {
+                    const data = docSnap.data();
+                    let value = 0;
+                    // Recupera valore dal documento awards
+                    if (data.awardId) {
+                        const awardDoc = await getDoc(doc(db, "awards", data.awardId));
+                        if (awardDoc.exists()) {
+                            value = awardDoc.data().value || 0;
+                        }
+                    }
+                    return {
+                        id: docSnap.id,
+                        value,
+                        used: data.used
+                    };
+                }));
+                const bonusNonUsati = bonus.filter(b => !b.used);
+                setBonusDisponibili(bonusNonUsati);
+                setTotaleBonus(bonusNonUsati.reduce((acc, b) => acc + (b.value || 0), 0));
 
                 // Abbonamenti, utente, banca
                 const [subsSnapshot, userDocSnap, bankDetailsSnap] = await Promise.all([
@@ -246,6 +260,19 @@ export default function MonthlySubscriptionPage() {
                 });
             }
             await batch.commit();
+            // Registra pagamento anche se importo 0 (bonus)
+            const paymentsRef = collection(db, "users", user!.uid, "payments");
+            await addDoc(paymentsRef, {
+                createdAt: serverTimestamp(),
+                description: method === 'bonus'
+                    ? `Pagamento coperto da premio (${valoreUsato.toFixed(2)} €)`
+                    : `Abbonamento ${subscription.name}`,
+                amount: Math.max(0, subscription.totalPrice - valoreUsato),
+                paymentMethod: method,
+                status: 'pending',
+                type: 'subscription',
+                userId: user!.uid
+            });
 
             toast({ title: "Richiesta Inviata!", description: `Pagamento: €${Math.max(0, subscription.totalPrice - valoreUsato).toFixed(2)}. Bonus usati: €${valoreUsato.toFixed(2)}.`, });
             if (method === 'online' && subscription.sumupLink && Math.max(0, subscription.totalPrice - valoreUsato) > 0) {
@@ -253,6 +280,7 @@ export default function MonthlySubscriptionPage() {
             }
             setUserData(prev => prev ? ({...prev, subscriptionAccessStatus: 'pending', subscriptionPaymentFailed: false}) : null);
             setIsPaymentDialogOpen(false);
+            router.push('/dashboard');
         } catch (error) {
             console.error("Error purchasing subscription: ", error);
             toast({ title: "Errore", description: "Impossibile completare l'acquisto. Riprova.", variant: "destructive" });
@@ -276,6 +304,7 @@ export default function MonthlySubscriptionPage() {
     const handleBankTransferConfirm = () => {
         if (availableSubscription) {
             handlePurchase(availableSubscription, 'bank_transfer');
+            router.push('/dashboard');
         }
         setIsBankTransferDialogOpen(false);
     };
@@ -328,54 +357,67 @@ export default function MonthlySubscriptionPage() {
                                     <span className="text-green-700">Prezzo finale: <b>€{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</b></span>
                                 </DialogDescription>
                             </DialogHeader>
-                            <RadioGroup
-                                value={selectedPaymentMethod || ""}
-                                onValueChange={(value: string) => setSelectedPaymentMethod(value as PaymentMethod)}
-                                className="space-y-4 py-4"
-                            >
-                               <Label
-                                    htmlFor="online"
-                                    className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                            {Math.max(0, availableSubscription.totalPrice - totaleBonus) > 0 ? (
+                                <RadioGroup
+                                    value={selectedPaymentMethod || ""}
+                                    onValueChange={(value: string) => setSelectedPaymentMethod(value as PaymentMethod)}
+                                    className="space-y-4 py-4"
                                 >
-                                    <RadioGroupItem value="online" id="online" className="mt-1" />
-                                    <div className="flex-1 space-y-1">
-                                        <h4 className="font-semibold">Online (Carta di Credito)</h4>
-                                        <p className="text-sm text-muted-foreground">
-                                            Paga in modo sicuro con SumUp. Verrai reindirizzato al sito del gestore.
-                                        </p>
-                                    </div>
-                                    <CreditCard className="h-6 w-6 text-muted-foreground" />
-                                </Label>
-                                <Label
-                                    htmlFor="bank_transfer"
-                                    className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                                >
-                                    <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" />
-                                    <div className="flex-1 space-y-1">
-                                        <h4 className="font-semibold">Bonifico Bancario</h4>
-                                        <p className="text-sm text-muted-foreground">
-                                            Visualizza i dati per effettuare il bonifico. L'attivazione richiede verifica manuale.
-                                        </p>
-                                    </div>
-                                    <University className="h-6 w-6 text-muted-foreground" />
-                                </Label>
-                                <Label
-                                    htmlFor="in_person"
-                                    className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                                >
-                                    <RadioGroupItem value="in_person" id="in_person" className="mt-1" />
-                                    <div className="flex-1 space-y-1">
-                                        <h4 className="font-semibold">In Sede (Contanti o Bancomat)</h4>
-                                        <p className="text-sm text-muted-foreground">
-                                           Paga direttamente in palestra. L'attivazione richiede verifica manuale.
-                                        </p>
-                                    </div>
-                                    <Landmark className="h-6 w-6 text-muted-foreground" />
-                                </Label>
-                            </RadioGroup>
+                                   <Label
+                                        htmlFor="online"
+                                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                    >
+                                        <RadioGroupItem value="online" id="online" className="mt-1" />
+                                        <div className="flex-1 space-y-1">
+                                            <h4 className="font-semibold">Online (Carta di Credito)</h4>
+                                            <p className="text-sm text-muted-foreground">
+                                                Paga in modo sicuro con SumUp. Verrai reindirizzato al sito del gestore.
+                                            </p>
+                                        </div>
+                                        <CreditCard className="h-6 w-6 text-muted-foreground" />
+                                    </Label>
+                                    <Label
+                                        htmlFor="bank_transfer"
+                                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                    >
+                                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" />
+                                        <div className="flex-1 space-y-1">
+                                            <h4 className="font-semibold">Bonifico Bancario</h4>
+                                            <p className="text-sm text-muted-foreground">
+                                                Visualizza i dati per effettuare il bonifico. L'attivazione richiede verifica manuale.
+                                            </p>
+                                        </div>
+                                        <University className="h-6 w-6 text-muted-foreground" />
+                                    </Label>
+                                    <Label
+                                        htmlFor="in_person"
+                                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                    >
+                                        <RadioGroupItem value="in_person" id="in_person" className="mt-1" />
+                                        <div className="flex-1 space-y-1">
+                                            <h4 className="font-semibold">In Sede (Contanti o Bancomat)</h4>
+                                            <p className="text-sm text-muted-foreground">
+                                               Paga direttamente in palestra. L'attivazione richiede verifica manuale.
+                                            </p>
+                                        </div>
+                                        <Landmark className="h-6 w-6 text-muted-foreground" />
+                                    </Label>
+                                </RadioGroup>
+                            ) : (
+                                <div className="py-4 text-center text-green-700 font-semibold">Il tuo abbonamento è interamente coperto dai bonus. Nessun pagamento richiesto.</div>
+                            )}
                             <DialogFooter>
                                 <Button variant="ghost" onClick={() => setIsPaymentDialogOpen(false)}>Annulla</Button>
-                                <Button onClick={handlePaymentDialogSubmit} disabled={!selectedPaymentMethod || isSubmitting}>
+                                <Button
+                                    onClick={() => {
+                                        if (Math.max(0, availableSubscription.totalPrice - totaleBonus) === 0) {
+                                            handlePurchase(availableSubscription, "bonus");
+                                        } else {
+                                            handlePaymentDialogSubmit();
+                                        }
+                                    }}
+                                    disabled={isSubmitting}
+                                >
                                     {isSubmitting && <Loader2 className="animate-spin mr-2" />}
                                     Conferma
                                 </Button>

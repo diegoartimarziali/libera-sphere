@@ -21,7 +21,7 @@ interface Payment {
     createdAt: Timestamp;
     description: string;
     amount: number;
-    paymentMethod: 'online' | 'in_person' | 'bank_transfer';
+    paymentMethod: 'online' | 'in_person' | 'bank_transfer' | 'bonus';
     status: 'pending' | 'completed' | 'failed';
 }
 
@@ -62,6 +62,8 @@ const translatePaymentMethod = (method: Payment['paymentMethod']): string => {
             return 'In Sede';
         case 'bank_transfer':
             return 'Bonifico';
+        case 'bonus':
+            return 'Premio';
         default:
             return method;
     }
@@ -137,7 +139,7 @@ export default function UserPaymentsPage() {
                                     <TableCell className="font-medium">
                                         {payment.createdAt ? format(payment.createdAt.toDate(), 'dd/MM/yyyy HH:mm') : 'N/D'}
                                     </TableCell>
-                                    <TableCell>{payment.description}</TableCell>
+                                    <TableCell>{payment.description || (payment.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '')}</TableCell>
                                     <TableCell>{translatePaymentMethod(payment.paymentMethod)}</TableCell>
                                     <TableCell className="text-right">{payment.amount.toFixed(2)} €</TableCell>
                                     <TableCell className="text-center">
