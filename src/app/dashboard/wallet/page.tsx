@@ -28,10 +28,18 @@ export default function WalletPage() {
                     const awardRef = doc(db, "awards", docSnap.data().awardId);
                     const awardDoc = await getDoc(awardRef);
                     if (awardDoc.exists()) {
+                        const awardData = awardDoc.data();
+                        const usedValue = docSnap.data().usedValue || 0;
+                        const value = awardData.value || 0;
+                        const residuo = Math.max(0, value - usedValue);
                         awardsData.push({
-                            ...awardDoc.data(),
+                            awardId: docSnap.data().awardId,
+                            id: awardDoc.id,
+                            value,
+                            residuo,
                             assignedAt: docSnap.data().assignedAt,
-                            id: awardDoc.id
+                            usedValue,
+                            name: awardData.name
                         });
                     }
                 }
@@ -73,6 +81,7 @@ export default function WalletPage() {
                                 <div className="flex-1">
                                     <div className="font-bold text-lg">{award.name}</div>
                                     <div className="text-sm text-muted-foreground">Valore: {award.value?.toFixed(2)} €</div>
+                                    <div className="text-sm text-green-700">Valore residuo: {award.residuo?.toFixed(2)} €</div>
                                     <div className="text-xs text-muted-foreground">Assegnato il {award.assignedAt?.toDate ? award.assignedAt.toDate().toLocaleDateString() : new Date(award.assignedAt).toLocaleDateString()}</div>
                                 </div>
                             </div>
