@@ -314,7 +314,7 @@ export default function MonthlySubscriptionPage() {
                             </DialogHeader>
                             <RadioGroup
                                 value={selectedPaymentMethod || ""}
-                                onValueChange={(value) => setSelectedPaymentMethod(value as PaymentMethod)}
+                                onValueChange={(value: string) => setSelectedPaymentMethod(value as PaymentMethod)}
                                 className="space-y-4 py-4"
                             >
                                <Label

@@ -350,7 +350,7 @@ function PaymentStep({
             <CardContent>
                 <RadioGroup 
                     value={paymentMethod ? String(paymentMethod) : ""} 
-                    onValueChange={(value) => setPaymentMethod(value as unknown as PaymentMethodData)} 
+                    onValueChange={(value: string) => setPaymentMethod(value as unknown as PaymentMethodData)} 
                     className="space-y-4"
                 >
                     <Label
