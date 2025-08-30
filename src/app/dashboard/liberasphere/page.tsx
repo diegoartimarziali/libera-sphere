@@ -67,7 +67,7 @@ export default function LiberaSpherePage() {
 
     useEffect(() => {
         if (discipline) {
-            const gymsForDiscipline = allGyms.filter(g => g.disciplines.includes(discipline));
+            const gymsForDiscipline = allGyms.filter(g => Array.isArray(g.disciplines) && g.disciplines.includes(discipline));
             setFilteredGyms(gymsForDiscipline);
             setGym(''); // Reset gym selection when discipline changes
         } else {

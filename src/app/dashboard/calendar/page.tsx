@@ -14,6 +14,7 @@ import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
 import { StageCard } from "@/components/dashboard/StageCard";
 import { StageGridItem } from "@/components/dashboard/StageGridItem";
+import { StagePaymentCard } from "@/components/dashboard/StagePaymentCard";
 import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, MapPin, Tag, Users, Clock, Award, FileText, Sparkles, List, LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,7 @@ interface Event {
     gymId?: string;
     discipline?: string;
     requireConfirmation?: boolean;
+    sumupUrl?: string;
 }
 
 const getEventTypeIcon = (type: Event['type']) => {
@@ -89,6 +91,7 @@ export default function CalendarPage() {
     const [userDiscipline, setUserDiscipline] = useState<string | null>(null);
     const [userGymName, setUserGymName] = useState<string | null>(null);
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+    const [showPayment, setShowPayment] = useState(false);
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -236,27 +239,30 @@ export default function CalendarPage() {
                                         }}
                                     />
                                     <div className="mt-6 flex justify-end">
-                                        {selectedEvent.sumupUrl ? (
-                                            <a
-                                                href={selectedEvent.sumupUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                <button
-                                                    className="w-full px-6 py-3 text-lg font-bold rounded-lg bg-green-600 text-white shadow-lg hover:bg-green-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
-                                                >
-                                                    Iscriviti
-                                                </button>
-                                            </a>
-                                        ) : (
-                                            <button
-                                                className="w-full px-6 py-3 text-lg font-bold rounded-lg bg-green-600 text-white shadow-lg hover:bg-green-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2"
-                                                onClick={() => alert('Funzione iscrizione non ancora disponibile.')}
-                                            >
-                                                Iscriviti
-                                            </button>
-                                        )}
+                                        <Button 
+                                            className="w-full px-6 py-3 text-lg font-bold"
+                                            variant="default"
+                                            onClick={() => setShowPayment(true)}
+                                        >
+                                            Iscriviti
+                                        </Button>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Dialog pagamento stage */}
+                        {showPayment && selectedEvent && (
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setShowPayment(false)}>
+                                <div onClick={e => e.stopPropagation()} className="p-4 w-full max-w-lg">
+                                    <StagePaymentCard
+                                        title={selectedEvent.title}
+                                        price={selectedEvent.price || 0}
+                                        sumupUrl={selectedEvent.sumupUrl}
+                                        onClose={() => setShowPayment(false)}
+                                        userId={user?.uid || ''}
+                                        eventId={selectedEvent.id}
+                                    />
                                 </div>
                             </div>
                         )}

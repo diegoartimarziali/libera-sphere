@@ -81,7 +81,7 @@ export default function WalletPage() {
                                 <div className="flex-1">
                                     <div className="font-bold text-lg">{award.name}</div>
                                     <div className="text-sm text-muted-foreground">Valore: {award.value?.toFixed(2)} €</div>
-                                    <div className="text-sm text-green-700">Valore residuo: {award.residuo?.toFixed(2)} €</div>
+                                    <div className="text-sm text-orange-700">Utilizzato: {award.usedValue?.toFixed(2)} €</div>
                                     <div className="text-xs text-muted-foreground">Assegnato il {award.assignedAt?.toDate ? award.assignedAt.toDate().toLocaleDateString() : new Date(award.assignedAt).toLocaleDateString()}</div>
                                 </div>
                             </div>

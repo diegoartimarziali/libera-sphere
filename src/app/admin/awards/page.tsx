@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { createUserAward } from "@/lib/createUserAward";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -45,10 +46,10 @@ export default function AdminAwardsPage() {
     const handleAssignAward = async () => {
         if (!selectedAward || !selectedUserId) return;
         try {
-            await addDoc(collection(db, "userAwards"), {
+            await createUserAward({
                 userId: selectedUserId,
                 awardId: selectedAward.id,
-                assignedAt: new Date()
+                value: selectedAward.value
             });
             toast({ title: "Premio assegnato!" });
             setIsAssignOpen(false);
