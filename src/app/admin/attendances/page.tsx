@@ -20,8 +20,8 @@ interface Attendance {
     userId: string;
     gymName: string;
     lessonDate: Timestamp;
-    lessonTime: string;
     status: 'presente' | 'assente';
+    lessonTime?: string;
 }
 
 interface UserProfile {
@@ -31,6 +31,7 @@ interface UserProfile {
     email: string;
     discipline?: string;
     attendances: Attendance[];
+    totalLessons?: number;
 }
 
 interface Gym {
@@ -74,32 +75,42 @@ export default function AdminAttendancesPage() {
 
                 // 1. Fetch all users
                 const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
-                const userProfilesMap = new Map<string, UserProfile>();
-                usersSnapshot.docs.forEach(doc => {
-                    const userData = doc.data();
-                    userProfilesMap.set(doc.id, {
-                        uid: doc.id,
+                const profiles: UserProfile[] = [];
+                for (const docSnap of usersSnapshot.docs) {
+                    const userData = docSnap.data();
+                    const attendances: Attendance[] = [];
+                    // Leggi le presenze dalla sottocollezione utente
+                    const attendancesSnap = await getDocs(query(collection(db, "users", docSnap.id, "attendances"), orderBy('lessonDate', 'desc')));
+                    attendancesSnap.forEach(attSnap => {
+                        const attData = attSnap.data();
+                        attendances.push({
+                            id: attSnap.id,
+                            userId: attData.userId,
+                            gymName: attData.gymName,
+                            lessonDate: attData.lessonDate,
+                            status: attData.status,
+                        });
+                    });
+                    // Leggi il totale lezioni dalla sottocollezione totalLessons
+                    let totalLessons = undefined;
+                    const totalLessonsSnap = await getDocs(collection(db, "users", docSnap.id, "totalLessons"));
+                    totalLessonsSnap.forEach(tlDoc => {
+                        const tlData = tlDoc.data();
+                        if (typeof tlData.value === 'number') {
+                            totalLessons = tlData.value;
+                        }
+                    });
+                    profiles.push({
+                        uid: docSnap.id,
                         name: userData.name,
                         surname: userData.surname,
                         email: userData.email,
                         discipline: userData.discipline,
-                        attendances: []
+                        attendances,
+                        totalLessons
                     });
-                });
-
-                // 2. Fetch all attendances
-                const attendancesSnapshot = await getDocs(query(collection(db, "attendances"), orderBy('lessonDate', 'desc')));
-                
-                // 3. Group attendances by user
-                attendancesSnapshot.forEach(doc => {
-                    const attendance = { id: doc.id, ...doc.data() } as Attendance;
-                    if (userProfilesMap.has(attendance.userId)) {
-                        const userProfile = userProfilesMap.get(attendance.userId)!;
-                        userProfile.attendances.push(attendance);
-                    }
-                });
-
-                setProfiles(Array.from(userProfilesMap.values()));
+                }
+                setProfiles(profiles);
 
             } catch (error) {
                 console.error("Error fetching admin attendance data: ", error);
@@ -184,22 +195,26 @@ export default function AdminAttendancesPage() {
                                 return null;
                             }
                             const totalPresences = profile.attendances.filter(a => a.status === 'presente').length;
-
+                            // Mostra "Presenze: X / Y" accanto al nome utente
                             return (
                                 <AccordionItem value={profile.uid} key={profile.uid}>
-                                     <div className="flex items-center hover:bg-muted/50 px-4 rounded-md">
+                                    <div className="flex items-center hover:bg-muted/50 px-4 rounded-md">
                                         <AccordionTrigger className="flex-1">
                                             <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
-                                                <div className="flex items-center">
+                                                <div className="flex items-center gap-2">
                                                     <User className="h-5 w-5 mr-3 text-primary" />
                                                     <span className="font-bold">{profile.name} {profile.surname}</span>
+                                                    <span className="ml-3 px-2 py-1 rounded bg-primary/10 text-primary font-semibold text-sm border border-primary/20 flex items-center gap-2">
+                                                        Presenze: {totalPresences} / {typeof profile.totalLessons === 'number' ? profile.totalLessons : 'N/D'}
+                                                        {typeof profile.totalLessons === 'number' && profile.totalLessons > 0 && (
+                                                            <span className="ml-2 px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold border border-green-300">
+                                                                {Math.round((totalPresences / profile.totalLessons) * 100)}%
+                                                            </span>
+                                                        )}
+                                                    </span>
                                                 </div>
                                                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
                                                     {profile.discipline && <span>{profile.discipline}</span>}
-                                                    <div className="flex items-center gap-2">
-                                                        <ClipboardCheck className="h-4 w-4" />
-                                                        <span>Totale Presenze: {totalPresences}</span>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </AccordionTrigger>

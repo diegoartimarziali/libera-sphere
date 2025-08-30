@@ -49,6 +49,7 @@ export default function AttendancesPage() {
     const [user] = useAuthState(auth);
     const [attendances, setAttendances] = useState<Attendance[]>([]);
     const [loading, setLoading] = useState(true);
+    const [totalLessons, setTotalLessons] = useState<number | null>(null);
     const { toast } = useToast();
 
     useEffect(() => {
@@ -59,11 +60,10 @@ export default function AttendancesPage() {
             }
 
             try {
-                // Qui la logica non cambia, la collezione "attendances" rimane separata per ora.
-                const attendancesRef = collection(db, 'attendances');
+                // Leggi presenze
+                const attendancesRef = collection(db, 'users', user.uid, 'attendances');
                 const q = query(
-                    attendancesRef, 
-                    where("userId", "==", user.uid), 
+                    attendancesRef,
                     orderBy('lessonDate', 'desc')
                 );
                 const querySnapshot = await getDocs(q);
@@ -72,8 +72,16 @@ export default function AttendancesPage() {
                     id: doc.id,
                     ...doc.data()
                 } as Attendance));
-
                 setAttendances(attendancesList);
+
+                // Leggi lezioni totali
+                const totalLessonsSnap = await getDocs(collection(db, 'users', user.uid, 'totalLessons'));
+                let total = null;
+                totalLessonsSnap.forEach(doc => {
+                    const data = doc.data();
+                    if (typeof data.value === 'number') total = data.value;
+                });
+                setTotalLessons(total);
 
             } catch (error) {
                 console.error("Error fetching attendances:", error);
@@ -104,40 +112,45 @@ export default function AttendancesPage() {
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                 ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Data</TableHead>
-                                <TableHead>Orario</TableHead>
-                                <TableHead>Disciplina</TableHead>
-                                <TableHead>Palestra</TableHead>
-                                <TableHead className="text-center">Stato</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {attendances.length > 0 ? attendances.map((attendance) => (
-                                <TableRow key={attendance.id}>
-                                    <TableCell className="font-medium capitalize">
-                                        {attendance.lessonDate ? format(attendance.lessonDate.toDate(), 'eeee, dd MMMM yyyy', { locale: it }) : 'N/D'}
-                                    </TableCell>
-                                    <TableCell>{attendance.lessonTime}</TableCell>
-                                    <TableCell>{attendance.discipline}</TableCell>
-                                    <TableCell>{attendance.gymName}</TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant={getStatusVariant(attendance.status)}>
-                                            {translateStatus(attendance.status)}
-                                        </Badge>
-                                    </TableCell>
-                                </TableRow>
-                            )) : (
+                    <>
+                        <div className="mb-4 text-lg font-semibold text-muted-foreground">
+                            Presenze: {attendances.length} / {totalLessons ?? 'N/D'}
+                        </div>
+                        <Table>
+                            <TableHeader>
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center h-24">
-                                        Nessuna presenza registrata.
-                                    </TableCell>
+                                    <TableHead>Data</TableHead>
+                                    <TableHead>Orario</TableHead>
+                                    <TableHead>Disciplina</TableHead>
+                                    <TableHead>Palestra</TableHead>
+                                    <TableHead className="text-center">Stato</TableHead>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {attendances.length > 0 ? attendances.map((attendance) => (
+                                    <TableRow key={attendance.id}>
+                                        <TableCell className="font-medium capitalize">
+                                            {attendance.lessonDate ? format(attendance.lessonDate.toDate(), 'eeee, dd MMMM yyyy', { locale: it }) : 'N/D'}
+                                        </TableCell>
+                                        <TableCell>{attendance.lessonTime}</TableCell>
+                                        <TableCell>{attendance.discipline}</TableCell>
+                                        <TableCell>{attendance.gymName}</TableCell>
+                                        <TableCell className="text-center">
+                                            <Badge variant={getStatusVariant(attendance.status)}>
+                                                {translateStatus(attendance.status)}
+                                            </Badge>
+                                        </TableCell>
+                                    </TableRow>
+                                )) : (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="text-center h-24">
+                                            Nessuna presenza registrata.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </>
                 )}
             </CardContent>
         </Card>

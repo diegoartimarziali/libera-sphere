@@ -16,6 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
+import { updateUserTotalLessons } from '@/lib/updateUserTotalLessons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 
 // Helper per trasformare una data in una stringa 'yyyy-MM-dd' o undefined
@@ -213,7 +214,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
 
   const onSubmit = async (data: PersonalDataSchemaType) => {
     setIsSubmitting(true);
-    
+
     const formattedData: PersonalDataSchemaType = {
         ...data,
         name: capitalizeWords(data.name),
@@ -230,7 +231,21 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
             parentTaxCode: data.parentData.parentTaxCode.toUpperCase(),
         } : undefined,
     };
-    
+
+    // Aggiorna totalLessons dopo la registrazione/modifica, leggendo i dati dal profilo utente
+    if (user && user.uid) {
+      const userDocRef = doc(db, "users", user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        const gym = userData.gym;
+        const discipline = userData.discipline;
+        if (gym && discipline) {
+          await updateUserTotalLessons(user.uid, gym, discipline);
+        }
+      }
+    }
+
     onFormSubmit(formattedData)
     // Non impostare setIsSubmitting a false qui, perché la navigazione è gestita dal genitore
   }

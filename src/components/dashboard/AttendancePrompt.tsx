@@ -129,8 +129,8 @@ export function AttendancePrompt() {
             // Usa un batch per eseguire entrambe le scritture in modo atomico
             const batch = writeBatch(db);
 
-            // 1. Crea il documento di presenza
-            const newAttendanceRef = doc(collection(db, "attendances"));
+            // 1. Crea il documento di presenza nella sottocollezione utente
+            const newAttendanceRef = doc(collection(db, "users", user.uid, "attendances"));
             batch.set(newAttendanceRef, {
                 userId: user.uid,
                 userName: userData.name,
@@ -139,7 +139,6 @@ export function AttendancePrompt() {
                 gymName: todaysLesson.gymName,
                 discipline: todaysLesson.discipline,
                 lessonDate: Timestamp.fromDate(today_start),
-                lessonTime: format(todaysLesson.startTime.toDate(), "HH:mm"),
                 status: status,
                 recordedAt: serverTimestamp(),
                 eventId: todaysLesson.id
