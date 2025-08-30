@@ -30,20 +30,18 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
   useEffect(() => {
     const fetchBonusBalance = async () => {
       try {
-        // Recupera il bonus dall'award associato all'utente
-        const awardsQuery = collection(db, "awards");
-        // Puoi filtrare per userId e used === false
-        const awardsSnap = await getDocs(awardsQuery);
+        // Recupera il bonus dalla sottocollezione userAwards dell'utente
+        const userAwardsQuery = collection(db, `users/${userId}/userAwards`);
+        const userAwardsSnap = await getDocs(userAwardsQuery);
         let found = false;
-        awardsSnap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+        userAwardsSnap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
           const data = docSnap.data() as {
-            userId: string;
-            used: boolean;
-            value?: number;
-            usedValue?: number;
+            residuo?: number;
+            used?: boolean;
           };
-          if (data.userId === userId && !data.used) {
-            setBonusBalance((data.value || 0) - (data.usedValue || 0));
+          // Considera solo premi non completamente utilizzati
+          if ((data.residuo || 0) > 0 && !data.used) {
+            setBonusBalance(data.residuo || 0);
             setAwardId(docSnap.id);
             found = true;
           }

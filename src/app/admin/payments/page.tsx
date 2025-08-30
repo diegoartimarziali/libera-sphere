@@ -107,7 +107,7 @@ export default function AdminPaymentsPage() {
 
     const handleDeleteAward = async (awardId: string, userId: string) => {
         try {
-            await deleteDoc(doc(db, "userAwards", awardId));
+            await deleteDoc(doc(db, "users", userId, "userAwards", awardId));
             toast({
                 title: "Premio eliminato",
                 description: "Il premio è stato rimosso dall'utente.",
@@ -160,10 +160,9 @@ export default function AdminPaymentsPage() {
                     ...paymentDoc.data()
                 } as Payment));
 
-                // Recupera premi assegnati
-                const awardsRef = collection(db, 'userAwards');
-                const awardsQuery = query(awardsRef, where('userId', '==', userId));
-                const awardsSnapshot = await getDocs(awardsQuery);
+                // Recupera premi assegnati dalla sottocollezione utente
+                const awardsRef = collection(db, 'users', userId, 'userAwards');
+                const awardsSnapshot = await getDocs(awardsRef);
                 const awards = await Promise.all(awardsSnapshot.docs.map(async aDoc => {
                     const awardData = aDoc.data();
                     let title = awardData.title;

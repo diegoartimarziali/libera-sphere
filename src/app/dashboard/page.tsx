@@ -93,6 +93,30 @@ export default function DashboardPage() {
   const [showSubscriptionActivatedMessage, setShowSubscriptionActivatedMessage] = useState(false);
 
   useEffect(() => {
+    // Logica: se l'ultima lezione di prova è passata (dopo le 20:30), aggiorna trialStatus a 'completed'
+    async function checkAndCompleteTrialStatus() {
+      if (!user) return;
+      const trialLessonsSnap = await getDocs(collection(db, `users/${user.uid}/trialLessons`));
+      const trialLessons = trialLessonsSnap.docs
+        .filter(doc => doc.id !== 'status')
+        .map(doc => doc.data() as { eventId: string; startTime: Timestamp; endTime: Timestamp });
+      if (trialLessons.length === 0) return;
+      const lastLesson = trialLessons.reduce((prev, curr) => prev.endTime.toMillis() > curr.endTime.toMillis() ? prev : curr);
+      const now = new Date();
+      const lessonEnd = lastLesson.endTime.toDate();
+      // Costruisci la data di oggi alle 20:30
+      const lessonEndLimit = new Date(lessonEnd);
+      lessonEndLimit.setHours(20, 30, 0, 0);
+      if (now > lessonEndLimit) {
+        // Aggiorna trialStatus solo se non è già 'completed'
+        const trialStatusDocRef = doc(db, `users/${user.uid}/trialLessons/status`);
+        const trialStatusSnap = await getDoc(trialStatusDocRef);
+        if (trialStatusSnap.exists() && trialStatusSnap.data().trialStatus !== 'completed') {
+          await updateDoc(trialStatusDocRef, { trialStatus: 'completed' });
+        }
+      }
+    }
+    checkAndCompleteTrialStatus();
     // Check for the data correction message flag on component mount
     const submissionTimestamp = sessionStorage.getItem('showDataCorrectionMessage');
   // Blocca il toast se il flag expired è su localStorage
@@ -130,15 +154,18 @@ export default function DashboardPage() {
       // Nuovo: sottocollezioni per prove
       const trialStatusDocRef = doc(db, `users/${user.uid}/trialLessons/status`);
       const trialLessonsCollectionRef = collection(db, `users/${user.uid}/trialLessons`);
-          
-      const [userDocSnap, seasonDocSnap, gymsSnapshot, trialStatusSnap, trialLessonsSnap] = await Promise.all([
+      // Nuovo: stato pagamento abbonamento
+      const paymentStatusDocRef = doc(db, `users/${user.uid}/payments/status`);
+      
+      const [userDocSnap, seasonDocSnap, gymsSnapshot, trialStatusSnap, trialLessonsSnap, paymentStatusSnap] = await Promise.all([
         getDoc(userDocRef),
         getDoc(seasonSettingsRef),
         getDocs(gymsCollectionRef),
         getDoc(trialStatusDocRef),
-        getDocs(trialLessonsCollectionRef)
+        getDocs(trialLessonsCollectionRef),
+        getDoc(paymentStatusDocRef)
       ]);
-          
+      
       const gymsMap = new Map<string, string>();
       gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
 
@@ -157,7 +184,20 @@ export default function DashboardPage() {
         .filter(doc => doc.id !== 'status')
         .map(doc => doc.data() as { eventId: string; startTime: Timestamp; endTime: Timestamp });
 
-      setUserData({ ...data, trialStatus, trialExpiryDate, trialLessons: trialLessonsArr });
+      // Leggi stato pagamento abbonamento
+      let subscriptionAccessStatus = data.subscriptionAccessStatus;
+      if (paymentStatusSnap.exists()) {
+        const paymentStatusData = paymentStatusSnap.data();
+        if (paymentStatusData.status === 'completed') {
+          subscriptionAccessStatus = 'active';
+        } else if (paymentStatusData.status === 'pending') {
+          subscriptionAccessStatus = 'pending';
+        } else if (paymentStatusData.status === 'expired') {
+          subscriptionAccessStatus = 'expired';
+        }
+      }
+
+      setUserData({ ...data, trialStatus, trialExpiryDate, trialLessons: trialLessonsArr, subscriptionAccessStatus });
             
       let membershipStatusLabel = "Non Associato";
       switch (data.associationStatus) {
@@ -229,8 +269,8 @@ export default function DashboardPage() {
 
       if (data.subscriptionPaymentFailed) {
         subscriptionStatusLabel = "Non Approvato";
-      } else if (data.subscriptionAccessStatus && data.activeSubscription && data.activeSubscription.type === 'monthly') {
-         switch(data.subscriptionAccessStatus) {
+      } else if (subscriptionAccessStatus && data.activeSubscription && data.activeSubscription.type === 'monthly') {
+         switch(subscriptionAccessStatus) {
           case 'pending': 
             subscriptionStatusLabel = 'In attesa di approvazione'; 
             break;
@@ -257,8 +297,8 @@ export default function DashboardPage() {
          if (data.activeSubscription.expiresAt) {
           subscriptionValidityMonth = format(data.activeSubscription.expiresAt.toDate(), "MMMM yyyy", { locale: it });
         }
-      } else if (data.subscriptionAccessStatus && data.activeSubscription) { // Abbonamento non mensile
-         switch(data.subscriptionAccessStatus) {
+      } else if (subscriptionAccessStatus && data.activeSubscription) { // Abbonamento non mensile
+         switch(subscriptionAccessStatus) {
           case 'pending': 
             subscriptionStatusLabel = 'In attesa di approvazione'; 
             break;

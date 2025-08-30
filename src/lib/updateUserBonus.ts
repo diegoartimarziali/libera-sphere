@@ -10,10 +10,11 @@ export async function updateUserBonus(
   userId: string,
   bonusToUse: number
 ): Promise<void> {
-  const awardRef = doc(db, 'awards', awardId);
-  const awardSnap = await getDoc(awardRef);
-  if (!awardSnap.exists()) throw new Error('Award non trovato');
-  const award = awardSnap.data() as {
+  // Aggiorna il documento nella sottocollezione utente
+  const userAwardRef = doc(db, 'users', userId, 'userAwards', awardId);
+  const userAwardSnap = await getDoc(userAwardRef);
+  if (!userAwardSnap.exists()) throw new Error('UserAward non trovato');
+  const award = userAwardSnap.data() as {
     value: number;
     usedValue?: number;
     used?: boolean;
@@ -21,10 +22,10 @@ export async function updateUserBonus(
   const prevValue = award.value || 0;
   const prevUsedValue = award.usedValue || 0;
   const usedValue = prevUsedValue + bonusToUse;
-  const value = prevValue - bonusToUse;
-  await updateDoc(awardRef, {
+  const residuo = prevValue - usedValue;
+  await updateDoc(userAwardRef, {
     usedValue,
-    value,
-    used: value <= 0 ? true : false,
+    residuo,
+    used: residuo <= 0 ? true : false,
   });
 }

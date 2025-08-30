@@ -74,7 +74,7 @@ export function FeedbackCard({
                     </Button>
                     <Button 
                         onClick={() => onFeedbackSubmit(rating, comment)}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || rating === 0 || comment.trim() === ""}
                     >
                         {isSubmitting && <Loader2 className="animate-spin mr-2" />}
                         {submitButtonText}

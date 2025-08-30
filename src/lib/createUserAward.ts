@@ -14,12 +14,12 @@ export async function createUserAward({
   awardId: string;
   value: number;
 }): Promise<void> {
-  await addDoc(collection(db, 'userAwards'), {
+  await addDoc(collection(db, 'users', userId, 'userAwards'), {
     assignedAt: Timestamp.now(),
     awardId,
     value,
     usedValue: 0,
-    userId,
+    residuo: value,
     used: false
   });
 }

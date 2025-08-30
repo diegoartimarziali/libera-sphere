@@ -87,11 +87,13 @@ export default function CalendarPage() {
     const [loading, setLoading] = useState(true);
     const [lessons, setLessons] = useState<Event[]>([]);
     const [specialEvents, setSpecialEvents] = useState<Event[]>([]);
+    // ...existing code...
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [userDiscipline, setUserDiscipline] = useState<string | null>(null);
     const [userGymName, setUserGymName] = useState<string | null>(null);
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [showPayment, setShowPayment] = useState(false);
+    const [userPaidEvents, setUserPaidEvents] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -112,7 +114,6 @@ export default function CalendarPage() {
                 const userData = userDocSnap.data();
                 const gymId = userData.gym;
                 const discipline = userData.discipline;
-                
                 setUserDiscipline(discipline);
 
                 if (gymId) {
@@ -150,8 +151,22 @@ export default function CalendarPage() {
                 );
                 const specialEventsSnapshot = await getDocs(specialEventsQuery);
                 const specialEventsList = specialEventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
+
+                // 4. Fetch user payments for events
+                const paymentsSnap = await getDocs(collection(db, "users", user.uid, "payments"));
+                const paidEventIds: string[] = [];
+                paymentsSnap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data.eventId && data.status === "completed") {
+                        paidEventIds.push(data.eventId);
+                    }
+                });
+                setUserPaidEvents(paidEventIds);
+
+                // Mostra tutti gli eventi speciali
                 setSpecialEvents(specialEventsList);
-                
+                setUserPaidEvents(paidEventIds);
+
             } catch (error) {
                 console.error("Error fetching events:", error);
                 toast({
@@ -203,20 +218,27 @@ export default function CalendarPage() {
                 ) : specialEvents.length > 0 ? (
                     <>
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {specialEvents.map(event => (
-                                <StageGridItem
-                                    key={event.id}
-                                    event={{
-                                        id: event.id,
-                                        iconUrl: (event as any).iconUrl || event.imageUrl,
-                                        type: event.type,
-                                        discipline: event.discipline,
-                                        open_to: event.open_to,
-                                        startTime: event.startTime,
-                                        onClick: () => setSelectedEvent(event)
-                                    }}
-                                />
-                            ))}
+                            {specialEvents.map(event => {
+                                const isPaid = userPaidEvents.includes(event.id);
+                                return (
+                                    <div key={event.id} className="relative">
+                                        <StageGridItem
+                                            event={{
+                                                id: event.id,
+                                                iconUrl: (event as any).iconUrl || event.imageUrl,
+                                                type: event.type,
+                                                discipline: event.discipline,
+                                                open_to: event.open_to,
+                                                startTime: event.startTime,
+                                                onClick: isPaid ? () => {} : () => setSelectedEvent(event)
+                                            }}
+                                        />
+                                        {isPaid && (
+                                            <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Già acquistato</span>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                         {/* Dialog/modal per card dettagliata evento */}
                         {selectedEvent && (
@@ -239,13 +261,19 @@ export default function CalendarPage() {
                                         }}
                                     />
                                     <div className="mt-6 flex justify-end">
-                                        <Button 
-                                            className="w-full px-6 py-3 text-lg font-bold"
-                                            variant="default"
-                                            onClick={() => setShowPayment(true)}
-                                        >
-                                            Iscriviti
-                                        </Button>
+                                        {userPaidEvents.includes(selectedEvent.id) ? (
+                                            <Button className="w-full px-6 py-3 text-lg font-bold" variant="secondary" disabled>
+                                                Già acquistato
+                                            </Button>
+                                        ) : (
+                                            <Button 
+                                                className="w-full px-6 py-3 text-lg font-bold"
+                                                variant="default"
+                                                onClick={() => setShowPayment(true)}
+                                            >
+                                                Iscriviti
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

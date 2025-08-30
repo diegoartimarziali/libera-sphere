@@ -144,8 +144,8 @@ export default function MonthlySubscriptionPage() {
         }
         const fetchAll = async () => {
             try {
-                // Bonus: recupera valore dal documento awards
-                const bonusSnap = await getDocs(query(collection(db, "userAwards"), where("userId", "==", user.uid)));
+                // Bonus: recupera valore dal documento awards nella sottocollezione utente
+                const bonusSnap = await getDocs(collection(db, "users", user.uid, "userAwards"));
                 const bonus = await Promise.all(bonusSnap.docs.map(async docSnap => {
                     const data = docSnap.data();
                     let value = 0;
@@ -252,9 +252,9 @@ export default function MonthlySubscriptionPage() {
                     expiresAt: subscription.validityEndDate,
                 }
             });
-            // Segna bonus usati
+            // Segna bonus usati nella sottocollezione utente
             for (const b of bonusUsati) {
-                batch.update(doc(db, "userAwards", b.id), {
+                batch.update(doc(db, "users", user!.uid, "userAwards", b.id), {
                     used: true,
                     usedValue: b.value
                 });
