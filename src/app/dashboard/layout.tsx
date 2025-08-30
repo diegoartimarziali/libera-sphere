@@ -223,63 +223,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             redirect("/");
             return;
         }
-        
         setLoadingData(true);
         try {
+            // Carica dati utente
             const userDocRef = doc(db, "users", user.uid);
-            let userDocSnap = await getDoc(userDocRef);
-            let userModified = false;
-            let fetchedUserData = userDocSnap.data() as UserData;
-
+            const userDocSnap = await getDoc(userDocRef);
+            let fetchedUserData = userDocSnap.exists() ? userDocSnap.data() as UserData : null;
+            // Leggi trialStatus dalla sottocollezione
+            let trialStatus = fetchedUserData?.trialStatus;
             if (userDocSnap.exists()) {
-                                
-                const updates: { [key: string]: any } = {};
-
-                // Controllo scadenza prova
-                if (
-                    fetchedUserData.trialStatus === 'active' &&
-                    fetchedUserData.trialExpiryDate &&
-                    isPast(startOfDay(fetchedUserData.trialExpiryDate.toDate()))
-                ) {
-                    updates.trialStatus = 'completed';
-                    updates.isInsured = false;
-                    userModified = true;
-                    toast({ title: "Periodo di prova terminato", description: "Puoi ora decidere se continuare con noi." });
+                try {
+                    const trialStatusDocRef = doc(db, `users/${user.uid}/trialLessons/status`);
+                    const trialStatusSnap = await getDoc(trialStatusDocRef);
+                    if (trialStatusSnap.exists()) {
+                        const statusData = trialStatusSnap.data();
+                        if (statusData.trialStatus) trialStatus = statusData.trialStatus;
+                    }
+                } catch (e) {
+                    // Ignora errori di lettura trialStatus
                 }
-
-                // Controllo scadenza associazione
-                if (
-                    fetchedUserData.associationStatus === 'active' &&
-                    fetchedUserData.associationExpiryDate &&
-                    isPast(startOfDay(fetchedUserData.associationExpiryDate.toDate()))
-                ) {
-                    updates.associationStatus = 'expired';
-                    updates.isInsured = false;
-                    userModified = true;
-                    toast({ title: "Associazione Scaduta", description: "La tua tessera è scaduta. Rinnovala per continuare." });
-                }
-                
-                // Controllo scadenza abbonamento
-                 if (
-                    fetchedUserData.subscriptionAccessStatus === 'active' &&
-                    fetchedUserData.activeSubscription?.expiresAt &&
-                    isPast(startOfDay(fetchedUserData.activeSubscription.expiresAt.toDate()))
-                ) {
-                    updates.subscriptionAccessStatus = 'expired';
-                    userModified = true;
-                    toast({ title: "Abbonamento Scaduto", description: "Il tuo abbonamento è scaduto. Rinnovalo per accedere ai corsi." });
-                }
-
-                if (userModified) {
-                    await updateDoc(userDocRef, updates);
-                    userDocSnap = await getDoc(userDocRef); // Re-fetch data
-                    fetchedUserData = userDocSnap.data() as UserData;
-                }
-                
                 setUserData(fetchedUserData);
-                
                 // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
-                 const onboardingPages = [
+                const onboardingPages = [
                     '/dashboard/regulations',
                     '/dashboard/medical-certificate',
                     '/dashboard/liberasphere',
@@ -287,59 +252,51 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     '/dashboard/associates',
                     '/dashboard/trial-completed',
                     '/dashboard/reviews',
-                 ];
-
-                // Se l'utente è già in una pagina di onboarding, non fare nulla per evitare loop.
+                ];
                 if (onboardingPages.includes(pathname)) {
                     setLoadingData(false);
                     return;
                 }
-                
-                 // Se l'utente ha completato la prova e non è socio, deve fare una scelta.
-                if (fetchedUserData.trialStatus === 'completed' && fetchedUserData.associationStatus === 'not_associated') {
+                if (trialStatus === 'completed' && fetchedUserData?.associationStatus === 'not_associated') {
                     if (pathname !== '/dashboard/trial-completed') {
                         router.push('/dashboard/trial-completed');
                     }
                     setLoadingData(false);
                     return;
                 }
-
-                const isUserStable = 
-                    fetchedUserData.trialPaymentFailed === true || // NUOVA REGOLA CON PRIORITA'
-                    fetchedUserData.associationStatus === 'pending' || 
-                    fetchedUserData.associationStatus === 'active' ||
-                    fetchedUserData.associationStatus === 'expired' ||
-                    fetchedUserData.trialStatus === 'pending_payment' ||
-                    fetchedUserData.trialStatus === 'active' ||
-                    fetchedUserData.role === 'admin' ||
-                    fetchedUserData.associationPaymentFailed === true ||
-                    fetchedUserData.medicalCertificateStatus === 'invalid';
-
-
-                // Se l'utente è in uno stato stabile, non fare nulla.
+                const isUserStable =
+                    fetchedUserData?.trialPaymentFailed === true ||
+                    fetchedUserData?.associationStatus === 'pending' ||
+                    fetchedUserData?.associationStatus === 'active' ||
+                    fetchedUserData?.associationStatus === 'expired' ||
+                    trialStatus === 'pending_payment' ||
+                    trialStatus === 'active' ||
+                    fetchedUserData?.role === 'admin' ||
+                    fetchedUserData?.associationPaymentFailed === true ||
+                    fetchedUserData?.medicalCertificateStatus === 'invalid';
                 if (isUserStable) {
-                     setLoadingData(false);
-                     return;
+                    setLoadingData(false);
+                    return;
                 }
-                
-                // Altrimenti, l'utente è in onboarding.
                 let targetPage = "";
-                if (!fetchedUserData.regulationsAccepted) {
+                if (!fetchedUserData?.regulationsAccepted) {
                     targetPage = "/dashboard/regulations";
-                } else if (!fetchedUserData.medicalCertificateSubmitted) {
+                } else if (!fetchedUserData?.medicalCertificateSubmitted) {
                     targetPage = "/dashboard/medical-certificate";
-                } else if (!fetchedUserData.isFormerMember) {
+                } else if (!fetchedUserData?.isFormerMember) {
                     targetPage = "/dashboard/liberasphere";
-                } else if (fetchedUserData.isFormerMember === 'yes') {
-                     targetPage = "/dashboard/associates";
-                } else if (fetchedUserData.isFormerMember === 'no') {
+                } else if (fetchedUserData?.isFormerMember === 'yes') {
+                    targetPage = "/dashboard/associates";
+                } else if (
+                    fetchedUserData?.isFormerMember === 'no' &&
+                    trialStatus !== 'pending_payment' &&
+                    trialStatus !== 'active'
+                ) {
                     targetPage = "/dashboard/class-selection";
                 }
-                
                 if (targetPage && pathname !== targetPage) {
                     router.push(targetPage);
                 }
-
             } else {
                 toast({ variant: "destructive", title: "Errore Critico", description: "Profilo utente non trovato. Eseguo il logout." });
                 await handleLogout();

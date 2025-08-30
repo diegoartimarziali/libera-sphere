@@ -59,6 +59,7 @@ interface UserData {
   trialLessons?: { eventId: string, startTime: Timestamp, endTime: Timestamp }[];
   trialStatus?: 'active' | 'completed' | 'not_applicable' | 'pending_payment';
   trialPaymentFailed?: boolean;
+  trialExpiryDate?: Timestamp;
   trialOutcome?: 'declined' | 'accepted';
   subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
   subscriptionPaymentFailed?: boolean;
@@ -94,17 +95,21 @@ export default function DashboardPage() {
   useEffect(() => {
     // Check for the data correction message flag on component mount
     const submissionTimestamp = sessionStorage.getItem('showDataCorrectionMessage');
-    if (submissionTimestamp) {
-        const oneHour = 60 * 60 * 1000;
-        const timeSinceSubmission = new Date().getTime() - new Date(submissionTimestamp).getTime();
+  // Blocca il toast se il flag expired è su localStorage
+  if (localStorage.getItem('showDataCorrectionMessageExpired')) {
+    setShowDataCorrectionMessage(false);
+  } else if (submissionTimestamp) {
+    const oneHour = 60 * 60 * 1000;
+    const timeSinceSubmission = new Date().getTime() - new Date(submissionTimestamp).getTime();
 
-        if (timeSinceSubmission < oneHour) {
-            setShowDataCorrectionMessage(true);
-        } else {
-            // Clean up if the hour has passed
-            sessionStorage.removeItem('showDataCorrectionMessage');
-        }
+    if (timeSinceSubmission < oneHour) {
+      setShowDataCorrectionMessage(true);
+    } else {
+      // Clean up se l'ora è passata e segna come scaduto
+      sessionStorage.removeItem('showDataCorrectionMessage');
+      localStorage.setItem('showDataCorrectionMessageExpired', 'true');
     }
+  }
     
     // Check for subscription activation message
     const subActivationTimestamp = sessionStorage.getItem('showSubscriptionActivatedMessage');
@@ -116,168 +121,187 @@ export default function DashboardPage() {
 
     if (authLoading) return
 
-    if (user) {
-      const fetchUserData = async () => {
-        try {
-          const userDocRef = doc(db, "users", user.uid)
-          const seasonSettingsRef = doc(db, "settings", "season");
-          const gymsCollectionRef = collection(db, "gyms");
+  if (user) {
+    const fetchUserData = async () => {
+    try {
+      const userDocRef = doc(db, "users", user.uid)
+      const seasonSettingsRef = doc(db, "settings", "season");
+      const gymsCollectionRef = collection(db, "gyms");
+      // Nuovo: sottocollezioni per prove
+      const trialStatusDocRef = doc(db, `users/${user.uid}/trialLessons/status`);
+      const trialLessonsCollectionRef = collection(db, `users/${user.uid}/trialLessons`);
           
-          const [userDocSnap, seasonDocSnap, gymsSnapshot] = await Promise.all([
-              getDoc(userDocRef),
-              getDoc(seasonSettingsRef),
-              getDocs(gymsCollectionRef)
-          ]);
+      const [userDocSnap, seasonDocSnap, gymsSnapshot, trialStatusSnap, trialLessonsSnap] = await Promise.all([
+        getDoc(userDocRef),
+        getDoc(seasonSettingsRef),
+        getDocs(gymsCollectionRef),
+        getDoc(trialStatusDocRef),
+        getDocs(trialLessonsCollectionRef)
+      ]);
           
-          const gymsMap = new Map<string, string>();
-          gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
+      const gymsMap = new Map<string, string>();
+      gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
 
-          if (userDocSnap.exists()) {
-            const data = userDocSnap.data() as UserData;
-            setUserData(data)
+      if (userDocSnap.exists()) {
+      const data = userDocSnap.data() as UserData;
+      // Nuovo: leggi trialStatus e trialExpiryDate dalla sottocollezione
+      let trialStatus = data.trialStatus;
+      let trialExpiryDate = data.trialExpiryDate;
+      if (trialStatusSnap.exists()) {
+        const statusData = trialStatusSnap.data();
+        trialStatus = statusData.trialStatus;
+        trialExpiryDate = statusData.trialExpiryDate;
+      }
+      // Nuovo: leggi lezioni di prova dalla sottocollezione
+      const trialLessonsArr = trialLessonsSnap.docs
+        .filter(doc => doc.id !== 'status')
+        .map(doc => doc.data() as { eventId: string; startTime: Timestamp; endTime: Timestamp });
+
+      setUserData({ ...data, trialStatus, trialExpiryDate, trialLessons: trialLessonsArr });
             
-            let membershipStatusLabel = "Non Associato";
-            switch (data.associationStatus) {
-                case 'pending':
-                    membershipStatusLabel = 'In Attesa di Approvazione';
-                    break;
-                case 'active':
-                    membershipStatusLabel = data.associationExpiryDate ? `Valida fino al ${format(data.associationExpiryDate.toDate(), 'dd/MM/yyyy')}` : 'Attiva';
-                    break;
-                case 'expired':
-                    membershipStatusLabel = 'Scaduta';
-                    break;
-                case 'not_associated':
-                default:
-                    membershipStatusLabel = 'Non Associato';
-                    break;
-            }
+      let membershipStatusLabel = "Non Associato";
+      switch (data.associationStatus) {
+        case 'pending':
+          membershipStatusLabel = 'In Attesa di Approvazione';
+          break;
+        case 'active':
+          membershipStatusLabel = data.associationExpiryDate ? `Valida fino al ${format(data.associationExpiryDate.toDate(), 'dd/MM/yyyy')}` : 'Attiva';
+          break;
+        case 'expired':
+          membershipStatusLabel = 'Scaduta';
+          break;
+        case 'not_associated':
+        default:
+          membershipStatusLabel = 'Non Associato';
+          break;
+      }
             
-            let medicalStatusLabel = "Non Presente";
-            let certStatus: 'valid' | 'expiring' | 'expired' | null = null;
-            if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
-                const expiry = data.medicalInfo.expiryDate.toDate();
-                medicalStatusLabel = `Scade il ${format(expiry, 'dd/MM/yyyy')}`;
+      let medicalStatusLabel = "Non Presente";
+      let certStatus: 'valid' | 'expiring' | 'expired' | null = null;
+      if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
+        const expiry = data.medicalInfo.expiryDate.toDate();
+        medicalStatusLabel = `Scade il ${format(expiry, 'dd/MM/yyyy')}`;
                 
-                const today = startOfDay(new Date());
-                const expiryDate = startOfDay(expiry);
-                const daysDiff = differenceInDays(expiryDate, today);
+        const today = startOfDay(new Date());
+        const expiryDate = startOfDay(expiry);
+        const daysDiff = differenceInDays(expiryDate, today);
 
-                if (daysDiff < 0) {
-                    certStatus = 'expired';
-                } else if (daysDiff <= 20) {
-                    certStatus = 'expiring';
-                } else {
-                    certStatus = 'valid';
-                }
-                setCertificateStatus(certStatus);
-                setDaysToExpire(daysDiff);
-            }
+        if (daysDiff < 0) {
+          certStatus = 'expired';
+        } else if (daysDiff <= 20) {
+          certStatus = 'expiring';
+        } else {
+          certStatus = 'valid';
+        }
+        setCertificateStatus(certStatus);
+        setDaysToExpire(daysDiff);
+      }
 
-            const regulationsStatusLabel = data.regulationsAccepted 
-                ? "Accettati"
-                : "Non Accettati";
+      const regulationsStatusLabel = data.regulationsAccepted 
+        ? "Accettati"
+        : "Non Accettati";
             
-            const trialLessons: TrialLesson[] | undefined = 
-                (data.trialStatus === 'active' || data.trialStatus === 'pending_payment') && data.trialLessons
-                ? data.trialLessons.map(l => ({
-                    date: l.startTime.toDate(),
-                    time: format(l.startTime.toDate(), "HH:mm")
-                }))
-                : undefined;
-                
-            let socioDalYear: string | undefined;
-            if (data.associationStatus === 'active' || data.associationStatus === 'pending') {
-                if (data.isFormerMember === 'yes' && data.firstYear) {
-                    socioDalYear = data.firstYear;
-                } else {
-                    socioDalYear = format(data.createdAt.toDate(), 'yyyy');
-                }
-            }
+      // Nuovo: usa trialLessonsArr e trialStatus
+      const trialLessons: TrialLesson[] | undefined = 
+        (trialStatus === 'active' || trialStatus === 'pending_payment') && trialLessonsArr.length > 0
+        ? trialLessonsArr.map(l => ({
+          date: l.startTime.toDate(),
+          time: format(l.startTime.toDate(), "HH:mm")
+        }))
+        : undefined;
             
-            let trialStatusLabel: string | undefined = undefined;
-            if(data.trialStatus === 'pending_payment') trialStatusLabel = "In attesa di approvazione pagamento";
-            if(data.trialStatus === 'active') trialStatusLabel = "Attiva";
-            if(data.trialStatus === 'completed') trialStatusLabel = "Completata";
+      let socioDalYear: string | undefined;
+      if (data.associationStatus === 'active' || data.associationStatus === 'pending') {
+        if (data.isFormerMember === 'yes' && data.firstYear) {
+          socioDalYear = data.firstYear;
+        } else {
+          socioDalYear = format(data.createdAt.toDate(), 'yyyy');
+        }
+      }
+            
+      let trialStatusLabel: string | undefined = undefined;
+      if(trialStatus === 'pending_payment') trialStatusLabel = "In attesa di approvazione pagamento";
+      if(trialStatus === 'active') trialStatusLabel = "Attiva";
+      if(trialStatus === 'completed') trialStatusLabel = "Completata";
 
-            let subscriptionStatusLabel: string | undefined = undefined;
-            let subscriptionValidityMonth: string | undefined = undefined;
+      let subscriptionStatusLabel: string | undefined = undefined;
+      let subscriptionValidityMonth: string | undefined = undefined;
 
-            if (data.subscriptionPaymentFailed) {
-                subscriptionStatusLabel = "Non Approvato";
-            } else if (data.subscriptionAccessStatus && data.activeSubscription && data.activeSubscription.type === 'monthly') {
-                 switch(data.subscriptionAccessStatus) {
-                    case 'pending': 
-                        subscriptionStatusLabel = 'In attesa di approvazione'; 
-                        break;
-                    case 'expired': 
-                        subscriptionStatusLabel = 'Scaduto'; 
-                        break;
-                    case 'active':
-                         if (data.activeSubscription.expiresAt) {
-                            const expiryDate = startOfDay(data.activeSubscription.expiresAt.toDate());
-                            const today = startOfDay(new Date());
-                            const daysDiff = differenceInDays(expiryDate, today);
-                            if (isPast(expiryDate)) {
-                                subscriptionStatusLabel = 'Scaduto';
-                            } else if (daysDiff <= 4) {
-                                subscriptionStatusLabel = 'In scadenza';
-                            } else {
-                                subscriptionStatusLabel = 'Attivo';
-                            }
-                        } else {
-                            subscriptionStatusLabel = 'Attivo';
-                        }
-                        break;
-                }
-                 if (data.activeSubscription.expiresAt) {
-                    subscriptionValidityMonth = format(data.activeSubscription.expiresAt.toDate(), "MMMM yyyy", { locale: it });
-                }
-            } else if (data.subscriptionAccessStatus && data.activeSubscription) { // Abbonamento non mensile
-                 switch(data.subscriptionAccessStatus) {
-                    case 'pending': 
-                        subscriptionStatusLabel = 'In attesa di approvazione'; 
-                        break;
-                    case 'expired': 
-                        subscriptionStatusLabel = 'Scaduto'; 
-                        break;
-                    case 'active':
-                        subscriptionStatusLabel = 'Attivo';
-                        break;
-                 }
+      if (data.subscriptionPaymentFailed) {
+        subscriptionStatusLabel = "Non Approvato";
+      } else if (data.subscriptionAccessStatus && data.activeSubscription && data.activeSubscription.type === 'monthly') {
+         switch(data.subscriptionAccessStatus) {
+          case 'pending': 
+            subscriptionStatusLabel = 'In attesa di approvazione'; 
+            break;
+          case 'expired': 
+            subscriptionStatusLabel = 'Scaduto'; 
+            break;
+          case 'active':
+             if (data.activeSubscription.expiresAt) {
+              const expiryDate = startOfDay(data.activeSubscription.expiresAt.toDate());
+              const today = startOfDay(new Date());
+              const daysDiff = differenceInDays(expiryDate, today);
+              if (isPast(expiryDate)) {
+                subscriptionStatusLabel = 'Scaduto';
+              } else if (daysDiff <= 4) {
+                subscriptionStatusLabel = 'In scadenza';
+              } else {
+                subscriptionStatusLabel = 'Attivo';
+              }
+            } else {
+              subscriptionStatusLabel = 'Attivo';
             }
+            break;
+        }
+         if (data.activeSubscription.expiresAt) {
+          subscriptionValidityMonth = format(data.activeSubscription.expiresAt.toDate(), "MMMM yyyy", { locale: it });
+        }
+      } else if (data.subscriptionAccessStatus && data.activeSubscription) { // Abbonamento non mensile
+         switch(data.subscriptionAccessStatus) {
+          case 'pending': 
+            subscriptionStatusLabel = 'In attesa di approvazione'; 
+            break;
+          case 'expired': 
+            subscriptionStatusLabel = 'Scaduto'; 
+            break;
+          case 'active':
+            subscriptionStatusLabel = 'Attivo';
+            break;
+         }
+      }
 
-            setMemberCardProps({
-                name: `${data.name} ${data.surname}`,
-                email: data.email,
-                socioDal: socioDalYear,
-                sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
-                regulationsStatus: regulationsStatusLabel,
-                regulationsAccepted: data.regulationsAccepted,
-                regulationsAcceptedAt: data.regulationsAcceptedAt?.toDate(),
-                medicalStatus: medicalStatusLabel,
-                medicalStatusState: certStatus,
-                gymName: data.gym ? `${data.gym}, ${gymsMap.get(data.gym)}` : undefined,
-                discipline: data.discipline,
-                grade: data.lastGrade,
-                qualifica: data.qualification,
-                membershipStatus: membershipStatusLabel,
-                membershipStatusState: data.associationStatus,
-                isInsured: data.isInsured,
-                trialLessons: trialLessons,
-                trialStatus: trialStatusLabel,
-                trialStatusState: data.trialStatus,
-                subscriptionType: data.activeSubscription?.name,
-                subscriptionStatus: subscriptionStatusLabel,
-                subscriptionValidity: subscriptionValidityMonth,
-                taxCode: data.taxCode,
-                phone: data.phone,
-                birthDate: data.birthDate instanceof Timestamp ? data.birthDate.toDate() : undefined,
-                birthPlace: data.birthPlace,
-                fullAddress: data.address ? `${data.address}, ${data.streetNumber}, ${data.zipCode} ${data.city} (${data.province})` : undefined,
-                isMinor: data.isMinor,
-                parentData: data.parentData,
-            });
+      setMemberCardProps({
+        name: `${data.name} ${data.surname}`,
+        email: data.email,
+        socioDal: socioDalYear,
+        sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
+        regulationsStatus: regulationsStatusLabel,
+        regulationsAccepted: data.regulationsAccepted,
+        regulationsAcceptedAt: data.regulationsAcceptedAt?.toDate(),
+        medicalStatus: medicalStatusLabel,
+        medicalStatusState: certStatus,
+        gymName: data.gym ? `${data.gym}, ${gymsMap.get(data.gym)}` : undefined,
+        discipline: data.discipline,
+        grade: data.lastGrade,
+        qualifica: data.qualification,
+        membershipStatus: membershipStatusLabel,
+        membershipStatusState: data.associationStatus,
+        isInsured: data.isInsured,
+        trialLessons: trialLessons,
+        trialStatus: trialStatusLabel,
+        trialStatusState: trialStatus,
+        subscriptionType: data.activeSubscription?.name,
+        subscriptionStatus: subscriptionStatusLabel,
+        subscriptionValidity: subscriptionValidityMonth,
+        taxCode: data.taxCode,
+        phone: data.phone,
+        birthDate: data.birthDate instanceof Timestamp ? data.birthDate.toDate() : undefined,
+        birthPlace: data.birthPlace,
+        fullAddress: data.address ? `${data.address}, ${data.streetNumber}, ${data.zipCode} ${data.city} (${data.province})` : undefined,
+        isMinor: data.isMinor,
+        parentData: data.parentData,
+      });
 
           }
         } catch (error) {
@@ -363,17 +387,18 @@ export default function DashboardPage() {
           );
       }
 
-      if (showDataCorrectionMessage) {
-        alerts.push(
-            <Alert key="data-correction" variant="warning" className="mb-6">
-                <Mail className="h-4 w-4" />
-                <AlertTitle>Controlla i tuoi dati</AlertTitle>
-                <AlertDescription>
-                    Se hai notato errori, invia entro 1 ora una email di correzione a: <a href="mailto:segreteria@artimarzialivalledaosta.com" className="font-semibold underline">segreteria@artimarzialivalledaosta.com</a>.
-                </AlertDescription>
-            </Alert>
-        );
-      }
+    // Mostra il toast solo se non è scaduto
+    if (showDataCorrectionMessage && !localStorage.getItem('showDataCorrectionMessageExpired')) {
+    alerts.push(
+      <Alert key="data-correction" variant="warning" className="mb-6">
+        <Mail className="h-4 w-4" />
+        <AlertTitle>Controlla i tuoi dati</AlertTitle>
+        <AlertDescription>
+          Se hai notato errori, invia entro 1 ora una email di correzione a: <a href="mailto:segreteria@artimarzialivalledaosta.com" className="font-semibold underline">segreteria@artimarzialivalledaosta.com</a>.
+        </AlertDescription>
+      </Alert>
+    );
+    }
 
       if (showSubscriptionActivatedMessage && userData?.activeSubscription) {
           alerts.push(

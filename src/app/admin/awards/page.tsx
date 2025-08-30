@@ -69,7 +69,7 @@ export default function AdminAwardsPage() {
     const [isAssignOpen, setIsAssignOpen] = useState(false);
     const [selectedAward, setSelectedAward] = useState<Award | null>(null);
     const [selectedUserId, setSelectedUserId] = useState<string>("");
-    const [users, setUsers] = useState<{id: string, name: string}[]>([]);
+    const [users, setUsers] = useState<{id: string, name: string, surname?: string, discipline?: string, gym?: string}[]>([]);
 
     // Funzione per aprire il dialog di assegnazione premio
     const openAssignDialog = (award: Award) => {
@@ -82,7 +82,13 @@ export default function AdminAwardsPage() {
         const fetchUsers = async () => {
             try {
                 const snap = await getDocs(collection(db, "users"));
-                setUsers(snap.docs.map(doc => ({ id: doc.id, name: doc.data().name })));
+                setUsers(snap.docs.map(doc => ({
+                    id: doc.id,
+                    name: doc.data().name,
+                    surname: doc.data().surname,
+                    gym: doc.data().gym,
+                    discipline: doc.data().discipline
+                })));
             } catch (e) {
                 toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare gli utenti." });
             } finally {
@@ -141,7 +147,11 @@ export default function AdminAwardsPage() {
                 await updateDoc(awardRef, awardData);
                 toast({ title: "Premio aggiornato!" });
             } else {
-                await addDoc(collection(db, "awards"), awardData);
+                if (selectedUserId) {
+                    await addDoc(collection(db, `users/${selectedUserId}/awards`), awardData);
+                } else {
+                    await addDoc(collection(db, "awards"), awardData);
+                }
                 toast({ title: "Premio creato!" });
             }
 
@@ -234,7 +244,11 @@ export default function AdminAwardsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 {users.map(user => (
-                                    <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                                    <SelectItem key={user.id} value={user.id}>
+                                        {user.surname ? `${user.surname} ` : ''}{user.name}
+                                        {user.gym ? ` - ${user.gym}` : ''}
+                                        {user.discipline ? ` - ${user.discipline}` : ''}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

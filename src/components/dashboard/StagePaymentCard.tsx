@@ -69,8 +69,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
   const handleGymPayment = async () => {
     // Crea il documento pagamento in Firestore
     try {
-      await addDoc(collection(db, "payments"), {
-        userId,
+      await addDoc(collection(db, `users/${userId}/payments`), {
         eventId,
         amount: finalPrice,
         method: "gym",
@@ -116,8 +115,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
   const handleOnlinePayment = async () => {
     // Crea il documento pagamento in Firestore
     try {
-      await addDoc(collection(db, "payments"), {
-        userId,
+      await addDoc(collection(db, `users/${userId}/payments`), {
         eventId,
         amount: finalPrice,
         method: "online",

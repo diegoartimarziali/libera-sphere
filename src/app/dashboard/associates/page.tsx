@@ -467,7 +467,10 @@ function AssociatesPageContent() {
 
             await Promise.all([updateDoc(userDocRef, dataToUpdate), paymentDocPromise]);
             
-            sessionStorage.setItem('showDataCorrectionMessage', new Date().toISOString());
+            // Imposta il flag solo se non è già scaduto
+            if (!localStorage.getItem('showDataCorrectionMessageExpired')) {
+                sessionStorage.setItem('showDataCorrectionMessage', new Date().toISOString());
+            }
 
             toast({ title: "Richiesta Inviata", description: "La tua domanda di associazione è stata inviata. Verrai reindirizzato alla dashboard." });
             router.push("/dashboard");
