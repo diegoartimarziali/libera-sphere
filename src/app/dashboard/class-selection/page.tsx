@@ -725,13 +725,15 @@ export default function ClassSelectionPage() {
             }
 
             if (awardToAssign) {
-                const userAwardsRef = doc(collection(db, "userAwards"));
-                batch.set(userAwardsRef, {
-                    userId: user.uid,
-                    awardId: awardToAssign.id,
-                    awardName: awardToAssign.name,
-                    awardValue: awardToAssign.value,
+                const userAwardDocRef = doc(db, "users", user.uid, "userAwards", awardToAssign.id);
+                batch.set(userAwardDocRef, {
                     assignedAt: serverTimestamp(),
+                    awardId: awardToAssign.id,
+                    name: awardToAssign.name,
+                    value: awardToAssign.value,
+                    residuo: awardToAssign.value,
+                    used: false,
+                    usedValue: 0,
                     reason: "Iscrizione lezioni di prova",
                 });
             }

@@ -127,21 +127,23 @@ const InfoRow = ({ icon: Icon, text }: { icon: React.ElementType, text: string }
 function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, gyms: Gym[], onSave: (data: StageFormData) => void, onCancel: () => void }) {
     const form = useForm<StageFormData>({
         resolver: zodResolver(stageFormSchema),
-        defaultValues: stage || {
-            title: '',
-            alertDate: '',
-            requireConfirmation: false,
-            type: 'stage',
-            discipline: 'karate',
-            startDate: format(new Date(), 'yyyy-MM-dd'),
-            endDate: format(new Date(), 'yyyy-MM-dd'),
-            startTime: '09:00',
-            endTime: '18:00',
-            location: '',
-            description: '',
-            price: 0,
-            open_to: 'Tutti',
-            imageUrl: ''
+        defaultValues: {
+            title: stage?.title ?? '',
+            alertDate: stage?.alertDate ?? '',
+            requireConfirmation: stage?.requireConfirmation ?? false,
+            type: stage?.type ?? 'stage',
+            discipline: stage?.discipline ?? 'karate',
+            startDate: stage?.startDate ?? format(new Date(), 'yyyy-MM-dd'),
+            endDate: stage?.endDate ?? format(new Date(), 'yyyy-MM-dd'),
+            startTime: stage?.startTime ?? '09:00',
+            endTime: stage?.endTime ?? '18:00',
+            location: stage?.location ?? '',
+            description: stage?.description ?? '',
+            price: stage?.price ?? 0,
+            open_to: stage?.open_to ?? 'Tutti',
+            imageUrl: stage?.imageUrl ?? '',
+            iconUrl: stage?.iconUrl ?? '',
+            sumupUrl: stage?.sumupUrl ?? ''
         }
     });
 
@@ -177,13 +179,6 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                             </Select>
                         <FormMessage /></FormItem>
                     )} />
-                    <FormField control={form.control} name="alertDate" render={({ field }) => (
-                        <FormItem><FormLabel>Data Alert</FormLabel>
-                            <FormControl><Input type="date" {...field} /></FormControl>
-                        <FormMessage /></FormItem>
-                    )} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="location" render={({ field }) => (
                         <FormItem><FormLabel>Luogo</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -199,45 +194,43 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                             <FormMessage />
                         </FormItem>
                     )} />
-                    <FormField control={form.control} name="description" render={({ field }) => (
-                        <FormItem><FormLabel>Descrizione</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="title" render={({ field }) => (
                         <FormItem><FormLabel>Titolo Evento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
-                    <FormField control={form.control} name="requireConfirmation" render={({ field }) => (
-                        <FormItem><FormLabel>Richiedi Partecipazione</FormLabel>
-                            <Select onValueChange={v => field.onChange(v === 'true')} defaultValue={field.value ? 'true' : 'false'}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="SI/NO" /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    <SelectItem value="true">SI</SelectItem>
-                                    <SelectItem value="false">NO</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        <FormMessage /></FormItem>
+                    <FormField control={form.control} name="description" render={({ field }) => (
+                        <FormItem><FormLabel>Descrizione</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
-                        <FormItem><FormLabel>Data Inizio</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Data</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
-                    <FormField control={form.control} name="startTime" render={({ field }) => (
-                        <FormItem><FormLabel>Ora Inizio</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormField control={form.control} name="alertDate" render={({ field }) => (
+                        <FormItem><FormLabel>Data Alert</FormLabel>
+                            <FormControl><Input type="date" {...field} /></FormControl>
+                        <FormMessage /></FormItem>
                     )} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                    <FormField control={form.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel>Data Fine</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormField control={form.control} name="startTime" render={({ field }) => (
+                        <FormItem><FormLabel>Ora Inizio</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="endTime" render={({ field }) => (
                         <FormItem><FormLabel>Ora Fine</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                     <FormField control={form.control} name="price" render={({ field }) => (
                         <FormItem><FormLabel>Prezzo (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="sumupUrl" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Link SumUp Pagamento</FormLabel>
+                            <FormControl><Input {...field} placeholder="https://sumup.it/pay/xyz" /></FormControl>
+                            <FormMessage />
+                        </FormItem>
                     )} />
                     <FormField control={form.control} name="open_to" render={({ field }) => (
                         <FormItem>
@@ -257,31 +250,19 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         </FormItem>
                     )} />
                 </div>
-                <FormField control={form.control} name="imageUrl" render={({ field }) => (
-                    <FormItem><FormLabel>URL Immagine</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="sumupUrl" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Link SumUp Pagamento</FormLabel>
-                        <FormDescription>
-                            Inserisci il link SumUp per il pagamento online dello stage. Il link deve essere generato da SumUp e iniziare con <b>https://</b>.<br />
-                            Se lasci vuoto, il pagamento online non sarà disponibile per questo evento.
-                        </FormDescription>
-                        <FormControl><Input {...field} placeholder="https://sumup.it/pay/xyz" /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+                <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name="imageUrl" render={({ field }) => (
+                        <FormItem><FormLabel>URL Immagine</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
+                    )} />
                     <FormField control={form.control} name="iconUrl" render={({ field }) => (
                         <FormItem>
                             <FormLabel>URL Icona Quadrata Evento</FormLabel>
-                            <FormDescription>
-                                Inserisci l'URL di un'immagine quadrata (preferibilmente 1:1) che verrà usata come icona per la visualizzazione compatta dell'evento nella pagina utente.<br />
-                                Esempio: https://images.unsplash.com/...
-                            </FormDescription>
                             <FormControl><Input {...field} placeholder="https://..." /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
+                </div>
+                    {/* ...existing code... */}
                 <DialogFooter>
                     <Button type="button" variant="ghost" onClick={onCancel}>Annulla</Button>
                     <Button type="submit">Salva Evento</Button>
