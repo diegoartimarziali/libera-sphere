@@ -19,50 +19,65 @@ interface StagePaymentCardProps {
   eventId: string;
 }
 
-export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, eventId }: StagePaymentCardProps) {
+// Aggiungi la prop opzionale onRefresh
+interface StagePaymentCardProps {
+  title: string;
+  price: number;
+  sumupUrl?: string;
+  onClose: () => void;
+  userId: string;
+  eventId: string;
+  eventType: string;
+  discipline: string;
+  onRefresh?: () => void;
+}
+
+export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, eventId, eventType, discipline, onRefresh }: StagePaymentCardProps) {
   const [awardId, setAwardId] = useState<string | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const { toast } = useToast();
   const [bonusBalance, setBonusBalance] = useState<number>(0);
   const [isLoadingBonus, setIsLoadingBonus] = useState(true);
-  const [useBonus, setUseBonus] = useState(false);
+  // Bonus viene usato automaticamente se disponibile
+  const useBonus = bonusBalance > 0;
 
+  const fetchBonusBalance = async () => {
+    try {
+      // Recupera il bonus dalla sottocollezione userAwards dell'utente
+      const userAwardsQuery = collection(db, `users/${userId}/userAwards`);
+      const userAwardsSnap = await getDocs(userAwardsQuery);
+      let found = false;
+      userAwardsSnap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
+        const data = docSnap.data() as {
+          residuo?: number;
+          used?: boolean;
+        };
+        // Considera solo premi non completamente utilizzati
+        if ((data.residuo || 0) > 0 && !data.used) {
+          setBonusBalance(data.residuo || 0);
+          setAwardId(docSnap.id);
+          found = true;
+        }
+      });
+      if (!found) setBonusBalance(0);
+    } catch (error) {
+      console.error("Errore nel recupero del bonus:", error);
+      toast({
+        variant: "destructive",
+        title: "Errore",
+        description: "Impossibile recuperare il saldo bonus."
+      });
+    } finally {
+      setIsLoadingBonus(false);
+    }
+  };
   useEffect(() => {
-    const fetchBonusBalance = async () => {
-      try {
-        // Recupera il bonus dalla sottocollezione userAwards dell'utente
-        const userAwardsQuery = collection(db, `users/${userId}/userAwards`);
-        const userAwardsSnap = await getDocs(userAwardsQuery);
-        let found = false;
-        userAwardsSnap.forEach((docSnap: QueryDocumentSnapshot<DocumentData>) => {
-          const data = docSnap.data() as {
-            residuo?: number;
-            used?: boolean;
-          };
-          // Considera solo premi non completamente utilizzati
-          if ((data.residuo || 0) > 0 && !data.used) {
-            setBonusBalance(data.residuo || 0);
-            setAwardId(docSnap.id);
-            found = true;
-          }
-        });
-        if (!found) setBonusBalance(0);
-      } catch (error) {
-        console.error("Errore nel recupero del bonus:", error);
-        toast({
-          variant: "destructive",
-          title: "Errore",
-          description: "Impossibile recuperare il saldo bonus."
-        });
-      } finally {
-        setIsLoadingBonus(false);
-      }
-    };
     fetchBonusBalance();
   }, [userId, toast]);
 
-  const finalPrice = useBonus ? Math.max(0, price - bonusBalance) : price;
-  const bonusToUse = useBonus ? Math.min(price, bonusBalance) : 0;
+  // Se il bonus è sufficiente, bonusToUse = price, altrimenti bonusToUse = bonusBalance
+  const bonusToUse = useBonus ? (bonusBalance >= price ? price : bonusBalance) : 0;
+  const finalPrice = useBonus ? Math.max(0, price - bonusToUse) : price;
 
   const handleGymPayment = async () => {
     // Crea il documento pagamento in Firestore
@@ -75,6 +90,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
         createdAt: Timestamp.now(),
         eventTitle: title,
         bonusUsed: bonusToUse,
+        description: `Tipologia Evento: ${eventType} - Disciplina: ${discipline}`,
       });
     } catch (error) {
       toast({
@@ -86,10 +102,16 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
     }
     if (useBonus && bonusToUse > 0 && awardId) {
       try {
-        await updateUserBonus(awardId, userId, bonusToUse);
+        // Log di debug per bonusToUse
+        console.log('Chiamo updateUserBonus con:', { awardId, userId, bonusToUse });
+        // Garantisco che bonusToUse non superi il residuo
+        const safeBonusToUse = Math.min(bonusBalance, bonusToUse);
+        await updateUserBonus(awardId, userId, safeBonusToUse);
+        await fetchBonusBalance(); // Aggiorna lo stato bonus locale
+        if (onRefresh) onRefresh(); // Aggiorna la UI premi nel wallet
         toast({
           title: "Bonus applicato",
-          description: `Utilizzati ${bonusToUse}€ dal tuo bonus. ${finalPrice > 0 ? 'Porta il saldo rimanente in palestra.' : 'Iscrizione completata!'}`,
+          description: `Utilizzati ${safeBonusToUse}€ dal tuo bonus. ${finalPrice > 0 ? 'Porta il saldo rimanente in palestra.' : 'Iscrizione completata!'}`,
         });
       } catch (error) {
         toast({
@@ -121,6 +143,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
         createdAt: Timestamp.now(),
         eventTitle: title,
         bonusUsed: bonusToUse,
+        description: `Tipologia Evento: ${eventType} - Disciplina: ${discipline}`,
       });
     } catch (error) {
       toast({
@@ -132,10 +155,15 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
     }
     if (useBonus && bonusToUse > 0 && awardId) {
       try {
-        await updateUserBonus(awardId, userId, bonusToUse);
+        // Log di debug per bonusToUse
+        console.log('Chiamo updateUserBonus con:', { awardId, userId, bonusToUse });
+        // Garantisco che bonusToUse non superi il residuo
+        const safeBonusToUse = Math.min(bonusBalance, bonusToUse);
+        await updateUserBonus(awardId, userId, safeBonusToUse);
+        await fetchBonusBalance(); // Aggiorna lo stato bonus dopo pagamento
         toast({
           title: "Bonus applicato",
-          description: `Utilizzati ${bonusToUse}€ dal tuo bonus.`,
+          description: `Utilizzati ${safeBonusToUse}€ dal tuo bonus.`,
         });
       } catch (error) {
         toast({
@@ -196,10 +224,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
           <CardTitle className="text-2xl font-bold text-[var(--my-marscuro)]">
             {title}
           </CardTitle>
-          <CardDescription className="text-xl font-semibold">
-            <Euro className="inline-block mr-1 h-5 w-5" />
-            {price.toFixed(2)} €
-          </CardDescription>
+          {/* Rimosso prezzo stage doppio sotto il titolo */}
         </CardHeader>
         <CardContent className="space-y-6">
           {isLoadingBonus ? (
@@ -212,53 +237,50 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
                 <div className="text-center text-lg text-muted-foreground">
                   Scegli la modalità di pagamento
                 </div>
+                {/* Visualizza il bonus residuo solo una volta, in modo chiaro */}
                 <div className="flex flex-col items-center gap-1 mb-2">
-                  <span className="text-sm text-muted-foreground">Bonus residuo nel wallet: <span className="font-bold text-green-700">{bonusBalance}€</span></span>
+                  <span className="text-sm font-bold text-green-700">Premi da utilizzare: {bonusBalance}€</span>
                 </div>
-                {bonusBalance > 0 && (
-                  <div className="flex items-center space-x-2 p-4 bg-gray-50 rounded-lg">
-                    <Checkbox
-                      id="useBonus"
-                      checked={useBonus}
-                      onCheckedChange={(checked) => setUseBonus(checked as boolean)}
-                    />
-                    <Label htmlFor="useBonus" className="flex-1">
-                      Usa il tuo bonus disponibile: {bonusBalance}€
-                    </Label>
-                  </div>
-                )}
+                {/* Nessun messaggio automatico sul bonus */}
                 <div className="text-center font-semibold">
                   {useBonus && bonusToUse > 0 ? (
                     <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground line-through">
+                      <p className="text-2xl font-bold text-muted-foreground">
                         Prezzo stage: {price}€
-                      </p>
-                      <p className="text-lg text-green-700">
-                        Bonus utilizzato: -{bonusToUse}€
                       </p>
                       <p className="text-xl text-green-600">
                         Da pagare: {finalPrice}€
                       </p>
-                      <p className="text-xs text-muted-foreground">Bonus residuo dopo pagamento: <span className="font-bold">{bonusBalance - bonusToUse}€</span></p>
                     </div>
                   ) : (
                     <>
                       <p className="text-xl">Prezzo stage: {price}€</p>
-                      <p className="text-xs text-muted-foreground">Bonus residuo nel wallet: <span className="font-bold">{bonusBalance}€</span></p>
+                      {/* Bonus residuo già visualizzato sopra, non serve qui */}
                     </>
                   )}
                 </div>
               </div>
               <div className="grid gap-4">
-                <Button 
-                  variant="outline"
-                  size="lg"
-                  className="w-full text-lg font-medium border-2 border-[var(--my-marscuro)] hover:bg-[var(--my-marscuro)] hover:text-white transition-colors"
-                  onClick={() => setShowConfirmDialog(true)}
-                >
-                  Paga in Palestra
-                </Button>
-                {sumupUrl && (
+                {finalPrice === 0 ? (
+                  <Button 
+                    variant="default"
+                    size="lg"
+                    className="w-full text-lg font-bold bg-green-600 hover:bg-green-700 text-white"
+                    onClick={handleGymPayment}
+                  >
+                    Iscriviti
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline"
+                    size="lg"
+                    className="w-full text-lg font-medium border-2 border-[var(--my-marscuro)] hover:bg-[var(--my-marscuro)] hover:text-white transition-colors"
+                    onClick={() => setShowConfirmDialog(true)}
+                  >
+                    Paga in Palestra
+                  </Button>
+                )}
+                {sumupUrl && finalPrice > 0 && (
                   <Button
                     size="lg" 
                     className="w-full text-lg font-medium bg-[var(--my-arancio)] hover:bg-[var(--my-aranscuro)] text-white transition-colors"
@@ -274,18 +296,14 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
       </Card>
 
       {/* Dialog di conferma pagamento palestra */}
-      {showConfirmDialog && (
+      {showConfirmDialog && finalPrice > 0 && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={() => setShowConfirmDialog(false)}>
           <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
             <h2 className="text-xl font-bold mb-2">Conferma pagamento in palestra</h2>
             <div className="mb-4 space-y-1">
               <div className="font-semibold">Importo stage: {price}€</div>
-              <div className="font-semibold">Bonus residuo nel wallet: <span className="text-green-700">{bonusBalance}€</span></div>
-              {bonusToUse > 0 && (
-                <div className="font-semibold text-green-700">Bonus utilizzato: -{bonusToUse}€</div>
-              )}
+              <div className="font-semibold">Premi da utilizzare: <span className="text-green-700">{bonusBalance}€</span></div>
               <div className="font-bold text-lg">Da pagare in palestra: {finalPrice}€</div>
-              <div className="text-xs text-muted-foreground">Bonus residuo dopo pagamento: <span className="font-bold">{bonusBalance - bonusToUse}€</span></div>
             </div>
             <div className="flex gap-2 justify-end mt-6">
               <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>Annulla</Button>

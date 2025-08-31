@@ -46,11 +46,11 @@ export default function AdminAwardsPage() {
     const handleAssignAward = async () => {
         if (!selectedAward || !selectedUserId) return;
         try {
-            await createUserAward({
-                userId: selectedUserId,
-                awardId: selectedAward.id,
-                value: selectedAward.value
-            });
+            // Usa la nuova funzione con tutti i campi
+            const { id, name, value } = selectedAward;
+            await import('@/lib/userAwards').then(mod =>
+                mod.createUserAward(selectedUserId, id, name, value)
+            );
             toast({ title: "Premio assegnato!" });
             setIsAssignOpen(false);
             setSelectedUserId("");

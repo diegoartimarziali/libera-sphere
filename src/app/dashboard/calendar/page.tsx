@@ -290,6 +290,8 @@ export default function CalendarPage() {
                                         onClose={() => setShowPayment(false)}
                                         userId={user?.uid || ''}
                                         eventId={selectedEvent.id}
+                                        eventType={selectedEvent.type || ""}
+                                        discipline={selectedEvent.discipline || ""}
                                     />
                                 </div>
                             </div>
