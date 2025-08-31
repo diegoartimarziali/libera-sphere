@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed, Mail, CheckCircle } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
+import { TotalAwardsCard } from "@/components/dashboard/TotalAwardsCard"
 import { AttendancePrompt } from "@/components/dashboard/AttendancePrompt"
 
 interface UserData {
@@ -555,8 +556,11 @@ export default function DashboardPage() {
 
       {dataLoading ? <Skeleton className="h-24 w-full mb-6" /> : renderInfoAlerts()}
       
-       <div className="flex justify-center">
+      <div className="flex flex-col items-center">
         <div className="w-full max-w-2xl">
+          <TotalAwardsCard />
+        </div>
+        <div className="w-full max-w-2xl mt-2">
           {dataLoading || !memberCardProps ? (
             <Card>
               <CardHeader className="flex flex-col items-center p-4 text-center">

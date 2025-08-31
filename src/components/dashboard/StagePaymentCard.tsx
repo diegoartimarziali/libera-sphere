@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Euro, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, QueryDocumentSnapshot, DocumentData, collection, addDoc, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, QueryDocumentSnapshot, DocumentData, collection, addDoc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { getDocs } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -60,9 +60,11 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
   const finalPrice = useBonus ? Math.max(0, price - bonusToUse) : price;
 
   const handleGymPayment = async () => {
-    // Crea il documento pagamento in Firestore
+    // Calcola gli awardId usati per il pagamento bonus
+    const awardIdsUsati = userAwards.filter(a => !a.used && a.residuo > 0).map(a => a.id);
+    let paymentDocRef;
     try {
-      await addDoc(collection(db, `users/${userId}/payments`), {
+      paymentDocRef = await addDoc(collection(db, `users/${userId}/payments`), {
         eventId,
         amount: finalPrice,
         method: "gym",
@@ -70,6 +72,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
         createdAt: Timestamp.now(),
         eventTitle: title,
         bonusUsed: bonusToUse,
+        awardId: awardIdsUsati.length === 1 ? awardIdsUsati[0] : awardIdsUsati,
         description: `Tipologia Evento: ${eventType} - Disciplina: ${discipline}`,
       });
     } catch (error) {
@@ -80,6 +83,41 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
       });
       return;
     }
+
+  // Listener per aggiornamento pagamento a "failed" (rimborso bonus)
+  onSnapshot(paymentDocRef, async (docSnap: import('firebase/firestore').DocumentSnapshot<DocumentData>) => {
+      const data = docSnap.data();
+      if (data && data.status === 'failed' && data.bonusUsed > 0 && data.awardId) {
+        // Rimborso bonus
+        const { refundUserBonus } = await import('@/lib/refundUserBonus');
+        await refundUserBonus(userId, data.awardId, data.bonusUsed);
+        await fetchUserAwards(); // Aggiorna la UI premi
+        toast({
+          title: "Bonus riaccreditato",
+          description: `Il tuo bonus di ${data.bonusUsed}€ è stato riaccreditato perché il pagamento non è stato accettato.`,
+          variant: "success"
+        });
+      }
+    });
+
+  // Listener per aggiornamento pagamento a "completed"
+  onSnapshot(paymentDocRef, async (docSnap: import('firebase/firestore').DocumentSnapshot<DocumentData>) => {
+      const data = docSnap.data();
+      if (data && data.status === 'completed') {
+        // Aggiungi presenza solo se non già registrata
+        const attendancesRef = collection(db, `users/${userId}/attendances`);
+        await addDoc(attendancesRef, {
+          lessonDate: Timestamp.now(),
+          lessonTime: '',
+          discipline,
+          gymName: '',
+          status: 'presente',
+          eventId,
+          eventType,
+          eventTitle: title
+        });
+      }
+    });
     if (useBonus && bonusToUse > 0) {
       let importoDaScalare = bonusToUse;
       for (const award of userAwards.filter(a => !a.used && a.residuo > 0)) {
@@ -172,16 +210,23 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
                 {/* Visualizza il bonus residuo solo una volta, in modo chiaro */}
                 <div className="flex flex-col items-center gap-1 mb-2">
                   <span className="text-sm font-bold text-green-700">Bonus totale disponibile: {totalBonus}€</span>
-                  {userAwards.filter(a => !a.used && a.residuo > 0).length > 0 && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Premi residui:
-                      <ul className="list-disc ml-4">
-                        {userAwards.filter(a => !a.used && a.residuo > 0).map(a => (
-                          <li key={a.id}>{a.name || 'Premio'}: {a.residuo}€</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Premi nel wallet:
+                    <ul className="list-disc ml-4">
+                      {/* Premi attivi sopra */}
+                      {userAwards.filter(a => !a.used && a.residuo > 0).map(a => (
+                        <li key={a.id} className="font-semibold text-green-700">
+                          {a.name || 'Premio'}: {a.residuo}€
+                        </li>
+                      ))}
+                      {/* Premi esauriti sotto */}
+                      {userAwards.filter(a => a.used || a.residuo === 0).map(a => (
+                        <li key={a.id} className="text-muted-foreground">
+                          {a.name || 'Premio'}: 0€ <span className="italic">(esaurito)</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
                 {/* Nessun messaggio automatico sul bonus */}
                 <div className="text-center font-semibold">

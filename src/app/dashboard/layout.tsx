@@ -2,6 +2,7 @@
 "use client"
 
 import { useEffect, useState, ReactNode, useCallback } from "react"
+import { UserAwardsProvider } from "@/context/UserAwardsContext"
 import Link from "next/link"
 import { usePathname, redirect, useRouter } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
@@ -133,7 +134,6 @@ function DashboardHeader({
     showMenu: boolean,
 }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-
     return (
         <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-dark-brown text-title-yellow px-4 sm:px-6 justify-between">
             <div className="flex items-center gap-4">
@@ -142,40 +142,37 @@ function DashboardHeader({
                         <SheetTrigger asChild>
                             <Button variant="outline" className="border-title-yellow text-title-yellow hover:bg-white/20 hover:text-title-yellow">
                                 <Menu className="h-5 w-5" />
-                                <span className="ml-2 font-semibold hidden sm:inline">MENU</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="sm:max-w-xs">
-                            <div>
-                                <SheetHeader>
-                                    <SheetTitle className="sr-only">Menu Principale</SheetTitle>
-                                </SheetHeader>
-                                <nav className="grid gap-6 text-lg font-medium">
-                                    <SheetClose asChild>
-                                        <Link
-                                            href="/dashboard"
-                                            className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                        <SheetContent side="left" className="p-0">
+                            <SheetHeader>
+                                <SheetTitle>Menu</SheetTitle>
+                            </SheetHeader>
+                            <nav className="flex flex-col gap-1 p-4">
+                                <SheetClose asChild>
+                                    <Link
+                                        href="/dashboard"
+                                        className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            className="h-5 w-5 transition-all group-hover:scale-110"
                                         >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                strokeWidth="2"
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                className="h-5 w-5 transition-all group-hover:scale-110"
-                                            >
-                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                                                <path d="M12 12L16 8"></path>
-                                                <path d="M12 6v6l4 2"></path>
-                                            </svg>
-                                            <span className="sr-only">LiberaSphere</span>
-                                        </Link>
-                                    </SheetClose>
-                                    <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
-                                </nav>
-                            </div>
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                                            <path d="M12 12L16 8"></path>
+                                            <path d="M12 6v6l4 2"></path>
+                                        </svg>
+                                        <span className="sr-only">LiberaSphere</span>
+                                    </Link>
+                                </SheetClose>
+                                <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
+                            </nav>
                         </SheetContent>
                     </Sheet>
                  )}
@@ -344,14 +341,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const showMenu = !isUserOnboarding;
   
-  return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-        <DashboardHeader 
-            onLogout={handleLogout} 
-            userData={userData} 
-            showMenu={showMenu}
-        />
-        <main className="flex-1 p-4 md:p-8">{children}</main>
-    </div>
-  )
+return (
+    <UserAwardsProvider>
+        <div className="flex min-h-screen w-full flex-col bg-background">
+            <DashboardHeader 
+                onLogout={handleLogout} 
+                userData={userData} 
+                showMenu={showMenu}
+            />
+            <main className="flex-1 p-4 md:p-8">{children}</main>
+        </div>
+    </UserAwardsProvider>
+)
 }

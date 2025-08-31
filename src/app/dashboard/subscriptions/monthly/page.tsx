@@ -138,6 +138,42 @@ export default function MonthlySubscriptionPage() {
 
     // Carica bonus e dati abbonamento/utente
     useEffect(() => {
+        // Listener rimborso bonus su pagamento fallito
+        if (user) {
+            import('firebase/firestore').then(({ collection, query, onSnapshot }) => {
+                const paymentsRef = collection(db, 'users', user.uid, 'payments');
+                const q = query(paymentsRef);
+                onSnapshot(q, async (snapshot) => {
+                    snapshot.docChanges().forEach(async change => {
+                        const data = change.doc.data();
+                        if (
+                            data.status === 'failed' &&
+                            data.bonusUsed > 0 &&
+                            data.awardId
+                        ) {
+                            // Rimborso bonus già gestito lato server, aggiorna UI e notifica
+                            const bonusSnap = await getDocs(collection(db, 'users', user.uid, 'userAwards'));
+                            const bonus = await Promise.all(bonusSnap.docs.map(async docSnap => {
+                                const d = docSnap.data();
+                                let value = 0;
+                                if (d.awardId) {
+                                    const awardDoc = await getDoc(doc(db, 'awards', d.awardId));
+                                    if (awardDoc.exists()) value = awardDoc.data().value || 0;
+                                }
+                                return { id: docSnap.id, value, used: d.used };
+                            }));
+                            setBonusDisponibili(bonus.filter(b => !b.used));
+                            setTotaleBonus(bonus.filter(b => !b.used).reduce((acc, b) => acc + (b.value || 0), 0));
+                            toast({
+                                title: "Bonus riaccreditato",
+                                description: `Il tuo bonus di ${data.bonusUsed}€ è stato riaccreditato perché il pagamento non è stato accettato.`,
+                                variant: "success"
+                            });
+                        }
+                    });
+                });
+            });
+        }
         if (!user) {
             setLoading(false);
             return;
@@ -267,16 +303,18 @@ export default function MonthlySubscriptionPage() {
             await batch.commit();
             // Registra pagamento anche se importo 0 (bonus)
             const paymentsRef = collection(db, "users", user!.uid, "payments");
+            // Calcola gli awardId usati per il pagamento bonus
+            const awardIdsUsati = bonusUsati.map(b => b.id);
             await addDoc(paymentsRef, {
                 createdAt: serverTimestamp(),
-                description: method === 'bonus'
-                    ? `Pagamento coperto da premio (${valoreUsato.toFixed(2)} €)`
-                    : `Abbonamento ${subscription.name}`,
+                description: `Abbonamento ${subscription.name} (${subscription.totalPrice.toFixed(2)} €)`,
                 amount: Math.max(0, subscription.totalPrice - valoreUsato),
                 paymentMethod: method,
                 status: 'pending',
                 type: 'subscription',
-                userId: user!.uid
+                userId: user!.uid,
+                bonusUsed: valoreUsato,
+                awardId: awardIdsUsati.length === 1 ? awardIdsUsati[0] : awardIdsUsati
             });
 
             toast({ title: "Richiesta Inviata!", description: `Pagamento: €${Math.max(0, subscription.totalPrice - valoreUsato).toFixed(2)}. Bonus usati: €${valoreUsato.toFixed(2)}.`, });
