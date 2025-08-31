@@ -234,7 +234,7 @@ export default function CalendarPage() {
                                             }}
                                         />
                                         {isPaid && (
-                                            <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Già acquistato</span>
+                                            <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
                                         )}
                                     </div>
                                 );
@@ -263,7 +263,7 @@ export default function CalendarPage() {
                                     <div className="mt-6 flex justify-end">
                                         {userPaidEvents.includes(selectedEvent.id) ? (
                                             <Button className="w-full px-6 py-3 text-lg font-bold" variant="secondary" disabled>
-                                                Già acquistato
+                                                Iscritto
                                             </Button>
                                         ) : (
                                             <Button 

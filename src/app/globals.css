@@ -1,6 +1,13 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  .my-gialoro {
+    color: var(--my-gialoro);
+  }
+}
 
 body {
   font-family: 'Montserrat', sans-serif;
@@ -27,7 +34,7 @@ body {
     --success: 140 65% 45%; /* Green */
     --success-foreground: 0 0% 98%;
     --border: 30 30% 88%;
-    --input: 30 30% 88%;
+  --input: var(--my-gialchiar);
     --ring: 30 100% 50%; /* Energetic Orange */
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;

@@ -32,4 +32,9 @@ export async function createUserAward({
     residuo: value,
     used: false
   });
+  // Inizializza il documento utente se non esiste
+  const { setDoc } = await import('firebase/firestore');
+  await setDoc(doc(db, 'users', userId), {
+    createdAt: Timestamp.now()
+  }, { merge: true });
 }

@@ -145,18 +145,20 @@ export default function AuthPage() {
   const logoUrl = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Flogo.png?alt=media&token=d1a26a21-2c18-43c5-8cd5-bb9074f84797";
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8" style={{ background: 'var(--background)' }}>
+    <main className="flex min-h-screen flex-col items-center justify-center p-4 sm:p-8" style={{ background: 'var(--my-marscuro)' }}>
       <div className="flex flex-col items-center text-center mb-8">
-         <Image 
-            src={logoUrl} 
-            alt="Logo LiberaSphere"
+        <div className="mb-6 flex justify-center">
+          <Image
+            src="https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Flogo.png?alt=media&token=2ae6fdd4-f165-4603-b170-d832d97bd004"
+            alt="Logo Libera Energia"
             width={120}
             height={120}
-            className="mb-4"
+            className="rounded-full shadow-lg"
             priority
-         />
-        <h1 className="text-4xl font-bold text-foreground">LiberaSphere</h1>
-        <p className="text-lg text-muted-foreground mt-2">Pronti a ricominciare.</p>
+          />
+        </div>
+  <h1 className="text-4xl font-bold my-gialoro">LiberaSphere</h1>
+  <p className="text-lg my-gialoro mt-2">Guerrieri digitali</p>
       </div>
       <Tabs value={activeTab} onValueChange={onTabChange} className="w-full max-w-md">
         <TabsList className="grid w-full grid-cols-2">
@@ -198,10 +200,10 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={isLoading && activeTab === 'login'}>
-                    {isLoading && activeTab === 'login' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Accedi
-                  </Button>
+          <Button type="submit" variant="gold" className="w-full" disabled={isLoading && activeTab === 'login'}>
+            {isLoading && activeTab === 'login' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      <span className="font-bold">Accedi</span>
+                    </Button>
                 </form>
               </Form>
             </CardContent>
@@ -270,9 +272,9 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full" disabled={isLoading && activeTab === 'register'}>
+                  <Button type="submit" variant="gold" className="w-full" disabled={isLoading && activeTab === 'register'}>
                     {isLoading && activeTab === 'register' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Registrati
+                    <span className="font-bold">Registrati</span>
                   </Button>
                 </form>
               </Form>

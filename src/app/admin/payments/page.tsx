@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -32,6 +31,8 @@ interface Payment {
     paymentMethod: 'online' | 'in_person' | 'bank_transfer' | 'bonus';
     status: 'pending' | 'completed' | 'failed';
     type: 'association' | 'trial' | 'subscription';
+    awardId?: string;
+    bonusUsed?: number;
 }
 
 interface UserAward {
@@ -239,6 +240,17 @@ export default function AdminPaymentsPage() {
             const paymentDocRef = doc(db, 'users', payment.userId, 'payments', payment.id);
 
             batch.update(paymentDocRef, { status: newStatus });
+
+            if (
+              newStatus === 'failed' &&
+              payment.awardId &&
+              typeof payment.bonusUsed === 'number' &&
+              payment.bonusUsed > 0
+            ) {
+              // Rimborso bonus
+              const { refundUserBonus } = await import('@/lib/refundUserBonus');
+              await refundUserBonus(payment.userId, payment.awardId, payment.bonusUsed!);
+            }
 
             if (newStatus === 'completed') {
                  if (payment.type === 'association') {

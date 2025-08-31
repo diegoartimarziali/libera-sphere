@@ -25,6 +25,9 @@ interface Award {
     id: string;
     name: string;
     value: number;
+    residuo: number;
+    used: boolean;
+    usedValue: number;
 }
 
 const awardFormSchema = z.object({
@@ -140,6 +143,9 @@ export default function AdminAwardsPage() {
             const awardData: Omit<Award, 'id'> = {
                 name: data.name,
                 value: data.value,
+                residuo: data.value,
+                used: false,
+                usedValue: 0
             };
 
             if (editingAward) {

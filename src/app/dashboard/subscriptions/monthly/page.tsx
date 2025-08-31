@@ -254,9 +254,14 @@ export default function MonthlySubscriptionPage() {
             });
             // Segna bonus usati nella sottocollezione utente
             for (const b of bonusUsati) {
+                // Recupera il valore iniziale del bonus
+                const bonusDoc = bonusDisponibili.find(bonus => bonus.id === b.id);
+                const valoreIniziale = bonusDoc?.value || 0;
+                const residuo = Math.max(0, valoreIniziale - b.value);
                 batch.update(doc(db, "users", user!.uid, "userAwards", b.id), {
-                    used: true,
-                    usedValue: b.value
+                    used: residuo === 0,
+                    usedValue: b.value,
+                    residuo
                 });
             }
             await batch.commit();
@@ -352,9 +357,12 @@ export default function MonthlySubscriptionPage() {
                             <DialogHeader>
                                 <DialogTitle>Scegli Metodo di Pagamento</DialogTitle>
                                 <DialogDescription>
-                                    Prezzo abbonamento: <b>€{availableSubscription.totalPrice.toFixed(2)}</b><br />
-                                    Bonus utilizzabili: <b>€{totaleBonus.toFixed(2)}</b><br />
-                                    <span className="text-green-700">Prezzo finale: <b>€{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</b></span>
+                                                                        Prezzo abbonamento: <b>€{availableSubscription.totalPrice.toFixed(2)}</b><br />
+                                                                        Bonus utilizzabili: <b>€{totaleBonus.toFixed(2)}</b><br />
+                                                                        <span className="text-green-700">Prezzo finale: <b>€{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</b></span><br />
+                                                                        {Math.max(0, availableSubscription.totalPrice - totaleBonus) === 0 && (
+                                                                            <span className="text-green-700">Residuo bonus dopo il pagamento: <b>€{(totaleBonus - availableSubscription.totalPrice).toFixed(2)}</b></span>
+                                                                        )}
                                 </DialogDescription>
                             </DialogHeader>
                             {Math.max(0, availableSubscription.totalPrice - totaleBonus) > 0 ? (

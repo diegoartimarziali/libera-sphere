@@ -24,11 +24,10 @@ export async function updateUserBonus(
   let usedValue = prevUsedValue + bonusToUse;
   if (usedValue > prevValue) usedValue = prevValue;
   const residuo = Math.max(0, prevValue - usedValue);
-  const used = residuo === 0;
-
-  // Log di debug per verifica valori
-  console.log('Aggiorno bonus:', { awardId, userId, usedValue, residuo, used });
-
+  let used = false;
+  if (residuo === 0) used = true;
+  // Log dettagliato per debug
+  console.log('[updateUserBonus] awardId:', awardId, 'userId:', userId, 'prevValue:', prevValue, 'prevUsedValue:', prevUsedValue, 'bonusToUse:', bonusToUse, 'usedValue:', usedValue, 'residuo:', residuo, 'used:', used);
   await updateDoc(userAwardRef, {
     usedValue,
     residuo,
