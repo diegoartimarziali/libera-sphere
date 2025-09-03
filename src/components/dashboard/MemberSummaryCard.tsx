@@ -115,7 +115,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
     
     const subscriptionValidityClassName = "font-bold text-muted-foreground";
 
-    const socioDalClassName = 'text-foreground font-black';
+    const socioDalClassName = 'text-muted-foreground font-black';
 
     return (
         <Card className="flex flex-col">
@@ -124,29 +124,29 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                 <div className="text-lg font-bold pt-1">
                    {props.sportingSeason}
                 </div>
+                                            <div className="text-base pt-1">
+                                                    <span>Disciplina:</span> <span className="font-bold">{props.discipline}</span>
+                                                {props.grade && <><span className="ml-2">Grado:</span> <span className="font-bold">{props.grade}</span></>}
+                                            </div>
                  <div className="text-base pt-1">
-                    <span className="font-semibold">Disciplina:</span> {props.discipline}
-                    {props.grade && <><span className="font-semibold ml-2">Grado:</span> {props.grade}</>}
+                    {props.qualifica && props.qualifica !== 'Nessuna' && <><span>Qualifica:</span> <span className="font-bold">{props.qualifica}</span></>}
                  </div>
                  <div className="text-base pt-1">
-                    {props.qualifica && props.qualifica !== 'Nessuna' && <><span className="font-semibold">Qualifica:</span> {props.qualifica}</>}
-                 </div>
-                 <div className="text-base pt-1">
-                    <span className="font-semibold">Palestra:</span> {props.gymName}
+                    <span>Palestra:</span> <span className="font-bold">{props.gymName}</span>
                 </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-4 p-4">
                  <div className="space-y-3">
-                    <h4 className="text-sm font-bold flex items-center">
+                    <h4 className="text-lg font-bold flex items-center justify-center text-center" style={{ color: 'hsl(30, 100%, 38%)' }}>
                         <UserCircle size={16} className="mr-3 w-5 text-muted-foreground" />
                         Dati Anagrafici
                     </h4>
                     <div className="pl-8 space-y-3">
                         <InfoRow icon={<Mail size={16} />} label="Email" value={props.email} />
-                        <InfoRow icon={<Phone size={16} />} label="Telefono" value={props.phone} />
-                        <InfoRow icon={<User size={16} />} label="Codice Fiscale" value={props.taxCode} />
-                        <InfoRow icon={<Cake size={16} />} label="Nato/a il" value={props.birthDate ? `${format(props.birthDate, 'dd/MM/yyyy', { locale: it })} a ${props.birthPlace}`: undefined} />
-                        <InfoRow icon={<MapPin size={16} />} label="Indirizzo" value={props.fullAddress} />
+                        <InfoRow icon={<Phone size={16} />} label="Telefono" value={props.phone} valueClassName="font-bold" />
+                        <InfoRow icon={<User size={16} />} label="Codice Fiscale" value={props.taxCode} valueClassName="font-bold" />
+                        <InfoRow icon={<Cake size={16} />} label="Nato/a il" value={props.birthDate ? `${format(props.birthDate, 'dd/MM/yyyy', { locale: it })} a ${props.birthPlace}`: undefined} valueClassName="font-bold" />
+                        <InfoRow icon={<MapPin size={16} />} label="Indirizzo" value={props.fullAddress} valueClassName="font-bold" />
                     </div>
                 </div>
 
@@ -166,9 +166,9 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <Separator />
 
                  <div className="space-y-3">
-                    <h4 className="text-sm font-bold flex items-center">
+                    <h4 className="text-lg font-bold flex items-center justify-center text-center" style={{ color: 'hsl(30, 100%, 38%)' }}>
                         <Award size={16} className="mr-3 w-5 text-muted-foreground" />
-                        Stato Associativo e Sportivo
+                        Stato Associativo, Medico e Assicurativo
                     </h4>
                     <div className="pl-8 space-y-3">
                         <InfoRow icon={<CalendarPlus size={16} />} label="Socio Dal" value={props.socioDal} valueClassName={socioDalClassName} />
@@ -182,14 +182,13 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  <Separator />
 
                  <div className="space-y-3">
-                    <h4 className="text-sm font-bold flex items-center">
+                    <h4 className="text-lg font-bold flex items-center justify-center text-center" style={{ color: 'hsl(30, 100%, 38%)' }}>
                         <KeyRound size={16} className="mr-3 w-5 text-muted-foreground" />
                         Abbonamenti e Prove
                     </h4>
                     <div className="pl-8 space-y-3">
                         <InfoRow icon={<Activity size={16} />} label="Stato Prova" value={props.trialStatus} valueClassName={trialStatusClassName} />
-                        <InfoRow icon={<Repeat size={16}/>} label="Abbonamento" value={props.subscriptionType} valueClassName={subscriptionTypeClassName} />
-                        <InfoRow icon={<CalendarClock size={16}/>} label="Valido per il mese di" value={props.subscriptionValidity} valueClassName={subscriptionValidityClassName} />
+                        <InfoRow icon={<CalendarClock size={16}/>} label="Abbonamento mese di" value={props.subscriptionValidity} valueClassName={subscriptionValidityClassName} />
                         <InfoRow icon={<KeyRound size={16} />} label="Stato Abbonamento" value={props.subscriptionStatus} valueClassName={subscriptionStatusClassName} />
                     </div>
                  </div>
