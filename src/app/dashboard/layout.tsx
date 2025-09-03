@@ -69,8 +69,8 @@ function NavLink({ href, children, icon: Icon, onClick }: { href: string; childr
                 href={href}
                 onClick={handleClick}
                 className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                    isActive && "bg-muted text-primary"
+                    "sidebar-menu-link flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
+                    isActive && "bg-muted"
                 )}
             >
                 <Icon className="h-4 w-4" />

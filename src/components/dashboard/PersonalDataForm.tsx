@@ -431,7 +431,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
 
             {isMinor === true && (
                 <div className="space-y-4 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
-                    <h4 className="font-semibold text-foreground">Dati del Genitore/Tutore</h4>
+                    <h4 className="medical-upload-text text-2xl font-bold">Dati del Genitore/Tutore</h4>
                      <p className="text-sm text-muted-foreground">
                         Poiché l'iscritto è minorenne, è obbligatorio compilare i dati di un genitore o tutore legale.
                     </p>
@@ -477,7 +477,8 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
           <CardFooter className="flex justify-end">
             <Button
               type="submit"
-              className="w-full"
+              className="w-full font-bold"
+              style={{ backgroundColor: '#16a34a', color: '#fff' }}
               disabled={isSubmitting || !form.formState.isValid}
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -230,7 +230,10 @@ export default function AdminMedicalCertificatesPage() {
                                                                         Elimina
                                                                     </DropdownMenuItem>
                                                                 </AlertDialogTrigger>
-                                                                <AlertDialogContent>
+                                                                                                                                <AlertDialogContent aria-describedby="dialog-desc-medcert">
+                                                                                                                                    <AlertDialogDescription id="dialog-desc-medcert">
+                                                                                                                                        Conferma o annulla la modifica del certificato medico.
+                                                                                                                                    </AlertDialogDescription>
                                                                     <AlertDialogHeader>
                                                                         <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
                                                                         <AlertDialogDescription>

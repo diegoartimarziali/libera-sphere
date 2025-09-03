@@ -209,17 +209,17 @@ export default function MedicalCertificatePage() {
                     Può essere sostituito da un certificato agonistico, di qualsiasi sport, come da Circolare del Ministero della Salute del 01/02/2018.
                     Senza il certificato medico viene a mancare la copertura assicurativa.
                 </p>
-                <p className="font-bold text-foreground">
-                    Sono accettati i certificati medici in corso di validità rilasciati per qualsiasi attività sportiva, e quelli rilasciati per attività parascolastiche.
-                </p>
+        <p className="medical-upload-text">
+          Sono accettati i certificati medici in corso di validità rilasciati per qualsiasi attività sportiva, e quelli rilasciati per attività parascolastiche.
+        </p>
             </div>
           </CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
-               <div className="space-y-4 rounded-md border p-4 animate-in fade-in-50">
-                   <h4 className="font-semibold text-foreground">Carica o aggiorna il tuo certificato</h4>
+               <div className="space-y-4 rounded-md border-2 p-4 animate-in fade-in-50" style={{ borderColor: 'hsl(22.5, 55%, 11%)' }}>
+                  <h4 className="medical-upload-text font-bold text-center">Carica o aggiorna il tuo certificato</h4>
                     <FormField
                         control={form.control}
                         name="certificateFile"
@@ -235,7 +235,7 @@ export default function MedicalCertificatePage() {
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                             onChange={handleFileChange} 
                                         />
-                                        <Label htmlFor="certificate-file-input" className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted">
+                                        <Label htmlFor="certificate-file-input" className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted" style={{ borderColor: '#16a34a' }}>
                                             {fileName ? (
                                                 <div className="flex items-center gap-2 text-green-600">
                                                    <CheckCircle className="h-5 w-5" />
@@ -278,7 +278,12 @@ export default function MedicalCertificatePage() {
                 </div>
             </CardContent>
             <CardFooter className="flex-col items-stretch space-y-4">
-              <Button type="submit" className="w-full" disabled={isSubmitting || !form.formState.isValid}>
+              <Button
+                type="submit"
+                className="w-full font-bold"
+                style={{ backgroundColor: '#16a34a', color: 'hsl(22.5, 55%, 11%)' }}
+                disabled={isSubmitting || !form.formState.isValid}
+              >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Salva e prosegui
               </Button>
@@ -287,9 +292,20 @@ export default function MedicalCertificatePage() {
                         <p>Non hai il certificato a portata di mano?</p>
                         <p>Puoi uscire e tornare più tardi. I tuoi dati sono salvi.</p>
                     </div>
-                    <Button type="button" variant="outline" onClick={handleLogout} disabled={isSubmitting}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Esci e completa più tardi
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleLogout}
+                      disabled={isSubmitting}
+                      className="font-bold"
+                      style={{
+                        backgroundColor: 'hsl(0, 1%, 77%)', // grigio chiaro
+                        borderColor: 'hsl(22.5, 55%, 11%)',   // marrone scuro
+                        color: 'hsl(22.5, 55%, 11%)'
+                      }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Esci e completa più tardi
                     </Button>
                 </>
             </CardFooter>

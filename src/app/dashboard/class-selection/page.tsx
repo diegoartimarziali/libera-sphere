@@ -64,12 +64,13 @@ interface Award {
 
 
 // Componente per visualizzare i dati in modo pulito
-const DataRow = ({ label, value, icon }: { label: string; value?: string | null, icon?: React.ReactNode }) => (
+import type { ReactNode } from "react";
+const DataRow = ({ label, value, icon }: { label: string; value?: ReactNode | null, icon?: React.ReactNode }) => (
     value ? (
         <div className="flex items-start">
             {icon && <div className="w-5 text-muted-foreground mt-0.5">{icon}</div>}
             <div className={`flex flex-col sm:flex-row sm:justify-between w-full ${icon ? 'ml-3' : ''}`}>
-                <dt className="font-medium text-muted-foreground">{label}</dt>
+                <dt className={`font-medium text-muted-foreground ${label.match(/Disciplina|Grado|Palestra|Lezione/) ? 'text-[#1e3a8a]' : ''}`}>{label}</dt>
                 <dd className="mt-1 text-foreground sm:mt-0 sm:text-right">{value}</dd>
             </div>
         </div>
@@ -261,22 +262,23 @@ function GymSelectionStep({ onNext, user }: { onNext: (data: GymSelectionData) =
                     </AlertTitle>
                     <AlertDescription>
                         <Button asChild variant="link" className="p-0 h-auto">
-                            <Link href="/dashboard/reviews">Leggi le recensioni di chi ha già provato</Link>
+                            <Link href="/dashboard/reviews" className="font-bold">Leggi le recensioni di chi ha già provato</Link>
                         </Button>
                     </AlertDescription>
                 </Alert>
 
-                <div className="space-y-4 rounded-md border p-4">
-                    <h3 className="text-lg font-semibold">La tua scelta</h3>
+                <div className="space-y-4 rounded-md border p-4" style={{ borderColor: 'hsl(var(--medical-upload-text))', borderWidth: 2 }}>
+                    <h3 className="text-lg font-semibold text-center">La tua scelta</h3>
                      <dl className="space-y-2">
-                        <DataRow label="Disciplina" value={userDiscipline} icon={<Sparkles size={16} />} />
-                        <DataRow label="Palestra" value={userGymId ? `${userGymId} - ${userGymName}` : ''} icon={<Building size={16} />} />
-                        <DataRow label="Orario Lezioni" value={selectionLessonsSchedule} icon={<CalendarClock size={16} />} />
+                        <DataRow label="Disciplina" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{userDiscipline}</span>} icon={<Sparkles size={16} />} />
+                        <DataRow label="Palestra" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{userGymId ? `${userGymId} - ${userGymName}` : ''}</span>} icon={<Building size={16} />} />
+                        <DataRow label="Orario Lezioni" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{selectionLessonsSchedule}</span>} icon={<CalendarClock size={16} />} />
                      </dl>
                 </div>
                 
                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">2. Scegli il giorno della tua prima lezione</h3>
+                    <h3 className="text-lg font-semibold text-center">Scegli il giorno della tua prima lezione</h3>
+                    <p className="text-center text-sm text-muted-foreground mt-1">Le altre lezioni verranno scelte dal sistema in base alla disponibilità.</p>
                     <RadioGroup 
                         value={selectedLessonValue || ""} 
                         onValueChange={setSelectedLessonValue}
@@ -288,14 +290,14 @@ function GymSelectionStep({ onNext, user }: { onNext: (data: GymSelectionData) =
                             const isSelected = selectedLessonValue === value;
                             
                             return (
-                                <Label 
-                                    key={value} 
-                                    htmlFor={value}
-                                    className={cn("flex flex-col items-center justify-center rounded-md border-2 p-3 cursor-pointer hover:bg-accent/80 transition-all",
-                                      isSelected && "border-primary bg-primary/5",
-                                      !isSelected && isHighlighted && "border-primary/50 bg-primary/5"
-                                    )}
-                                >
+                                                                <Label 
+                                                                        key={value} 
+                                                                        htmlFor={value}
+                                                                        className={cn(
+                                                                            "flex flex-col items-center justify-center rounded-md p-3 cursor-pointer hover:bg-accent/80 transition-all",
+                                                                              (isSelected || isHighlighted) ? "border-4 border-sky-600 bg-sky-100" : "border-2 border-sky-300"
+                                                                        )}
+                                                                >
                                     <RadioGroupItem value={value} id={value} className="sr-only" />
                                     <span className="font-semibold capitalize">{format(lesson.startTime.toDate(), "EEEE", { locale: it })}</span>
                                     <span className="text-sm">{format(lesson.startTime.toDate(), "dd MMMM yyyy")}</span>
@@ -307,8 +309,15 @@ function GymSelectionStep({ onNext, user }: { onNext: (data: GymSelectionData) =
                 </div>
                 
             </CardContent>
-            <CardFooter className="justify-end">
-                 <Button onClick={handleConfirm} disabled={!selectedLessonValue || highlightedLessons.length === 0}>Scegli il Pagamento</Button>
+            <CardFooter className="justify-center">
+                                                 <Button 
+                                                     onClick={handleConfirm} 
+                                                     disabled={!selectedLessonValue || highlightedLessons.length === 0}
+                                                     className="w-full font-bold"
+                                                     style={{ backgroundColor: '#16a34a', color: '#fff' }}
+                                                 >
+                                                     Scegli il Pagamento
+                                                 </Button>
             </CardFooter>
         </Card>
     )
@@ -329,9 +338,9 @@ function PaymentStep({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 3: Metodo di Pagamento</CardTitle>
+                <CardTitle>Metodo di Pagamento</CardTitle>
                 <CardDescription>
-                    Scegli come preferisci pagare la quota di iscrizione di {fee ? `${fee.price}€` : "..."}.
+                    Scegli come preferisci pagare la quota di <span className="font-bold">iscrizione di {fee ? `${fee.price}€` : "..."}.</span>
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -362,17 +371,23 @@ function PaymentStep({
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Online (Carta di Credito)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Paga in modo sicuro e veloce la quota di {fee ? `${fee.price}€` : "..."} con la tua carta tramite SumUp. Verrai indirizzato al sito sumup, quando hai effettuato il pagamento torna qui per concludere l'iscrizione.
+                                   Paga in modo sicuro e veloce la quota di {fee ? `${fee.price}€` : "..."} con la tua carta tramite SumUp. Verrai indirizzato al sito sumup, <span className="font-bold">quando hai effettuato il pagamento con sumup <span className="underline">torna all'App per concludere l'iscrizione.</span></span>
                             </p>
                         </div>
                          <CreditCard className="h-6 w-6 text-muted-foreground" />
                     </Label>
                 </RadioGroup>
             </CardContent>
-            <CardFooter className="justify-between">
-                <Button variant="outline" onClick={onBack}>Indietro</Button>
-                <Button onClick={() => onNext(paymentMethod!)} disabled={!paymentMethod}>Prosegui</Button>
-            </CardFooter>
+                        <CardFooter className="justify-center">
+                                <Button 
+                                    onClick={() => onNext(paymentMethod!)} 
+                                    disabled={!paymentMethod}
+                                    className="font-bold"
+                                    style={{ backgroundColor: '#f97316', color: '#fff' }}
+                                >
+                                    Prosegui
+                                </Button>
+                        </CardFooter>
         </Card>
     )
 }
@@ -403,26 +418,27 @@ function ConfirmationStep({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo Finale: Riepilogo e Conferma</CardTitle>
+                <CardTitle>Riepilogo e Conferma</CardTitle>
                 <CardDescription>
-                    Controlla attentamente i dati e la scelta del pagamento. Se tutto è corretto,
-                    completa l'iscrizione.
+                    Controlla i dati e la scelta del pagamento e completa l'iscrizione.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-4 rounded-md border p-4">
-                     <h3 className="font-semibold text-lg">Dati Anagrafici</h3>
-                     <dl className="space-y-2">
-                        <DataRow label="Nome" value={formData.name} />
-                        <DataRow label="Cognome" value={formData.surname} />
-                        <DataRow label="Codice Fiscale" value={formData.taxCode} />
-                        <DataRow label="Data di Nascita" value={formData.birthDate ? format(parseISO(formData.birthDate), "PPP", { locale: it }) : ''} />
-                        <DataRow label="Luogo di Nascita" value={formData.birthPlace} />
-                        <DataRow label="Indirizzo" value={`${formData.address}, ${formData.streetNumber}`} />
-                        <DataRow label="Città" value={`${formData.city} (${formData.province}), ${formData.zipCode}`} />
-                        <DataRow label="Email" value={auth.currentUser?.email} />
-                        <DataRow label="Telefono" value={formData.phone} />
-                     </dl>
+                     <div className="bg-[#f8f6f3] border-2 border-[hsl(var(--medical-upload-text))] rounded-lg p-4">
+                        <h3 className="font-semibold text-lg text-center">Dati Anagrafici</h3>
+                        <dl className="space-y-2">
+                            <DataRow label="Nome" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{formData.name}</span>} />
+                            <DataRow label="Cognome" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{formData.surname}</span>} />
+                            <DataRow label="Codice Fiscale" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{formData.taxCode}</span>} />
+                            <DataRow label="Data di Nascita" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{formData.birthDate ? format(parseISO(formData.birthDate), "PPP", { locale: it }) : ''}</span>} />
+                            <DataRow label="Luogo di Nascita" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{formData.birthPlace}</span>} />
+                            <DataRow label="Indirizzo" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{`${formData.address}, ${formData.streetNumber}`}</span>} />
+                            <DataRow label="Città" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{`${formData.city} (${formData.province}), ${formData.zipCode}`}</span>} />
+                            <DataRow label="Email" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{auth.currentUser?.email}</span>} />
+                            <DataRow label="Telefono" value={<span className="font-bold" style={{ color: 'hsl(var(--medical-upload-text))' }}>{formData.phone}</span>} />
+                        </dl>
+                     </div>
                 </div>
                 
                 {formData.isMinor && formData.parentData && (
@@ -437,35 +453,37 @@ function ConfirmationStep({
                 )}
                 
                 <div className="space-y-4 rounded-md border p-4">
-                    <h3 className="font-semibold text-lg">Lezioni di Prova</h3>
-                    <dl className="space-y-3">
-                        <DataRow label="Disciplina" value={gymSelection.discipline} icon={<Sparkles size={16} />} />
-                        <DataRow label="Grado" value={lastGrade} icon={<Sparkles size={16} />} />
-                        <DataRow label="Palestra" value={`${gymSelection.gymId} - ${gymSelection.gymName}`} icon={<Building size={16} />} />
-                        {gymSelection.trialLessons.map((lesson, index) => (
-                           <DataRow 
-                                key={index}
-                                label={`${index + 1}ª Lezione`} 
-                                value={`${format(lesson.startTime.toDate(), "EEEE d MMMM", { locale: it })} ${gymSelection.selectionLessonsSchedule ? `- Orario: ${gymSelection.selectionLessonsSchedule}` : ''}`} 
-                                icon={<CalendarIconDay size={16} />} 
-                           />
-                        ))}
-                    </dl>
+                    <div className="bg-[#eaf6fb] border-2 border-[#1e3a8a] rounded-lg p-4">
+                        <h3 className="font-semibold text-lg text-center text-[#1e3a8a]">Lezioni di Prova</h3>
+                        <dl className="space-y-3">
+                            <DataRow label="Disciplina" value={<span className="font-bold text-[#1e3a8a]">{gymSelection.discipline}</span>} icon={<Sparkles size={16} />} />
+                            <DataRow label="Grado" value={<span className="font-bold text-[#1e3a8a]">{lastGrade}</span>} icon={<Sparkles size={16} />} />
+                            <DataRow label="Palestra" value={<span className="font-bold text-[#1e3a8a]">{`${gymSelection.gymId} - ${gymSelection.gymName}`}</span>} icon={<Building size={16} />} />
+                            {gymSelection.trialLessons.map((lesson, index) => (
+                               <DataRow 
+                                    key={index}
+                                    label={`${index + 1}ª Lezione`} 
+                                    value={<span className="font-bold text-[#1e3a8a]">{`${format(lesson.startTime.toDate(), "EEEE d MMMM", { locale: it })} ${gymSelection.selectionLessonsSchedule ? `- Orario: ${gymSelection.selectionLessonsSchedule}` : ''}`}</span>} 
+                                    icon={<CalendarIconDay size={16} />} 
+                               />
+                            ))}
+                        </dl>
+                    </div>
                 </div>
 
-                 <div className="space-y-4 rounded-md border p-4">
-                    <h3 className="font-semibold text-lg">Metodo di Pagamento</h3>
-                    <dl className="space-y-2">
-                       <DataRow 
-                          label="Metodo Scelto" 
-                          value={String(paymentMethod) === 'in_person' ? 'In Palestra' : 'Online con Carta'} 
-                       />
-                       <DataRow 
-                          label={String(paymentMethod) === 'in_person' ? "Importo da Pagare" : "Importo"}
-                          value={String(paymentMethod) === 'in_person' ? `${fee.price.toFixed(2)} €` : `${fee.price.toFixed(2)} € (In attesa di conferma)`}
-                       />
-                    </dl>
-                </div>
+                      <div className="bg-[#f8f6f3] border-2 border-[hsl(var(--medical-upload-text))] rounded-lg p-4">
+                              <h3 className="font-semibold text-lg text-center">Metodo di Pagamento</h3>
+                              <dl className="space-y-2">
+                                  <DataRow 
+                                      label="Metodo Scelto" 
+                                      value={<span className="font-bold text-[#ea580c]">{String(paymentMethod) === 'in_person' ? 'In Palestra' : 'Online con Carta'}</span>} 
+                                  />
+                                  <DataRow 
+                                      label={String(paymentMethod) === 'in_person' ? "Importo da Pagare" : "Importo"}
+                                      value={<span className="font-bold text-[#ea580c]">{String(paymentMethod) === 'in_person' ? `${fee.price.toFixed(2)} €` : `${fee.price.toFixed(2)} € (In attesa di conferma)`}</span>} 
+                                  />
+                              </dl>
+                      </div>
             </CardContent>
             <CardFooter>
                 <Button onClick={onComplete} disabled={isSubmitting} className="w-full">
@@ -811,14 +829,14 @@ export default function ClassSelectionPage() {
         <div className="flex w-full flex-col items-center">
             <div className="mb-8 text-center">
                 <h1 className="text-3xl font-bold">Iscrizione alle Lezioni di Selezione</h1>
-                <p className="mt-2 text-muted-foreground">
+                <p className="mt-2 text-sm">
                     Completa la procedura per iscriverti.
                 </p>
             </div>
             <div className="w-full max-w-3xl">
                 {step === 1 && (
                     <PersonalDataForm
-                        title="Passo 1: Dati Anagrafici"
+                        title="Dati Anagrafici"
                         description="Completa le tue informazioni personali per procedere con l'iscrizione. Questi dati verranno salvati per future iscrizioni."
                         buttonText="Prosegui"
                         onFormSubmit={handleNextStep1}

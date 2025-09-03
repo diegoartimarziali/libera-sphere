@@ -244,8 +244,8 @@ export default function LiberaSpherePage() {
             <>
                 <Label>{label}</Label>
                 <Select value={lastGrade} onValueChange={setLastGrade}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Seleziona il grado" />
+                    <SelectTrigger style={{ backgroundColor: '#fff', borderColor: 'hsl(22.5, 55%, 11%)', borderWidth: 2, color: '#000' }}>
+                        <SelectValue placeholder="Seleziona il grado" style={{ color: 'hsl(0, 1%, 77%)' }} />
                     </SelectTrigger>
                     <SelectContent>
                         {grades.map(grade => {
@@ -274,84 +274,111 @@ export default function LiberaSpherePage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-3">
-             <h4 className="font-semibold text-foreground">1. Sei già stato socio di Libera Energia?</h4>
+             <h4 className="medical-upload-text text-center">1. Sei già stato socio di Libera Energia?</h4>
              <RadioGroup 
                 value={isFormerMember || ''} 
                 onValueChange={(value) => handleIsFormerMemberChange(value as 'yes' | 'no')}
                 className="grid grid-cols-1 sm:grid-cols-2 gap-4"
               >
-                <Label htmlFor="no" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground", isFormerMember === 'no' && 'border-primary')}>
-                  <RadioGroupItem value="no" id="no" className="sr-only" />
-                  <span className="text-center font-semibold">No, non sono mai stato socio</span>
-                </Label>
-                <Label htmlFor="yes" className={cn("flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer hover:bg-accent hover:text-accent-foreground", isFormerMember === 'yes' && 'border-primary')}>
-                  <RadioGroupItem value="yes" id="yes" className="sr-only" />
-                  <span className="text-center font-semibold">Sì, sono già stato socio</span>
-                </Label>
+                                <Label
+                                    htmlFor="no"
+                                    className={cn(
+                                        "flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer",
+                                        isFormerMember === 'no' && 'border-primary'
+                                    )}
+                                    style={{
+                                        backgroundColor: '#38bdf8', // azzurro
+                                        borderColor: 'hsl(22.5, 55%, 11%)', // marrone scuro
+                                        color: 'hsl(22.5, 55%, 11%)',
+                                        minHeight: '48px' // stessa altezza del tasto Prosegui
+                                    }}
+                                >
+                                    <RadioGroupItem value="no" id="no" className="sr-only" />
+                                    <span className="text-center font-bold" style={{ color: 'hsl(22.5, 55%, 11%)' }}>No, non sono mai stato socio</span>
+                                </Label>
+                                <Label
+                                    htmlFor="yes"
+                                    className={cn(
+                                        "flex flex-col items-center justify-center rounded-md border-2 p-4 cursor-pointer",
+                                        isFormerMember === 'yes' && 'border-primary'
+                                    )}
+                                    style={{
+                                        backgroundColor: '#38bdf8', // azzurro
+                                        borderColor: 'hsl(22.5, 55%, 11%)', // marrone scuro
+                                        color: 'hsl(22.5, 55%, 11%)',
+                                        minHeight: '48px' // stessa altezza del tasto Prosegui
+                                    }}
+                                >
+                                    <RadioGroupItem value="yes" id="yes" className="sr-only" />
+                                    <span className="text-center font-bold" style={{ color: 'hsl(22.5, 55%, 11%)' }}>Sì, sono già stato socio</span>
+                                </Label>
               </RadioGroup>
           </div>
          
           {isFormerMember === 'no' && (
-            <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
+            <div className="space-y-6 rounded-md border-2 bg-muted/50 p-4 animate-in fade-in-50" style={{ borderColor: 'hsl(22.5, 55%, 11%)' }}>
               <div className="space-y-2">
-                <h4 className="font-semibold text-foreground">2. Quale disciplina vuoi provare?</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                     <RadioGroup
-                        value={discipline || ''}
-                        onValueChange={(value) => handleDisciplineChange(value as 'Karate' | 'Aikido')}
-                        className="grid grid-cols-2 gap-4 col-span-2"
-                    >
-                        <Label htmlFor="karate_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Karate' && "border-primary")}>
-                            <RadioGroupItem value="Karate" id="karate_new" className="sr-only" />
-                            <span>Karate</span>
-                        </Label>
-                        <Label htmlFor="aikido_new" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Aikido' && "border-primary")}>
-                            <RadioGroupItem value="Aikido" id="aikido_new" className="sr-only" />
-                            <span>Aikido</span>
-                        </Label>
-                    </RadioGroup>
-                </div>
+                <h4 className="medical-upload-text text-center">2. Quale disciplina vuoi provare?</h4>
+                                <div className="flex gap-8 justify-center items-center">
+                                    <RadioGroup
+                                        value={discipline || ''}
+                                        onValueChange={(value) => handleDisciplineChange(value as 'Karate' | 'Aikido')}
+                                        className="flex gap-8"
+                                    >
+                                        <Label htmlFor="karate_new" className="flex items-center gap-2 cursor-pointer">
+                                              <RadioGroupItem value="Karate" id="karate_new" className="w-6 h-6 rounded-full border-2" style={{ borderColor: 'hsl(var(--medical-upload-text))' }} />
+                                            <span>Karate</span>
+                                        </Label>
+                                        <Label htmlFor="aikido_new" className="flex items-center gap-2 cursor-pointer">
+                                              <RadioGroupItem value="Aikido" id="aikido_new" className="w-6 h-6 rounded-full border-2" style={{ borderColor: 'hsl(var(--medical-upload-text))' }} />
+                                            <span>Aikido</span>
+                                        </Label>
+                                    </RadioGroup>
+                                </div>
               </div>
 
                {discipline && (
                 <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                     <h4 className="font-semibold text-foreground">3. In quale palestra?</h4>
+                     <h4 className="medical-upload-text text-center">3. In quale palestra?</h4>
                       {gymsLoading ? (
                         <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
                     ) : (
-                        <Select value={gym} onValueChange={setGym}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Seleziona una palestra" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {filteredGyms.map((g) => (
-                                    <SelectItem key={g.id} value={g.id}>
-                                        {g.id} - {g.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                                                <Select value={gym} onValueChange={setGym}>
+                                                    <SelectTrigger
+                                                        style={{ backgroundColor: '#fff', borderColor: 'hsl(var(--medical-upload-text))', color: '#111', borderWidth: 2 }}
+                                                        className="w-full rounded-md px-4 py-2 focus:outline-none"
+                                                    >
+                                                        <SelectValue placeholder="Seleziona una palestra" className="text-gray-400" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {filteredGyms.map((g) => (
+                                                            <SelectItem key={g.id} value={g.id} className="text-black">
+                                                                {g.id} - {g.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                     )}
                 </div>
               )}
               
               {gym && (
                 <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                    <h4 className="font-semibold text-foreground">4. Hai già praticato {discipline} in passato?</h4>
-                    <RadioGroup
-                        value={hasPracticedBefore || ''}
-                        onValueChange={(value) => setHasPracticedBefore(value as 'yes' | 'no')}
-                        className="flex gap-4"
-                    >
-                        <Label htmlFor="practiced_no" className={cn("flex items-center space-x-2 p-2 border rounded-md cursor-pointer flex-1 justify-center bg-background", hasPracticedBefore === 'no' && 'border-primary')}>
-                            <RadioGroupItem value="no" id="practiced_no" />
-                            <span>No, mai</span>
-                        </Label>
-                         <Label htmlFor="practiced_yes" className={cn("flex items-center space-x-2 p-2 border rounded-md cursor-pointer flex-1 justify-center bg-background", hasPracticedBefore === 'yes' && 'border-primary')}>
-                            <RadioGroupItem value="yes" id="practiced_yes" />
-                            <span>Sì, ho già praticato</span>
-                        </Label>
-                    </RadioGroup>
+                    <h4 className="medical-upload-text text-center">4. Hai già praticato {discipline} in passato?</h4>
+                                        <RadioGroup
+                                            value={hasPracticedBefore || ''}
+                                            onValueChange={(value) => setHasPracticedBefore(value as 'yes' | 'no')}
+                                            className="flex gap-8 justify-center items-center"
+                                        >
+                                            <Label htmlFor="practiced_no" className="flex items-center gap-2 cursor-pointer">
+                                                <RadioGroupItem value="no" id="practiced_no" className="w-6 h-6 rounded-full border-2" style={{ borderColor: 'hsl(var(--medical-upload-text))' }} />
+                                                <span>No, mai</span>
+                                            </Label>
+                                            <Label htmlFor="practiced_yes" className="flex items-center gap-2 cursor-pointer">
+                                                <RadioGroupItem value="yes" id="practiced_yes" className="w-6 h-6 rounded-full border-2" style={{ borderColor: 'hsl(var(--medical-upload-text))' }} />
+                                                <span>Sì, ho già praticato</span>
+                                            </Label>
+                                        </RadioGroup>
                 </div>
               )}
 
@@ -368,24 +395,19 @@ export default function LiberaSpherePage() {
           {isFormerMember === 'yes' && (
             <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
                 <div className="space-y-2">
-                    <h4 className="font-semibold text-foreground">2. Conferma i tuoi dati</h4>
+                    <h4 className="medical-upload-text text-center font-bold">2. Conferma i tuoi dati</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                          <div className="space-y-2">
                             <Label>Disciplina</Label>
-                             <RadioGroup
-                                value={discipline || ''}
-                                onValueChange={(value) => handleDisciplineChange(value as 'Karate' | 'Aikido')}
-                                className="grid grid-cols-2 gap-4"
-                            >
-                               <Label htmlFor="karate_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Karate' && "border-primary")}>
-                                    <RadioGroupItem value="Karate" id="karate_former" className="sr-only" />
-                                    <span>Karate</span>
-                                </Label>
-                                <Label htmlFor="aikido_former" className={cn("flex items-center justify-center rounded-md border-2 bg-background p-4 cursor-pointer", discipline === 'Aikido' && "border-primary")}>
-                                    <RadioGroupItem value="Aikido" id="aikido_former" className="sr-only" />
-                                    <span>Aikido</span>
-                                </Label>
-                            </RadioGroup>
+                                                                                     <Select value={discipline || ''} onValueChange={value => handleDisciplineChange(value as 'Karate' | 'Aikido')}>
+                                                                                         <SelectTrigger style={{ backgroundColor: '#fff', borderColor: 'hsl(22.5, 55%, 11%)', borderWidth: 2, color: '#000' }}>
+                                                                                             <SelectValue placeholder="Seleziona una disciplina" style={{ color: 'hsl(0, 1%, 77%)' }} />
+                                                                                         </SelectTrigger>
+                                                                                         <SelectContent>
+                                                                                             <SelectItem value="Karate">Karate</SelectItem>
+                                                                                             <SelectItem value="Aikido">Aikido</SelectItem>
+                                                                                         </SelectContent>
+                                                                                     </Select>
                         </div>
                         <div className="space-y-2">
                              <Label>Palestra</Label>
@@ -393,8 +415,8 @@ export default function LiberaSpherePage() {
                                 <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
                             ) : (
                                 <Select value={gym} onValueChange={setGym} disabled={!discipline}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Seleziona una palestra" />
+                                    <SelectTrigger style={{ backgroundColor: '#fff', borderColor: 'hsl(22.5, 55%, 11%)', borderWidth: 2, color: '#000' }}>
+                                        <SelectValue placeholder="Seleziona una palestra" style={{ color: 'hsl(0, 1%, 77%)' }} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {filteredGyms.map((g) => (
@@ -418,8 +440,8 @@ export default function LiberaSpherePage() {
                              <div>
                                 <Label htmlFor="firstYear">Primo Anno di Associazione</Label>
                                 <Select value={firstYear} onValueChange={setFirstYear}>
-                                    <SelectTrigger id="firstYear">
-                                        <SelectValue placeholder="Seleziona l'anno" />
+                                    <SelectTrigger id="firstYear" style={{ backgroundColor: '#fff', borderColor: 'hsl(22.5, 55%, 11%)', borderWidth: 2, color: '#000' }}>
+                                        <SelectValue placeholder="Seleziona l'anno" style={{ color: 'hsl(0, 1%, 77%)' }} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {years.map(year => (
@@ -431,8 +453,8 @@ export default function LiberaSpherePage() {
                              <div>
                                 <Label htmlFor="qualification">Qualifica</Label>
                                 <Select value={qualification} onValueChange={setQualification}>
-                                    <SelectTrigger id="qualification">
-                                        <SelectValue placeholder="Seleziona la qualifica" />
+                                    <SelectTrigger id="qualification" style={{ backgroundColor: '#fff', borderColor: 'hsl(22.5, 55%, 11%)', borderWidth: 2, color: '#000' }}>
+                                        <SelectValue placeholder="Seleziona la qualifica" style={{ color: 'hsl(0, 1%, 77%)' }} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {qualifications.map(q => (
@@ -448,7 +470,12 @@ export default function LiberaSpherePage() {
           )}
         </CardContent>
         <CardFooter>
-          <Button onClick={handleContinue} disabled={isContinueDisabled() || isLoading} className="w-full">
+                    <Button 
+                        onClick={handleContinue} 
+                        disabled={isContinueDisabled() || isLoading} 
+                        className="w-full font-bold" 
+                        style={{ backgroundColor: '#16a34a', color: '#fff', borderColor: 'hsl(var(--medical-upload-text))', borderWidth: 2 }}
+                    >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Prosegui
           </Button>

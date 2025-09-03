@@ -524,7 +524,10 @@ export default function AdminStagesPage() {
             </Card>
 
             <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setEditingStage(undefined); }}>
-                <DialogContent className="sm:max-w-2xl">
+                                                <DialogContent className="sm:max-w-2xl" aria-describedby="dialog-desc-stages">
+                                                    <p id="dialog-desc-stages" className="text-muted-foreground text-sm mb-2">
+                                                        Inserisci o modifica i dati dello stage.
+                                                    </p>
                     <DialogHeader>
                         <DialogTitle>{editingStage ? "Modifica Evento" : "Crea Nuovo Evento"}</DialogTitle>
                     </DialogHeader>

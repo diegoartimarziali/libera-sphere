@@ -55,7 +55,10 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
 function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails, userName, userSurname }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, fee: FeeData | null, bankDetails: BankDetails | null, userName?: string, userSurname?: string }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+                        <DialogContent aria-describedby="dialog-desc-associates">
+                            <p id="dialog-desc-associates" className="text-muted-foreground text-sm mb-2">
+                                Inserisci o modifica i dati dell'associato.
+                            </p>
                 <DialogHeader>
                     <DialogTitle>Dati per Bonifico Bancario</DialogTitle>
                     <DialogDescription>
