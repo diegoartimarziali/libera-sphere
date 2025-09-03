@@ -19,7 +19,7 @@ const buttonVariants = cva(
           ghost: "hover:bg-accent hover:text-accent-foreground",
           link: "text-primary underline-offset-4 hover:underline",
           success: "bg-success text-success-foreground hover:bg-success/90",
-          gold: "bg-[var(--my-gialoro)] text-[var(--my-marscuro)] hover:bg-[var(--my-gialoro)]/90",
+           gold: "bg-[hsl(var(--my-gialoro))] text-[hsl(var(--my-marscuro))] hover:bg-[hsl(var(--my-gialoro))]/90 border-2 border-[hsl(var(--background))]",
       },
       size: {
         default: "h-10 px-4 py-2",
