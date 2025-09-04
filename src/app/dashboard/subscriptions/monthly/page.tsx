@@ -478,23 +478,23 @@ export default function MonthlySubscriptionPage() {
                         </DialogContent>
                     </Dialog>
                     <Dialog open={isBankTransferDialogOpen} onOpenChange={setIsBankTransferDialogOpen}>
-                        <DialogContent>
+                        <DialogContent className="bg-gray-100 [&>button]:text-[hsl(var(--background))]">
                             <DialogHeader>
-                                <DialogTitle>Dati per Bonifico Bancario</DialogTitle>
+                                <DialogTitle style={{ color: 'hsl(var(--background))' }}>Dati per Bonifico Bancario</DialogTitle>
                             </DialogHeader>
                             <div className="space-y-4 py-4 text-sm">
                                 {bankDetails ? (
                                     <>
-                                        <div className="space-y-1"><p className="font-semibold">Intestatario:</p><p>{bankDetails.recipientName}</p></div>
-                                        <div className="space-y-1"><p className="font-semibold">Banca:</p><p>{bankDetails.bankName}</p></div>
-                                        <div className="space-y-1"><p className="font-semibold">IBAN:</p><p className="font-mono bg-muted p-2 rounded-md">{bankDetails.iban}</p></div>
+                                        <div className="space-y-1"><p className="font-semibold text-black">Intestatario:</p><p className="text-black">{bankDetails.recipientName}</p></div>
+                                        <div className="space-y-1"><p className="font-semibold text-black">Banca:</p><p className="text-black">{bankDetails.bankName}</p></div>
+                                        <div className="space-y-1"><p className="font-semibold text-black">IBAN:</p><p className="font-mono bg-muted p-2 rounded-md text-black">{bankDetails.iban}</p></div>
                                     </>
                                 ) : <Loader2 className="h-6 w-6 animate-spin" />}
-                                <div className="space-y-1"><p className="font-semibold">Importo:</p><p>{availableSubscription.totalPrice.toFixed(2)} €</p></div>
-                                <div className="space-y-1"><p className="font-semibold">Causale:</p><p className="font-mono bg-muted p-2 rounded-md">{`${availableSubscription.name} ${userData?.name || ''} ${userData?.surname || ''}`.trim()}</p></div>
+                                <div className="space-y-1"><p className="font-semibold text-black">Importo:</p><p className="text-black">{availableSubscription.totalPrice.toFixed(2)} €</p></div>
+                                <div className="space-y-1"><p className="font-semibold text-black">Causale:</p><p className="font-mono bg-muted p-2 rounded-md text-black">{`${availableSubscription.name} ${userData?.name || ''} ${userData?.surname || ''}`.trim()}</p></div>
                             </div>
                             <DialogFooter>
-                                <Button onClick={handleBankTransferConfirm} className="w-full">Ho copiato i dati, invia richiesta</Button>
+                                <Button onClick={handleBankTransferConfirm} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold">Ho copiato i dati, invia richiesta</Button>
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>

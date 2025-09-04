@@ -130,116 +130,6 @@ function SubscriptionStatusCard({ userData }: { userData: UserData }) {
     );
 }
 
-function SeasonalPaymentDialog({ 
-    seasonalSub, 
-    bankDetails,
-    userData,
-    onPurchase 
-}: { 
-    seasonalSub: Subscription, 
-    bankDetails: BankDetails | null, 
-    userData: UserData | null,
-    onPurchase: (sub: Subscription, method: PaymentMethod) => void 
-}) {
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
-    const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const handleConfirm = async () => {
-        if (!selectedPaymentMethod) return;
-        setIsSubmitting(true);
-        if (selectedPaymentMethod === 'bank_transfer') {
-            setIsBankTransferDialogOpen(true);
-        } else {
-            await onPurchase(seasonalSub, selectedPaymentMethod);
-        }
-        setIsSubmitting(false);
-    };
-    
-    const handleBankTransferConfirm = async () => {
-        await onPurchase(seasonalSub, 'bank_transfer');
-        setIsBankTransferDialogOpen(false);
-    }
-
-    return (
-        <>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Acquista Abbonamento Stagionale</DialogTitle>
-                    <DialogDescription>
-                        Scegli come saldare la quota di {seasonalSub.totalPrice.toFixed(2)}€.
-                    </DialogDescription>
-                </DialogHeader>
-                 <RadioGroup
-                    value={selectedPaymentMethod || ""}
-                    onValueChange={(value) => setSelectedPaymentMethod(value as PaymentMethod)}
-                    className="space-y-4 py-4"
-                >
-                    <Label
-                        htmlFor="online"
-                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                    >
-                        <RadioGroupItem value="online" id="online" className="mt-1" />
-                        <div className="flex-1 space-y-1">
-                            <h4 className="font-semibold">Online (Carta di Credito)</h4>
-                            <p className="text-sm text-muted-foreground">
-                                Paga in modo sicuro con SumUp. Verrai reindirizzato al sito del gestore.
-                            </p>
-                        </div>
-                        <CreditCard className="h-6 w-6 text-muted-foreground" />
-                    </Label>
-
-                    <Label
-                        htmlFor="bank_transfer"
-                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                    >
-                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" />
-                        <div className="flex-1 space-y-1">
-                            <h4 className="font-semibold">Bonifico Bancario</h4>
-                            <p className="text-sm text-muted-foreground">
-                                Visualizza i dati per effettuare il bonifico. L'attivazione richiede verifica manuale.
-                            </p>
-                        </div>
-                        <University className="h-6 w-6 text-muted-foreground" />
-                    </Label>
-                </RadioGroup>
-                <DialogFooter>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost">Annulla</Button>
-                    </DialogTrigger>
-                    <Button onClick={handleConfirm} disabled={!selectedPaymentMethod || isSubmitting}>
-                        {isSubmitting && <Loader2 className="animate-spin mr-2" />}
-                        Conferma
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-            
-            <Dialog open={isBankTransferDialogOpen} onOpenChange={setIsBankTransferDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Dati per Bonifico Bancario</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4 text-sm">
-                        {bankDetails ? (
-                            <>
-                                <div className="space-y-1"><p className="font-semibold">Intestatario:</p><p>{bankDetails.recipientName}</p></div>
-                                <div className="space-y-1"><p className="font-semibold">Banca:</p><p>{bankDetails.bankName}</p></div>
-                                <div className="space-y-1"><p className="font-semibold">IBAN:</p><p className="font-mono bg-muted p-2 rounded-md">{bankDetails.iban}</p></div>
-                            </>
-                        ) : <Loader2 className="h-6 w-6 animate-spin" />}
-                        <div className="space-y-1"><p className="font-semibold">Importo:</p><p>{seasonalSub.totalPrice.toFixed(2)} €</p></div>
-                        <div className="space-y-1"><p className="font-semibold">Causale:</p><p className="font-mono bg-muted p-2 rounded-md">{`${seasonalSub.name} ${userData?.name || ''} ${userData?.surname || ''}`.trim()}</p></div>
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={handleBankTransferConfirm} className="w-full">Ho copiato i dati, invia richiesta</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
-    );
-}
-
-
 // Componente per la selezione del nuovo abbonamento
 function SubscriptionSelection({ 
     seasonalSub, 
@@ -309,21 +199,18 @@ function SubscriptionSelection({
                             </ul>
                         </CardContent>
                         <CardFooter>
-                            <DialogTrigger asChild>
-                                <Button className="w-full text-white font-bold bg-blue-600 hover:bg-blue-700" size="lg" disabled={!seasonalSub}>
+                            <Button 
+                                asChild 
+                                className="w-full text-white font-bold bg-blue-600 hover:bg-blue-700" 
+                                size="lg" 
+                                disabled={!seasonalSub}
+                            >
+                                <Link href="/dashboard/subscriptions/seasonal">
                                     Scegli Piano Stagionale
-                                </Button>
-                            </DialogTrigger>
+                                </Link>
+                            </Button>
                         </CardFooter>
                     </Card>
-                    {seasonalSub && (
-                        <SeasonalPaymentDialog 
-                            seasonalSub={seasonalSub} 
-                            bankDetails={bankDetails}
-                            userData={userData}
-                            onPurchase={onPurchase}
-                        />
-                    )}
                  </Dialog>
             </div>
         </div>
