@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "libera-energia-soci"
-  }
+    "default": "libera-energia-soci",
+    "app delle app": "libera-energia-soci"
+  },
+  "targets": {},
+  "etags": {}
 }

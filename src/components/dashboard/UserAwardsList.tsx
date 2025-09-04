@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserAward } from '@/lib/userAwards';
+import { UserAward } from '@/context/UserAwardsContext';
 
 export function UserAwardsList({ awards, onRefresh }: { awards: UserAward[]; onRefresh?: () => void }) {
   if (!awards || awards.length === 0) {
@@ -13,14 +13,16 @@ export function UserAwardsList({ awards, onRefresh }: { awards: UserAward[]; onR
           <div className="flex-1">
             <div className="mb-2">
               <span className="inline-block px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold text-base border border-green-300">
-                {award.name}
+                {award.name || 'Premio'}
               </span>
             </div>
-            <div className="text-sm font-bold text-green-700">Valore residuo: {award.residuo.toFixed(2)} €</div>
-            <div className="text-sm text-muted-foreground">Valore iniziale: {award.value.toFixed(2)} €</div>
-            <div className="text-sm text-orange-700">Totale utilizzato: {award.usedValue.toFixed(2)} €</div>
-            <div className="text-xs text-muted-foreground">Assegnato il {award.assignedAt.toDate().toLocaleDateString()}</div>
-            {award.used && <span className="text-red-600 font-bold ml-2">Utilizzato</span>}
+            <div className="text-sm font-bold text-green-700">Valore residuo: {(award.residuo || 0).toFixed(2)} €</div>
+            <div className="text-sm text-muted-foreground">Valore iniziale: {(award.value || 0).toFixed(2)} €</div>
+            <div className="text-sm text-orange-700">Totale utilizzato: {(award.usedValue || 0).toFixed(2)} €</div>
+            <div className="text-xs text-muted-foreground">
+              Assegnato il {award.assignedAt ? (typeof award.assignedAt.toDate === 'function' ? award.assignedAt.toDate().toLocaleDateString() : new Date(award.assignedAt).toLocaleDateString()) : 'Data non disponibile'}
+            </div>
+            {award.used && <span className="text-red-600 font-bold ml-2">🔴 UTILIZZATO</span>}
           </div>
         </div>
       ))}

@@ -109,8 +109,8 @@ export default function AdminSubscriptionsPage() {
 
     useEffect(() => {
         if (isFormOpen && !editingSubscription && subscriptionType === 'seasonal' && activitySettings?.startDate && activitySettings?.endDate) {
-            form.setValue('validityStartDate', dateToInputString(activitySettings.startDate.toDate()), { shouldValidate: true });
-            form.setValue('validityEndDate', dateToInputString(activitySettings.endDate.toDate()), { shouldValidate: true });
+            form.setValue('validityStartDate', dateToInputString(activitySettings.startDate?.toDate()) || '', { shouldValidate: true });
+            form.setValue('validityEndDate', dateToInputString(activitySettings.endDate?.toDate()) || '', { shouldValidate: true });
             form.setValue('name', 'Abbonamento Stagionale');
         } else if (isFormOpen && !editingSubscription && subscriptionType === 'monthly') {
              form.setValue('name', '');
@@ -356,7 +356,7 @@ export default function AdminSubscriptionsPage() {
                                  </div>
                                   {subscriptionType === 'seasonal' && activitySettings?.startDate && (
                                      <div className="text-sm text-muted-foreground pt-2">
-                                         Le date per l'abbonamento stagionale vengono pre-compilate automaticamente ma possono essere modificate: <strong>{format(activitySettings.startDate.toDate(), 'dd/MM/yy')} - {format(activitySettings.endDate.toDate(), 'dd/MM/yy')}</strong>.
+                                         Le date per l'abbonamento stagionale vengono pre-compilate automaticamente ma possono essere modificate: <strong>{format(activitySettings.startDate.toDate(), 'dd/MM/yy')} - {format(activitySettings.endDate?.toDate() || new Date(), 'dd/MM/yy')}</strong>.
                                      </div>
                                  )}
                             </div>

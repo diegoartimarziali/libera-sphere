@@ -8,9 +8,12 @@
     import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
     import { Button } from "@/components/ui/button";
     import { Loader2, CalendarCheck, PartyPopper } from "lucide-react";
-    import { useToast } from "@/components/ui/use-toast";
+    import { useToast } from "@/hooks/use-toast";
 
     export function AttendancePrompt() {
+        // 🚨 DEBUG: Forza la visualizzazione del messaggio per test
+        const FORCE_SHOW_MESSAGE = false;
+        
         const [isLoading, setIsLoading] = useState(true);
         const [isSubmitting, setIsSubmitting] = useState(false);
         const [userData, setUserData] = useState<any>(null);
@@ -96,30 +99,110 @@
         checkAttendance();
     }, [user, toast]);
 
+    // 🚨 DEBUG: Crea dati fittizi per visualizzare il messaggio
+    useEffect(() => {
+        if (FORCE_SHOW_MESSAGE && !userData && !todaysLesson) {
+            setUserData({
+                name: "Mario",
+                surname: "Rossi",
+                discipline: "Karate",
+                gym: "gym1",
+                associationStatus: 'active',
+                subscriptionAccessStatus: 'active'
+            });
+            
+            const now = new Date();
+            const lessonTime = new Date();
+            lessonTime.setHours(18, 0, 0, 0); // Lezione alle 18:00
+            
+            setTodaysLesson({
+                id: "debug-lesson",
+                startTime: Timestamp.fromDate(lessonTime),
+                gymId: "gym1",
+                gymName: "Palestra Demo",
+                discipline: "Karate",
+                type: "lesson"
+            });
+            
+            setIsLoading(false);
+        }
+    }, [FORCE_SHOW_MESSAGE, userData, todaysLesson]);
+
     // Dichiarazione unica delle variabili toastKey e alreadySeen
-    // Mostra il toast 2h30m prima della lezione se non già visto e non già risposto
+    // Mostra il toast 3 ore prima della lezione e lo nasconde 1 ora dopo se senza risposta
     useEffect(() => {
         if (!todaysLesson) return;
+        
+        // 🚨 DEBUG: Forza la visualizzazione se in modalità debug
+        if (FORCE_SHOW_MESSAGE) {
+            setShowAutoToast(true);
+            return;
+        }
+        
         if (alreadyResponded || alreadySeen) {
             setShowAutoToast(false);
             return;
         }
+        
         const lessonDate = todaysLesson.startTime.toDate();
         const now = new Date();
-        // Calcola il tempo in ms fino a 2h30m prima della lezione
-        const msUntilToast = lessonDate.getTime() - now.getTime() - (2.5 * 60 * 60 * 1000);
-        if (msUntilToast <= 0) {
+        
+        // Calcola i tempi di visualizzazione: 3 ore prima e 1 ora dopo la lezione
+        const showTime = lessonDate.getTime() - (3 * 60 * 60 * 1000); // 3 ore prima
+        const hideTime = lessonDate.getTime() + (1 * 60 * 60 * 1000); // 1 ora dopo
+        
+        const currentTime = now.getTime();
+        
+        // Se è nel periodo di visualizzazione (3 ore prima fino a 1 ora dopo)
+        if (currentTime >= showTime && currentTime <= hideTime) {
             setShowAutoToast(true);
+        } else if (currentTime > hideTime) {
+            // Se è passata 1 ora dalla lezione senza risposta, marca come assente automaticamente
+            handleRespond('assente', true);
+            return;
         } else {
-            const timer = setTimeout(() => {
-                setShowAutoToast(true);
-            }, msUntilToast);
-            return () => clearTimeout(timer);
+            setShowAutoToast(false);
+            // Imposta timer per mostrare il toast quando arriva il momento (3 ore prima)
+            const msUntilShow = showTime - currentTime;
+            if (msUntilShow > 0) {
+                const showTimer = setTimeout(() => {
+                    setShowAutoToast(true);
+                }, msUntilShow);
+                
+                // Imposta anche timer per nascondere automaticamente dopo 1 ora dalla lezione
+                const msUntilHide = hideTime - currentTime;
+                const hideTimer = setTimeout(() => {
+                    if (!alreadyResponded) {
+                        handleRespond('assente', true);
+                    }
+                }, msUntilHide);
+                
+                return () => {
+                    clearTimeout(showTimer);
+                    clearTimeout(hideTimer);
+                };
+            }
         }
     }, [todaysLesson, alreadyResponded, alreadySeen]);
 
     const handleRespond = async (status: 'presente' | 'assente', fromToast = false) => {
         if (!user || !userData || !todaysLesson) return;
+        
+        // 🚨 DEBUG: Se in modalità debug, simula la risposta senza salvare
+        if (FORCE_SHOW_MESSAGE) {
+            setIsSubmitting(true);
+            setTimeout(() => {
+                setAlreadyResponded(true);
+                setShowAutoToast(false);
+                setIsSubmitting(false);
+                toast({
+                    title: "🚨 DEBUG MODE - Risposta Simulata!",
+                    description: `Status: ${status} (non salvato nel database)`
+                });
+            }, 1000);
+            return;
+        }
+        
         setIsSubmitting(true);
         try {
             const today_start = new Date();
@@ -165,10 +248,10 @@
         return <div className="h-24 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
     }
 
-    // Toast automatico 2h30m prima della lezione
+    // Toast automatico 3 ore prima della lezione (nascosto automaticamente 1 ora dopo se senza risposta)
     if (showAutoToast && todaysLesson && !alreadyResponded && !alreadySeen) {
     return (
-            <Alert className="mb-6 animate-in fade-in-50 border-[4px] !border-green-600" style={{borderWidth: 4, borderColor: '#16a34a'}}>
+            <Alert className="mb-6 animate-in fade-in-50 border-[4px] !border-green-600 bg-green-50" style={{borderWidth: 4, borderColor: '#16a34a'}}>
                 <CalendarCheck className="h-4 w-4 text-green-600" />
                 <AlertTitle className="font-bold">Appello per la lezione di oggi, ogni presenza ti premia!</AlertTitle>
                 <AlertDescription>
@@ -213,7 +296,7 @@
     }
     // Prompt classico se non è ancora tempo di toast automatico
     return (
-        <Alert className="mb-6 animate-in fade-in-50">
+        <Alert className="mb-6 animate-in fade-in-50 bg-green-50">
             <CalendarCheck className="h-4 w-4" />
             <AlertTitle className="font-bold">Appello per la lezione di oggi, ogni presenza ti premia!</AlertTitle>
             <AlertDescription>

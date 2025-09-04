@@ -27,7 +27,7 @@ maxInstances: 1
 minInstances: 0
 # The version of Node.js to use.
 # This should match the version you are using locally.
-nodejs: 20
+nodejs: 22
 # The version of npm to use.
 npm: 10
 # The version of yarn to use.

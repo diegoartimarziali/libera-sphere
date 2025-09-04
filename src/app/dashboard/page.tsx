@@ -419,18 +419,18 @@ export default function DashboardPage() {
       }
 
       if (userData?.subscriptionPaymentFailed) {
-          alerts.push(
-              <Alert key="sub-failed" variant="destructive" className="mb-6">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Pagamento Abbonamento Fallito</AlertTitle>
-                  <AlertDescription>
-                      La tua richiesta di abbonamento non è andata a buon fine. Per favore, procedi a un nuovo acquisto.
-                  </AlertDescription>
-                   <Button onClick={() => router.push('/dashboard/subscriptions')} variant="secondary" className="mt-4">
-                      Vai agli Abbonamenti
-                  </Button>
-              </Alert>
-          );
+      alerts.push(
+        <div key="sub-failed" className="mb-6 w-full max-w-lg p-4 rounded-lg border-2 font-semibold text-base text-center" style={{ background: '#FFEAEA', color: '#B91C1C', borderColor: '#B91C1C', margin: '0 auto' }}>
+          <div className="flex items-center justify-center mb-2">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            <span className="text-xl font-bold">Pagamento Abbonamento Fallito</span>
+          </div>
+          <div className="mb-2">La tua richiesta di abbonamento non è andata a buon fine. Per favore, procedi a un nuovo acquisto.</div>
+          <Button onClick={() => router.push('/dashboard/subscriptions')} variant="secondary" style={{ color: '#B91C1C', borderColor: '#B91C1C', background: '#fff' }} className="mt-2 font-bold">
+            Vai agli Abbonamenti
+          </Button>
+        </div>
+      );
       }
 
       if (userData?.medicalCertificateStatus === 'invalid') {

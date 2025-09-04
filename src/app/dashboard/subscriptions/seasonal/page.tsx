@@ -81,6 +81,10 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
                     <span className="text-muted-foreground">Prezzo</span>
                     <span className="font-bold text-3xl">{subscription.totalPrice.toFixed(2)} €</span>
                 </div>
+                    {/* Finestra di acquisto */}
+                    <div className="w-full text-center text-base font-bold mb-2" style={{ color: '#0ea5e9' }}>
+                        Acquistabile dal {subscription.purchaseStartDate ? format(subscription.purchaseStartDate.toDate(), "dd MMMM yyyy", { locale: it }) : "-"} al {subscription.purchaseEndDate ? format(subscription.purchaseEndDate.toDate(), "dd MMMM yyyy", { locale: it }) : "-"}
+                    </div>
                  <div className="space-y-2 rounded-md border p-4">
                      <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Valido dal</span>
@@ -135,35 +139,56 @@ export default function SeasonalSubscriptionPage() {
     useEffect(() => {
         // Listener rimborso bonus su pagamento fallito
         if (user) {
-            import('firebase/firestore').then(({ collection, query, onSnapshot }) => {
+            import('firebase/firestore').then(({ collection, query, onSnapshot, where }) => {
                 const paymentsRef = collection(db, 'users', user.uid, 'payments');
-                const q = query(paymentsRef);
+                const q = query(paymentsRef, where('status', '==', 'failed'));
                 onSnapshot(q, async (snapshot) => {
                     snapshot.docChanges().forEach(async change => {
-                        const data = change.doc.data();
-                        if (
-                            data.status === 'failed' &&
-                            data.bonusUsed > 0 &&
-                            data.awardId
-                        ) {
-                            // Rimborso bonus già gestito lato server, aggiorna UI e notifica
-                            const bonusSnap = await getDocs(collection(db, 'users', user.uid, 'userAwards'));
-                            const bonus = await Promise.all(bonusSnap.docs.map(async docSnap => {
-                                const d = docSnap.data();
-                                let value = 0;
-                                if (d.awardId) {
-                                    const awardDoc = await getDoc(doc(db, 'awards', d.awardId));
-                                    if (awardDoc.exists()) value = awardDoc.data().value || 0;
+                        if (change.type === 'modified') {
+                            const data = change.doc.data();
+                            if (data.bonusUsed > 0 && data.awardId) {
+                                console.log('[Pagamento fallito] Riaccredito bonus:', data);
+                                
+                                try {
+                                    // Importa e usa la funzione di rimborso
+                                    const { refundBonus } = await import('@/lib/refundBonus');
+                                    await refundBonus(user.uid, data.awardId, data.bonusUsed);
+                                    
+                                    // Refresh bonus dopo rimborso
+                                    const bonusSnap = await getDocs(collection(db, "users", user.uid, "userAwards"));
+                                    const bonus = await Promise.all(bonusSnap.docs.map(async docSnap => {
+                                        const data = docSnap.data();
+                                        let value = data.value || 0;
+                                        let residuo = data.residuo || 0;
+                                        
+                                        if (!data.value && data.awardId) {
+                                            const awardDoc = await getDoc(doc(db, "awards", data.awardId));
+                                            if (awardDoc.exists()) {
+                                                value = awardDoc.data().value || 0;
+                                                residuo = value - (data.usedValue || 0);
+                                            }
+                                        }
+                                        
+                                        return {
+                                            id: docSnap.id,
+                                            value: residuo,
+                                            used: data.used || residuo === 0
+                                        };
+                                    }));
+                                    
+                                    const bonusNonUsati = bonus.filter(b => !b.used && b.value > 0);
+                                    setBonusDisponibili(bonusNonUsati);
+                                    setTotaleBonus(bonusNonUsati.reduce((acc, b) => acc + (b.value || 0), 0));
+                                    
+                                    toast({
+                                        title: "Bonus riaccreditato",
+                                        description: `Il tuo bonus di ${data.bonusUsed}€ è stato riaccreditato perché il pagamento non è stato accettato.`,
+                                        variant: "success"
+                                    });
+                                } catch (error) {
+                                    console.error('Errore durante il rimborso bonus:', error);
                                 }
-                                return { id: docSnap.id, value, used: d.used };
-                            }));
-                            setBonusDisponibili(bonus.filter(b => !b.used));
-                            setTotaleBonus(bonus.filter(b => !b.used).reduce((acc, b) => acc + (b.value || 0), 0));
-                            toast({
-                                title: "Bonus riaccreditato",
-                                description: `Il tuo bonus di ${data.bonusUsed}€ è stato riaccreditato perché il pagamento non è stato accettato.`,
-                                variant: "success"
-                            });
+                            }
                         }
                     });
                 });
@@ -176,25 +201,31 @@ export default function SeasonalSubscriptionPage() {
         
         const fetchAll = async () => {
             try {
-                // Bonus: recupera valore dal documento awards nella sottocollezione utente
+                // Bonus: recupera dati dalla sottocollezione utente
                 const bonusSnap = await getDocs(collection(db, "users", user.uid, "userAwards"));
                 const bonus = await Promise.all(bonusSnap.docs.map(async docSnap => {
                     const data = docSnap.data();
-                    let value = 0;
-                    // Recupera valore dal documento awards
-                    if (data.awardId) {
+                    let value = data.value || 0;
+                    let residuo = data.residuo || 0;
+                    
+                    // Se non c'è il campo residuo, recupera dal documento awards
+                    if (!data.value && data.awardId) {
                         const awardDoc = await getDoc(doc(db, "awards", data.awardId));
                         if (awardDoc.exists()) {
                             value = awardDoc.data().value || 0;
+                            residuo = value - (data.usedValue || 0);
                         }
                     }
+                    
                     return {
                         id: docSnap.id,
-                        value,
-                        used: data.used
+                        value: residuo, // Usa il residuo come valore disponibile
+                        used: data.used || residuo === 0
                     };
                 }));
-                const bonusNonUsati = bonus.filter(b => !b.used);
+                
+                // Filtra solo bonus con residuo > 0
+                const bonusNonUsati = bonus.filter(b => !b.used && b.value > 0);
                 setBonusDisponibili(bonusNonUsati);
                 setTotaleBonus(bonusNonUsati.reduce((acc, b) => acc + (b.value || 0), 0));
 
@@ -253,29 +284,59 @@ export default function SeasonalSubscriptionPage() {
         fetchAll();
     }, [user, toast]);
 
+    // Reset metodo pagamento se selezionato "online" e ci sono bonus
+    useEffect(() => {
+        if (totaleBonus > 0 && selectedPaymentMethod === 'online') {
+            setSelectedPaymentMethod(null);
+        }
+    }, [totaleBonus, selectedPaymentMethod]);
+
     const handlePurchase = async (subscription: Subscription, method: PaymentMethod) => {
         setIsSubmitting(true);
         try {
+            // Controllo: impedisci pagamento online se si usano bonus
+            if (method === 'online' && totaleBonus > 0) {
+                toast({ 
+                    title: "Metodo di pagamento non valido", 
+                    description: "Il pagamento online non è disponibile quando si utilizzano bonus.", 
+                    variant: "destructive" 
+                });
+                setIsSubmitting(false);
+                return;
+            }
+
             const batch = writeBatch(db);
             const userRef = doc(db, "users", user!.uid);
             
-            // Calcola bonus da utilizzare
+            // Calcola bonus da utilizzare SEMPRE (se disponibili)
             let bonusUsed = 0;
-            let awardId = null;
-            if (method === 'bonus' || totaleBonus >= subscription.totalPrice) {
-                bonusUsed = Math.min(totaleBonus, subscription.totalPrice);
-                if (bonusDisponibili.length > 0) {
-                    awardId = bonusDisponibili[0].id; // Usa il primo bonus disponibile
-                }
+            let awardIdsUsati: string[] = [];
+            let prezzoResiduo = subscription.totalPrice;
+            
+            // Utilizza automaticamente tutti i bonus disponibili
+            for (const bonus of bonusDisponibili) {
+                if (prezzoResiduo <= 0) break;
+                const useAmount = Math.min(bonus.value, prezzoResiduo);
+                bonusUsed += useAmount;
+                prezzoResiduo -= useAmount;
+                awardIdsUsati.push(bonus.id);
                 
-                // Marca bonus come usati
-                let remainingToUse = bonusUsed;
-                for (const bonus of bonusDisponibili) {
-                    if (remainingToUse <= 0) break;
-                    const useAmount = Math.min(bonus.value, remainingToUse);
-                    const bonusRef = doc(db, "users", user!.uid, "userAwards", bonus.id);
-                    batch.update(bonusRef, { used: true });
-                    remainingToUse -= useAmount;
+                // Aggiorna il bonus nel database
+                const bonusDocRef = doc(db, "users", user!.uid, "userAwards", bonus.id);
+                const bonusDocSnap = await getDoc(bonusDocRef);
+                
+                if (bonusDocSnap.exists()) {
+                    const currentData = bonusDocSnap.data();
+                    const valoreIniziale = currentData.value || 0;
+                    const usedValuePrecedente = currentData.usedValue || 0;
+                    const nuovoUsedValue = usedValuePrecedente + useAmount;
+                    const residuo = Math.max(0, valoreIniziale - nuovoUsedValue);
+                    
+                    batch.update(bonusDocRef, {
+                        used: residuo === 0,
+                        usedValue: nuovoUsedValue,
+                        residuo: residuo
+                    });
                 }
             }
             
@@ -292,27 +353,59 @@ export default function SeasonalSubscriptionPage() {
             });
             await batch.commit();
             
+            // REFRESH BONUS DOPO L'ACQUISTO
+            const bonusSnapRefresh = await getDocs(collection(db, "users", user!.uid, "userAwards"));
+            const bonusRefresh = await Promise.all(bonusSnapRefresh.docs.map(async docSnap => {
+                const data = docSnap.data();
+                let value = data.value || 0;
+                let residuo = data.residuo || 0;
+                
+                if (!data.value && data.awardId) {
+                    const awardDoc = await getDoc(doc(db, "awards", data.awardId));
+                    if (awardDoc.exists()) {
+                        value = awardDoc.data().value || 0;
+                        residuo = value - (data.usedValue || 0);
+                    }
+                }
+                
+                return {
+                    id: docSnap.id,
+                    value: residuo,
+                    used: data.used || residuo === 0
+                };
+            }));
+            
+            const bonusNonUsatiRefresh = bonusRefresh.filter(b => !b.used && b.value > 0);
+            setBonusDisponibili(bonusNonUsatiRefresh);
+            setTotaleBonus(bonusNonUsatiRefresh.reduce((acc, b) => acc + (b.value || 0), 0));
+            
             // Registra pagamento
             const paymentsRef = collection(db, "users", user!.uid, "payments");
             const paymentData: any = {
                 createdAt: serverTimestamp(),
                 description: `Abbonamento ${subscription.name} (${subscription.totalPrice.toFixed(2)} €)`,
-                amount: subscription.totalPrice,
+                amount: Math.max(0, subscription.totalPrice - bonusUsed), // Prezzo finale dopo bonus
                 paymentMethod: method,
                 status: 'pending',
                 type: 'subscription',
                 userId: user!.uid,
             };
             
+            // Aggiungi informazioni sui bonus se utilizzati
             if (bonusUsed > 0) {
                 paymentData.bonusUsed = bonusUsed;
-                paymentData.awardId = awardId;
+                paymentData.awardId = awardIdsUsati.length === 1 ? awardIdsUsati[0] : awardIdsUsati;
             }
             
             await addDoc(paymentsRef, paymentData);
 
-            toast({ title: "Richiesta Inviata!", description: "La tua richiesta di abbonamento stagionale è in attesa di approvazione." });
-            if (method === 'online' && subscription.sumupLink) {
+            toast({ 
+                title: "Richiesta Inviata!", 
+                description: bonusUsed > 0 
+                    ? `Pagamento: €${Math.max(0, subscription.totalPrice - bonusUsed).toFixed(2)}. Bonus usati: €${bonusUsed.toFixed(2)}.`
+                    : "La tua richiesta di abbonamento stagionale è in attesa di approvazione."
+            });
+            if (method === 'online' && subscription.sumupLink && Math.max(0, subscription.totalPrice - bonusUsed) > 0) {
                 window.open(subscription.sumupLink, '_blank');
             }
             setUserData(prev => prev ? ({...prev, subscriptionAccessStatus: 'pending', subscriptionPaymentFailed: false}) : null);
@@ -374,19 +467,26 @@ export default function SeasonalSubscriptionPage() {
                         hasActiveOrPending={!!hasActiveOrPending}
                         onOpenPaymentDialog={() => setIsPaymentDialogOpen(true)}
                     />
+                    {/* Messaggio abbonamento in attesa */}
+                    {userData?.subscriptionAccessStatus === 'pending' && (
+                        <div className="w-full max-w-lg my-4 p-4 rounded-lg border-2 font-semibold text-base text-center" style={{ background: '#FFF6E5', color: 'hsl(var(--primary))', borderColor: 'hsl(var(--primary))' }}>
+                            <div className="mb-2 text-xl font-bold">Abbonamento in Attesa</div>
+                            Il tuo accesso ai corsi sarà attivato non appena il pagamento del tuo abbonamento verrà confermato dalla segreteria.
+                        </div>
+                    )}
                     {/* Bonus disponibili e totale */}
                     <div className="w-full max-w-lg my-4 p-4 border-2 rounded-lg bg-green-50" style={{ borderColor: '#10b981' }}>
                         <div className="flex items-center gap-2 mb-2">
                             <Gift className="h-6 w-6 text-yellow-500" />
-                            <span className="font-bold" style={{ color: totaleBonus > 0 ? '#10b981' : 'hsl(var(--background))' }}>Bonus disponibili:</span>
-                            <span className="text-lg" style={{ color: totaleBonus > 0 ? '#10b981' : 'hsl(var(--background))' }}>€{totaleBonus.toFixed(2)}</span>
+                            <span className="font-bold" style={{ color: '#059669' }}>Bonus disponibili:</span>
+                            <span className="text-lg font-bold" style={{ color: '#059669' }}>€{totaleBonus.toFixed(2)}</span>
                         </div>
                         {bonusDisponibili.length > 0 ? (
                             <ul className="text-sm">
                                 {bonusDisponibili.map(b => (
                                     <li key={b.id} className="flex justify-between">
-                                        <span>ID: {b.id}</span>
-                                        <span>Valore: €{typeof b.value === "number" ? b.value.toFixed(2) : "0.00"}</span>
+                                        <span className="font-bold" style={{ color: '#059669' }}>ID: {b.id}</span>
+                                        <span className="font-bold" style={{ color: '#059669' }}>Valore: €{typeof b.value === "number" ? b.value.toFixed(2) : "0.00"}</span>
                                     </li>
                                 ))}
                             </ul>
@@ -398,12 +498,16 @@ export default function SeasonalSubscriptionPage() {
                             <DialogHeader>
                                 <DialogTitle style={{ color: 'hsl(var(--background))' }}>Scegli Metodo di Pagamento</DialogTitle>
                                 <DialogDescription className="text-base">
-                                    Prezzo abbonamento: <b>€{availableSubscription.totalPrice.toFixed(2)}</b><br />
+                                    Prezzo abbonamento: {totaleBonus > 0 ? (
+                                        <span style={{ textDecoration: 'line-through', color: '#888', fontWeight: 'bold' }}>€{availableSubscription.totalPrice.toFixed(2)}</span>
+                                    ) : (
+                                        <b>€{availableSubscription.totalPrice.toFixed(2)}</b>
+                                    )}<br />
                                     Bonus utilizzabili: <b>€{totaleBonus.toFixed(2)}</b><br />
                                     {totaleBonus >= availableSubscription.totalPrice ? (
-                                        <span className="text-green-700 font-bold">Il tuo abbonamento è completamente coperto dai bonus!</span>
+                                        <span className="font-bold" style={{ color: '#059669' }}>Il tuo abbonamento è completamente coperto dai bonus!</span>
                                     ) : (
-                                        <span className="text-blue-600">Prezzo finale dopo bonus: <b>€{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</b></span>
+                                        <span className="font-bold" style={{ color: '#059669' }}>Prezzo finale dopo bonus: €{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</span>
                                     )}
                                 </DialogDescription>
                             </DialogHeader>
@@ -413,19 +517,34 @@ export default function SeasonalSubscriptionPage() {
                                     onValueChange={(value: string) => setSelectedPaymentMethod(value as PaymentMethod)}
                                     className="space-y-4 py-4"
                                 >
+                                   {/* Carta di credito - Disabilitata se si usano bonus */}
                                    <Label
                                         htmlFor="online"
-                                        className="flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                        className={`flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5 ${
+                                            totaleBonus > 0 ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                         style={{ borderColor: 'hsl(var(--background))' }}
                                     >
-                                        <RadioGroupItem value="online" id="online" className="mt-1" style={{ borderColor: 'hsl(var(--background))' }} />
+                                        <RadioGroupItem 
+                                            value="online" 
+                                            id="online" 
+                                            className="mt-1" 
+                                            style={{ borderColor: 'hsl(var(--background))' }}
+                                            disabled={totaleBonus > 0}
+                                        />
                                         <div className="flex-1 space-y-1">
-                                            <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>Online (Carta di Credito)</h4>
+                                            <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>
+                                                Online (Carta di Credito)
+                                                {totaleBonus > 0 && <span className="text-red-500 ml-2">(Non disponibile con bonus)</span>}
+                                            </h4>
                                             <p className="text-sm text-muted-foreground">
-                                                Paga in modo sicuro con SumUp. Verrai reindirizzato al sito del gestore, <span className="font-bold">a pagamento effettuato torna all'app per conferma e concludere l'iscrizione ai corsi.</span>
+                                                {totaleBonus > 0 ? 
+                                                    "Il pagamento online non è disponibile quando si utilizzano bonus. Utilizza bonifico bancario o pagamento in sede." :
+                                                    "Paga in modo sicuro con SumUp. Verrai reindirizzato al sito del gestore, a pagamento effettuato torna all'app per conferma e concludere l'iscrizione ai corsi."
+                                                }
                                             </p>
                                         </div>
-                                        <CreditCard className="h-6 w-6 text-muted-foreground" />
+                                        <CreditCard className={`h-6 w-6 ${totaleBonus > 0 ? 'text-gray-400' : 'text-muted-foreground'}`} />
                                     </Label>
                                     <Label
                                         htmlFor="bank_transfer"

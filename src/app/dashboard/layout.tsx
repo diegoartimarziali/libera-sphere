@@ -40,6 +40,7 @@ interface UserData {
   isFormerMember: 'yes' | 'no';
   isInsured?: boolean;
   subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
+  subscriptionPaymentFailed?: boolean; // Nuovo campo per bloccare accesso
   activeSubscription?: {
       subscriptionId: string;
       name: string;
@@ -90,6 +91,25 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
         userData.associationStatus !== 'active' &&
         userData.associationStatus !== 'pending';
 
+    // Se pagamento abbonamento fallito, blocca accesso a tutto tranne Pagamenti e Abbonamenti
+    const isPaymentBlocked = userData.subscriptionPaymentFailed === true;
+
+    if (isPaymentBlocked) {
+        return (
+            <>
+                <NavLink href="/dashboard" icon={UserSquare} onClick={onLinkClick}>Scheda Personale</NavLink>
+                <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick}>I Miei Pagamenti</NavLink>
+                <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
+                
+                {userData.role === 'admin' && (
+                    <>
+                        <Separator className="my-2" />
+                        <NavLink href="/admin" icon={Shield} onClick={onLinkClick}>Pannello Admin</NavLink>
+                    </>
+                )}
+            </>
+        );
+    }
 
     return (
         <>
@@ -264,6 +284,24 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 if (onboardingPages.includes(pathname)) {
                     setLoadingData(false);
                     return;
+                }
+
+                // === PROTEZIONE PAGAMENTO ABBONAMENTO FALLITO ===
+                if (fetchedUserData?.subscriptionPaymentFailed === true) {
+                    const allowedPages = [
+                        '/dashboard', 
+                        '/dashboard/payments', 
+                        '/dashboard/subscriptions',
+                        '/dashboard/subscriptions/monthly',
+                        '/dashboard/subscriptions/seasonal'
+                    ];
+                    const isAdminAccessingAdmin = fetchedUserData?.role === 'admin' && pathname.startsWith('/admin');
+                    
+                    if (!allowedPages.includes(pathname) && !isAdminAccessingAdmin) {
+                        router.push('/dashboard/subscriptions');
+                        setLoadingData(false);
+                        return;
+                    }
                 }
                 if (trialStatus === 'completed' && fetchedUserData?.associationStatus === 'not_associated') {
                     if (pathname !== '/dashboard/trial-completed') {
