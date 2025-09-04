@@ -32,18 +32,16 @@ export function TotalAwardsCard() {
   }
 
   return (
-    <Card className="mb-6">
-      <CardHeader className="flex flex-col items-start gap-1 leading-tight pb-1">
-        <div className="flex flex-col items-center w-full">
-          <div className="flex items-center justify-center gap-2 w-full">
-            <Gift className="h-6 w-6 text-green-700" />
-            <span className="font-bold text-green-700 text-sm">Premi Assegnati{firstBonusDate ? ` dal ${firstBonusDate}` : ''}</span>
-            <span className="font-bold text-green-700 text-2xl">{totalAssigned}€</span>
-          </div>
+    <Card className="mb-6 border-green-600" style={{ borderWidth: '3px' }}>
+      <CardContent className="flex flex-col items-center justify-center py-4">
+        <div className="flex items-center justify-center gap-2 w-full mb-2">
+          <Gift className="h-6 w-6 text-green-700" />
+          <span className="font-bold text-green-700 text-sm">Premi Assegnati{firstBonusDate ? ` dal ${firstBonusDate}` : ''}</span>
+          <span className="font-bold text-green-700 text-2xl">{totalAssigned}€</span>
         </div>
-      </CardHeader>
-  <CardContent className="pt-0 pb-1">
-        <div className="text-sm text-muted-foreground text-center leading-tight">Valore totale di tutti i premi assegnati (inclusi quelli già usati)</div>
+        <div className="text-sm text-muted-foreground text-center leading-tight">
+          Valore totale di tutti i premi assegnati (inclusi quelli già usati)
+        </div>
       </CardContent>
     </Card>
   );

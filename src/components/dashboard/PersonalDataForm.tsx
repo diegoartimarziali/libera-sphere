@@ -268,7 +268,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+  <CardDescription><span className="font-bold">{description}</span></CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -311,7 +311,16 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                   <FormItem>
                     <FormLabel>Codice Fiscale</FormLabel>
                     <FormControl>
-                      <Input placeholder="RSSMRA80A01H501U" {...field} value={(field.value || "").toUpperCase()} />
+                      <Input 
+                        placeholder="RSSRSS33R33R333R"
+                        maxLength={16}
+                        value={(field.value || "").toUpperCase()}
+                        onChange={e => {
+                          // Limita a 16 caratteri e trasforma in maiuscolo
+                          const val = e.target.value.slice(0, 16).toUpperCase();
+                          field.onChange(val);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -320,15 +329,36 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                <FormField
                 control={form.control}
                 name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefono</FormLabel>
-                    <FormControl>
-                      <Input placeholder="3331234567" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Funzione per formattare il numero come 333-3333333
+                  const formatPhone = (value: string) => {
+                    const digits = value.replace(/\D/g, "").slice(0, 10);
+                    if (digits.length <= 3) return digits;
+                    return digits.slice(0, 3) + "-" + digits.slice(3);
+                  };
+                  const digits = (field.value || "").replace(/\D/g, "");
+                  const isIncomplete = digits.length > 0 && digits.length < 10;
+                  return (
+                    <FormItem>
+                      <FormLabel>Telefono</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Es. 333-3333333"
+                          value={formatPhone(field.value || "")}
+                          onChange={e => {
+                            const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                            field.onChange(digits);
+                          }}
+                          maxLength={11}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      {isIncomplete && (
+                        <span className="text-sm text-red-600 font-semibold">Numero incompleto</span>
+                      )}
+                    </FormItem>
+                  );
+                }}
               />
             </div>
             
@@ -353,7 +383,17 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                   <FormItem>
                     <FormLabel>Comune di Nascita</FormLabel>
                     <FormControl>
-                      <Input placeholder="Es. Roma" {...field} />
+                      <Input 
+                        placeholder="Es. Roma"
+                        value={field.value}
+                        onChange={e => {
+                          // Permetti solo lettere e spazi
+                          let val = e.target.value.replace(/[^a-zA-Zàèéìòùç\s]/g, "");
+                          // Prima lettera maiuscola, resto minuscolo
+                          val = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+                          field.onChange(val);
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -362,15 +402,25 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
             </div>
             
             <div className="space-y-2">
-                <Label>Indirizzo di Residenza</Label>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-4 items-end">
                   <FormField
                       control={form.control}
                       name="address"
                       render={({ field }) => (
                       <FormItem className="sm:col-span-3">
+                          <FormLabel>Indirizzo di Residenza</FormLabel>
                           <FormControl>
-                          <Input placeholder="Via / Piazza" {...field} />
+                          <Input
+                            placeholder="Via / Piazza"
+                            value={field.value}
+                            onChange={e => {
+                              // Permetti solo lettere e spazi
+                              let val = e.target.value.replace(/[^a-zA-Zàèéìòùç\s]/g, "");
+                              // Prima lettera maiuscola per ogni parola
+                              val = val.replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+                              field.onChange(val);
+                            }}
+                          />
                           </FormControl>
                           <FormMessage />
                       </FormItem>
@@ -381,8 +431,17 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                       name="streetNumber"
                       render={({ field }) => (
                       <FormItem>
+                          <FormLabel>N° civico</FormLabel>
                           <FormControl>
-                          <Input placeholder="N° Civico" {...field} />
+                          <Input 
+                            placeholder="33"
+                            value={field.value}
+                            onChange={e => {
+                              // Permetti solo numeri
+                              const val = e.target.value.replace(/\D/g, "");
+                              field.onChange(val);
+                            }}
+                          />
                           </FormControl>
                           <FormMessage />
                       </FormItem>
@@ -390,51 +449,80 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                   />
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormControl>
-                            <Input placeholder="Città" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="zipCode"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormControl>
-                            <Input placeholder="CAP" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="province"
-                        render={({ field }) => (
-                        <FormItem>
-                            <FormControl>
-                            <Input placeholder="Provincia (Sigla)" {...field} value={(field.value || "").toUpperCase()} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                        )}
-                    />
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+            <FormItem>
+              <FormLabel>Città</FormLabel>
+              <FormControl>
+                            <Input 
+                              placeholder="Es. Roma"
+                              value={field.value}
+                              onChange={e => {
+                                let val = e.target.value.replace(/[^a-zA-Zàèéìòùç\s]/g, "");
+                                val = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+                                field.onChange(val);
+                              }}
+                            />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+            )}
+          />
+           <FormField
+            control={form.control}
+            name="zipCode"
+            render={({ field }) => (
+            <FormItem>
+              <FormLabel>CAP</FormLabel>
+              <FormControl>
+                            <Input 
+                              placeholder="Es. 10100"
+                              value={field.value}
+                              maxLength={5}
+                              onChange={e => {
+                                // Permetti solo cifre, massimo 5
+                                const val = e.target.value.replace(/\D/g, "").slice(0, 5);
+                                field.onChange(val);
+                              }}
+                            />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+            )}
+          />
+           <FormField
+            control={form.control}
+            name="province"
+            render={({ field }) => (
+            <FormItem>
+              <FormLabel>Provincia</FormLabel>
+              <FormControl>
+                            <Input 
+                              placeholder="Es. RM"
+                              value={(field.value || "").toUpperCase()}
+                              maxLength={2}
+                              onChange={e => {
+                                // Permetti solo lettere, massimo 2, sempre maiuscole
+                                const val = e.target.value.replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase();
+                                field.onChange(val);
+                              }}
+                            />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+            )}
+          />
                 </div>
             </div>
 
             {isMinor === true && (
                 <div className="space-y-4 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
                     <h4 className="medical-upload-text text-2xl font-bold">Dati del Genitore/Tutore</h4>
-                     <p className="text-sm text-muted-foreground">
-                        Poiché l'iscritto è minorenne, è obbligatorio compilare i dati di un genitore o tutore legale.
-                    </p>
+           <p className="text-sm text-muted-foreground font-bold">
+            Poiché l'iscritto è minorenne, è obbligatorio compilare i dati di un genitore o tutore legale.
+          </p>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <FormField
                             control={form.control}
@@ -442,7 +530,17 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Nome Genitore</FormLabel>
-                                    <FormControl><Input placeholder="Nome" {...field} /></FormControl>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="Nome"
+                                        value={field.value}
+                                        onChange={e => {
+                                          let val = e.target.value.replace(/[^a-zA-Zàèéìòùç\s]/g, "");
+                                          val = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+                                          field.onChange(val);
+                                        }}
+                                      />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -453,7 +551,17 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Cognome Genitore</FormLabel>
-                                    <FormControl><Input placeholder="Cognome" {...field} /></FormControl>
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="Cognome"
+                                        value={field.value}
+                                        onChange={e => {
+                                          let val = e.target.value.replace(/[^a-zA-Zàèéìòùç\s]/g, "");
+                                          val = val.charAt(0).toUpperCase() + val.slice(1).toLowerCase();
+                                          field.onChange(val);
+                                        }}
+                                      />
+                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}

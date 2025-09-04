@@ -503,10 +503,10 @@ export default function DashboardPage() {
       
       if (userData?.associationStatus === 'pending') {
           alerts.push(
-            <Alert key="assoc-pending" variant="warning" className="mb-6">
-              <Clock className="h-4 w-4" />
-              <AlertTitle>Domanda di Associazione Inviata!</AlertTitle>
-              <AlertDescription>
+            <Alert key="assoc-pending" variant="warning" className="mb-6 bg-orange-100 border-orange-500 text-orange-700">
+              <Clock className="h-4 w-4 text-orange-600" />
+              <AlertTitle className="text-orange-800">Domanda di Associazione Inviata!</AlertTitle>
+              <AlertDescription className="text-orange-700">
                 La tua richiesta è in attesa di approvazione. Riceverai una notifica non appena il pagamento sarà confermato e lo stato aggiornato.
               </AlertDescription>
             </Alert>
@@ -566,8 +566,8 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-       <h1 className="text-3xl font-bold">
-         {dataLoading ? <Skeleton className="h-9 w-64" /> : `Benvenuto, ${userData?.name?.split(' ')[0] || ''}!`}
+       <h1 className="text-2xl font-bold text-center">
+         {dataLoading ? <Skeleton className="h-8 w-56 mx-auto" /> : `Benvenuto, ${userData?.name?.split(' ')[0] || ''}!`}
       </h1>
 
       <Suspense fallback={<div><Skeleton className="h-24 w-full mb-6" /></div>}>

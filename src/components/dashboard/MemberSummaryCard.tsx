@@ -115,7 +115,10 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
     
     const subscriptionValidityClassName = "font-bold text-muted-foreground";
 
-    const socioDalClassName = 'text-muted-foreground font-black';
+    const socioDalClassName = cn('font-bold', {
+        'text-muted-foreground': !props.socioDal || props.socioDal === 'N/A',
+        // Se è un anno (es. "2022"), usa marrone scuro, altrimenti colore originale
+    }) + (props.socioDal && /^\d{4}$/.test(props.socioDal) ? ' !text-[hsl(var(--background))]' : '');
 
     return (
         <Card className="flex flex-col">
@@ -136,9 +139,9 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                 </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-4 p-4">
-                 <div className="space-y-3">
-                    <h4 className="text-lg font-bold flex items-center justify-center text-center" style={{ color: 'hsl(30, 100%, 38%)' }}>
-                        <UserCircle size={16} className="mr-3 w-5 text-muted-foreground" />
+                 <div className="space-y-3 bg-gray-100 p-4 rounded-md" style={{ borderColor: 'hsl(var(--background))', borderWidth: '2px' }}>
+                    <h4 className="text-lg font-bold flex items-center justify-center text-center" style={{ color: 'hsl(var(--background))' }}>
+                        <UserCircle size={16} className="mr-3 w-5" style={{ color: 'hsl(var(--background))' }} />
                         Dati Anagrafici
                     </h4>
                     <div className="pl-8 space-y-3">
@@ -165,9 +168,10 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  
                  <Separator />
 
-                 <div className="space-y-3">
-                    <h4 className="text-lg font-bold flex items-center justify-center text-center" style={{ color: 'hsl(30, 100%, 38%)' }}>
-                        <Award size={16} className="mr-3 w-5 text-muted-foreground" />
+                {/* Stato Associativo, Medico e Assicurativo */}
+                <div className="p-6 rounded-lg bg-gray-50 border-2 space-y-3" style={{ borderColor: 'hsl(var(--background))' }}>
+                    <h4 className="text-lg font-bold flex items-center justify-center text-center" style={{ color: 'hsl(var(--background))' }}>
+                        <Award size={16} className="mr-3 w-5" style={{ color: 'hsl(var(--background))' }} />
                         Stato Associativo, Medico e Assicurativo
                     </h4>
                     <div className="pl-8 space-y-3">
@@ -177,7 +181,7 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                         <InfoRow icon={<ShieldCheck size={16} />} label="Assicurato" value={props.isInsured} valueClassName={insuredStatusClassName} />
                         <InfoRow icon={<Shield size={16} />} label="Stato Associazione" value={props.membershipStatus} valueClassName={membershipStatusClassName} />
                     </div>
-                 </div>
+                </div>
                  
                  <Separator />
 

@@ -61,7 +61,7 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
     const isExpiring = subscription.expiryWarningDate && isAfter(now, subscription.expiryWarningDate.toDate());
 
     return (
-        <Card className="w-full max-w-lg">
+        <Card className="w-full max-w-lg border-4 bg-gray-50" style={{ borderColor: 'hsl(var(--primary))' }}>
             <CardHeader>
                 <CardTitle className="text-2xl">{subscription.name}</CardTitle>
                 <CardDescription>
@@ -93,21 +93,22 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
                     </div>
                 </div>
                  <ul className="space-y-2 text-sm pt-2">
-                    <li className="flex items-center"><Zap className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span>Attivazione rapida dopo la conferma del pagamento.</span></li>
-                    <li className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span>La copertura assicurativa deve essere già attiva.</span></li>
+                    <li className="flex items-center"><Zap className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span style={{ color: 'hsl(var(--primary))' }}>Attivazione rapida dopo la conferma del pagamento.</span></li>
+                    <li className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span style={{ color: 'hsl(var(--primary))' }}>La copertura assicurativa deve essere già attiva.</span></li>
                 </ul>
             </CardContent>
             <CardFooter className="flex-col gap-2">
                  <Button 
                     onClick={onOpenPaymentDialog} 
                     disabled={isSubmitting || hasActiveOrPending || !isPurchaseWindowOpen}
-                    className="w-full" 
+                    className="w-full text-white font-bold" 
                     size="lg"
+                    style={{ backgroundColor: 'hsl(var(--primary))' }}
                 >
                     {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
                     {hasActiveOrPending ? "Pagamento in fase di approvazione" : !isPurchaseWindowOpen ? "Non ancora acquistabile" : "Acquista Ora"}
                 </Button>
-                <Button asChild variant="outline" className="w-full">
+                <Button asChild variant="outline" className="w-full bg-transparent border-2" style={{ color: 'hsl(var(--background))', borderColor: 'hsl(var(--background))' }}>
                     <Link href="/dashboard/subscriptions">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Torna Indietro
@@ -373,11 +374,11 @@ export default function MonthlySubscriptionPage() {
                         onOpenPaymentDialog={() => setIsPaymentDialogOpen(true)}
                     />
                     {/* Bonus disponibili e totale */}
-                    <div className="w-full max-w-lg my-4 p-4 border rounded-lg bg-muted/40">
+                    <div className="w-full max-w-lg my-4 p-4 border-2 rounded-lg bg-green-50" style={{ borderColor: '#10b981' }}>
                         <div className="flex items-center gap-2 mb-2">
                             <Gift className="h-6 w-6 text-yellow-500" />
-                            <span className="font-bold">Bonus disponibili:</span>
-                            <span className="text-lg">€{totaleBonus.toFixed(2)}</span>
+                            <span className="font-bold" style={{ color: totaleBonus > 0 ? '#10b981' : 'hsl(var(--background))' }}>Bonus disponibili:</span>
+                            <span className="text-lg" style={{ color: totaleBonus > 0 ? '#10b981' : 'hsl(var(--background))' }}>€{totaleBonus.toFixed(2)}</span>
                         </div>
                         {bonusDisponibili.length > 0 ? (
                             <ul className="text-sm">
@@ -391,10 +392,10 @@ export default function MonthlySubscriptionPage() {
                         ) : <span className="text-muted-foreground">Nessun bonus disponibile</span>}
                     </div>
                     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-                        <DialogContent>
+                        <DialogContent className="bg-gray-100 [&>button]:text-[hsl(var(--background))]">
                             <DialogHeader>
-                                <DialogTitle>Scegli Metodo di Pagamento</DialogTitle>
-                                <DialogDescription>
+                                <DialogTitle style={{ color: 'hsl(var(--background))' }}>Scegli Metodo di Pagamento</DialogTitle>
+                                <DialogDescription className="text-base">
                                                                         Prezzo abbonamento: <b>€{availableSubscription.totalPrice.toFixed(2)}</b><br />
                                                                         Bonus utilizzabili: <b>€{totaleBonus.toFixed(2)}</b><br />
                                                                         <span className="text-green-700">Prezzo finale: <b>€{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</b></span><br />
@@ -411,24 +412,26 @@ export default function MonthlySubscriptionPage() {
                                 >
                                    <Label
                                         htmlFor="online"
-                                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                        className="flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                        style={{ borderColor: 'hsl(var(--background))' }}
                                     >
-                                        <RadioGroupItem value="online" id="online" className="mt-1" />
+                                        <RadioGroupItem value="online" id="online" className="mt-1" style={{ borderColor: 'hsl(var(--background))' }} />
                                         <div className="flex-1 space-y-1">
-                                            <h4 className="font-semibold">Online (Carta di Credito)</h4>
+                                            <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>Online (Carta di Credito)</h4>
                                             <p className="text-sm text-muted-foreground">
-                                                Paga in modo sicuro con SumUp. Verrai reindirizzato al sito del gestore.
+                                                Paga in modo sicuro con SumUp. Verrai reindirizzato al sito del gestore, <span className="font-bold">a pagamento effettuato torna all'app per conferma e concludere l'iscrizione ai corsi.</span>
                                             </p>
                                         </div>
                                         <CreditCard className="h-6 w-6 text-muted-foreground" />
                                     </Label>
                                     <Label
                                         htmlFor="bank_transfer"
-                                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                        className="flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                        style={{ borderColor: 'hsl(var(--background))' }}
                                     >
-                                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" />
+                                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" style={{ borderColor: 'hsl(var(--background))' }} />
                                         <div className="flex-1 space-y-1">
-                                            <h4 className="font-semibold">Bonifico Bancario</h4>
+                                            <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>Bonifico Bancario</h4>
                                             <p className="text-sm text-muted-foreground">
                                                 Visualizza i dati per effettuare il bonifico. L'attivazione richiede verifica manuale.
                                             </p>
@@ -437,11 +440,12 @@ export default function MonthlySubscriptionPage() {
                                     </Label>
                                     <Label
                                         htmlFor="in_person"
-                                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                        className="flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                                        style={{ borderColor: 'hsl(var(--background))' }}
                                     >
-                                        <RadioGroupItem value="in_person" id="in_person" className="mt-1" />
+                                        <RadioGroupItem value="in_person" id="in_person" className="mt-1" style={{ borderColor: 'hsl(var(--background))' }} />
                                         <div className="flex-1 space-y-1">
-                                            <h4 className="font-semibold">In Sede (Contanti o Bancomat)</h4>
+                                            <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>In Sede (Contanti o Bancomat)</h4>
                                             <p className="text-sm text-muted-foreground">
                                                Paga direttamente in palestra. L'attivazione richiede verifica manuale.
                                             </p>
@@ -452,8 +456,8 @@ export default function MonthlySubscriptionPage() {
                             ) : (
                                 <div className="py-4 text-center text-green-700 font-semibold">Il tuo abbonamento è interamente coperto dai bonus. Nessun pagamento richiesto.</div>
                             )}
-                            <DialogFooter>
-                                <Button variant="ghost" onClick={() => setIsPaymentDialogOpen(false)}>Annulla</Button>
+                            <DialogFooter className="justify-between gap-8 px-4">
+                                <Button variant="ghost" onClick={() => setIsPaymentDialogOpen(false)} className="bg-transparent border-2" style={{ borderColor: 'hsl(var(--background))', color: 'hsl(var(--background))' }}>Annulla</Button>
                                 <Button
                                     onClick={() => {
                                         if (Math.max(0, availableSubscription.totalPrice - totaleBonus) === 0) {
@@ -463,6 +467,9 @@ export default function MonthlySubscriptionPage() {
                                         }
                                     }}
                                     disabled={isSubmitting}
+                                    className="text-white font-bold"
+                                    style={{ backgroundColor: 'hsl(var(--primary))' }}
+                                    size="lg"
                                 >
                                     {isSubmitting && <Loader2 className="animate-spin mr-2" />}
                                     Conferma

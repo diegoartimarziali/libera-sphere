@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { PersonalDataForm, type PersonalDataSchemaType } from "@/components/dashboard/PersonalDataForm"
+import { PersonalDataForm, PersonalDataSchemaType } from "@/components/dashboard/PersonalDataForm"
 import { useToast } from "@/hooks/use-toast"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -45,7 +45,7 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
             {icon && <div className="w-5 text-muted-foreground">{icon}</div>}
             <div className={`flex flex-col sm:flex-row sm:justify-between w-full ${icon ? 'ml-3' : ''}`}>
                  <dt className="font-medium text-muted-foreground">{label}</dt>
-                 <dd className="mt-1 text-foreground sm:mt-0 sm:text-right">{value}</dd>
+                 <dd className="mt-1 font-bold sm:mt-0 sm:text-right" style={{ color: 'hsl(var(--background))' }}>{value}</dd>
             </div>
         </div>
     ) : null
@@ -55,13 +55,10 @@ const DataRow = ({ label, value, icon }: { label: string; value?: string | null,
 function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails, userName, userSurname }: { open: boolean, onOpenChange: (open: boolean) => void, onConfirm: () => void, fee: FeeData | null, bankDetails: BankDetails | null, userName?: string, userSurname?: string }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-                        <DialogContent aria-describedby="dialog-desc-associates">
-                            <p id="dialog-desc-associates" className="text-muted-foreground text-sm mb-2">
-                                Inserisci o modifica i dati dell'associato.
-                            </p>
+                        <DialogContent aria-describedby="dialog-desc-associates" className="bg-gray-100 [&>button]:text-[hsl(var(--background))]">
                 <DialogHeader>
-                    <DialogTitle>Dati per Bonifico Bancario</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle style={{ color: 'hsl(var(--background))' }}>Dati per Bonifico Bancario</DialogTitle>
+                    <DialogDescription className="font-bold">
                         Copia i dati seguenti per effettuare il bonifico. Potrai completare il pagamento con calma dopo aver finalizzato la domanda di associazione.
                     </DialogDescription>
                 </DialogHeader>
@@ -69,16 +66,16 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails, u
                     {bankDetails ? (
                         <>
                             <div className="space-y-1">
-                                <p className="font-semibold text-foreground">Intestatario:</p>
-                                <p>{bankDetails.recipientName}</p>
+                                <p className="font-semibold text-black">Intestatario:</p>
+                                <p className="text-black">{bankDetails.recipientName}</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="font-semibold text-foreground">Banca:</p>
-                                <p>{bankDetails.bankName}</p>
+                                <p className="font-semibold text-black">Banca:</p>
+                                <p className="text-black">{bankDetails.bankName}</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="font-semibold text-foreground">IBAN:</p>
-                                <p className="font-mono bg-muted p-2 rounded-md">{bankDetails.iban}</p>
+                                <p className="font-semibold text-black">IBAN:</p>
+                                <p className="font-mono bg-muted p-2 rounded-md text-black">{bankDetails.iban}</p>
                             </div>
                         </>
                     ) : (
@@ -87,16 +84,16 @@ function BankTransferDialog({ open, onOpenChange, onConfirm, fee, bankDetails, u
                         </div>
                     )}
                      <div className="space-y-1">
-                        <p className="font-semibold text-foreground">Importo:</p>
-                        <p>{fee ? `${fee.price.toFixed(2)} €` : <Loader2 className="h-4 w-4 animate-spin" />}</p>
+                        <p className="font-semibold text-black">Importo:</p>
+                        <p className="text-black">{fee ? `${fee.price.toFixed(2)} €` : <Loader2 className="h-4 w-4 animate-spin" />}</p>
                     </div>
                      <div className="space-y-1">
-                        <p className="font-semibold text-foreground">Causale:</p>
-                        <p className="font-mono bg-muted p-2 rounded-md">{`Quota Associativa ${userName || ''} ${userSurname || ''}`.trim()}</p>
+                        <p className="font-semibold text-black">Causale:</p>
+                        <p className="font-mono bg-muted p-2 rounded-md text-black">{`Quota Associativa ${userName || ''} ${userSurname || ''}`.trim()}</p>
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={onConfirm}>Ho copiato i dati, invia richiesta</Button>
+                    <Button onClick={onConfirm} className="bg-green-600 text-white font-bold hover:bg-green-700">Ho copiato i dati, invia richiesta</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -110,9 +107,9 @@ function PaymentStep({ onBack, onNext, fee }: { onBack: () => void, onNext: (met
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo 2: Quota Associativa</CardTitle>
+                <CardTitle>Quota Associativa</CardTitle>
                 <CardDescription>
-                    Scegli come versare la quota associativa annuale di {fee ? `${fee.price}€` : "..."}.
+                    Scegli come versare la <span className="font-bold">quota associativa annuale di {fee ? `${fee.price}€` : "..."}.</span>
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -123,13 +120,13 @@ function PaymentStep({ onBack, onNext, fee }: { onBack: () => void, onNext: (met
                 >
                     <Label
                         htmlFor="online"
-                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        className="flex cursor-pointer items-start space-x-4 rounded-md border border-orange-500 p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                     >
-                        <RadioGroupItem value="online" id="online" className="mt-1" />
+                        <RadioGroupItem value="online" id="online" className="mt-1 border-2 border-[#6B3F1A]" />
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Online (Carta di Credito)</h4>
                             <p className="text-sm text-muted-foreground">
-                                Paga in modo sicuro e veloce con la tua carta. Verrai reindirizzato al sito SumUp, quando hai effettuato il pagamento torna qui per concludere l'iscrizione.
+                                Paga in modo sicuro e veloce con la tua carta. <span className="font-bold">Verrai reindirizzato al sito SumUp, quando hai effettuato il pagamento con Sum up <span className="underline">torna all'app per concludere l'iscrizione.</span></span>
                             </p>
                         </div>
                          <CreditCard className="h-6 w-6 text-muted-foreground" />
@@ -137,9 +134,9 @@ function PaymentStep({ onBack, onNext, fee }: { onBack: () => void, onNext: (met
 
                     <Label
                         htmlFor="bank_transfer"
-                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        className="flex cursor-pointer items-start space-x-4 rounded-md border border-orange-500 p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                     >
-                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" />
+                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1 border-2 border-[#6B3F1A]" />
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">Bonifico Bancario</h4>
                             <p className="text-sm text-muted-foreground">
@@ -151,9 +148,9 @@ function PaymentStep({ onBack, onNext, fee }: { onBack: () => void, onNext: (met
 
                     <Label
                         htmlFor="in_person"
-                        className="flex cursor-pointer items-start space-x-4 rounded-md border p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        className="flex cursor-pointer items-start space-x-4 rounded-md border border-orange-500 p-4 transition-all hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                     >
-                        <RadioGroupItem value="in_person" id="in_person" className="mt-1" />
+                        <RadioGroupItem value="in_person" id="in_person" className="mt-1 border-2 border-[#6B3F1A]" />
                         <div className="flex-1 space-y-1">
                             <h4 className="font-semibold">In Sede (Contanti o Bancomat)</h4>
                             <p className="text-sm text-muted-foreground">
@@ -165,7 +162,13 @@ function PaymentStep({ onBack, onNext, fee }: { onBack: () => void, onNext: (met
                 </RadioGroup>
             </CardContent>
             <CardFooter className="justify-end">
-                <Button onClick={() => onNext(paymentMethod!)} disabled={!paymentMethod}>Prosegui</Button>
+                                <Button 
+                                    onClick={() => onNext(paymentMethod!)} 
+                                    disabled={!paymentMethod}
+                                    className="w-full bg-orange-500 text-white font-bold hover:bg-orange-600"
+                                >
+                                    Prosegui
+                                </Button>
             </CardFooter>
         </Card>
     )
@@ -217,13 +220,10 @@ function ConfirmationStep({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Passo Finale: Riepilogo e Conferma</CardTitle>
-                <CardDescription>
-                    Controlla i tuoi dati. Se tutto è corretto, conferma e invia la tua domanda di associazione.
-                </CardDescription>
+                <CardTitle>Riepilogo e Conferma</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-                 <div className="space-y-4 rounded-md border p-4">
+                 <div className="space-y-4 rounded-md p-4 bg-gray-100" style={{ borderColor: 'hsl(var(--background))', borderWidth: '2px' }}>
                      <h3 className="font-semibold text-lg">Dati Anagrafici</h3>
                      <dl className="space-y-2">
                         <DataRow label="Nome" value={formData.name} />
@@ -238,7 +238,7 @@ function ConfirmationStep({
                 </div>
                 
                 {formData.isMinor && formData.parentData && (
-                    <div className="space-y-4 rounded-md border p-4">
+                    <div className="space-y-4 rounded-md p-4 bg-gray-100" style={{ borderColor: 'hsl(var(--background))', borderWidth: '2px' }}>
                         <h3 className="font-semibold text-lg">Dati Genitore/Tutore</h3>
                         <dl className="space-y-2">
                            <DataRow label="Nome" value={formData.parentData.parentName} />
@@ -248,25 +248,25 @@ function ConfirmationStep({
                     </div>
                 )}
 
-                 <div className="space-y-4 rounded-md border p-4">
-                     <h3 className="font-semibold text-lg">Carriera Sportiva</h3>
-                     <dl className="space-y-2">
-                        <DataRow label="Disciplina" value={discipline} icon={<Sparkles size={16}/>} />
-                        <DataRow label="Grado" value={lastGrade} icon={<Award size={16}/>} />
-                        <DataRow label="Qualifica" value={qualification} icon={<Star size={16}/>}/>
+                 <div className="space-y-4 rounded-md p-4 bg-blue-100 border-blue-800" style={{ borderWidth: '2px' }}>
+                     <h3 className="font-semibold text-lg text-blue-800">Carriera Sportiva</h3>
+                     <dl className="space-y-2 [&_dt]:text-blue-700 [&_dd]:!text-blue-800 [&_dd]:font-bold">
+                        <DataRow label="Disciplina" value={discipline} icon={<Sparkles size={16} className="text-blue-700"/>} />
+                        <DataRow label="Grado" value={lastGrade} icon={<Award size={16} className="text-blue-700"/>} />
+                        <DataRow label="Qualifica" value={qualification} icon={<Star size={16} className="text-blue-700"/>}/>
                      </dl>
                 </div>
 
-                 <div className="space-y-4 rounded-md border p-4">
-                    <h3 className="font-semibold text-lg">Quota Associativa</h3>
-                    <dl className="space-y-2">
+                 <div className="space-y-4 rounded-md p-4 bg-orange-100 border-orange-600" style={{ borderWidth: '2px' }}>
+                    <h3 className="font-semibold text-lg text-orange-700">Quota Associativa</h3>
+                    <dl className="space-y-2 [&_dt]:text-orange-600 [&_dd]:!text-orange-700 [&_dd]:font-bold">
                        <DataRow label="Metodo Scelto" value={getPaymentDescription(paymentMethod)} />
                        <DataRow label="Stato Pagamento" value={getPaymentStatus(paymentMethod, fee.price)} />
                     </dl>
                 </div>
             </CardContent>
             <CardFooter>
-                <Button onClick={onComplete} disabled={isSubmitting} className="w-full">
+                <Button onClick={onComplete} disabled={isSubmitting} className="w-full bg-green-600 text-white font-bold hover:bg-green-700">
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Invia Domanda di Associazione
                 </Button>
@@ -510,12 +510,14 @@ function AssociatesPageContent() {
         <div className="flex w-full flex-col items-center">
             <div className="mb-8 text-center">
                 <h1 className="text-3xl font-bold">Domanda di Associazione</h1>
-                <p className="mt-2 text-muted-foreground">
-                    {seasonSettings?.label 
-                        ? `Completa e verifica i tuoi dati per inviare la domanda di associazione per la stagione ${seasonSettings.label}.`
-                        : "Completa e verifica i tuoi dati per inviare la domanda di associazione."
-                    }
-                </p>
+                                <p 
+                                      className="mt-2 text-lg font-semibold text-foreground"
+                                >
+                                        {seasonSettings?.label 
+                                                ? `Verifica i dati ed invia la domanda di associazione per la stagione ${seasonSettings.label}.`
+                                                : "Verifica i dati ed invia la domanda di associazione."
+                                        }
+                                </p>
             </div>
             
             <div className="w-full max-w-3xl">

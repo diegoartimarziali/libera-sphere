@@ -256,33 +256,33 @@ function SubscriptionSelection({
         <div className="flex w-full flex-col items-center">
             <div className="mb-8 text-center max-w-2xl">
                 <h1 className="text-3xl font-bold">Acquista il tuo abbonamento</h1>
-                <p className="mt-2 text-muted-foreground">
+                <p className="mt-2">
                     Scegli il piano più adatto a te per continuare ad allenarti.
                 </p>
             </div>
             
-            <div className="grid w-full max-w-4xl grid-cols-1 gap-8 md:grid-cols-2">
+            <div className="grid w-full max-w-3xl grid-cols-1 gap-6 md:grid-cols-2">
                 
                 {/* Card Abbonamento Mensile */}
-                <Card className="flex flex-col border-2 hover:border-primary transition-all">
+                <Card className="flex flex-col border-4 transition-all bg-gray-50 hover:border-8" style={{ borderColor: 'hsl(var(--primary))' }}>
                     <CardHeader>
                         <CardTitle className="text-2xl">Abbonamento Mensile</CardTitle>
-                        <CardDescription className="font-bold text-foreground">
+                        <CardDescription className="font-bold" style={{ color: 'hsl(30, 100%, 38%)' }}>
                             Flessibilità totale, mese per mese.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-grow space-y-4">
+                    <CardContent className="flex-grow" style={{ gap: '28px', display: 'flex', flexDirection: 'column' }}>
                         <p className="text-muted-foreground">
                             Ideale per chi cerca la massima flessibilità. Paga mese per mese e accedi a tutti i corsi della tua disciplina in una singola palestra.
                         </p>
-                        <ul className="space-y-2 text-sm">
-                            <li className="flex items-center"><Zap className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span>Attivazione rapida.</span></li>
-                            <li className="flex items-center"><CalendarClock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span>Nessun vincolo a lungo termine.</span></li>
-                            <li className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span>Copertura assicurativa sempre inclusa.</span></li>
+                        <ul className="space-y-3 text-sm">
+                            <li className="flex items-center"><Zap className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span style={{ color: 'hsl(30, 100%, 38%)' }}>Attivazione rapida.</span></li>
+                            <li className="flex items-center"><CalendarClock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span style={{ color: 'hsl(30, 100%, 38%)' }}>Nessun vincolo a lungo termine.</span></li>
+                            <li className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span style={{ color: 'hsl(30, 100%, 38%)' }}>Copertura assicurativa sempre inclusa.</span></li>
                         </ul>
                     </CardContent>
                     <CardFooter>
-                         <Button asChild className="w-full" size="lg">
+                         <Button asChild className="w-full text-white font-bold" size="lg" style={{ backgroundColor: 'hsl(var(--primary))' }}>
                             <Link href="/dashboard/subscriptions/monthly">Scegli Piano Mensile</Link>
                         </Button>
                     </CardFooter>
@@ -290,27 +290,27 @@ function SubscriptionSelection({
 
                 {/* Card Abbonamento Stagionale */}
                  <Dialog>
-                    <Card className="flex flex-col border-2 border-primary hover:border-primary/80 transition-all relative">
-                        <Badge className="absolute -top-3 right-4">Consigliato</Badge>
+                    <Card className="flex flex-col border-4 transition-all relative bg-gray-50 hover:border-8" style={{ borderColor: '#0ea5e9' }}>
+                        <Badge className="absolute -top-3 right-4 bg-sky-500 text-white">Consigliato</Badge>
                         <CardHeader>
                             <CardTitle className="text-2xl">Abbonamento Stagionale</CardTitle>
-                            <CardDescription className="font-bold text-foreground">
+                            <CardDescription className="font-bold text-blue-600">
                                 La scelta migliore per un anno di pratica.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex-grow space-y-4">
                              <p className="text-muted-foreground">
-                               La soluzione completa per chi si impegna per tutta la stagione sportiva. Un unico pagamento per accedere a tutte le lezioni della tua disciplina in qualsiasi palestra.
+                               La soluzione completa per tutta la stagione sportiva. Accedi a tutte le lezioni della tua disciplina in qualsiasi palestra.
                             </p>
                             <ul className="space-y-2 text-sm">
-                                <li className="flex items-center"><Zap className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span>Accesso a tutte le palestre.</span></li>
-                                <li className="flex items-center"><CalendarClock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span>Valido per l'intera stagione sportiva.</span></li>
-                                <li className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span>Copertura assicurativa sempre inclusa.</span></li>
+                                <li className="flex items-center"><Zap className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span className="text-blue-600">Accesso a tutte le palestre.</span></li>
+                                <li className="flex items-center"><CalendarClock className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span className="text-blue-600">Valido per l'intera stagione sportiva.</span></li>
+                                <li className="flex items-center"><ShieldCheck className="h-4 w-4 mr-2 text-primary flex-shrink-0" /><span className="text-blue-600">Copertura assicurativa sempre inclusa.</span></li>
                             </ul>
                         </CardContent>
                         <CardFooter>
                             <DialogTrigger asChild>
-                                <Button className="w-full" size="lg" disabled={!seasonalSub}>
+                                <Button className="w-full text-white font-bold bg-blue-600 hover:bg-blue-700" size="lg" disabled={!seasonalSub}>
                                     Scegli Piano Stagionale
                                 </Button>
                             </DialogTrigger>

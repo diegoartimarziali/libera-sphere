@@ -170,18 +170,22 @@ export default function UserPaymentsPage() {
     }, [user, toast]);
 
     return (
-        <Card>
+        <Card className="max-w-3xl mx-auto">
             <CardHeader>
-                <CardTitle>I Miei Pagamenti</CardTitle>
-                <CardDescription>
-                    Qui trovi lo storico di tutte le tue transazioni e il loro stato.
-                </CardDescription>
-                <button
-                    onClick={handleSavePdf}
-                    className="mt-4 px-4 py-2 bg-green-600 text-white font-bold rounded shadow hover:bg-green-700 transition"
-                >
-                    Salva PDF
-                </button>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <CardTitle>I Miei Pagamenti</CardTitle>
+                        <CardDescription>
+                            Qui trovi lo storico di tutte le tue transazioni e il loro stato.
+                        </CardDescription>
+                    </div>
+                    <button
+                        onClick={handleSavePdf}
+                        className="px-3 py-2 bg-green-600 text-white font-bold rounded shadow hover:bg-green-700 transition w-fit"
+                    >
+                        Salva PDF
+                    </button>
+                </div>
             </CardHeader>
             <CardContent>
                 {loading ? (
@@ -193,11 +197,11 @@ export default function UserPaymentsPage() {
                         <Table className="min-w-[500px] md:min-w-0" id="payments-table">
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="min-w-[90px]">Data</TableHead>
-                                    <TableHead className="min-w-[120px]">Descrizione</TableHead>
-                                    <TableHead className="min-w-[80px]">Metodo</TableHead>
-                                    <TableHead className="text-right min-w-[70px]">Importo</TableHead>
-                                    <TableHead className="text-center min-w-[80px]">Stato</TableHead>
+                                    <TableHead className="min-w-[90px] font-bold">Data</TableHead>
+                                    <TableHead className="min-w-[120px] font-bold">Descrizione</TableHead>
+                                    <TableHead className="min-w-[80px] font-bold">Metodo</TableHead>
+                                    <TableHead className="text-right min-w-[70px] font-bold">Importo</TableHead>
+                                    <TableHead className="text-center min-w-[80px] font-bold">Stato</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>

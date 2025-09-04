@@ -136,7 +136,7 @@ function DashboardHeader({
 }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     return (
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-dark-brown text-title-yellow px-4 sm:px-6 justify-between">
+        <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-dark-brown text-title-yellow px-4 sm:px-6 justify-between">
             <div className="flex items-center gap-4">
                  {showMenu && (
                      <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -163,6 +163,18 @@ function DashboardHeader({
                         </SheetContent>
                     </Sheet>
                  )}
+            </div>
+
+            {/* Logo centrale con testi laterali */}
+            <div className="flex-1 flex justify-center items-center gap-3">
+                <span className="text-lg font-bold" style={{ color: 'hsl(var(--foreground))' }}>Libera Energia</span>
+                <img 
+                    src="https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Ftigre-M.png?alt=media&token=b5f3540f-ab42-46ed-9722-9c4e9663a97b"
+                    alt="Logo Libera Energia"
+                    className="w-auto object-contain"
+                    style={{ height: '60px' }}
+                />
+                <span className="text-lg font-bold" style={{ color: 'hsl(var(--foreground))' }}>Arti Marziali</span>
             </div>
 
             <div className="flex items-center gap-4">

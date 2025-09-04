@@ -106,63 +106,68 @@ export default function RegulationsPage() {
         <CardContent className="space-y-6">
           <div className="space-y-4">
             {/* ...existing code... */}
-            <div className="flex items-center justify-between rounded-md border p-4">
+            <div className="flex items-center justify-between rounded-md border border-green-600 p-4">
               <div>
                 <h3 className="font-semibold">Statuto dell&apos;Associazione</h3>
                 <p className="text-sm text-muted-foreground">Le regole fondamentali della nostra comunità.</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="icon" asChild>
+                <Button variant="ghost" size="icon" className="bg-white" asChild>
                   <a href={statutoUrl} target="_blank" rel="noopener noreferrer" aria-label="Visualizza Statuto">
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-6 w-6 text-blue-600" />
                   </a>
                 </Button>
-                <Button variant="outline" size="icon" asChild>
+                <Button variant="ghost" size="icon" className="bg-white" asChild>
                    <a href={statutoUrl} download="Statuto.pdf" aria-label="Scarica Statuto">
-                    <Download className="h-4 w-4" />
+                    <Download className="h-6 w-6 text-green-600" />
                    </a>
                 </Button>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-md border p-4">
+            <div className="flex items-center justify-between rounded-md border border-green-600 p-4">
               <div>
                 <h3 className="font-semibold">Regolamento Interno</h3>
                 <p className="text-sm text-muted-foreground">Norme di comportamento e di utilizzo delle strutture.</p>
               </div>
                <div className="flex gap-2">
-                <Button variant="outline" size="icon" asChild>
+                <Button variant="ghost" size="icon" className="bg-white" asChild>
                   <a href={regolamentoUrl} target="_blank" rel="noopener noreferrer" aria-label="Visualizza Regolamento">
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-6 w-6 text-blue-600" />
                   </a>
                 </Button>
-                <Button variant="outline" size="icon" asChild>
+                <Button variant="ghost" size="icon" className="bg-white" asChild>
                    <a href={regolamentoUrl} download="Regolamento.pdf" aria-label="Scarica Regolamento">
-                    <Download className="h-4 w-4" />
+                    <Download className="h-6 w-6 text-green-600" />
                    </a>
                 </Button>
               </div>
             </div>
-            <div className="flex items-center justify-between rounded-md border p-4">
+            <div className="flex items-center justify-between rounded-md border border-green-600 p-4">
               <div>
                 <h3 className="font-semibold">Informativa sulla Privacy</h3>
                 <p className="text-sm text-muted-foreground">Come trattiamo i tuoi dati personali.</p>
               </div>
                <div className="flex gap-2">
-                <Button variant="outline" size="icon" asChild>
+                <Button variant="ghost" size="icon" className="bg-white" asChild>
                   <a href={privacyUrl} target="_blank" rel="noopener noreferrer" aria-label="Visualizza Informativa Privacy">
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-6 w-6 text-blue-600" />
                   </a>
                 </Button>
-                <Button variant="outline" size="icon" asChild>
+                <Button variant="ghost" size="icon" className="bg-white" asChild>
                    <a href={privacyUrl} download="InformativaPrivacy.pdf" aria-label="Scarica Informativa Privacy">
-                    <Download className="h-4 w-4" />
+                    <Download className="h-6 w-6 text-green-600" />
                    </a>
                 </Button>
               </div>
             </div>
           </div>
           <div className="flex items-center space-x-2 pt-4">
-            <Checkbox id="accept" checked={accepted} onCheckedChange={(checked) => setAccepted(checked as boolean)} />
+            <Checkbox 
+              id="accept" 
+              checked={accepted} 
+              onCheckedChange={(checked) => setAccepted(checked as boolean)} 
+              className="rounded-full border-2 border-[#6B3F1A]" // marrone scuro
+            />
             <Label htmlFor="accept" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Dichiaro di aver letto e di accettare integralmente lo Statuto, il Regolamento e l'Informativa sulla Privacy.
             </Label>
@@ -183,7 +188,11 @@ export default function RegulationsPage() {
           )}
         </CardContent>
         <CardFooter>
-          <Button onClick={handleAccept} disabled={!accepted || isLoading} className="w-full">
+          <Button 
+            onClick={handleAccept} 
+            disabled={!accepted || isLoading} 
+            className="w-full bg-green-600 text-white font-bold hover:bg-green-700"
+          >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Prosegui
           </Button>
