@@ -1,48 +1,27 @@
+
     import { useState, useEffect } from "react";
+    import { auth, db } from "@/lib/firebase";
+    import { doc, getDoc, collection, serverTimestamp, query, where, getDocs, Timestamp, increment, orderBy, limit, setDoc, writeBatch } from "firebase/firestore";
+    import { useAuthState } from "react-firebase-hooks/auth";
+    import { format } from "date-fns";
+    import { it } from "date-fns/locale";
+    import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+    import { Button } from "@/components/ui/button";
+    import { Loader2, CalendarCheck, PartyPopper } from "lucide-react";
+    import { useToast } from "@/components/ui/use-toast";
 
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs, Timestamp, writeBatch, increment, orderBy, limit } from "firebase/firestore";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { format, isToday } from "date-fns";
-import { it } from "date-fns/locale";
-
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Loader2, CalendarCheck, PartyPopper } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface UserData {
-    name: string;
-    surname: string;
-    discipline: string;
-    gym: string;
-    associationStatus?: 'active';
-    subscriptionAccessStatus?: 'active';
-}
-
-interface LessonEvent {
-    id: string;
-    startTime: Timestamp;
-    endTime: Timestamp;
-    title: string;
-    discipline: string;
-    gymId: string;
-    gymName: string;
-    status: 'confermata' | 'annullata' | 'festivita';
-}
-
-export function AttendancePrompt() {
-    const [isLoading, setIsLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [userData, setUserData] = useState<UserData | null>(null);
-    const [todaysLesson, setTodaysLesson] = useState<LessonEvent | null>(null);
-    // Dichiarazione unica delle variabili toastKey e alreadySeen
-    const toastKey = todaysLesson ? `attendance-toast-${todaysLesson.id}` : null;
-    const alreadySeen = toastKey ? localStorage.getItem(toastKey) : null;
-    const [alreadyResponded, setAlreadyResponded] = useState(false);
-    const [showAutoToast, setShowAutoToast] = useState(false);
-    const [user] = useAuthState(auth);
-    const { toast } = useToast();
+    export function AttendancePrompt() {
+        const [isLoading, setIsLoading] = useState(true);
+        const [isSubmitting, setIsSubmitting] = useState(false);
+        const [userData, setUserData] = useState<any>(null);
+        const [todaysLesson, setTodaysLesson] = useState<any>(null);
+        // Dichiarazione unica delle variabili toastKey e alreadySeen
+        const toastKey = todaysLesson ? `attendance-toast-${todaysLesson.id}` : null;
+        const alreadySeen = toastKey ? localStorage.getItem(toastKey) : null;
+        const [alreadyResponded, setAlreadyResponded] = useState(false);
+        const [showAutoToast, setShowAutoToast] = useState(false);
+        const [user] = useAuthState(auth);
+        const { toast } = useToast();
 
     useEffect(() => {
         const checkAttendance = async () => {
@@ -80,7 +59,7 @@ export function AttendancePrompt() {
                     setIsLoading(false);
                     return;
                 }
-                const fetchedUserData = userDocSnap.data() as UserData;
+                const fetchedUserData = userDocSnap.data();
                 // 3. Controlla se l'utente è operativo (socio attivo e abbonamento attivo)
                 if (fetchedUserData.associationStatus !== 'active' || fetchedUserData.subscriptionAccessStatus !== 'active') {
                     setIsLoading(false);
@@ -104,7 +83,7 @@ export function AttendancePrompt() {
 
                     if (!eventsSnap.empty) {
                         const lessonDoc = eventsSnap.docs[0];
-                        setTodaysLesson({ id: lessonDoc.id, ...lessonDoc.data() } as LessonEvent);
+                        setTodaysLesson({ id: lessonDoc.id, ...lessonDoc.data() });
                     }
                 }
             } catch (error) {
@@ -162,7 +141,7 @@ export function AttendancePrompt() {
             if (status === 'presente') {
                 const userDocRef = doc(db, "users", user.uid);
                 batch.update(userDocRef, {
-                    "progress.presences": increment(1)
+                    progress: { presences: increment(1) }
                 });
             }
             await batch.commit();

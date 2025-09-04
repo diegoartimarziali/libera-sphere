@@ -197,9 +197,9 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     <>
                         <Separator />
                         <div className="space-y-3">
-                             <h4 className="text-sm font-bold flex items-center">
-                                <CalendarCheck2 size={16} className="mr-3 w-5 text-muted-foreground" />
-                                Lezioni di Prova Prenotate
+                                          <h4 className="text-sm font-bold flex items-center justify-center text-center">
+                                              <CalendarCheck2 size={16} className="mr-3 w-5 text-muted-foreground" />
+                                              <span className="text-blue-900">Lezioni di Prova Prenotate</span>
                             </h4>
                             {props.trialLessons.map((lesson, index) => {
                                 const formattedDate = format(lesson.date, "EEEE dd/MM", { locale: it });
@@ -207,11 +207,9 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                                 const datePart = formattedDate.substring(day.length).trim();
 
                                 return (
-                                    <div key={index} className="flex items-center text-sm ml-8">
-                                        <span className="font-bold">{index + 1}ª Lezione:</span>
-                                        <span className="ml-auto text-muted-foreground text-right capitalize">
-                                            <span className="font-bold text-foreground">{day}</span> {datePart} - {lesson.time}
-                                        </span>
+                                    <div key={index} className="flex flex-col items-center text-sm">
+                                        <span className="font-bold text-blue-900">{index + 1}ª Lezione:</span>
+                                        <span className="font-medium text-blue-900 capitalize">{day} {datePart} - {lesson.time}</span>
                                     </div>
                                 )
                             })}

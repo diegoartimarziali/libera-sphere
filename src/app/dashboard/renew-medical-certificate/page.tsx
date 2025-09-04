@@ -198,14 +198,30 @@ export default function RenewMedicalCertificatePage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6">
-               <div className="space-y-4 rounded-md border p-4">
-                   <h4 className="font-semibold text-foreground">Carica o aggiorna il tuo certificato</h4>
+               <div className="space-y-4 rounded-md border-2 border-[#4B2E09] p-4">
+                   {/* Messaggio dinamico sullo stato del certificato */}
+                   {(() => {
+                     if (existingMedicalInfo?.expiryDate) {
+                       const now = new Date();
+                       const expiry = existingMedicalInfo.expiryDate;
+                       const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                       if (diffDays < 0) {
+                         return <p className="text-center font-bold text-base mb-2 text-red-600">Certificato scaduto</p>;
+                       } else if (diffDays <= 30) {
+                         return <p className="text-center font-bold text-base mb-2 text-yellow-600">Certificato in scadenza ({diffDays} giorni)</p>;
+                       } else {
+                         return <p className="text-center font-bold text-base mb-2 text-green-600">Certificato in corso di validità</p>;
+                       }
+                     } else {
+                       return <p className="text-center font-bold text-base mb-2 text-gray-600">Nessun certificato caricato</p>;
+                     }
+                   })()}
                     <FormField
                         control={form.control}
                         name="certificateFile"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>File del certificato (PDF, JPG, PNG)</FormLabel>
+                                <FormLabel className="block text-center">File del certificato (PDF, JPG, PNG)</FormLabel>
                                 <FormControl>
                                     <div className="relative">
                                         <Input 
@@ -215,7 +231,7 @@ export default function RenewMedicalCertificatePage() {
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                             onChange={handleFileChange} 
                                         />
-                                        <Label htmlFor="certificate-file-input" className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted">
+                                        <Label htmlFor="certificate-file-input" className="flex items-center justify-center w-full h-24 border-2 border-dashed border-green-600 rounded-md cursor-pointer hover:bg-muted">
                                             {fileName ? (
                                                 <div className="flex items-center gap-2 text-green-600">
                                                    <CheckCircle className="h-5 w-5" />
@@ -235,10 +251,10 @@ export default function RenewMedicalCertificatePage() {
                         )}
                     />
                     {existingMedicalInfo?.fileUrl && (
-                        <Button variant="outline" asChild className="w-full">
-                           <Link href={existingMedicalInfo.fileUrl} target="_blank" rel="noopener noreferrer">
-                                <Eye className="mr-2 h-4 w-4" />
-                                Visualizza Certificato Caricato
+                        <Button variant="outline" asChild className="w-full bg-gray-100">
+            <Link href={existingMedicalInfo.fileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-700 flex items-center">
+              <Eye className="mr-2 h-4 w-4 text-blue-700" />
+              <span className="text-blue-700">Visualizza Certificato Caricato</span>
                            </Link>
                         </Button>
                     )}
@@ -258,7 +274,7 @@ export default function RenewMedicalCertificatePage() {
                 </div>
             </CardContent>
             <CardFooter>
-              <Button type="submit" className="w-full" disabled={isSubmitting || !form.formState.isValid}>
+              <Button type="submit" className="w-full bg-green-600 text-white font-bold" disabled={isSubmitting || !form.formState.isValid}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Aggiorna Certificato e torna alla Dashboard
               </Button>

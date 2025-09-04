@@ -2,6 +2,7 @@
 "use client"
 
 import { useEffect, useState, Suspense } from "react"
+import { useToast } from "@/hooks/use-toast"
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, Timestamp, collection, getDocs, updateDoc } from "firebase/firestore"
@@ -83,6 +84,7 @@ interface Gym {
 }
 
 export default function DashboardPage() {
+  const { toast } = useToast();
   const [user, authLoading] = useAuthState(auth)
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null)
@@ -94,15 +96,21 @@ export default function DashboardPage() {
   const [showSubscriptionActivatedMessage, setShowSubscriptionActivatedMessage] = useState(false);
 
   useEffect(() => {
-    // Logica: se l'ultima lezione di prova è passata (dopo le 20:30), aggiorna trialStatus a 'completed'
+  // Logica: se l'ultima lezione di prova è passata (dopo le 20:30), aggiorna trialStatus a 'completed'
     async function checkAndCompleteTrialStatus() {
       if (!user) return;
-      const trialLessonsSnap = await getDocs(collection(db, `users/${user.uid}/trialLessons`));
-      const trialLessons = trialLessonsSnap.docs
-        .filter(doc => doc.id !== 'status')
-        .map(doc => doc.data() as { eventId: string; startTime: Timestamp; endTime: Timestamp });
+      const trialMainDocRef = doc(db, `users/${user.uid}/trialLessons/main`);
+      const trialMainDocSnap = await getDoc(trialMainDocRef);
+      if (!trialMainDocSnap.exists()) return;
+      const trialData = trialMainDocSnap.data();
+      const trialLessons = Array.isArray(trialData.lessons) ? trialData.lessons : [];
       if (trialLessons.length === 0) return;
-      const lastLesson = trialLessons.reduce((prev, curr) => prev.endTime.toMillis() > curr.endTime.toMillis() ? prev : curr);
+      // Trova la lezione con endTime più alto
+      const lastLesson = trialLessons.reduce((prev, curr) => {
+        if (!prev.endTime || !curr.endTime) return prev;
+        return prev.endTime.toMillis() > curr.endTime.toMillis() ? prev : curr;
+      });
+      if (!lastLesson.endTime) return;
       const now = new Date();
       const lessonEnd = lastLesson.endTime.toDate();
       // Costruisci la data di oggi alle 20:30
@@ -110,31 +118,29 @@ export default function DashboardPage() {
       lessonEndLimit.setHours(20, 30, 0, 0);
       if (now > lessonEndLimit) {
         // Aggiorna trialStatus solo se non è già 'completed'
-        const trialStatusDocRef = doc(db, `users/${user.uid}/trialLessons/status`);
-        const trialStatusSnap = await getDoc(trialStatusDocRef);
-        if (trialStatusSnap.exists() && trialStatusSnap.data().trialStatus !== 'completed') {
-          await updateDoc(trialStatusDocRef, { trialStatus: 'completed' });
+        if (trialData.trialStatus !== 'completed') {
+          await updateDoc(trialMainDocRef, { trialStatus: 'completed' });
         }
       }
     }
     checkAndCompleteTrialStatus();
     // Check for the data correction message flag on component mount
     const submissionTimestamp = sessionStorage.getItem('showDataCorrectionMessage');
-  // Blocca il toast se il flag expired è su localStorage
-  if (localStorage.getItem('showDataCorrectionMessageExpired')) {
-    setShowDataCorrectionMessage(false);
-  } else if (submissionTimestamp) {
-    const oneHour = 60 * 60 * 1000;
-    const timeSinceSubmission = new Date().getTime() - new Date(submissionTimestamp).getTime();
-
-    if (timeSinceSubmission < oneHour) {
-      setShowDataCorrectionMessage(true);
-    } else {
-      // Clean up se l'ora è passata e segna come scaduto
-      sessionStorage.removeItem('showDataCorrectionMessage');
-      localStorage.setItem('showDataCorrectionMessageExpired', 'true');
+    if (!localStorage.getItem('showDataCorrectionMessageExpired') && submissionTimestamp) {
+      const oneHour = 60 * 60 * 1000;
+      const timeSinceSubmission = new Date().getTime() - new Date(submissionTimestamp).getTime();
+      if (timeSinceSubmission < oneHour) {
+        toast({
+          title: "Controlla i tuoi dati",
+          description: "Se hai notato errori, invia entro 1 ora una email di correzione a: segreteria@artimarzialivalledaosta.com.",
+          variant: "default",
+        });
+      } else {
+        // Clean up se l'ora è passata e segna come scaduto
+        sessionStorage.removeItem('showDataCorrectionMessage');
+        localStorage.setItem('showDataCorrectionMessageExpired', 'true');
+      }
     }
-  }
     
     // Check for subscription activation message
     const subActivationTimestamp = sessionStorage.getItem('showSubscriptionActivatedMessage');
@@ -152,53 +158,61 @@ export default function DashboardPage() {
       const userDocRef = doc(db, "users", user.uid)
       const seasonSettingsRef = doc(db, "settings", "season");
       const gymsCollectionRef = collection(db, "gyms");
-      // Nuovo: sottocollezioni per prove
-      const trialStatusDocRef = doc(db, `users/${user.uid}/trialLessons/status`);
-      const trialLessonsCollectionRef = collection(db, `users/${user.uid}/trialLessons`);
       // Nuovo: stato pagamento abbonamento
       const paymentStatusDocRef = doc(db, `users/${user.uid}/payments/status`);
-      
-      const [userDocSnap, seasonDocSnap, gymsSnapshot, trialStatusSnap, trialLessonsSnap, paymentStatusSnap] = await Promise.all([
+      const [userDocSnap, seasonDocSnap, gymsSnapshot, paymentStatusSnap, trialMainDocSnap] = await Promise.all([
         getDoc(userDocRef),
         getDoc(seasonSettingsRef),
         getDocs(gymsCollectionRef),
-        getDoc(trialStatusDocRef),
-        getDocs(trialLessonsCollectionRef),
-        getDoc(paymentStatusDocRef)
+        getDoc(paymentStatusDocRef),
+        getDoc(doc(db, `users/${user.uid}/trialLessons/main`))
       ]);
-      
+
       const gymsMap = new Map<string, string>();
       gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
 
       if (userDocSnap.exists()) {
-      const data = userDocSnap.data() as UserData;
-      // Nuovo: leggi trialStatus e trialExpiryDate dalla sottocollezione
-      let trialStatus = data.trialStatus;
-      let trialExpiryDate = data.trialExpiryDate;
-      if (trialStatusSnap.exists()) {
-        const statusData = trialStatusSnap.data();
-        trialStatus = statusData.trialStatus;
-        trialExpiryDate = statusData.trialExpiryDate;
-      }
-      // Nuovo: leggi lezioni di prova dalla sottocollezione
-      const trialLessonsArr = trialLessonsSnap.docs
-        .filter(doc => doc.id !== 'status')
-        .map(doc => doc.data() as { eventId: string; startTime: Timestamp; endTime: Timestamp });
-
-      // Leggi stato pagamento abbonamento
-      let subscriptionAccessStatus = data.subscriptionAccessStatus;
-      if (paymentStatusSnap.exists()) {
-        const paymentStatusData = paymentStatusSnap.data();
-        if (paymentStatusData.status === 'completed') {
-          subscriptionAccessStatus = 'active';
-        } else if (paymentStatusData.status === 'pending') {
-          subscriptionAccessStatus = 'pending';
-        } else if (paymentStatusData.status === 'expired') {
-          subscriptionAccessStatus = 'expired';
+        const data = userDocSnap.data() as UserData;
+        // Leggi lezioni di prova e stato dal documento unico 'main'
+        let trialStatus = data.trialStatus;
+        let trialExpiryDate = data.trialExpiryDate;
+        let trialLessonsArr: { eventId: string; startTime: Timestamp; endTime: Timestamp }[] = [];
+        if (trialMainDocSnap.exists()) {
+          const trialData = trialMainDocSnap.data();
+          trialStatus = trialData.trialStatus;
+          trialExpiryDate = trialData.trialExpiryDate;
+          trialLessonsArr = Array.isArray(trialData.lessons) ? trialData.lessons : [];
         }
-      }
 
-      setUserData({ ...data, trialStatus, trialExpiryDate, trialLessons: trialLessonsArr, subscriptionAccessStatus });
+        // Leggi stato pagamento abbonamento
+        let subscriptionAccessStatus = data.subscriptionAccessStatus;
+        let paymentStatus = undefined;
+        if (paymentStatusSnap.exists()) {
+          const paymentStatusData = paymentStatusSnap.data();
+          paymentStatus = paymentStatusData.status;
+          if (paymentStatus === 'completed') {
+            subscriptionAccessStatus = 'active';
+            // Se il pagamento è completato e lo stato delle lezioni è ancora 'pending_payment', aggiorna a 'active'
+            if (trialStatus === 'pending_payment') {
+              const trialMainDocRef = doc(db, `users/${user.uid}/trialLessons/main`);
+              await updateDoc(trialMainDocRef, { trialStatus: 'active' });
+              // Rileggi il documento main aggiornato
+              const updatedTrialMainDocSnap = await getDoc(trialMainDocRef);
+              if (updatedTrialMainDocSnap.exists()) {
+                const updatedTrialData = updatedTrialMainDocSnap.data();
+                trialStatus = updatedTrialData.trialStatus;
+                trialExpiryDate = updatedTrialData.trialExpiryDate;
+                trialLessonsArr = Array.isArray(updatedTrialData.lessons) ? updatedTrialData.lessons : [];
+              }
+            }
+          } else if (paymentStatus === 'pending') {
+            subscriptionAccessStatus = 'pending';
+          } else if (paymentStatus === 'expired') {
+            subscriptionAccessStatus = 'expired';
+          }
+        }
+
+        setUserData({ ...data, trialStatus, trialExpiryDate, trialLessons: trialLessonsArr, subscriptionAccessStatus });
             
       let membershipStatusLabel = "Non Associato";
       switch (data.associationStatus) {
@@ -229,7 +243,7 @@ export default function DashboardPage() {
 
         if (daysDiff < 0) {
           certStatus = 'expired';
-        } else if (daysDiff <= 20) {
+        } else if (daysDiff <= 30) {
           certStatus = 'expiring';
         } else {
           certStatus = 'valid';
@@ -261,9 +275,15 @@ export default function DashboardPage() {
       }
             
       let trialStatusLabel: string | undefined = undefined;
-      if(trialStatus === 'pending_payment') trialStatusLabel = "In attesa di approvazione pagamento";
-      if(trialStatus === 'active') trialStatusLabel = "Attiva";
-      if(trialStatus === 'completed') trialStatusLabel = "Completata";
+      if(trialStatus === 'pending_payment' && trialLessonsArr.length > 0) {
+        trialStatusLabel = "In attesa di approvazione pagamento";
+      } else if(trialStatus === 'active') {
+        trialStatusLabel = "Attiva";
+      } else if(trialStatus === 'completed') {
+        trialStatusLabel = "Completata";
+      } else if(trialLessonsArr.length > 0) {
+        trialStatusLabel = "Lezioni di prova prenotate";
+      }
 
       let subscriptionStatusLabel: string | undefined = undefined;
       let subscriptionValidityMonth: string | undefined = undefined;

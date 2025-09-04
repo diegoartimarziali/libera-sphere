@@ -14,6 +14,7 @@ import { isPast, startOfDay } from "date-fns"
 import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, CalendarDays, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
+import { getDocs, collection } from "firebase/firestore";
 // import { getAuth } from "firebase/auth"
 // import getAuth from "firebase/auth"
 // import { signOut } from "firebase/auth";
@@ -149,28 +150,14 @@ function DashboardHeader({
                                 <SheetTitle>Menu</SheetTitle>
                             </SheetHeader>
                             <nav className="flex flex-col gap-1 p-4">
-                                <SheetClose asChild>
-                                    <Link
-                                        href="/dashboard"
-                                        className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            className="h-5 w-5 transition-all group-hover:scale-110"
-                                        >
-                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
-                                            <path d="M12 12L16 8"></path>
-                                            <path d="M12 6v6l4 2"></path>
-                                        </svg>
-                                        <span className="sr-only">LiberaSphere</span>
-                                    </Link>
-                                </SheetClose>
+                                                    <SheetClose asChild>
+                                                        <Link
+                                                            href="/dashboard"
+                                                            className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full text-lg font-semibold text-primary-foreground md:text-base"
+                                                        >
+                                                            <img src="https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Ftigre-PP.png?alt=media&token=8cf5490d-1498-4a13-b827-f2e9fe0b94ba" alt="Tigre" className="w-12 h-12 object-contain" />
+                                                        </Link>
+                                                    </SheetClose>
                                 <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
                             </nav>
                         </SheetContent>
@@ -226,20 +213,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             const userDocRef = doc(db, "users", user.uid);
             const userDocSnap = await getDoc(userDocRef);
             let fetchedUserData = userDocSnap.exists() ? userDocSnap.data() as UserData : null;
-            // Leggi trialStatus dalla sottocollezione
-            let trialStatus = fetchedUserData?.trialStatus;
+            // Leggi trialStatus e lezioni di prova dal documento unico 'main'
+            let trialStatus = undefined;
+            let trialExpiryDate = undefined;
+            let trialLessons = [];
             if (userDocSnap.exists()) {
-                try {
-                    const trialStatusDocRef = doc(db, `users/${user.uid}/trialLessons/status`);
-                    const trialStatusSnap = await getDoc(trialStatusDocRef);
-                    if (trialStatusSnap.exists()) {
-                        const statusData = trialStatusSnap.data();
-                        if (statusData.trialStatus) trialStatus = statusData.trialStatus;
-                    }
-                } catch (e) {
-                    // Ignora errori di lettura trialStatus
+                const trialMainDocRef = doc(db, `users/${user.uid}/trialLessons/main`);
+                const trialMainDocSnap = await getDoc(trialMainDocRef);
+                if (trialMainDocSnap.exists()) {
+                    const trialData = trialMainDocSnap.data();
+                    trialStatus = trialData.trialStatus;
+                    trialExpiryDate = trialData.trialExpiryDate;
+                    trialLessons = Array.isArray(trialData.lessons) ? trialData.lessons : [];
                 }
-                setUserData(fetchedUserData);
+                                // Assicura che i campi obbligatori non siano undefined
+                                                setUserData({
+                                                    ...fetchedUserData,
+                                                    name: fetchedUserData?.name ?? '',
+                                                    email: fetchedUserData?.email ?? '',
+                                                    regulationsAccepted: fetchedUserData?.regulationsAccepted ?? false,
+                                                    applicationSubmitted: fetchedUserData?.applicationSubmitted ?? false,
+                                                    medicalCertificateSubmitted: fetchedUserData?.medicalCertificateSubmitted ?? false,
+                                                    isFormerMember: fetchedUserData?.isFormerMember ?? 'no',
+                                                    trialStatus,
+                                                    trialExpiryDate,
+                                                    trialLessons
+                                                });
                 // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
                 const onboardingPages = [
                     '/dashboard/regulations',

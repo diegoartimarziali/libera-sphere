@@ -17,6 +17,7 @@ import { CreditCard, Landmark, ArrowLeft, CheckCircle, Clock, Building, Calendar
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, collection, getDocs, getDoc, serverTimestamp, query, where, Timestamp, addDoc, limit, orderBy, writeBatch } from "firebase/firestore"
+import { setDoc } from "firebase/firestore";
 import { Loader2 } from "lucide-react"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -486,7 +487,11 @@ function ConfirmationStep({
                       </div>
             </CardContent>
             <CardFooter>
-                <Button onClick={onComplete} disabled={isSubmitting} className="w-full">
+                <Button 
+                    onClick={onComplete} 
+                    disabled={isSubmitting} 
+                    className="w-full bg-[#6b3f19] hover:bg-[#4e2d13] text-[#ffd700] font-bold border-2 border-[#bfa100]"
+                >
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Completa Iscrizione
                 </Button>
@@ -551,24 +556,19 @@ export default function ClassSelectionPage() {
 
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
-                    // Leggi trialStatus e trialExpiryDate dalla sottoraccolta
-                    const trialStatusDocRef = doc(db, `users/${user.uid}/trialLessons/status`);
-                    const trialStatusSnap = await getDoc(trialStatusDocRef);
-                    let trialStatus = null;
-                    let trialExpiryDate = null;
-                    if (trialStatusSnap.exists()) {
-                        const statusData = trialStatusSnap.data();
-                        trialStatus = statusData.trialStatus;
-                        trialExpiryDate = statusData.trialExpiryDate;
+                    // Leggi le lezioni di prova dalla sottoraccolta
+                    const trialLessonsDocRef = doc(db, `users/${user.uid}/trialLessons/main`);
+                    const trialLessonsSnap = await getDoc(trialLessonsDocRef);
+                    let trialLessons = [];
+                    let trialStatus = undefined;
+                    let trialExpiryDate = undefined;
+                    if (trialLessonsSnap.exists()) {
+                        const data = trialLessonsSnap.data();
+                        trialLessons = data.lessons || [];
+                        trialStatus = data.trialStatus;
+                        trialExpiryDate = data.trialExpiryDate;
                     }
                     const hasPendingTrialPayment = trialStatus === 'pending_payment';
-
-                    // Leggi le lezioni di prova dalla sottoraccolta
-                    const trialLessonsSnap = await getDocs(collection(db, `users/${user.uid}/trialLessons`));
-                    const trialLessons = trialLessonsSnap.docs
-                        .filter(doc => doc.id !== 'status')
-                        .map(doc => doc.data() as { eventId: string; startTime: Timestamp; endTime: Timestamp });
-
                     if (hasPendingTrialPayment && trialLessons.length > 0) {
                         const q = query(
                             paymentsCollectionRef,
@@ -674,24 +674,16 @@ export default function ClassSelectionPage() {
                 }
             }
 
-            // Scrivi ogni lezione come documento in users/userId/trialLessons
-            const trialLessonsCollectionRef = collection(db, "users", user.uid, "trialLessons");
-            // Cancella eventuali lezioni di prova precedenti
-            const prevLessonsSnap = await getDocs(trialLessonsCollectionRef);
-            const batch = writeBatch(db);
-            prevLessonsSnap.forEach(doc => batch.delete(doc.ref));
-            data.trialLessons.forEach(l => {
-                const lessonDocRef = doc(trialLessonsCollectionRef, l.eventId);
-                batch.set(lessonDocRef, {
-                    eventId: l.eventId,
-                    startTime: l.startTime,
-                    endTime: l.endTime
-                });
+            // Salva tutte le lezioni di prova in un unico documento users/userId/trialLessons/main
+            const trialLessonsDocRef = doc(db, "users", user.uid, "trialLessons", "main");
+            await setDoc(trialLessonsDocRef, {
+                lessons: data.trialLessons,
+                trialStatus: 'pending_payment',
+                trialExpiryDate: data.trialLessons.length > 1 ? data.trialLessons[2].endTime : data.trialLessons[0].endTime || null,
             });
-            batch.update(userDocRef, {
+            await updateDoc(userDocRef, {
                 lastGrade: grade
             });
-            await batch.commit();
 
             setFinalGrade(grade);
             setGymSelection(data);
@@ -722,14 +714,11 @@ export default function ClassSelectionPage() {
                 });
             }
 
-            const expiryLessonIndex = gymSelection.trialLessons.length > 1 ? 2 : 0;
-            const trialExpiryDate = gymSelection.trialLessons[expiryLessonIndex]?.endTime;
-            
-            // Scrivi trialStatus e trialExpiryDate in users/userId/trialLessons/status
-            const trialStatusDocRef = doc(db, "users", user.uid, "trialLessons", "status");
-            batch.set(trialStatusDocRef, {
+            // Aggiorna trialStatus e trialExpiryDate nel documento main
+            const trialLessonsDocRef = doc(db, "users", user.uid, "trialLessons", "main");
+            await updateDoc(trialLessonsDocRef, {
                 trialStatus: 'pending_payment',
-                trialExpiryDate: trialExpiryDate || null,
+                trialExpiryDate: gymSelection.trialLessons.length > 1 ? gymSelection.trialLessons[2].endTime : gymSelection.trialLessons[0].endTime || null,
             });
 
             // Logica per assegnare premio di benvenuto

@@ -260,11 +260,10 @@ export default function AdminPaymentsPage() {
                         associationPaymentFailed: false,
                     });
                 } else if (payment.type === 'trial') {
-                    batch.update(userDocRef, { 
-                        trialStatus: 'active',
-                        trialPaymentFailed: false,
-                        isInsured: true
-                    });
+                    // Aggiorna solo il documento main della sottocollezione trialLessons
+                    const trialMainDocRef = doc(db, 'users', payment.userId, 'trialLessons', 'main');
+                    batch.update(trialMainDocRef, { trialStatus: 'active' });
+                    batch.update(userDocRef, { isInsured: true });
                 } else if (payment.type === 'subscription') {
                     batch.update(userDocRef, { 
                         subscriptionAccessStatus: 'active',

@@ -95,13 +95,11 @@ export default function AuthPage() {
         email: formattedEmail,
         createdAt: serverTimestamp(),
         // Valori di default per l'onboarding
-        regulationsAccepted: false,
-        medicalCertificateSubmitted: false,
-        applicationSubmitted: false,
-        associationStatus: 'not_associated',
-        trialStatus: 'not_applicable',
-        trialExpiryDate: null,
-        isInsured: false, // Punto di partenza corretto
+  regulationsAccepted: false,
+  medicalCertificateSubmitted: false,
+  applicationSubmitted: false,
+  associationStatus: 'not_associated',
+  isInsured: false, // Punto di partenza corretto
         progress: {
             presences: 0,
         },

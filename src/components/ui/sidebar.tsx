@@ -277,7 +277,7 @@ const SidebarTrigger = React.forwardRef<
       }}
       {...props}
     >
-      <PanelLeft />
+  <img src="https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Ftigre-PP.png?alt=media&token=8cf5490d-1498-4a13-b827-f2e9fe0b94ba" alt="Tigre" className="w-7 h-7 object-contain" />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
@@ -561,22 +561,22 @@ const SidebarMenuButton = React.forwardRef<
         data-sidebar="menu-button"
         data-size={size}
         data-active={isActive}
-          className={cn(
-            "sidebar-menu-link flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
-            className
-          )}
+        className={cn(
+          "sidebar-menu-link flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
+          className
+        )}
         {...props}
       />
-    )
+    );
 
     if (!tooltip) {
-      return button
+      return button;
     }
 
     if (typeof tooltip === "string") {
       tooltip = {
         children: tooltip,
-      }
+      };
     }
 
     return (
@@ -589,9 +589,9 @@ const SidebarMenuButton = React.forwardRef<
           {...tooltip}
         />
       </Tooltip>
-    )
+    );
   }
-)
+);
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
 const SidebarMenuAction = React.forwardRef<
@@ -735,10 +735,8 @@ const SidebarMenuSubButton = React.forwardRef<
 })
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
+// ...existing code...
 export {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupAction,
   SidebarGroupContent,
@@ -760,4 +758,4 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
-}
+};
