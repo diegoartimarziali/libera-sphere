@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, Eye, EyeOff } from "lucide-react"
 
 // Schema di validazione per il login
 const loginSchema = z.object({
@@ -30,7 +30,10 @@ const registerSchema = z.object({
   surname: z.string().min(2, { message: "Il cognome è richiesto." }),
   email: z.string().email({ message: "Indirizzo email non valido." }),
   password: z.string().min(6, { message: "La password deve contenere almeno 6 caratteri." }),
-})
+  confirmPassword: z.string().min(1, { message: "La conferma password è richiesta." }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Le password non corrispondono.",
+});
 
 // Funzioni di utilità per la formattazione
 const capitalizeFirstLetter = (str: string) => {
@@ -47,7 +50,9 @@ export default function AuthPage() {
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("login")
-
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -55,7 +60,7 @@ export default function AuthPage() {
 
   const registerForm = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { name: "", surname: "", email: "", password: "" },
+    defaultValues: { name: "", surname: "", email: "", password: "", confirmPassword: "" },
   })
 
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
