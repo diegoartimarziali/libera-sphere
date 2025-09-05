@@ -43,3 +43,14 @@ next-env.d.ts
 # firebase
 firebase-debug.log
 firestore-debug.log
+firestore-debug.log
+.firebase/
+
+# temporary development files
+*.backup
+*_backup.*
+add_password_ui.js
+fix_password_fields.js
+update_auth_features.sh
+update_ui_fields.js
+update_ui_python.py
