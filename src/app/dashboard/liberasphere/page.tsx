@@ -242,7 +242,7 @@ export default function LiberaSpherePage() {
 
         return (
             <>
-                <Label>{label}</Label>
+                <Label className="font-bold">{label}</Label>
                 <Select value={lastGrade} onValueChange={setLastGrade}>
                     <SelectTrigger style={{ backgroundColor: '#fff', borderColor: 'hsl(22.5, 55%, 11%)', borderWidth: 2, color: '#000' }}>
                         <SelectValue placeholder="Seleziona il grado" style={{ color: 'hsl(0, 1%, 77%)' }} />
@@ -266,15 +266,15 @@ export default function LiberaSpherePage() {
   return (
     <div className="flex h-full items-center justify-center">
       <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle className="text-2xl">Benvenuto!</CardTitle>
-          <CardDescription>
-            Per iniziare, dicci qualcosa di te.
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Benvenuto nel Dojo di Libera Energia!</CardTitle>
+          <CardDescription className="text-2xl font-bold">
+            いらっしゃいませ
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-3">
-             <h4 className="medical-upload-text text-center">1. Sei già stato socio di Libera Energia?</h4>
+             <h4 className="medical-upload-text text-center font-bold">Sei già stato socio di Libera Energia?</h4>
              <RadioGroup 
                 value={isFormerMember || ''} 
                 onValueChange={(value) => handleIsFormerMemberChange(value as 'yes' | 'no')}
@@ -318,7 +318,7 @@ export default function LiberaSpherePage() {
           {isFormerMember === 'no' && (
             <div className="space-y-6 rounded-md border-2 bg-muted/50 p-4 animate-in fade-in-50" style={{ borderColor: 'hsl(22.5, 55%, 11%)' }}>
               <div className="space-y-2">
-                <h4 className="medical-upload-text text-center">2. Quale disciplina vuoi provare?</h4>
+                <h4 className="medical-upload-text text-center font-bold">Quale disciplina vuoi provare?</h4>
                                 <div className="flex gap-8 justify-center items-center">
                                     <RadioGroup
                                         value={discipline || ''}
@@ -327,11 +327,11 @@ export default function LiberaSpherePage() {
                                     >
                                         <Label htmlFor="karate_new" className="flex items-center gap-2 cursor-pointer">
                                               <RadioGroupItem value="Karate" id="karate_new" className="w-6 h-6 rounded-full border-2" style={{ borderColor: 'hsl(var(--medical-upload-text))' }} />
-                                            <span>Karate</span>
+                                            <span className="font-bold">Karate</span>
                                         </Label>
                                         <Label htmlFor="aikido_new" className="flex items-center gap-2 cursor-pointer">
                                               <RadioGroupItem value="Aikido" id="aikido_new" className="w-6 h-6 rounded-full border-2" style={{ borderColor: 'hsl(var(--medical-upload-text))' }} />
-                                            <span>Aikido</span>
+                                            <span className="font-bold">Aikido</span>
                                         </Label>
                                     </RadioGroup>
                                 </div>
@@ -339,7 +339,7 @@ export default function LiberaSpherePage() {
 
                {discipline && (
                 <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                     <h4 className="medical-upload-text text-center">3. In quale palestra?</h4>
+                     <h4 className="medical-upload-text text-center font-bold">In quale palestra ti vuoi allenare?</h4>
                       {gymsLoading ? (
                         <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
                     ) : (
@@ -364,7 +364,7 @@ export default function LiberaSpherePage() {
               
               {gym && (
                 <div className="space-y-4 pt-4 border-t mt-4 animate-in fade-in-50">
-                    <h4 className="medical-upload-text text-center">4. Hai già praticato {discipline} in passato?</h4>
+                    <h4 className="medical-upload-text text-center font-bold">Hai già praticato {discipline} in passato?</h4>
                                         <RadioGroup
                                             value={hasPracticedBefore || ''}
                                             onValueChange={(value) => setHasPracticedBefore(value as 'yes' | 'no')}
@@ -372,11 +372,11 @@ export default function LiberaSpherePage() {
                                         >
                                             <Label htmlFor="practiced_no" className="flex items-center gap-2 cursor-pointer">
                                                 <RadioGroupItem value="no" id="practiced_no" className="w-6 h-6 rounded-full border-2" style={{ borderColor: 'hsl(var(--medical-upload-text))' }} />
-                                                <span>No, mai</span>
+                                                <span className="font-bold">No, mai</span>
                                             </Label>
                                             <Label htmlFor="practiced_yes" className="flex items-center gap-2 cursor-pointer">
                                                 <RadioGroupItem value="yes" id="practiced_yes" className="w-6 h-6 rounded-full border-2" style={{ borderColor: 'hsl(var(--medical-upload-text))' }} />
-                                                <span>Sì, ho già praticato</span>
+                                                <span className="font-bold">Sì, ho già praticato</span>
                                             </Label>
                                         </RadioGroup>
                 </div>
@@ -395,10 +395,10 @@ export default function LiberaSpherePage() {
           {isFormerMember === 'yes' && (
             <div className="space-y-6 rounded-md border bg-muted/50 p-4 animate-in fade-in-50">
                 <div className="space-y-2">
-                    <h4 className="medical-upload-text text-center font-bold">2. Conferma i tuoi dati</h4>
+                    <h4 className="medical-upload-text text-center font-bold">Conferma i tuoi dati</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                          <div className="space-y-2">
-                            <Label>Disciplina</Label>
+                            <Label className="font-bold">Disciplina</Label>
                                                                                      <Select value={discipline || ''} onValueChange={value => handleDisciplineChange(value as 'Karate' | 'Aikido')}>
                                                                                          <SelectTrigger style={{ backgroundColor: '#fff', borderColor: 'hsl(22.5, 55%, 11%)', borderWidth: 2, color: '#000' }}>
                                                                                              <SelectValue placeholder="Seleziona una disciplina" style={{ color: 'hsl(0, 1%, 77%)' }} />
@@ -410,7 +410,7 @@ export default function LiberaSpherePage() {
                                                                                      </Select>
                         </div>
                         <div className="space-y-2">
-                             <Label>Palestra</Label>
+                             <Label className="font-bold">Palestra</Label>
                               {gymsLoading ? (
                                 <div className="flex justify-center items-center h-10"><Loader2 className="h-6 w-6 animate-spin"/></div>
                             ) : (
@@ -438,7 +438,7 @@ export default function LiberaSpherePage() {
                         </div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                              <div>
-                                <Label htmlFor="firstYear">Primo Anno di Associazione</Label>
+                                <Label htmlFor="firstYear" className="font-bold">Primo Anno di Associazione</Label>
                                 <Select value={firstYear} onValueChange={setFirstYear}>
                                     <SelectTrigger id="firstYear" style={{ backgroundColor: '#fff', borderColor: 'hsl(22.5, 55%, 11%)', borderWidth: 2, color: '#000' }}>
                                         <SelectValue placeholder="Seleziona l'anno" style={{ color: 'hsl(0, 1%, 77%)' }} />
@@ -451,7 +451,7 @@ export default function LiberaSpherePage() {
                                 </Select>
                             </div>
                              <div>
-                                <Label htmlFor="qualification">Qualifica</Label>
+                                <Label htmlFor="qualification" className="font-bold">Qualifica</Label>
                                 <Select value={qualification} onValueChange={setQualification}>
                                     <SelectTrigger id="qualification" style={{ backgroundColor: '#fff', borderColor: 'hsl(22.5, 55%, 11%)', borderWidth: 2, color: '#000' }}>
                                         <SelectValue placeholder="Seleziona la qualifica" style={{ color: 'hsl(0, 1%, 77%)' }} />

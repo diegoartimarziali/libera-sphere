@@ -74,9 +74,18 @@ const translatePaymentMethod = (method: Payment['paymentMethod']): string => {
 export default function UserPaymentsPage() {
     // Funzione per esportare la tabella come PDF
     const handleSavePdf = async () => {
-        const pdf = new jsPDF({ orientation: "landscape" });
+        if (!user) return;
+        
+        const pdf = new jsPDF({ orientation: "landscape", format: "a4" });
         const pageWidth = pdf.internal.pageSize.getWidth();
         let y = 20;
+
+        // Recupera nome e cognome dell'utente
+        const userDoc = await import('firebase/firestore').then(({ doc, getDoc }) => 
+            getDoc(doc(db, 'users', user.uid))
+        );
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        const userName = `${userData.name || ''} ${userData.surname || ''}`.trim() || 'Utente';
 
         // Logo
         const logoUrl = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Flogo.png?alt=media&token=2ae6fdd4-f165-4603-b170-d832d97bd004";
@@ -93,39 +102,70 @@ export default function UserPaymentsPage() {
         const logoBase64 = await getImageBase64(logoUrl);
         pdf.addImage(logoBase64, "PNG", 10, 10, 30, 30);
 
-        // Scritta
+        // Scritta aziendale
         pdf.setFontSize(18);
+        pdf.setFont(undefined, "bold");
         pdf.text("Libera Energia Arti Marziali", 45, 25);
-        y = 45;
+        
+        // Titolo personalizzato con nome utente
+        pdf.setFontSize(16);
+        pdf.text(`Storico Pagamenti di: ${userName}`, 45, 35);
+        y = 50;
 
-        // Titolo tabella
-        pdf.setFontSize(14);
-        pdf.text("Storico Pagamenti", 10, y);
-        y += 10;
+        // Data di creazione e totale
+        const currentDate = new Date().toLocaleDateString('it-IT');
+        pdf.setFontSize(12);
+        pdf.setFont(undefined, "bold");
+        pdf.text(`Totale pagamenti completati al ${currentDate}: ${totalPayments.toFixed(2)} €`, 10, y);
+        pdf.setFont(undefined, "normal");
+        y += 15;
 
-        // Intestazioni tabella
+        // Intestazioni tabella su 5 colonne ben distribuite
+        const col1 = 10;   // Data (stretta)
+        const col2 = 50;   // Descrizione (larga)
+        const col3 = 170;  // Metodo (più vicino)
+        const col4 = 210;  // Importo
+        const col5 = 250;  // Stato
+        
         pdf.setFontSize(11);
         pdf.setFont(undefined, "bold");
-        pdf.text("Data", 10, y);
-        pdf.text("Descrizione", 45, y);
-        pdf.text("Metodo", 110, y);
-        pdf.text("Importo", 140, y, { align: "right" });
-        pdf.text("Stato", 170, y);
+        pdf.text("Data", col1, y);
+        pdf.text("Descrizione", col2, y);
+        pdf.text("Metodo", col3, y);
+        pdf.text("Importo", col4, y);
+        pdf.text("Stato", col5, y);
         pdf.setFont(undefined, "normal");
         y += 7;
 
-        // Dati pagamenti
+        // Dati pagamenti su 5 colonne
         payments.forEach((payment) => {
             if (y > 190) {
                 pdf.addPage();
                 y = 20;
+                // Ripeti le intestazioni su nuova pagina
+                pdf.setFontSize(11);
+                pdf.setFont(undefined, "bold");
+                pdf.text("Data", col1, y);
+                pdf.text("Descrizione", col2, y);
+                pdf.text("Metodo", col3, y);
+                pdf.text("Importo", col4, y);
+                pdf.text("Stato", col5, y);
+                pdf.setFont(undefined, "normal");
+                y += 7;
             }
-            pdf.text(payment.createdAt ? format(payment.createdAt.toDate(), 'dd/MM/yyyy HH:mm') : 'N/D', 10, y);
-            pdf.text(payment.description || (payment.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : ''), 45, y);
-            pdf.text(translatePaymentMethod(payment.paymentMethod), 110, y);
-            pdf.text(payment.amount.toFixed(2) + " €", 140, y, { align: "right" });
-            pdf.text(translateStatus(payment.status), 170, y);
-            y += 7;
+            
+            // Dati distribuiti sulle 5 colonne
+            pdf.text(payment.createdAt ? format(payment.createdAt.toDate(), 'dd/MM/yyyy') : 'N/D', col1, y);
+            
+            // Tronca descrizione se troppo lunga per evitare sovrapposizioni
+            const description = payment.description || (payment.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '');
+            const truncatedDesc = description.length > 50 ? description.substring(0, 50) + '...' : description;
+            pdf.text(truncatedDesc, col2, y);
+            
+            pdf.text(translatePaymentMethod(payment.paymentMethod), col3, y);
+            pdf.text(payment.amount.toFixed(2) + " €", col4, y);
+            pdf.text(translateStatus(payment.status), col5, y);
+            y += 8;
         });
 
         pdf.save("pagamenti.pdf");
@@ -134,6 +174,11 @@ export default function UserPaymentsPage() {
     const [payments, setPayments] = useState<Payment[]>([]);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
+
+    // Calcola il totale dei pagamenti completati
+    const totalPayments = payments
+        .filter(payment => payment.status === 'completed')
+        .reduce((total, payment) => total + payment.amount, 0);
 
     useEffect(() => {
         const fetchPayments = async () => {
@@ -178,6 +223,13 @@ export default function UserPaymentsPage() {
                         <CardDescription>
                             Qui trovi lo storico di tutte le tue transazioni e il loro stato.
                         </CardDescription>
+                        {!loading && payments.length > 0 && (
+                            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="text-lg font-bold text-green-800">
+                                    Totale pagamenti completati: {totalPayments.toFixed(2)} €
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <button
                         onClick={handleSavePdf}
@@ -196,23 +248,23 @@ export default function UserPaymentsPage() {
                     <div className="overflow-x-auto w-full">
                         <Table className="min-w-[500px] md:min-w-0" id="payments-table">
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead className="min-w-[90px] font-bold">Data</TableHead>
-                                    <TableHead className="min-w-[120px] font-bold">Descrizione</TableHead>
-                                    <TableHead className="min-w-[80px] font-bold">Metodo</TableHead>
-                                    <TableHead className="text-right min-w-[70px] font-bold">Importo</TableHead>
+                                <TableRow className="border-b-2 border-black">
+                                    <TableHead className="min-w-[90px] font-bold border-r border-black">Data</TableHead>
+                                    <TableHead className="min-w-[80px] font-bold border-r border-black">Descrizione</TableHead>
+                                    <TableHead className="min-w-[80px] font-bold border-r border-black">Metodo</TableHead>
+                                    <TableHead className="text-right min-w-[70px] font-bold border-r border-black">Importo</TableHead>
                                     <TableHead className="text-center min-w-[80px] font-bold">Stato</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {payments.length > 0 ? payments.map((payment) => (
-                                    <TableRow key={payment.id}>
-                                        <TableCell className="font-medium">
+                                {payments.length > 0 ? payments.map((payment, index) => (
+                                    <TableRow key={payment.id} className="bg-gray-100 border-b-2 border-black">
+                                        <TableCell className="font-medium border-r border-black">
                                             {payment.createdAt ? format(payment.createdAt.toDate(), 'dd/MM/yyyy HH:mm') : 'N/D'}
                                         </TableCell>
-                                        <TableCell>{payment.description || (payment.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '')}</TableCell>
-                                        <TableCell>{translatePaymentMethod(payment.paymentMethod)}</TableCell>
-                                        <TableCell className="text-right">{payment.amount.toFixed(2)} €</TableCell>
+                                        <TableCell className="border-r border-black">{payment.description || (payment.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '')}</TableCell>
+                                        <TableCell className="border-r border-black">{translatePaymentMethod(payment.paymentMethod)}</TableCell>
+                                        <TableCell className="text-right border-r border-black">{payment.amount.toFixed(2)} €</TableCell>
                                         <TableCell className="text-center">
                                             <Badge variant={getStatusVariant(payment.status)}
                                                className={cn({
@@ -224,7 +276,7 @@ export default function UserPaymentsPage() {
                                         </TableCell>
                                     </TableRow>
                                 )) : (
-                                    <TableRow>
+                                    <TableRow className="bg-gray-100">
                                         <TableCell colSpan={5} className="text-center h-24">
                                             Nessun pagamento trovato.
                                         </TableCell>

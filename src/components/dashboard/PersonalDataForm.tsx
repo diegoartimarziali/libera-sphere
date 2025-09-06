@@ -106,7 +106,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
   
   const form = useForm<PersonalDataSchemaType>({
     resolver: zodResolver(personalDataSchema),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
         name: "",
         surname: "",
@@ -255,7 +255,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
           <Card>
               <CardHeader>
                   <CardTitle>{title}</CardTitle>
-                  <CardDescription>{description}</CardDescription>
+                  <CardDescription className="text-lg">{description}</CardDescription>
               </CardHeader>
               <CardContent className="flex h-64 items-center justify-center">
                   <Loader2 className="h-8 w-8 animate-spin" />
@@ -268,7 +268,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
     <Card>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
-  <CardDescription><span className="font-bold">{description}</span></CardDescription>
+  <CardDescription className="text-lg"><span className="font-bold">{description}</span></CardDescription>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -414,8 +414,8 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                             placeholder="Via / Piazza"
                             value={field.value}
                             onChange={e => {
-                              // Permetti solo lettere e spazi
-                              let val = e.target.value.replace(/[^a-zA-Zàèéìòùç\s]/g, "");
+                              // Permetti solo lettere, spazi e caratteri accentati, con capitalizzazione automatica e punto "."
+                              let val = e.target.value.replace(/[^a-zA-Zàèéìòùç\s\.]/g, "");
                               // Prima lettera maiuscola per ogni parola
                               val = val.replace(/\b\w+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
                               field.onChange(val);
@@ -437,8 +437,8 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
                             placeholder="33"
                             value={field.value}
                             onChange={e => {
-                              // Permetti solo numeri
-                              const val = e.target.value.replace(/\D/g, "");
+                              // Permetti numeri, lettere e "/"
+                              const val = e.target.value.replace(/[^a-zA-Z0-9\/]/g, "");
                               field.onChange(val);
                             }}
                           />
@@ -587,7 +587,7 @@ export function PersonalDataForm({ title, description, buttonText, onFormSubmit,
               type="submit"
               className="w-full font-bold"
               style={{ backgroundColor: '#16a34a', color: '#fff' }}
-              disabled={isSubmitting || !form.formState.isValid}
+              disabled={isSubmitting || Object.keys(form.formState.errors).length > 0}
             >
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {buttonText}

@@ -98,6 +98,7 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
         return (
             <>
                 <NavLink href="/dashboard" icon={UserSquare} onClick={onLinkClick}>Scheda Personale</NavLink>
+                <NavLink href="/dashboard/wallet" icon={Wallet} onClick={onLinkClick}>I miei Premi</NavLink>
                 <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick}>I Miei Pagamenti</NavLink>
                 <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
                 
@@ -286,23 +287,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     return;
                 }
 
-                // === PROTEZIONE PAGAMENTO ABBONAMENTO FALLITO ===
-                if (fetchedUserData?.subscriptionPaymentFailed === true) {
-                    const allowedPages = [
-                        '/dashboard', 
-                        '/dashboard/payments', 
-                        '/dashboard/subscriptions',
-                        '/dashboard/subscriptions/monthly',
-                        '/dashboard/subscriptions/seasonal'
-                    ];
-                    const isAdminAccessingAdmin = fetchedUserData?.role === 'admin' && pathname.startsWith('/admin');
-                    
-                    if (!allowedPages.includes(pathname) && !isAdminAccessingAdmin) {
-                        router.push('/dashboard/subscriptions');
-                        setLoadingData(false);
-                        return;
-                    }
-                }
+                // Note: subscriptionPaymentFailed viene gestito solo tramite limitazione del menu
+                // Non c'è più reindirizzamento automatico - troppo restrittivo
                 if (trialStatus === 'completed' && fetchedUserData?.associationStatus === 'not_associated') {
                     if (pathname !== '/dashboard/trial-completed') {
                         router.push('/dashboard/trial-completed');

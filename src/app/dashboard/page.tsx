@@ -130,14 +130,20 @@ export default function DashboardPage() {
       const oneHour = 60 * 60 * 1000;
       const timeSinceSubmission = new Date().getTime() - new Date(submissionTimestamp).getTime();
       if (timeSinceSubmission < oneHour) {
-        toast({
-          title: "Controlla i tuoi dati",
-          description: "Se hai notato errori, invia entro 1 ora una email di correzione a: segreteria@artimarzialivalledaosta.com.",
-          variant: "default",
-        });
+        setShowDataCorrectionMessage(true);
+        // Show toast only once
+        if (!sessionStorage.getItem('dataCorrectionToastShown')) {
+          toast({
+            title: "Controlla i tuoi dati",
+            description: "Se hai notato errori, invia entro 1 ora una email di correzione a: segreteria@artimarzialivalledaosta.com.",
+            variant: "default",
+          });
+          sessionStorage.setItem('dataCorrectionToastShown', 'true');
+        }
       } else {
         // Clean up se l'ora è passata e segna come scaduto
         sessionStorage.removeItem('showDataCorrectionMessage');
+        sessionStorage.removeItem('dataCorrectionToastShown');
         localStorage.setItem('showDataCorrectionMessageExpired', 'true');
       }
     }

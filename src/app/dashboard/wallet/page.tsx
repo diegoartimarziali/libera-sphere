@@ -7,13 +7,23 @@ import { UserAwardsList } from "@/components/dashboard/UserAwardsList"
 export default function WalletPage() {
     const awards = useUserAwards();
 
+    // Calcola il totale del residuo
+    const totalResiduo = awards ? awards.reduce((total, award) => total + (award.residuo || 0), 0) : 0;
+
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Il Mio Portafoglio</CardTitle>
-                <CardDescription>
+                <CardTitle>I miei Premi</CardTitle>
+                <CardDescription className="font-bold">
                     Premi assegnati e bonus accumulati.
                 </CardDescription>
+                {awards && awards.length > 0 && (
+                    <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="text-lg font-bold text-green-800">
+                            Valore totale disponibile: {totalResiduo.toFixed(2)} €
+                        </div>
+                    </div>
+                )}
             </CardHeader>
             <CardContent>
                 {!awards ? (

@@ -185,9 +185,9 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                  
                  <Separator />
 
-                 <div className="space-y-3">
-                    <h4 className="text-lg font-bold flex items-center justify-center text-center" style={{ color: 'hsl(30, 100%, 38%)' }}>
-                        <KeyRound size={16} className="mr-3 w-5 text-muted-foreground" />
+                 <div className="space-y-3 bg-gray-100 p-4 rounded-md" style={{ borderColor: 'hsl(var(--background))', borderWidth: '2px' }}>
+                    <h4 className="text-lg font-bold flex items-center justify-center text-center" style={{ color: 'hsl(var(--background))' }}>
+                        <KeyRound size={16} className="mr-3 w-5" style={{ color: 'hsl(var(--background))' }} />
                         Abbonamenti e Prove
                     </h4>
                     <div className="pl-8 space-y-3">

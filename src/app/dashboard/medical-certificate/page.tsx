@@ -19,7 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, UploadCloud, CheckCircle, Eye, LogOut } from "lucide-react"
+import { Loader2, UploadCloud, CheckCircle, Eye, LogOut, Cross } from "lucide-react"
 import { format as formatDate, parseISO } from "date-fns"
 
 
@@ -196,7 +196,10 @@ export default function MedicalCertificatePage() {
     <div className="flex h-full w-full items-center justify-center">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle>Certificato Medico</CardTitle>
+          <CardTitle className="flex items-center text-red-600">
+            Certificato Medico
+            <Cross className="ml-3 h-6 w-6 text-red-600" />
+          </CardTitle>
           <CardDescription>
             <div className="space-y-2 pt-2">
                 <p>

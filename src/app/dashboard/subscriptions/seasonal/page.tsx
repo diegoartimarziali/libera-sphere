@@ -50,7 +50,7 @@ interface BankDetails {
 
 type PaymentMethod = "online" | "in_person" | "bank_transfer" | "bonus";
 
-function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrPending, onOpenPaymentDialog }: { subscription: Subscription; onPurchase: (sub: Subscription, method: PaymentMethod) => void; isSubmitting: boolean; hasActiveOrPending: boolean; onOpenPaymentDialog: () => void }) {
+function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrPending, onOpenPaymentDialog, totaleBonus }: { subscription: Subscription; onPurchase: (sub: Subscription, method: PaymentMethod) => void; isSubmitting: boolean; hasActiveOrPending: boolean; onOpenPaymentDialog: () => void; totaleBonus: number }) {
     const now = new Date();
     const isPurchaseWindowOpen = 
         subscription.purchaseStartDate && subscription.purchaseEndDate ?
@@ -79,8 +79,18 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
                 )}
                 <div className="flex items-center justify-between text-lg">
                     <span className="text-muted-foreground">Prezzo</span>
-                    <span className="font-bold text-3xl">{subscription.totalPrice.toFixed(2)} €</span>
+                    <span className={`font-bold text-3xl ${totaleBonus > 0 ? 'line-through text-gray-400' : ''}`}>
+                        {subscription.totalPrice.toFixed(2)} €
+                    </span>
                 </div>
+                {totaleBonus > 0 && (
+                    <div className="flex items-center justify-between text-lg">
+                        <span className="text-muted-foreground">Prezzo finale dopo bonus:</span>
+                        <span className="font-bold text-3xl text-green-600">
+                            {Math.max(0, subscription.totalPrice - totaleBonus).toFixed(2)} €
+                        </span>
+                    </div>
+                )}
                     {/* Finestra di acquisto */}
                     <div className="w-full text-center text-base font-bold mb-2" style={{ color: '#0ea5e9' }}>
                         Acquistabile dal {subscription.purchaseStartDate ? format(subscription.purchaseStartDate.toDate(), "dd MMMM yyyy", { locale: it }) : "-"} al {subscription.purchaseEndDate ? format(subscription.purchaseEndDate.toDate(), "dd MMMM yyyy", { locale: it }) : "-"}
@@ -102,13 +112,21 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
             </CardContent>
             <CardFooter className="flex-col gap-2">
                  <Button 
-                    onClick={onOpenPaymentDialog} 
+                    onClick={() => {
+                        // Se il bonus copre interamente l'importo, procedi direttamente con il pagamento bonus
+                        if (totaleBonus >= subscription.totalPrice) {
+                            onPurchase(subscription, 'bonus');
+                        } else {
+                            // Altrimenti apri il dialog di scelta pagamento
+                            onOpenPaymentDialog();
+                        }
+                    }} 
                     disabled={isSubmitting || hasActiveOrPending || !isPurchaseWindowOpen}
                     className="w-full text-white font-bold bg-blue-600 hover:bg-blue-700" 
                     size="lg"
                 >
                     {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
-                    {hasActiveOrPending ? "Pagamento in fase di approvazione" : !isPurchaseWindowOpen ? "Non ancora acquistabile" : "Acquista Ora"}
+                    {hasActiveOrPending ? "Pagamento in fase di approvazione" : !isPurchaseWindowOpen ? "Non ancora acquistabile" : totaleBonus >= subscription.totalPrice ? "Acquista con Bonus" : "Acquista Ora"}
                 </Button>
                 <Button asChild variant="outline" className="w-full bg-transparent border-2" style={{ color: 'hsl(var(--background))', borderColor: 'hsl(var(--background))' }}>
                     <Link href="/dashboard/subscriptions">
@@ -381,11 +399,16 @@ export default function SeasonalSubscriptionPage() {
             
             // Registra pagamento
             const paymentsRef = collection(db, "users", user!.uid, "payments");
+            const finalAmount = Math.max(0, subscription.totalPrice - bonusUsed);
+            const description = bonusUsed > 0 
+                ? `${subscription.name} (${subscription.totalPrice.toFixed(2)} €) - Bonus`
+                : `${subscription.name} (${subscription.totalPrice.toFixed(2)} €)`;
+            
             const paymentData: any = {
                 createdAt: serverTimestamp(),
-                description: `Abbonamento ${subscription.name} (${subscription.totalPrice.toFixed(2)} €)`,
-                amount: Math.max(0, subscription.totalPrice - bonusUsed), // Prezzo finale dopo bonus
-                paymentMethod: method,
+                description: description,
+                amount: finalAmount,
+                paymentMethod: finalAmount === 0 ? 'bonus' : method, // Se importo è 0, usa 'bonus'
                 status: 'pending',
                 type: 'subscription',
                 userId: user!.uid,
@@ -466,6 +489,7 @@ export default function SeasonalSubscriptionPage() {
                         isSubmitting={isSubmitting}
                         hasActiveOrPending={!!hasActiveOrPending}
                         onOpenPaymentDialog={() => setIsPaymentDialogOpen(true)}
+                        totaleBonus={totaleBonus}
                     />
                     {/* Messaggio abbonamento in attesa */}
                     {userData?.subscriptionAccessStatus === 'pending' && (
@@ -498,17 +522,29 @@ export default function SeasonalSubscriptionPage() {
                             <DialogHeader>
                                 <DialogTitle style={{ color: 'hsl(var(--background))' }}>Scegli Metodo di Pagamento</DialogTitle>
                                 <DialogDescription className="text-base">
-                                    Prezzo abbonamento: {totaleBonus > 0 ? (
-                                        <span style={{ textDecoration: 'line-through', color: '#888', fontWeight: 'bold' }}>€{availableSubscription.totalPrice.toFixed(2)}</span>
-                                    ) : (
-                                        <b>€{availableSubscription.totalPrice.toFixed(2)}</b>
-                                    )}<br />
-                                    Bonus utilizzabili: <b>€{totaleBonus.toFixed(2)}</b><br />
-                                    {totaleBonus >= availableSubscription.totalPrice ? (
-                                        <span className="font-bold" style={{ color: '#059669' }}>Il tuo abbonamento è completamente coperto dai bonus!</span>
-                                    ) : (
-                                        <span className="font-bold" style={{ color: '#059669' }}>Prezzo finale dopo bonus: €{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</span>
-                                    )}
+                                    <div className="space-y-1">
+                                        <div className="flex justify-between">
+                                            <span>Prezzo abbonamento:</span>
+                                            <span>{totaleBonus > 0 ? (
+                                                <span style={{ textDecoration: 'line-through', color: '#888', fontWeight: 'bold' }}>€{availableSubscription.totalPrice.toFixed(2)}</span>
+                                            ) : (
+                                                <b>€{availableSubscription.totalPrice.toFixed(2)}</b>
+                                            )}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Bonus utilizzabili:</span>
+                                            <b>€{totaleBonus.toFixed(2)}</b>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Prezzo finale dopo bonus:</span>
+                                            <span className="font-bold" style={{ color: '#059669' }}>€{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</span>
+                                        </div>
+                                        {totaleBonus >= availableSubscription.totalPrice && (
+                                            <div className="text-center mt-2">
+                                                <span className="font-bold" style={{ color: '#059669' }}>Il tuo abbonamento è completamente coperto dai bonus!</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </DialogDescription>
                             </DialogHeader>
                             {Math.max(0, availableSubscription.totalPrice - totaleBonus) > 0 ? (

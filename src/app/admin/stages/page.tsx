@@ -1,5 +1,4 @@
 "use client"
-"use client"
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
@@ -46,6 +45,7 @@ export interface Stage {
     imageUrl?: string;
     open_to: 'Tutti' | 'Cinture Nere';
     type: 'stage' | 'exam' | 'course' | 'other';
+    customEventType?: string;
     discipline?: 'karate' | 'aikido';
     alertDate?: string;
     requireConfirmation?: boolean;
@@ -67,6 +67,7 @@ const stageFormSchema = z.object({
     requireConfirmation: z.boolean().optional(),
     id: z.string().optional(),
     type: z.enum(['stage', 'exam', 'course', 'other'], { required_error: "La tipologia è obbligatoria." }),
+    customEventType: z.string().optional(),
     discipline: z.enum(['karate', 'aikido'], { required_error: "La disciplina è obbligatoria." }),
     title: z.string().min(3, "Il titolo è obbligatorio."),
     startDate: z.string({ required_error: "La data di inizio è obbligatoria." }),
@@ -88,6 +89,15 @@ const stageFormSchema = z.object({
         .or(z.literal('')),
         sumupUrl: z.string().url("Inserisci un link SumUp valido (https://...)").optional().or(z.literal('')),
         iconUrl: z.string().url("Inserisci un URL icona quadrata valido (https://...)").optional().or(z.literal('')),
+}).refine(data => {
+    // Se il tipo è "other", customEventType deve essere presente
+    if (data.type === 'other' && (!data.customEventType || data.customEventType.trim() === '')) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Quando selezioni 'Altro', devi specificare il tipo di evento",
+    path: ["customEventType"]
 });
 
 type StageFormData = z.infer<typeof stageFormSchema>;
@@ -104,11 +114,12 @@ const getEventTypeIcon = (type: Stage['type']) => {
         default: return <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />;
     }
 }
-const getEventTypeLabel = (type: Stage['type']) => {
+const getEventTypeLabel = (type: Stage['type'], customType?: string) => {
     switch (type) {
         case 'stage': return 'Stage';
         case 'exam': return 'Esame';
         case 'course': return 'Corso';
+        case 'other': return customType || 'Altro';
         default: return 'Evento';
     }
 }
@@ -132,6 +143,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
             alertDate: stage?.alertDate ?? '',
             requireConfirmation: stage?.requireConfirmation ?? false,
             type: stage?.type ?? 'stage',
+            customEventType: stage?.customEventType ?? '',
             discipline: stage?.discipline ?? 'karate',
             startDate: stage?.startDate ?? format(new Date(), 'yyyy-MM-dd'),
             endDate: stage?.endDate ?? format(new Date(), 'yyyy-MM-dd'),
@@ -158,23 +170,34 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                     <FormField control={form.control} name="type" render={({ field }) => (
                         <FormItem><FormLabel>Tipologia Evento</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Seleziona una tipologia..." /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    <SelectItem value="stage">Stage</SelectItem>
-                                    <SelectItem value="exam">Esami</SelectItem>
-                                    <SelectItem value="course">Corso</SelectItem>
-                                    <SelectItem value="other">Altro</SelectItem>
+                                <FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona una tipologia..." /></SelectTrigger></FormControl>
+                                <SelectContent className="bg-white">
+                                    <SelectItem value="stage" className="text-black">Stage</SelectItem>
+                                    <SelectItem value="exam" className="text-black">Esami</SelectItem>
+                                    <SelectItem value="course" className="text-black">Corso</SelectItem>
+                                    <SelectItem value="other" className="text-black">Altro</SelectItem>
                                 </SelectContent>
                             </Select>
                         <FormMessage /></FormItem>
                     )} />
+                    {form.watch("type") === "other" && (
+                        <FormField control={form.control} name="customEventType" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Specifica Tipologia</FormLabel>
+                                <FormControl>
+                                    <Input {...field} placeholder="Es. Seminario, Workshop..." className="bg-white text-black" />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                    )}
                     <FormField control={form.control} name="discipline" render={({ field }) => (
                         <FormItem><FormLabel>Disciplina</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Seleziona disciplina..." /></SelectTrigger></FormControl>
-                                <SelectContent>
-                                    <SelectItem value="karate">Karate</SelectItem>
-                                    <SelectItem value="aikido">Aikido</SelectItem>
+                                <FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona disciplina..." /></SelectTrigger></FormControl>
+                                <SelectContent className="bg-white">
+                                    <SelectItem value="karate" className="text-black">Karate</SelectItem>
+                                    <SelectItem value="aikido" className="text-black">Aikido</SelectItem>
                                 </SelectContent>
                             </Select>
                         <FormMessage /></FormItem>
@@ -182,10 +205,10 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                     <FormField control={form.control} name="location" render={({ field }) => (
                         <FormItem><FormLabel>Luogo</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl><SelectTrigger><SelectValue placeholder="Seleziona una palestra..." /></SelectTrigger></FormControl>
-                                <SelectContent>
+                                <FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona una palestra..." /></SelectTrigger></FormControl>
+                                <SelectContent className="bg-white">
                                     {gyms.map(g => (
-                                        <SelectItem key={g.id} value={g.name + (g.address ? ` - ${g.address}` : '')}>
+                                        <SelectItem key={g.id} value={g.name + (g.address ? ` - ${g.address}` : '')} className="text-black">
                                             {g.name}{g.address ? ` - ${g.address}` : ''}
                                         </SelectItem>
                                     ))}
@@ -197,38 +220,38 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="title" render={({ field }) => (
-                        <FormItem><FormLabel>Titolo Evento</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Titolo Evento</FormLabel><FormControl><Input {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="description" render={({ field }) => (
-                        <FormItem><FormLabel>Descrizione</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Descrizione</FormLabel><FormControl><Textarea {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
-                        <FormItem><FormLabel>Data</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Data</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="alertDate" render={({ field }) => (
                         <FormItem><FormLabel>Data Alert</FormLabel>
-                            <FormControl><Input type="date" {...field} /></FormControl>
+                            <FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl>
                         <FormMessage /></FormItem>
                     )} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="startTime" render={({ field }) => (
-                        <FormItem><FormLabel>Ora Inizio</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Ora Inizio</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="endTime" render={({ field }) => (
-                        <FormItem><FormLabel>Ora Fine</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Ora Fine</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                     <FormField control={form.control} name="price" render={({ field }) => (
-                        <FormItem><FormLabel>Prezzo (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Prezzo (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="sumupUrl" render={({ field }) => (
                         <FormItem>
                             <FormLabel>Link SumUp Pagamento</FormLabel>
-                            <FormControl><Input {...field} placeholder="https://sumup.it/pay/xyz" /></FormControl>
+                            <FormControl><Input {...field} placeholder="https://sumup.it/pay/xyz" className="bg-white text-black" /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
@@ -237,13 +260,13 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                             <FormLabel>Aperto a</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="bg-white text-black">
                                         <SelectValue placeholder="Seleziona a chi è rivolto..." />
                                     </SelectTrigger>
                                 </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="Tutti">Tutti</SelectItem>
-                                    <SelectItem value="Cinture Nere">Cinture Nere</SelectItem>
+                                <SelectContent className="bg-white">
+                                    <SelectItem value="Tutti" className="text-black">Tutti</SelectItem>
+                                    <SelectItem value="Cinture Nere" className="text-black">Cinture Nere</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FormMessage />
@@ -252,12 +275,12 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="imageUrl" render={({ field }) => (
-                        <FormItem><FormLabel>URL Immagine</FormLabel><FormControl><Input {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>URL Immagine</FormLabel><FormControl><Input {...field} placeholder="https://..." className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="iconUrl" render={({ field }) => (
                         <FormItem>
                             <FormLabel>URL Icona Quadrata Evento</FormLabel>
-                            <FormControl><Input {...field} placeholder="https://..." /></FormControl>
+                            <FormControl><Input {...field} placeholder="https://..." className="bg-white text-black" /></FormControl>
                             <FormMessage />
                         </FormItem>
                     )} />
@@ -282,6 +305,7 @@ export default function AdminStagesPage() {
         setEditingStage({
             ...stage,
             discipline: stage.discipline ?? "karate",
+            customEventType: stage.customEventType ?? '',
             startDate: stage.startTime ? format(stage.startTime.toDate(), 'yyyy-MM-dd') : '',
             startTime: stage.startTime ? format(stage.startTime.toDate(), 'HH:mm') : '',
             endDate: stage.endTime ? format(stage.endTime.toDate(), 'yyyy-MM-dd') : '',
@@ -348,27 +372,59 @@ export default function AdminStagesPage() {
     const handleSaveStage = async (data: StageFormData) => {
         setIsSubmitting(true);
         try {
-            // Prepara i dati per Firestore
-            const eventData = {
-                ...data,
-                sumupUrl: data.sumupUrl ?? "",
-                startTime: Timestamp.fromDate(new Date(`${data.startDate}T${data.startTime}`)),
-                endTime: Timestamp.fromDate(new Date(`${data.endDate}T${data.endTime}`)),
+            console.log("Dati ricevuti dal form:", data);
+            
+            // Validazione date
+            if (!data.startDate || !data.startTime || !data.endDate || !data.endTime) {
+                throw new Error("Date e orari sono obbligatori");
+            }
+            
+            // Prepara i dati per Firestore - rimuovi campi temporanei del form
+            const { startDate, startTime, endDate, endTime, id, ...eventData } = data;
+            
+            // Pulisci i campi vuoti
+            const cleanedData = Object.fromEntries(
+                Object.entries(eventData).filter(([_, value]) => value !== "" && value !== undefined && value !== null)
+            );
+            
+            const finalEventData = {
+                title: data.title,
+                type: data.type,
+                discipline: data.discipline,
+                location: data.location,
+                description: data.description || "",
+                price: Number(data.price) || 0,
+                open_to: data.open_to,
+                imageUrl: data.imageUrl || "",
+                iconUrl: data.iconUrl || "",
+                sumupUrl: data.sumupUrl || "",
+                alertDate: data.alertDate || "",
+                requireConfirmation: data.requireConfirmation || false,
+                ...(data.type === "other" && data.customEventType && { customEventType: data.customEventType }),
+                startTime: Timestamp.fromDate(new Date(`${startDate}T${startTime}`)),
+                endTime: Timestamp.fromDate(new Date(`${endDate}T${endTime}`)),
             };
+            
+            console.log("Dati finali per il salvataggio:", finalEventData);
             if (data.id) {
                 // Modifica evento esistente
-                await updateDoc(doc(db, "events", data.id), eventData);
+                await updateDoc(doc(db, "events", data.id), finalEventData);
                 toast({ variant: "success", title: "Evento aggiornato", description: "Le modifiche sono state salvate." });
             } else {
                 // Crea nuovo evento
-                const docRef = await addDoc(collection(db, "events"), eventData);
+                const docRef = await addDoc(collection(db, "events"), finalEventData);
                 toast({ variant: "success", title: "Evento creato", description: "Il nuovo evento è stato salvato." });
             }
             setIsFormOpen(false);
             fetchInitialData();
         } catch (error) {
             console.error("Errore salvataggio evento:", error);
-            toast({ variant: "destructive", title: "Errore", description: "Impossibile salvare l'evento." });
+            console.error("Dati ricevuti dal form:", data);
+            toast({ 
+                variant: "destructive", 
+                title: "Errore", 
+                description: `Impossibile salvare l'evento: ${error instanceof Error ? error.message : 'Errore sconosciuto'}` 
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -423,7 +479,7 @@ export default function AdminStagesPage() {
                                             <div className="flex flex-col gap-1">
                                                 <div className="flex items-center text-sm text-primary font-semibold">
                                                     {getEventTypeIcon(stage.type)}
-                                                    {getEventTypeLabel(stage.type)}
+                                                    {getEventTypeLabel(stage.type, stage.customEventType)}
                                                 </div>
                                                 <div className="text-xs font-medium text-[var(--my-marscuro)]">
                                                     {stage.discipline ? `Disciplina: ${stage.discipline.charAt(0).toUpperCase() + stage.discipline.slice(1)}` : ''}
@@ -482,7 +538,7 @@ export default function AdminStagesPage() {
                             <TableBody>
                                 {stages.map(stage => (
                                     <TableRow key={stage.id}>
-                                        <TableCell><Badge variant="secondary">{getEventTypeLabel(stage.type)}</Badge></TableCell>
+                                        <TableCell><Badge variant="secondary">{getEventTypeLabel(stage.type, stage.customEventType)}</Badge></TableCell>
                                         <TableCell className="font-medium capitalize">{stage.title}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
@@ -525,9 +581,6 @@ export default function AdminStagesPage() {
 
             <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setEditingStage(undefined); }}>
                                                 <DialogContent className="sm:max-w-2xl" aria-describedby="dialog-desc-stages">
-                                                    <p id="dialog-desc-stages" className="text-muted-foreground text-sm mb-2">
-                                                        Inserisci o modifica i dati dello stage.
-                                                    </p>
                     <DialogHeader>
                         <DialogTitle>{editingStage ? "Modifica Evento" : "Crea Nuovo Evento"}</DialogTitle>
                     </DialogHeader>

@@ -1,3 +1,10 @@
+/*
+  AuthPage - Pagina di autenticazione per LiberaSphere.
+  Permette agli utenti di accedere o registrarsi tramite Firebase Auth.
+  Gestisce la creazione del documento utente su Firestore al momento della registrazione.
+  UI realizzata con componenti personalizzati e validazione con Zod.
+  Ultima modifica: 6 settembre 2025
+*/
 "use client"
 
 import { useState } from "react"
@@ -269,7 +276,48 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Minimo 6 caratteri" {...field} />
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              placeholder="Minimo 6 caratteri"
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-2 top-2 text-gray-500"
+                              onClick={() => setShowPassword((v) => !v)}
+                              tabIndex={-1}
+                            >
+                              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={registerForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Conferma Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type={showConfirmPassword ? "text" : "password"}
+                              placeholder="Ripeti la password"
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-2 top-2 text-gray-500"
+                              onClick={() => setShowConfirmPassword((v) => !v)}
+                              tabIndex={-1}
+                            >
+                              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

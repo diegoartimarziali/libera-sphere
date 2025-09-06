@@ -31,7 +31,7 @@ interface Payment {
     paymentMethod: 'online' | 'in_person' | 'bank_transfer' | 'bonus';
     status: 'pending' | 'completed' | 'failed';
     type: 'association' | 'trial' | 'subscription';
-    awardId?: string;
+    awardId?: string | string[]; // Può essere singolo ID o array di ID
     bonusUsed?: number;
 }
 
@@ -249,7 +249,18 @@ export default function AdminPaymentsPage() {
             ) {
               // Rimborso bonus
               const { refundUserBonus } = await import('@/lib/refundUserBonus');
-              await refundUserBonus(payment.userId, payment.awardId, payment.bonusUsed!);
+              
+              // Gestisci sia singoli awardId che array di awardId
+              if (Array.isArray(payment.awardId)) {
+                // Se è un array, rimborsa equamente tra tutti gli award
+                const bonusPerAward = payment.bonusUsed / payment.awardId.length;
+                for (const awardId of payment.awardId) {
+                  await refundUserBonus(payment.userId, awardId, bonusPerAward);
+                }
+              } else {
+                // Se è una singola stringa
+                await refundUserBonus(payment.userId, payment.awardId, payment.bonusUsed!);
+              }
             }
 
             if (newStatus === 'completed') {
@@ -348,10 +359,17 @@ export default function AdminPaymentsPage() {
 
         } catch (error) {
              console.error(`Error updating payment to ${newStatus}: `, error);
+             console.error('Payment details:', {
+                id: payment.id,
+                type: payment.type,
+                userId: payment.userId,
+                status: payment.status,
+                newStatus: newStatus
+             });
             toast({
                 variant: "destructive",
                 title: "Errore",
-                description: `Impossibile aggiornare il pagamento. Riprova.`
+                description: `Impossibile aggiornare il pagamento. Controlla la console per dettagli. Errore: ${error instanceof Error ? error.message : 'Sconosciuto'}`
             });
         } finally {
             setUpdatingPaymentId(null);
@@ -633,6 +651,19 @@ export default function AdminPaymentsPage() {
                                                                         title="Approva pagamento"
                                                                     >
                                                                         {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4" />}
+                                                                    </Button>
+                                                                </div>
+                                                            )}
+                                                            {p.status === 'completed' && p.type === 'subscription' && (
+                                                                <div className="flex gap-2 justify-start">
+                                                                    <Button
+                                                                        variant="destructive"
+                                                                        size="icon"
+                                                                        onClick={() => handlePaymentUpdate(p, 'failed')}
+                                                                        disabled={updatingPaymentId === p.id}
+                                                                        title="Segna come fallito"
+                                                                    >
+                                                                         {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="h-4 w-4" />}
                                                                     </Button>
                                                                 </div>
                                                             )}

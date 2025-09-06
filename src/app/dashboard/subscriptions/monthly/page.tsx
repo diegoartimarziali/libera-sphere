@@ -51,7 +51,7 @@ interface BankDetails {
 
 type PaymentMethod = "online" | "in_person" | "bank_transfer" | "bonus";
 
-function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrPending, onOpenPaymentDialog }: { subscription: Subscription; onPurchase: (sub: Subscription, method: PaymentMethod) => void; isSubmitting: boolean; hasActiveOrPending: boolean; onOpenPaymentDialog: () => void }) {
+function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrPending, onOpenPaymentDialog, totaleBonus }: { subscription: Subscription; onPurchase: (sub: Subscription, method: PaymentMethod) => void; isSubmitting: boolean; hasActiveOrPending: boolean; onOpenPaymentDialog: () => void; totaleBonus: number }) {
     const now = new Date();
     const isPurchaseWindowOpen = 
         subscription.purchaseStartDate && subscription.purchaseEndDate ?
@@ -80,8 +80,18 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
                 )}
                 <div className="flex items-center justify-between text-lg">
                     <span className="text-muted-foreground">Prezzo</span>
-                    <span className="font-bold text-3xl">{subscription.totalPrice.toFixed(2)} €</span>
+                    <span className={`font-bold text-3xl ${totaleBonus > 0 ? 'line-through text-gray-400' : ''}`}>
+                        {subscription.totalPrice.toFixed(2)} €
+                    </span>
                 </div>
+                {totaleBonus > 0 && (
+                    <div className="flex items-center justify-between text-lg">
+                        <span className="text-muted-foreground">Prezzo finale dopo bonus:</span>
+                        <span className="font-bold text-3xl text-green-600">
+                            {Math.max(0, subscription.totalPrice - totaleBonus).toFixed(2)} €
+                        </span>
+                    </div>
+                )}
                  <div className="space-y-2 rounded-md border p-4">
                      <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Valido dal</span>
@@ -99,14 +109,22 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
             </CardContent>
             <CardFooter className="flex-col gap-2">
                  <Button 
-                    onClick={onOpenPaymentDialog} 
+                    onClick={() => {
+                        // Se il bonus copre interamente l'importo, procedi direttamente con il pagamento bonus
+                        if (totaleBonus >= subscription.totalPrice) {
+                            onPurchase(subscription, 'bonus');
+                        } else {
+                            // Altrimenti apri il dialog di scelta pagamento
+                            onOpenPaymentDialog();
+                        }
+                    }} 
                     disabled={isSubmitting || hasActiveOrPending || !isPurchaseWindowOpen}
                     className="w-full text-white font-bold" 
                     size="lg"
                     style={{ backgroundColor: 'hsl(var(--primary))' }}
                 >
                     {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
-                    {hasActiveOrPending ? "Pagamento in fase di approvazione" : !isPurchaseWindowOpen ? "Non ancora acquistabile" : "Acquista Ora"}
+                    {hasActiveOrPending ? "Pagamento in fase di approvazione" : !isPurchaseWindowOpen ? "Non ancora acquistabile" : totaleBonus >= subscription.totalPrice ? "Acquista con Bonus" : "Acquista Ora"}
                 </Button>
                 <Button asChild variant="outline" className="w-full bg-transparent border-2" style={{ color: 'hsl(var(--background))', borderColor: 'hsl(var(--background))' }}>
                     <Link href="/dashboard/subscriptions">
@@ -386,11 +404,16 @@ export default function MonthlySubscriptionPage() {
             const paymentsRef = collection(db, "users", user!.uid, "payments");
             // Calcola gli awardId usati per il pagamento bonus
             const awardIdsUsati = bonusUsati.map(b => b.id);
+            const finalAmount = Math.max(0, subscription.totalPrice - valoreUsato);
+            const description = valoreUsato > 0 
+                ? `${subscription.name} (${subscription.totalPrice.toFixed(2)} €) - Bonus`
+                : `${subscription.name} (${subscription.totalPrice.toFixed(2)} €)`;
+            
             await addDoc(paymentsRef, {
                 createdAt: serverTimestamp(),
-                description: `Abbonamento ${subscription.name} (${subscription.totalPrice.toFixed(2)} €)`,
-                amount: Math.max(0, subscription.totalPrice - valoreUsato),
-                paymentMethod: method,
+                description: description,
+                amount: finalAmount,
+                paymentMethod: finalAmount === 0 ? 'bonus' : method, // Se importo è 0, usa 'bonus'
                 status: 'pending',
                 type: 'subscription',
                 userId: user!.uid,
@@ -452,6 +475,7 @@ export default function MonthlySubscriptionPage() {
                         isSubmitting={isSubmitting}
                         hasActiveOrPending={!!hasActiveOrPending}
                         onOpenPaymentDialog={() => setIsPaymentDialogOpen(true)}
+                        totaleBonus={totaleBonus}
                     />
                     {/* Bonus disponibili e totale */}
                     <div className="w-full max-w-lg my-4 p-4 border-2 rounded-lg bg-green-50" style={{ borderColor: '#10b981' }}>
