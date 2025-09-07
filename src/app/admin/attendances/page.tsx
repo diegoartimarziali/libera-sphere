@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { db } from "@/lib/firebase"
-import { collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore"
+import { collection, getDocs, query, orderBy, Timestamp, where, addDoc, deleteDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import type { VariantProps } from "class-variance-authority"
@@ -12,8 +12,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge, badgeVariants } from "@/components/ui/badge"
-import { Loader2, User, Users, ClipboardCheck } from "lucide-react"
+import { Loader2, User, Users, ClipboardCheck, RefreshCw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 
 interface Attendance {
     id: string;
@@ -62,70 +63,142 @@ export default function AdminAttendancesPage() {
     const [gyms, setGyms] = useState<Gym[]>([]);
     const [gymFilter, setGymFilter] = useState("all");
     const [disciplineFilter, setDisciplineFilter] = useState("all");
+    const [isRecalculating, setIsRecalculating] = useState(false);
     const { toast } = useToast();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                // Fetch gyms
-                const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
-                const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
-                setGyms(gymsList);
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            // Fetch gyms
+            const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
+            const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
+            setGyms(gymsList);
 
-                // 1. Fetch all users
-                const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
-                const profiles: UserProfile[] = [];
-                for (const docSnap of usersSnapshot.docs) {
-                    const userData = docSnap.data();
-                    const attendances: Attendance[] = [];
-                    // Leggi le presenze dalla sottocollezione utente
-                    const attendancesSnap = await getDocs(query(collection(db, "users", docSnap.id, "attendances"), orderBy('lessonDate', 'desc')));
-                    attendancesSnap.forEach(attSnap => {
-                        const attData = attSnap.data();
-                        attendances.push({
-                            id: attSnap.id,
-                            userId: attData.userId,
-                            gymName: attData.gymName,
-                            lessonDate: attData.lessonDate,
-                            status: attData.status,
-                        });
+            // 1. Fetch all users
+            const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
+            const profiles: UserProfile[] = [];
+            for (const docSnap of usersSnapshot.docs) {
+                const userData = docSnap.data();
+                const attendances: Attendance[] = [];
+                // Leggi le presenze dalla sottocollezione utente
+                const attendancesSnap = await getDocs(query(collection(db, "users", docSnap.id, "attendances"), orderBy('lessonDate', 'desc')));
+                attendancesSnap.forEach(attSnap => {
+                    const attData = attSnap.data();
+                    attendances.push({
+                        id: attSnap.id,
+                        userId: attData.userId,
+                        gymName: attData.gymName,
+                        lessonDate: attData.lessonDate,
+                        status: attData.status,
                     });
-                    // Leggi il totale lezioni dalla sottocollezione totalLessons
-                    let totalLessons = undefined;
-                    const totalLessonsSnap = await getDocs(collection(db, "users", docSnap.id, "totalLessons"));
-                    totalLessonsSnap.forEach(tlDoc => {
-                        const tlData = tlDoc.data();
-                        if (typeof tlData.value === 'number') {
-                            totalLessons = tlData.value;
-                        }
-                    });
-                    profiles.push({
-                        uid: docSnap.id,
-                        name: userData.name,
-                        surname: userData.surname,
-                        email: userData.email,
-                        discipline: userData.discipline,
-                        attendances,
-                        totalLessons
-                    });
-                }
-                setProfiles(profiles);
-
-            } catch (error) {
-                console.error("Error fetching admin attendance data: ", error);
-                toast({
-                    variant: "destructive",
-                    title: "Errore",
-                    description: "Impossibile caricare i dati degli utenti e delle presenze."
                 });
-            } finally {
-                setLoading(false);
+                // Leggi il totale lezioni dalla sottocollezione totalLessons
+                let totalLessons = undefined;
+                const totalLessonsSnap = await getDocs(collection(db, "users", docSnap.id, "totalLessons"));
+                totalLessonsSnap.forEach(tlDoc => {
+                    const tlData = tlDoc.data();
+                    if (typeof tlData.value === 'number') {
+                        totalLessons = tlData.value;
+                    }
+                });
+                profiles.push({
+                    uid: docSnap.id,
+                    name: userData.name,
+                    surname: userData.surname,
+                    email: userData.email,
+                    discipline: userData.discipline,
+                    attendances,
+                    totalLessons
+                });
             }
-        };
+            setProfiles(profiles);
 
+        } catch (error) {
+            console.error("Error fetching admin attendance data: ", error);
+            toast({
+                variant: "destructive",
+                title: "Errore",
+                description: "Impossibile caricare i dati degli utenti e delle presenze."
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchData();
-    }, [toast]);
+    }, []);
+
+    const recalculateTotalLessons = async () => {
+        setIsRecalculating(true);
+        try {
+            // 1. Ottieni tutti i calendari salvati
+            const calendarsSnapshot = await getDocs(collection(db, "calendars"));
+            const calendars = calendarsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // 2. Per ogni calendario, conta le lezioni operative
+            const calendarLessonsCount: { [key: string]: number } = {};
+            for (const calendar of calendars) {
+                const calendarData = calendar as any;
+                const eventsQuery = query(collection(db, "events"), where("calendarId", "==", calendar.id));
+                const eventsSnapshot = await getDocs(eventsQuery);
+                const operationalLessons = eventsSnapshot.docs.filter(doc => doc.data().status === 'confermata').length;
+                
+                // Chiave univoca per palestra + disciplina
+                const calendarKey = `${calendarData.gymId}-${calendarData.discipline}`;
+                calendarLessonsCount[calendarKey] = operationalLessons;
+            }
+
+            // 3. Aggiorna il totalLessons per ogni utente
+            const usersSnapshot = await getDocs(collection(db, "users"));
+            let updatedCount = 0;
+
+            for (const userDoc of usersSnapshot.docs) {
+                const userData = userDoc.data();
+                const userGym = userData.gym;
+                const userDiscipline = userData.discipline;
+                
+                if (userGym && userDiscipline) {
+                    const userKey = `${userGym}-${userDiscipline}`;
+                    const newTotalLessons = calendarLessonsCount[userKey] || 0;
+                    
+                    // Aggiorna o crea il documento totalLessons
+                    const totalLessonsRef = collection(db, "users", userDoc.id, "totalLessons");
+                    const existingDocs = await getDocs(totalLessonsRef);
+                    
+                    // Elimina documenti esistenti
+                    for (const doc of existingDocs.docs) {
+                        await deleteDoc(doc.ref);
+                    }
+                    
+                    // Crea nuovo documento con il valore aggiornato
+                    if (newTotalLessons > 0) {
+                        await addDoc(totalLessonsRef, { value: newTotalLessons });
+                        updatedCount++;
+                    }
+                }
+            }
+
+            // 4. Ricarica i profili per mostrare i nuovi valori
+            await fetchData();
+            
+            toast({
+                title: "Ricalcolo Completato",
+                description: `Aggiornato il totale lezioni per ${updatedCount} utenti basandosi sui calendari attuali.`,
+                variant: "default"
+            });
+
+        } catch (error) {
+            console.error("Error recalculating total lessons:", error);
+            toast({
+                variant: "destructive",
+                title: "Errore Ricalcolo",
+                description: "Impossibile ricalcolare il totale lezioni. Controlla la console per dettagli."
+            });
+        } finally {
+            setIsRecalculating(false);
+        }
+    };
     
 
     const filteredProfiles = profiles
@@ -151,17 +224,17 @@ export default function AdminAttendancesPage() {
         });
 
     return (
-        <Card>
+        <Card className="bg-card">
             <CardHeader>
-                <CardTitle>Gestione Presenze Utenti</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-amber-800">Gestione Presenze Utenti</CardTitle>
+                <CardDescription className="text-muted-foreground">
                     Visualizza lo storico delle presenze e assenze per ogni utente.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
                     <Select value={gymFilter} onValueChange={setGymFilter}>
-                        <SelectTrigger className="w-full sm:w-[240px]">
+                        <SelectTrigger className="w-full sm:w-[240px] bg-white text-black">
                             <SelectValue placeholder="Filtra per palestra..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -172,7 +245,7 @@ export default function AdminAttendancesPage() {
                         </SelectContent>
                     </Select>
                     <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
-                        <SelectTrigger className="w-full sm:w-[240px]">
+                        <SelectTrigger className="w-full sm:w-[240px] bg-white text-black">
                             <SelectValue placeholder="Filtra per disciplina..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -181,6 +254,15 @@ export default function AdminAttendancesPage() {
                             <SelectItem value="Aikido">Aikido</SelectItem>
                         </SelectContent>
                     </Select>
+                    <Button 
+                        onClick={recalculateTotalLessons} 
+                        disabled={isRecalculating}
+                        variant="outline"
+                        className="bg-transparent text-amber-800 border-amber-800 hover:bg-amber-50 w-full sm:w-auto"
+                    >
+                        {isRecalculating ? <Loader2 className="animate-spin mr-2" /> : <RefreshCw className="mr-2" />}
+                        Ricalcola Totali
+                    </Button>
                 </div>
 
                 {loading ? (
@@ -198,7 +280,7 @@ export default function AdminAttendancesPage() {
                             // Mostra "Presenze: X / Y" accanto al nome utente
                             return (
                                 <AccordionItem value={profile.uid} key={profile.uid}>
-                                    <div className="flex items-center hover:bg-muted/50 px-4 rounded-md">
+                                    <div className="flex items-center hover:bg-amber-50 px-4 rounded-md transition-colors">
                                         <AccordionTrigger className="flex-1">
                                             <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
                                                 <div className="flex items-center gap-2">
@@ -219,7 +301,7 @@ export default function AdminAttendancesPage() {
                                             </div>
                                         </AccordionTrigger>
                                     </div>
-                                    <AccordionContent className="p-4 bg-muted/20">
+                                    <AccordionContent className="p-4 bg-amber-50/30">
                                         {profile.attendances.length > 0 ? (
                                             <Table>
                                                 <TableHeader>
@@ -237,7 +319,7 @@ export default function AdminAttendancesPage() {
                                                             <TableCell>{a.lessonTime}</TableCell>
                                                             <TableCell>{a.gymName}</TableCell>
                                                             <TableCell className="text-right">
-                                                                <Badge variant={getStatusVariant(a.status)}>
+                                                                <Badge variant={getStatusVariant(a.status)} className={a.status === 'presente' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}>
                                                                     {translateStatus(a.status)}
                                                                 </Badge>
                                                             </TableCell>

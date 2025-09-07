@@ -404,52 +404,7 @@ export default function AdminPaymentsPage() {
         }
     }
 
-    const handleDeleteUser = async (profileToDelete: UserProfile) => {
-        try {
-            const batch = writeBatch(db);
 
-            // 1. Delete user document
-            const userDocRef = doc(db, "users", profileToDelete.uid);
-            batch.delete(userDocRef);
-
-            // 2. Delete payments subcollection
-            const paymentsRef = collection(db, "users", profileToDelete.uid, "payments");
-            const paymentsSnapshot = await getDocs(paymentsRef);
-            paymentsSnapshot.forEach(doc => batch.delete(doc.ref));
-
-            // 3. Delete attendances
-            const attendancesRef = collection(db, "attendances");
-            const attendancesQuery = query(attendancesRef, where("userId", "==", profileToDelete.uid));
-            const attendancesSnapshot = await getDocs(attendancesQuery);
-            attendancesSnapshot.forEach(doc => batch.delete(doc.ref));
-
-            // 4. Delete files from Storage
-            const userStorageRef = ref(storage, `medical-certificates/${profileToDelete.uid}`);
-            const filesList = await listAll(userStorageRef);
-            await Promise.all(filesList.items.map(fileRef => deleteObject(fileRef)));
-
-            // Commit all batched writes to Firestore
-            await batch.commit();
-
-            toast({
-                title: "Utente Eliminato",
-                description: `${profileToDelete.name} ${profileToDelete.surname} e tutti i suoi dati sono stati rimossi. L'account di autenticazione deve essere rimosso manualmente dalla Console Firebase.`,
-                variant: "success",
-                duration: 9000,
-            });
-
-            // Refresh UI
-            setProfiles(prev => prev.filter(p => p.uid !== profileToDelete.uid));
-
-        } catch (error) {
-            console.error("Error deleting user:", error);
-            toast({
-                variant: "destructive",
-                title: "Errore Eliminazione",
-                description: `Impossibile eliminare l'utente. Dettagli: ${error instanceof Error ? error.message : 'Sconosciuto'}`
-            });
-        }
-    };
 
 
     const filteredProfiles = profiles
@@ -488,7 +443,7 @@ export default function AdminPaymentsPage() {
                         />
                     </div>
                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-full sm:w-[280px]">
+                        <SelectTrigger className="w-full sm:w-[280px] bg-transparent border-amber-800 text-amber-800 hover:bg-amber-800/5">
                             <SelectValue placeholder="Filtra per stato pagamento" />
                         </SelectTrigger>
                         <SelectContent>
@@ -514,11 +469,10 @@ export default function AdminPaymentsPage() {
                                         <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
                                             <div className="flex items-center">
                                                 <User className="h-5 w-5 mr-3 text-primary" />
-                                                <span className="font-bold">{profile.name} {profile.surname}</span>
+                                                <span className="font-bold text-sm">{profile.name} {profile.surname}</span>
                                                 {profile.role === 'admin' && <Badge variant="destructive" className="ml-3">Admin</Badge>}
                                             </div>
                                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
-                                                <span>{profile.email}</span>
                                                 {profile.discipline && <span>{profile.discipline}</span>}
                                                 {profile.gym && <span>{profile.gym} - {gyms.get(profile.gym)}</span>}
                                             </div>
@@ -538,32 +492,7 @@ export default function AdminPaymentsPage() {
                                                 Rendi Admin
                                             </Button>
                                         )}
-                                        {currentUserRole === 'admin' && (
-                                            <AlertDialog>
-                                                <AlertDialogTrigger asChild>
-                                                    <Button variant="destructive" size="sm" onClick={(e) => e.stopPropagation()}>
-                                                        <Trash2 className="h-4 w-4 mr-2" />
-                                                        Elimina Utente
-                                                    </Button>
-                                                </AlertDialogTrigger>
-                                                <AlertDialogContent>
-                                                    <AlertDialogHeader>
-                                                        <AlertDialogTitle>Sei assolutamente sicuro?</AlertDialogTitle>
-                                                        <AlertDialogDescription>
-                                                            Questa azione è irreversibile. Eliminerà permanentemente l'utente <strong className="mx-1">{profile.name} {profile.surname}</strong> e tutti i suoi dati (pagamenti, presenze, certificati).
-                                                            <br/><br/>
-                                                            <strong className="text-destructive">L'account di accesso (email/password) dovrà essere rimosso manually dalla Console Firebase.</strong>
-                                                        </AlertDialogDescription>
-                                                    </AlertDialogHeader>
-                                                    <AlertDialogFooter>
-                                                        <AlertDialogCancel>Annulla</AlertDialogCancel>
-                                                        <AlertDialogAction onClick={() => handleDeleteUser(profile)}>
-                                                            Sì, elimina tutto
-                                                        </AlertDialogAction>
-                                                    </AlertDialogFooter>
-                                                </AlertDialogContent>
-                                            </AlertDialog>
-                                        )}
+
                                     </div>
                                 </div>
                                 <AccordionContent className="p-4 bg-muted/20">

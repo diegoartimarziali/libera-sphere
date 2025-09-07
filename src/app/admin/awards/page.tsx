@@ -11,7 +11,8 @@ import { z } from "zod";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, PlusCircle, Trash2, UserPlus, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -28,6 +29,24 @@ interface Award {
     residuo: number;
     used: boolean;
     usedValue: number;
+}
+
+interface AssignedAward {
+    id: string;
+    userId: string;
+    userName: string;
+    userSurname?: string;
+    userGym?: string;
+    userDiscipline?: string;
+    name: string;
+    value: number;
+    assignedAt?: any;
+}
+
+interface User {
+    id: string;
+    name: string;
+    surname: string;
 }
 
 const awardFormSchema = z.object({
@@ -57,6 +76,7 @@ export default function AdminAwardsPage() {
             toast({ title: "Premio assegnato!" });
             setIsAssignOpen(false);
             setSelectedUserId("");
+            fetchAssignedAwards(); // Ricarica la lista dei premi assegnati
         } catch (error) {
             toast({ variant: "destructive", title: "Errore", description: "Impossibile assegnare il premio." });
         }
@@ -73,6 +93,9 @@ export default function AdminAwardsPage() {
     const [selectedAward, setSelectedAward] = useState<Award | null>(null);
     const [selectedUserId, setSelectedUserId] = useState<string>("");
     const [users, setUsers] = useState<{id: string, name: string, surname?: string, discipline?: string, gym?: string}[]>([]);
+    // Stati per premi assegnati
+    const [assignedAwards, setAssignedAwards] = useState<AssignedAward[]>([]);
+    const [loadingAssigned, setLoadingAssigned] = useState(false);
 
     // Funzione per aprire il dialog di assegnazione premio
     const openAssignDialog = (award: Award) => {
@@ -100,6 +123,70 @@ export default function AdminAwardsPage() {
         };
         fetchUsers();
     }, [toast]);
+
+    // Funzione per caricare i premi assegnati
+    const fetchAssignedAwards = async () => {
+        setLoadingAssigned(true);
+        try {
+            const assignedAwardsList: AssignedAward[] = [];
+            
+            // Carica tutti gli utenti
+            const usersSnapshot = await getDocs(collection(db, "users"));
+            
+            // Per ogni utente, carica i suoi premi (dalla collezione userAwards)
+            for (const userDoc of usersSnapshot.docs) {
+                const userData = userDoc.data();
+                
+                const userAwardsSnapshot = await getDocs(collection(db, "users", userDoc.id, "userAwards"));
+                
+                userAwardsSnapshot.docs.forEach(awardDoc => {
+                    const awardData = awardDoc.data();
+                    assignedAwardsList.push({
+                        id: awardDoc.id,
+                        userId: userDoc.id,
+                        userName: userData.name,
+                        userSurname: userData.surname,
+                        userGym: userData.gym,
+                        userDiscipline: userData.discipline,
+                        name: awardData.name,
+                        value: awardData.value,
+                        assignedAt: awardData.assignedAt
+                    });
+                });
+            }
+            
+            // Ordina per data di assegnazione (più recenti prima)
+            assignedAwardsList.sort((a, b) => {
+                if (!a.assignedAt) return 1;
+                if (!b.assignedAt) return -1;
+                return b.assignedAt.toMillis() - a.assignedAt.toMillis();
+            });
+            
+            setAssignedAwards(assignedAwardsList);
+        } catch (error) {
+            console.error("Error fetching assigned awards:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare i premi assegnati." });
+        } finally {
+            setLoadingAssigned(false);
+        }
+    };
+
+    // Carica i premi assegnati al caricamento della pagina
+    useEffect(() => {
+        fetchAssignedAwards();
+    }, []);
+
+    // Funzione per eliminare un premio assegnato
+    const handleRemoveAssignedAward = async (assignedAward: AssignedAward) => {
+        try {
+            await deleteDoc(doc(db, "users", assignedAward.userId, "userAwards", assignedAward.id));
+            toast({ title: "Successo", description: "Premio rimosso dall'utente con successo." });
+            fetchAssignedAwards(); // Ricarica la lista
+        } catch (error) {
+            console.error("Error removing assigned award:", error);
+            toast({ variant: "destructive", title: "Errore", description: "Errore nella rimozione del premio." });
+        }
+    };
 
     const form = useForm<AwardFormData>({
         resolver: zodResolver(awardFormSchema),
@@ -196,6 +283,13 @@ export default function AdminAwardsPage() {
                 </div>
             </CardHeader>
             <CardContent>
+                <Tabs defaultValue="disponibili" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="disponibili">Premi Disponibili</TabsTrigger>
+                        <TabsTrigger value="assegnati">Premi Assegnati</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="disponibili" className="mt-6">
                 <div className="rounded-md border">
                     <Table>
                         <TableHeader>
@@ -214,8 +308,22 @@ export default function AdminAwardsPage() {
                                         <TableCell className="font-medium">{award.name}</TableCell>
                                         <TableCell className="font-bold">{award.value.toFixed(2)} €</TableCell>
                                         <TableCell className="text-right space-x-1">
-                                            <Button variant="secondary" size="sm" onClick={() => openAssignDialog(award)}>Assegna</Button>
-                                            <Button variant="outline" size="sm" onClick={() => openEditForm(award)}>Modifica</Button>
+                                            <Button 
+                                                size="sm" 
+                                                onClick={() => openAssignDialog(award)}
+                                                className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 p-2"
+                                                title="Assegna premio"
+                                            >
+                                                <UserPlus className="w-4 h-4" />
+                                            </Button>
+                                            <Button 
+                                                size="sm" 
+                                                onClick={() => openEditForm(award)}
+                                                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 p-2"
+                                                title="Modifica premio"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
                                                     <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button>
@@ -245,12 +353,12 @@ export default function AdminAwardsPage() {
                     <div className="space-y-4 py-4">
                         <label className="block font-medium mb-2">Seleziona utente</label>
                         <Select onValueChange={setSelectedUserId} value={selectedUserId}>
-                            <SelectTrigger>
+                            <SelectTrigger className="bg-white text-black border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                                 <SelectValue placeholder="Seleziona utente..." />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white">
                                 {users.map(user => (
-                                    <SelectItem key={user.id} value={user.id}>
+                                    <SelectItem key={user.id} value={user.id} className="text-black hover:bg-gray-50">
                                         {user.surname ? `${user.surname} ` : ''}{user.name}
                                         {user.gym ? ` - ${user.gym}` : ''}
                                         {user.discipline ? ` - ${user.discipline}` : ''}
@@ -273,6 +381,92 @@ export default function AdminAwardsPage() {
                         </TableBody>
                     </Table>
                 </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="assegnati" className="mt-6">
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Utente</TableHead>
+                                        <TableHead>Premio</TableHead>
+                                        <TableHead>Valore</TableHead>
+                                        <TableHead>Utilizzato</TableHead>
+                                        <TableHead>Residuo</TableHead>
+                                        <TableHead>Data Assegnazione</TableHead>
+                                        <TableHead className="text-right">Azioni</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {loadingAssigned ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center h-24">
+                                                <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                                                <span className="ml-2">Caricamento premi assegnati...</span>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : assignedAwards.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
+                                                Nessun premio assegnato ancora.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        assignedAwards.map((assignedAward) => (
+                                            <TableRow key={`${assignedAward.userId}-${assignedAward.id}`}>
+                                                <TableCell className="font-medium">
+                                                    {assignedAward.userName} {assignedAward.userSurname}
+                                                    {assignedAward.userGym && <div className="text-sm text-muted-foreground">{assignedAward.userGym}</div>}
+                                                    {assignedAward.userDiscipline && <div className="text-sm text-muted-foreground">{assignedAward.userDiscipline}</div>}
+                                                </TableCell>
+                                                <TableCell>{assignedAward.name}</TableCell>
+                                                <TableCell>€{assignedAward.value}</TableCell>
+                                                <TableCell>€0</TableCell> {/* TODO: Implementare tracking utilizzo */}
+                                                <TableCell>€{assignedAward.value}</TableCell> {/* TODO: Calcolare residuo */}
+                                                <TableCell>
+                                                    {assignedAward.assignedAt ? 
+                                                        new Date(assignedAward.assignedAt.toDate()).toLocaleDateString('it-IT') : 
+                                                        "-"
+                                                    }
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button 
+                                                                size="sm" 
+                                                                className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
+                                                                title="Elimina premio assegnato"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>Conferma eliminazione</AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    Sei sicuro di voler rimuovere il premio "{assignedAward.name}" da {assignedAward.userName} {assignedAward.userSurname}? Questa azione non può essere annullata.
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    onClick={() => handleRemoveAssignedAward(assignedAward)}
+                                                                    className="bg-red-600 hover:bg-red-700 text-white"
+                                                                >
+                                                                    Elimina
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </TabsContent>
+                </Tabs>
             </CardContent>
 
              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

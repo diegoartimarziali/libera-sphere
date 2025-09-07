@@ -134,45 +134,45 @@ function LessonForm({ lesson, gyms, onSave, onCancel }: { lesson?: LessonFormDat
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField control={form.control} name="title" render={({ field }) => (
-                    <FormItem><FormLabel>Titolo</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800">Titolo</FormLabel><FormControl><Input {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                 )} />
 
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
-                        <FormItem><FormLabel>Data Inizio</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800">Data Inizio</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="startTime" render={({ field }) => (
-                        <FormItem><FormLabel>Ora Inizio</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800">Ora Inizio</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                  <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel>Data Fine</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800">Data Fine</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="endTime" render={({ field }) => (
-                        <FormItem><FormLabel>Ora Fine</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800">Ora Fine</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                 
                  <FormField control={form.control} name="discipline" render={({ field }) => (
-                    <FormItem><FormLabel>Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800">Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 
                 <FormField control={form.control} name="gymId" render={({ field }) => (
-                    <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800">Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 
                 <FormField control={form.control} name="status" render={({ field }) => (
-                    <FormItem><FormLabel>Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem><SelectItem value="festivita">Festività</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800">Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem><SelectItem value="festivita">Festività</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
 
                 <FormField control={form.control} name="notes" render={({ field }) => (
-                    <FormItem><FormLabel>Note / Avvisi</FormLabel><FormControl><Textarea {...field} placeholder="Es. Portare protezioni, lezione annullata per maltempo..." /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800">Note / Avvisi</FormLabel><FormControl><Textarea {...field} placeholder="Es. Portare protezioni, lezione annullata per maltempo..." className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                 )} />
 
                 <DialogFooter>
-                    <Button type="button" variant="ghost" onClick={onCancel}>Annulla</Button>
-                    <Button type="submit">Salva Lezione</Button>
+                    <Button type="button" variant="outline" onClick={onCancel} className="bg-transparent text-amber-800 border-amber-800 hover:bg-amber-50">Annulla</Button>
+                    <Button type="submit" variant="outline" className="bg-transparent text-green-600 border-green-600 hover:bg-green-50">Salva Lezione</Button>
                 </DialogFooter>
             </form>
         </Form>
@@ -198,17 +198,17 @@ function TestCalendarDialog({ gyms, onGenerate, onOpenChange }: { gyms: Gym[], o
             <form onSubmit={testForm.handleSubmit(handleFormSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <FormField control={testForm.control} name="startDate" render={({ field }) => (
-                        <FormItem><FormLabel>Dal</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Dal</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={testForm.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel>Al</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Al</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                  <FormField control={testForm.control} name="gymId" render={({ field }) => (
-                    <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona una palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona una palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                 )} />
                  <FormField control={testForm.control} name="discipline" render={({ field }) => (
-                    <FormItem><FormLabel>Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleziona una disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona una disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 <DialogFooter>
                      <DialogClose asChild>
@@ -237,6 +237,10 @@ export default function AdminCalendarPage() {
     const [periodOptions, setPeriodOptions] = useState<PeriodOption[]>([]);
     const [selectedPeriodId, setSelectedPeriodId] = useState<string>('');
     const [dateGroups, setDateGroups] = useState<DateGroup[]>([]);
+    const [startDate, setStartDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+    const [endDate, setEndDate] = useState<string>(format(addDays(new Date(), 30), 'yyyy-MM-dd'));
+    const [startTime, setStartTime] = useState<string>('18:00');
+    const [endTime, setEndTime] = useState<string>('19:00');
     
     const [gymFilter, setGymFilter] = useState<string>('');
     const [disciplineFilter, setDisciplineFilter] = useState('Karate');
@@ -333,11 +337,11 @@ export default function AdminCalendarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const selectedPeriod = periodOptions.find(p => p.id === selectedPeriodId);
+
     
     const handleGenerateCalendar = async () => {
-        if (!selectedPeriod || !gymFilter || !disciplineFilter) {
-            toast({ variant: "destructive", title: "Dati Mancanti", description: "Seleziona periodo, palestra e disciplina." });
+        if (!startDate || !endDate || !startTime || !endTime || !gymFilter || !disciplineFilter) {
+            toast({ variant: "destructive", title: "Dati Mancanti", description: "Inserisci date di inizio/fine, orari e seleziona palestra e disciplina." });
             return;
         }
 
@@ -345,7 +349,8 @@ export default function AdminCalendarPage() {
         setLessons([]); 
 
         try {
-            const { startDate, endDate } = selectedPeriod;
+            const periodStartDate = parseISO(startDate);
+            const periodEndDate = parseISO(endDate);
             const selectedGym = gyms.find(g => g.id === gymFilter);
             if (!selectedGym) {
                 toast({ variant: "destructive", title: "Palestra non trovata", description: "La palestra selezionata non è valida." });
@@ -361,7 +366,7 @@ export default function AdminCalendarPage() {
                 });
             }
 
-            const allDates = eachDayOfInterval({ start: startOfDay(startDate), end: startOfDay(endDate) });
+            const allDates = eachDayOfInterval({ start: startOfDay(periodStartDate), end: startOfDay(periodEndDate) });
             let generatedLessons: Lesson[] = [];
 
             allDates.forEach(date => {
@@ -375,8 +380,9 @@ export default function AdminCalendarPage() {
                 if (scheduleForDay?.slots) {
                     scheduleForDay.slots.forEach((slot: {startTime: string, endTime: string, discipline: string}, index: number) => {
                         if (slot.discipline === disciplineFilter) {
-                            const [startHour, startMinute] = slot.startTime.split(':').map(Number);
-                            const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+                            // Usa gli orari personalizzati invece di quelli del programma della palestra
+                            const [startHour, startMinute] = startTime.split(':').map(Number);
+                            const [endHour, endMinute] = endTime.split(':').map(Number);
 
                             const eventStart = new Date(date);
                             eventStart.setHours(startHour, startMinute, 0, 0);
@@ -403,8 +409,9 @@ export default function AdminCalendarPage() {
             const operationalLessonsCount = generatedLessons.filter(l => l.status === 'confermata').length;
             setLessons(generatedLessons);
             const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
+            const periodString = `dal ${format(periodStartDate, 'dd/MM/yy')} al ${format(periodEndDate, 'dd/MM/yy')}`;
             
-            setGeneratedTitle(`Anteprima Calendario Standard per ${gymDisplayName} - ${disciplineFilter} (${operationalLessonsCount} lezioni)`);
+            setGeneratedTitle(`Anteprima Calendario Standard per ${gymDisplayName} - ${disciplineFilter} ${periodString} (${operationalLessonsCount} lezioni)`);
             toast({ title: "Anteprima Generata", description: `Trovate ${operationalLessonsCount} lezioni per i criteri selezionati.` });
 
         } catch (error) {
@@ -482,7 +489,7 @@ export default function AdminCalendarPage() {
         } else {
              gymId = gymFilter;
              discipline = disciplineFilter;
-             periodLabel = selectedPeriod?.label;
+             periodLabel = `dal ${format(parseISO(startDate), 'dd/MM/yy')} al ${format(parseISO(endDate), 'dd/MM/yy')}`;
         }
 
         if (!gymId || !discipline || !periodLabel) {
@@ -618,18 +625,53 @@ export default function AdminCalendarPage() {
     
     const handleLoadCalendar = async (calendar: SavedCalendar) => {
         try {
-            const eventsQuery = query(collection(db, "events"), where("calendarId", "==", calendar.id), orderBy("startTime", "asc"));
+            console.log("Loading calendar:", calendar.id, calendar.calendarName);
+            
+            // Prima prova senza ordinamento per vedere se è un problema di indici
+            const eventsQuery = query(collection(db, "events"), where("calendarId", "==", calendar.id));
             const eventsSnapshot = await getDocs(eventsQuery);
-            const lessonsList = eventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data()} as Lesson));
+            console.log("Found events:", eventsSnapshot.size);
+            
+            if (eventsSnapshot.empty) {
+                toast({ 
+                    variant: "destructive", 
+                    title: "Calendario Vuoto", 
+                    description: `Nessuna lezione trovata per il calendario "${calendar.calendarName}". Il calendario potrebbe essere stato creato ma non salvato correttamente.` 
+                });
+                return;
+            }
+            
+            const lessonsList = eventsSnapshot.docs.map(doc => {
+                const data = doc.data();
+                console.log("Event data:", data);
+                return { id: doc.id, ...data } as Lesson;
+            });
+
+            // Ordina manualmente le lezioni per startTime
+            lessonsList.sort((a, b) => a.startTime.toMillis() - b.startTime.toMillis());
 
             setLessons(lessonsList);
             const operationalLessonsCount = lessonsList.filter(l => l.status === 'confermata').length;
-            setGeneratedTitle(`Calendario Caricato: ${calendar.calendarName} (${operationalLessonsCount} lezioni)`);
+            
+            // Estrae le parti essenziali dal nome del calendario
+            const calendarName = calendar.calendarName;
+            const gymName = calendar.gymName || '';
+            const discipline = calendar.discipline || '';
+            
+            // Formato semplificato: "Villeneuve - Scuola Media - Karate (70 lezioni)"
+            const simplifiedTitle = `${gymName} - ${discipline} (${operationalLessonsCount} lezioni)`;
+            
+            setGeneratedTitle(simplifiedTitle);
             toast({ title: "Calendario Caricato", description: `Hai caricato ${lessonsList.length} lezioni totali nell'area di anteprima.`});
 
         } catch (error) {
             console.error("Error loading lessons for calendar:", error);
-            toast({ variant: "destructive", title: "Errore", description: "Impossibile caricare le lezioni del calendario." });
+            console.error("Calendar ID:", calendar.id);
+            toast({ 
+                variant: "destructive", 
+                title: "Errore Caricamento", 
+                description: `Impossibile caricare le lezioni del calendario "${calendar.calendarName}". Controlla la console per dettagli tecnici.` 
+            });
         }
     };
     
@@ -690,36 +732,59 @@ export default function AdminCalendarPage() {
                 <CardContent className="space-y-6">
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>Periodo Calendario</Label>
-                            <Select value={selectedPeriodId} onValueChange={setSelectedPeriodId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Seleziona un periodo..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {periodOptions.map(option => (
-                                        <SelectItem key={option.id} value={option.id}>
-                                            {option.label} ({format(option.startDate, 'dd/MM/yy')} - {format(option.endDate, 'dd/MM/yy')})
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Label>Data Inizio Periodo</Label>
+                            <Input 
+                                type="date" 
+                                value={startDate} 
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="bg-white text-black"
+                            />
                         </div>
+                        <div className="space-y-2">
+                            <Label>Data Fine Periodo</Label>
+                            <Input 
+                                type="date" 
+                                value={endDate} 
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="bg-white text-black"
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Ora Inizio Lezione</Label>
+                            <Input 
+                                type="time" 
+                                value={startTime} 
+                                onChange={(e) => setStartTime(e.target.value)}
+                                className="bg-white text-black"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Ora Fine Lezione</Label>
+                            <Input 
+                                type="time" 
+                                value={endTime} 
+                                onChange={(e) => setEndTime(e.target.value)}
+                                className="bg-white text-black"
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Filtra per Disciplina</Label>
                             <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
-                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="bg-white text-black"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Karate">Karate</SelectItem>
                                     <SelectItem value="Aikido">Aikido</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                    </div>
-                     <div className="grid grid-cols-1">
-                         <div className="space-y-2">
+                        <div className="space-y-2">
                             <Label>Filtra per Palestra</Label>
                             <Select value={gymFilter} onValueChange={setGymFilter}>
-                                <SelectTrigger>
+                                <SelectTrigger className="bg-white text-black">
                                     <SelectValue placeholder="Seleziona una palestra..." />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -730,15 +795,16 @@ export default function AdminCalendarPage() {
                             </Select>
                         </div>
                     </div>
+
                 </CardContent>
                 <CardFooter className="flex gap-2">
-                    <Button onClick={() => handleGenerateCalendar()} disabled={isGenerating || isSaving}>
-                        {isGenerating ? <Loader2 className="animate-spin mr-2" /> : null}
+                    <Button onClick={() => handleGenerateCalendar()} disabled={isGenerating || isSaving} className="text-green-600 border-green-600 hover:bg-green-50 font-bold">
+                        {isGenerating ? <Loader2 className="animate-spin mr-2" /> : <PlusCircle className="mr-2" />}
                         Genera Anteprima
                     </Button>
                     <Dialog open={isTestFormOpen} onOpenChange={setIsTestFormOpen}>
                         <DialogTrigger asChild>
-                             <Button variant="secondary">
+                             <Button variant="secondary" className="bg-transparent">
                                 <TestTube2 className="mr-2" />
                                 Genera Calendario di Test
                             </Button>
@@ -776,22 +842,26 @@ export default function AdminCalendarPage() {
                             {loading ? (
                                 <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
                             ) : savedCalendars.length > 0 ? (
-                                savedCalendars.map(cal => (
-                                    <TableRow key={cal.id}>
-                                        <TableCell className="font-medium">{cal.calendarName}</TableCell>
-                                        <TableCell>{cal.discipline}</TableCell>
-                                        <TableCell>{cal.gymName}</TableCell>
-                                        <TableCell>{cal.createdAt ? format(cal.createdAt.toDate(), 'dd/MM/yy HH:mm') : 'N/D'}</TableCell>
-                                        <TableCell className="text-right space-x-2">
-                                            <Button variant="outline" size="sm" onClick={() => handleLoadCalendar(cal)} disabled={isDeleting === cal.id}>
+                                savedCalendars.map((cal, index) => {
+                                    // Formato semplificato per il nome del calendario
+                                    const simplifiedName = `${cal.gymName} - ${cal.discipline}`;
+                                    return (
+                                    <TableRow key={cal.id} className={`bg-gray-50 hover:bg-gray-100 ${index > 0 ? 'border-t-2 border-gray-300' : ''}`}>
+                                        <TableCell className="font-medium py-4">{simplifiedName}</TableCell>
+                                        <TableCell className="py-4">{cal.discipline}</TableCell>
+                                        <TableCell className="py-4">{cal.gymName}</TableCell>
+                                        <TableCell className="py-4">{cal.createdAt ? format(cal.createdAt.toDate(), 'dd/MM/yy HH:mm') : 'N/D'}</TableCell>
+                                        <TableCell className="text-right space-x-2 py-4">
+                                            <Button variant="outline" size="sm" onClick={() => handleLoadCalendar(cal)} disabled={isDeleting === cal.id} className="bg-transparent">
                                                 <Upload className="h-4 w-4 mr-2" />
                                                 Carica
                                             </Button>
                                             
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="destructive" size="sm" disabled={isDeleting === cal.id}>
-                                                        {isDeleting === cal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                    <Button variant="destructive" size="sm" disabled={isDeleting === cal.id} className="bg-transparent text-red-600 border-red-600 hover:bg-red-50">
+                                                        {isDeleting === cal.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                                                        Elimina
                                                     </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
@@ -814,7 +884,8 @@ export default function AdminCalendarPage() {
 
                                         </TableCell>
                                     </TableRow>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <TableRow><TableCell colSpan={5} className="text-center h-24">Nessun calendario salvato trovato.</TableCell></TableRow>
                             )}
@@ -836,8 +907,12 @@ export default function AdminCalendarPage() {
                             )}
                         </div>
                         <div className="flex w-full sm:w-auto gap-2">
-                             <Button onClick={openCreateForm} variant="outline" className="w-full sm:w-auto"><PlusCircle className="mr-2"/>Aggiungi Lezione</Button>
-                             <Button onClick={handleSaveCalendar} disabled={isSaving || isGenerating || lessons.length === 0} className="w-full sm:w-auto">
+                             <Button onClick={openCreateForm} variant="outline" className="w-full sm:w-auto bg-transparent text-amber-800 border-amber-800 hover:bg-amber-100 hover:text-amber-900"><PlusCircle className="mr-2"/>Aggiungi Lezione</Button>
+                             <Button onClick={() => { setLessons([]); setGeneratedTitle(null); toast({ title: "Anteprima Cancellata", description: "Tutte le lezioni sono state rimosse dall'anteprima." }); }} disabled={lessons.length === 0} variant="outline" className="w-full sm:w-auto bg-transparent text-red-600 border-red-600 hover:bg-red-50">
+                                <X className="mr-2" />
+                                Cancella Anteprima
+                             </Button>
+                             <Button onClick={handleSaveCalendar} disabled={isSaving || isGenerating || lessons.length === 0} className="w-full sm:w-auto text-green-600 border-green-600 hover:bg-green-50 font-bold bg-transparent" variant="outline">
                                 {isSaving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2" />}
                                 Salva su DB
                              </Button>
@@ -925,9 +1000,9 @@ export default function AdminCalendarPage() {
              </Card>
 
               <Dialog open={isFormOpen} onOpenChange={(isOpen: boolean) => { setIsFormOpen(isOpen); if (!isOpen) setEditingLesson(undefined); }}>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-2xl bg-card">
                     <DialogHeader>
-                        <DialogTitle>{editingLesson ? "Modifica Lezione" : "Crea Nuova Lezione"}</DialogTitle>
+                        <DialogTitle className="text-amber-800">{editingLesson ? "Modifica Lezione" : "Crea Nuova Lezione"}</DialogTitle>
                     </DialogHeader>
                     <LessonForm 
                         lesson={editingLesson} 

@@ -9,114 +9,175 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 
 import { Button } from "@/components/ui/button";
-import { LogOut, Loader2 } from "lucide-react";
+import { LogOut, Loader2, Menu, X, CreditCard, Users, Calendar, Award, Gift, FileText, UserCheck, Shield, Trash2 } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-function AdminNavLink({ href, children }: { href: string; children: React.ReactNode }) {
+interface AdminNavItem {
+    href: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+}
+
+const adminNavItems: AdminNavItem[] = [
+    { href: "/admin/payments", label: "Pagamenti", icon: CreditCard },
+    { href: "/admin/attendances", label: "Presenze", icon: UserCheck },
+    { href: "/admin/calendar", label: "Calendario", icon: Calendar },
+    { href: "/admin/stages", label: "Stage", icon: Award },
+    { href: "/admin/awards", label: "Premi", icon: Gift },
+    { href: "/admin/subscriptions", label: "Abbonamenti", icon: Users },
+    { href: "/admin/medical-certificates", label: "Certificati", icon: FileText },
+    { href: "/admin/delete-users", label: "Elimina/Admin", icon: Trash2 },
+];
+
+function AdminNavLink({ href, label, icon: Icon, onClick }: { 
+    href: string; 
+    label: string; 
+    icon: React.ComponentType<{ className?: string }>; 
+    onClick?: () => void;
+}) {
     const pathname = usePathname();
     const isActive = pathname === href;
 
     return (
         <Link
             href={href}
+            onClick={onClick}
             className={cn(
-                "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-                isActive ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:bg-background/70"
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                isActive 
+                    ? "bg-primary text-primary-foreground" 
+                    : "text-foreground hover:bg-muted hover:text-foreground"
             )}
         >
-            {children}
+            <Icon className="h-4 w-4" />
+            {label}
         </Link>
     );
 }
 
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
-    const [user, loadingAuth] = useAuthState(auth);
-    const [isAuthorizing, setIsAuthorizing] = useState(true);
-    const router = useRouter();
-    const { toast } = useToast();
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    const [user, loading] = useAuthState(auth);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [adminLoading, setAdminLoading] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
 
-     useEffect(() => {
-        const checkAdminRole = async () => {
-            if (loadingAuth) return;
-            if (!user) {
-                redirect('/'); // Se non c'è utente, reindirizza al login
-                return;
-            }
-
-            try {
-                const userDocRef = doc(db, 'users', user.uid);
-                const userDocSnap = await getDoc(userDocRef);
-
-                if (userDocSnap.exists() && userDocSnap.data().role === 'admin') {
-                    setIsAuthorizing(false); // Utente è admin, permette l'accesso
-                } else {
-                    // Se non ha il ruolo o il documento non esiste, nega l'accesso
-                    toast({
-                        variant: "destructive",
-                        title: "Accesso Negato",
-                        description: "Non disponi dei permessi per accedere a quest'area."
-                    });
-                    router.push('/dashboard');
+    useEffect(() => {
+        const checkAdminStatus = async () => {
+            if (user) {
+                try {
+                    const docRef = doc(db, 'users', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const userData = docSnap.data();
+                        setIsAdmin(userData.role === 'admin');
+                    } else {
+                        setIsAdmin(false);
+                    }
+                } catch (error) {
+                    console.error("Error checking admin status:", error);
+                    setIsAdmin(false);
                 }
-            } catch (error) {
-                 console.error("Error checking admin role:", error);
-                 toast({ variant: "destructive", title: "Errore", description: "Impossibile verificare i permessi." });
-                 router.push('/dashboard');
+            } else {
+                setIsAdmin(false);
             }
+            setAdminLoading(false);
         };
-        
-        checkAdminRole();
 
-    }, [user, loadingAuth, router, toast]);
+        if (!loading) {
+            checkAdminStatus();
+        }
+    }, [user, loading]);
 
-    const handleLogout = useCallback(async () => {
-      try {
-          await signOut(auth);
-          router.push('/');
-          toast({ title: "Logout effettuato", description: "Sei stato disconnesso con successo." });
-      } catch (error) {
-          console.error("Error during logout:", error);
-          toast({ variant: "destructive", title: "Errore di logout", description: "Impossibile disconnettersi. Riprova." });
-      }
-    }, [router, toast]);
-
-    if (loadingAuth || isAuthorizing) {
+    if (loading || adminLoading) {
         return (
-             <div className="flex h-screen w-full items-center justify-center bg-muted/40">
-                <Loader2 className="h-16 w-16 animate-spin text-primary" />
+            <div className="flex items-center justify-center min-h-screen">
+                <div>Caricamento...</div>
             </div>
-        )
+        );
+    }
+
+    if (!user || !isAdmin) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div>Accesso negato. Non hai i permessi per accedere a questa area.</div>
+            </div>
+        );
     }
 
     return (
-        <div className="flex min-h-screen w-full flex-col bg-muted/40">
-            <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 justify-between">
-                <nav className="flex items-center gap-2 rounded-md bg-muted p-1 text-muted-foreground">
-                    <AdminNavLink href="/admin/payments">Pagamenti</AdminNavLink>
-                    <AdminNavLink href="/admin/attendances">Presenze</AdminNavLink>
-                    <AdminNavLink href="/admin/calendar">Calendario</AdminNavLink>
-                    <AdminNavLink href="/admin/stages">Stage</AdminNavLink>
-                    <AdminNavLink href="/admin/awards">Premi</AdminNavLink>
-                    <AdminNavLink href="/admin/subscriptions">Abbonamenti</AdminNavLink>
-                    <AdminNavLink href="/admin/medical-certificates">Certificati</AdminNavLink>
-                    <AdminNavLink href="/admin/settings">Impostazioni</AdminNavLink>
-                </nav>
-                 <div className="flex items-center gap-4">
-                    <Button asChild variant="outline">
-                        <Link href="/dashboard">Torna alla Dashboard</Link>
-                    </Button>
-                    <Button variant="outline" onClick={handleLogout}>
-                        <LogOut className="h-4 w-4 mr-2" />
-                        <span className="uppercase font-bold">Log out</span>
+        <div className="min-h-screen bg-background">
+            {/* Mobile overlay */}
+            {sidebarOpen && (
+                <div 
+                    className="fixed inset-0 z-20 bg-black/50 lg:hidden" 
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
+            {/* Sidebar */}
+            <aside className={cn(
+                "fixed left-0 top-0 z-30 h-full w-64 transform bg-background border-r transition-transform duration-200 ease-in-out lg:translate-x-0",
+                sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            )}>
+                <div className="flex h-14 items-center justify-between border-b px-4">
+                    <Link href="/admin" className="flex items-center gap-2 font-semibold">
+                        <Shield className="h-5 w-5" />
+                        Admin
+                    </Link>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="lg:hidden"
+                        onClick={() => setSidebarOpen(false)}
+                    >
+                        <X className="h-4 w-4" />
                     </Button>
                 </div>
-            </header>
-            <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-                {children}
-            </main>
+                <nav className="flex flex-col gap-1 p-4">
+                    {adminNavItems.map(({ href, label, icon }) => (
+                        <AdminNavLink
+                            key={href}
+                            href={href}
+                            label={label}
+                            icon={icon}
+                            onClick={() => setSidebarOpen(false)}
+                        />
+                    ))}
+                </nav>
+            </aside>
+
+            {/* Main content */}
+            <div className="lg:ml-64">
+                <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:border-none">
+                    <div className="flex h-14 items-center justify-between px-4">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="lg:hidden"
+                            onClick={() => setSidebarOpen(true)}
+                        >
+                            <Menu className="h-5 w-5" />
+                        </Button>
+                        <div className="lg:hidden">
+                            <Link href="/admin" className="flex items-center gap-2 font-semibold">
+                                <Shield className="h-5 w-5" />
+                                Admin
+                            </Link>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => signOut(auth)}
+                        >
+                            <LogOut className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </header>
+                <main className="p-4">{children}</main>
+            </div>
         </div>
     );
 }
