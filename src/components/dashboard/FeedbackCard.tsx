@@ -34,7 +34,7 @@ export function FeedbackCard({
     return (
         <Card className="w-full max-w-2xl">
             <CardHeader className="text-center">
-                <CardTitle className="text-3xl">{title}</CardTitle>
+                <CardTitle className="text-xl" style={{ color: 'hsl(var(--primary))' }}>{title}</CardTitle>
                 <CardDescription className="text-lg pt-2">
                     {description}
                 </CardDescription>
@@ -52,6 +52,7 @@ export function FeedbackCard({
                                     ? "text-yellow-400 fill-yellow-400"
                                     : "text-muted-foreground/50"
                                 )}
+                                style={{ stroke: 'hsl(var(--primary))', strokeWidth: 2 }}
                                 onMouseEnter={() => setHoverRating(star)}
                                 onMouseLeave={() => setHoverRating(0)}
                                 onClick={() => setRating(star)}
@@ -66,15 +67,22 @@ export function FeedbackCard({
                         placeholder="Scrivi qui il tuo feedback..."
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
+                        style={{ background: '#fff', border: '2px solid #000', color: '#000' }}
                     />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
+                    <Button 
+                        variant="outline" 
+                        onClick={onBack} 
+                        disabled={isSubmitting}
+                        style={{ background: 'transparent', color: 'hsl(var(--background))', border: '2px solid hsl(var(--background))', fontWeight: 'bold' }}
+                    >
                         {backButtonText}
                     </Button>
                     <Button 
                         onClick={() => onFeedbackSubmit(rating, comment)}
                         disabled={isSubmitting || rating === 0 || comment.trim() === ""}
+                        style={{ background: '#15803d', border: '2px solid #15803d', color: '#fff', fontWeight: 'bold' }}
                     >
                         {isSubmitting && <Loader2 className="animate-spin mr-2" />}
                         {submitButtonText}

@@ -224,13 +224,13 @@ export default function DeleteAdminUsersPage() {
                                             <TableCell>{profile.email}</TableCell>
                                             <TableCell>
                                                 {profile.role === 'admin' && (
-                                                    <Badge variant="destructive">Admin</Badge>
+                                                    <span className="text-blue-600 font-semibold">Admin</span>
                                                 )}
                                                 {profile.role === 'user' && (
                                                     <Badge variant="secondary">Utente</Badge>
                                                 )}
                                                 {!profile.role && (
-                                                    <Badge variant="outline">Non specificato</Badge>
+                                                    <span className="text-black">Utente</span>
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-right">
@@ -238,20 +238,22 @@ export default function DeleteAdminUsersPage() {
                                                     <div className="flex gap-2 justify-end">
                                                         {profile.role !== 'admin' && (
                                                             <Button 
-                                                                variant="outline" 
-                                                                size="sm"
+                                                                variant="ghost" 
+                                                                size="icon"
                                                                 onClick={() => handleMakeAdmin(profile)}
-                                                                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                                                className="bg-transparent text-blue-600 hover:bg-transparent p-2"
                                                             >
-                                                                <ShieldPlus className="h-4 w-4 mr-2" />
-                                                                Rendi Admin
+                                                                <ShieldPlus className="h-7 w-7 text-blue-600" />
                                                             </Button>
                                                         )}
                                                         <AlertDialog>
                                                             <AlertDialogTrigger asChild>
-                                                                <Button variant="destructive" size="sm">
-                                                                    <Trash2 className="h-4 w-4 mr-2" />
-                                                                    Elimina
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="icon"
+                                                                    className="bg-transparent hover:bg-transparent p-2"
+                                                                >
+                                                                    <Trash2 className="h-6 w-6 text-destructive" />
                                                                 </Button>
                                                             </AlertDialogTrigger>
                                                         <AlertDialogContent>

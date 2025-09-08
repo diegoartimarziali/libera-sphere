@@ -36,6 +36,7 @@ export default function TrialCompletedPage() {
     }
     
     const handleFeedbackSubmit = async (rating: number, comment: string, afterFeedback?: () => void) => {
+        console.log('2. Invio feedback:', { rating, comment, hasAfterFeedback: !!afterFeedback });
         if (!user) {
             toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
             return;
@@ -69,6 +70,7 @@ export default function TrialCompletedPage() {
             });
             
             if (afterFeedback) {
+                console.log('3. Feedback salvato, chiamo handleAcceptAndContinue');
                 afterFeedback();
             } else {
                 await signOut(auth);
@@ -82,10 +84,12 @@ export default function TrialCompletedPage() {
     }
     
     const handleYesChoice = () => {
+        console.log('1. Cliccato "Sì, voglio associarmi!"');
         setChoice('yes');
     };
 
     const handleAcceptAndContinue = async () => {
+        console.log('4. Inizio handleAcceptAndContinue');
         if (!user) {
             toast({ title: "Errore", description: "Utente non autenticato.", variant: "destructive" });
             return;
@@ -93,9 +97,26 @@ export default function TrialCompletedPage() {
 
         try {
             const userDocRef = doc(db, "users", user.uid);
-            await updateDoc(userDocRef, {
+            
+            // Update trial status in both the user document and the trial lessons document
+            const batch = writeBatch(db);
+            
+            // Update user document
+            batch.update(userDocRef, {
                 trialOutcome: 'accepted',
+                trialStatus: 'not_applicable',  // Mark trial as complete
+                associationStatus: 'pending'    // Set association status to pending
             });
+            
+            // Update trial lessons document
+            const trialMainDocRef = doc(db, `users/${user.uid}/trialLessons/main`);
+            batch.update(trialMainDocRef, {
+                trialStatus: 'not_applicable'
+            });
+            
+            await batch.commit();
+            
+            console.log('5. Trial status and association status updated, redirecting to /dashboard/associates');
             router.push('/dashboard/associates');
         } catch (error) {
             console.error("Error setting trial outcome:", error);
@@ -108,21 +129,18 @@ export default function TrialCompletedPage() {
         <div className="flex w-full flex-col items-center justify-center">
             <Card className="w-full max-w-2xl">
                 <CardHeader className="text-center">
-                    <CardTitle className="text-3xl">Lascia la Tua Opinione</CardTitle>
-                    <CardDescription className="text-lg pt-2">
-                        Dicci cosa pensi della nostra associazione
-                    </CardDescription>
+                    <CardTitle className="text-3xl">Vuoi diventare un Guerriero?</CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center space-y-6">
 
                     {choice === null && (
-                        <div className="w-full space-y-4 text-center">
-                             <p className="text-foreground">Speriamo l'esperienza sia stata di tuo gradimento. Vuoi continuare il tuo percorso con noi e diventare un socio a tutti gli effetti?</p>
+                    <div className="w-full space-y-4 text-center">
+                        <p className="text-foreground" style={{ color: 'hsl(var(--background))' }}>Speriamo l'esperienza sia stata di tuo gradimento. Vuoi continuare il tuo percorso con noi e diventare un socio a tutti gli effetti?</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-                               <Button size="lg" variant="outline" onClick={handleNoChoice}>
+                               <Button size="lg" variant="outline" onClick={handleNoChoice} style={{ background: '#6b7280', color: '#fff' }}>
                                     No, per ora non proseguo
                                 </Button>
-                               <Button size="lg" onClick={handleYesChoice}>
+                               <Button size="lg" onClick={handleYesChoice} style={{ background: '#22c55e', color: '#fff', fontWeight: 'bold' }}>
                                     Sì, voglio associarmi!
                                 </Button>
                             </div>

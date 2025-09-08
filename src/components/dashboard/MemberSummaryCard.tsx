@@ -197,13 +197,15 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                     </div>
                  </div>
                  
-                {props.trialLessons && props.trialLessons.length > 0 && (
+                {props.trialLessons &&
+                 props.trialLessons.length > 0 &&
+                 (props.trialStatusState === 'active' || props.trialStatusState === 'completed') && (
                     <>
                         <Separator />
-                        <div className="space-y-3">
-                                          <h4 className="text-sm font-bold flex items-center justify-center text-center">
-                                              <CalendarCheck2 size={16} className="mr-3 w-5 text-muted-foreground" />
-                                              <span className="text-blue-900">Lezioni di Prova Prenotate</span>
+                        <div className="space-y-3 p-4 rounded-md" style={{ background: '#e6fbe6', border: '2px solid #15803d' }}>
+                            <h4 className="text-sm font-bold flex items-center justify-center text-center">
+                                <CalendarCheck2 size={16} className="mr-3 w-5 text-muted-foreground" />
+                                <span className="text-blue-900">Lezioni di Prova Prenotate</span>
                             </h4>
                             {props.trialLessons.map((lesson, index) => {
                                 const formattedDate = format(lesson.date, "EEEE dd/MM", { locale: it });

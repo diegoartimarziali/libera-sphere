@@ -1,5 +1,5 @@
 
-import type {Metadata} from 'next';
+import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 
@@ -20,8 +20,6 @@ export const metadata: Metadata = {
     shortcut: '/favicon.ico',
   },
   manifest: '/manifest.json',
-  themeColor: '#ff6600',
-  viewport: 'width=device-width, initial-scale=1',
 };
 
 export default function RootLayout({

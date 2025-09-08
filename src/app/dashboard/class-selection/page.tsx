@@ -648,7 +648,10 @@ export default function ClassSelectionPage() {
     }
     
     const handleNextStep2 = async (data: GymSelectionData) => {
-        if (!user) return;
+        if (!user) {
+            console.error("user non presente");
+            return;
+        }
         setIsSubmitting(true);
         try {
             const userDocRef = doc(db, "users", user.uid);
@@ -674,13 +677,27 @@ export default function ClassSelectionPage() {
                 }
             }
 
-            // Salva tutte le lezioni di prova in un unico documento users/userId/trialLessons/main
-            const trialLessonsDocRef = doc(db, "users", user.uid, "trialLessons", "main");
-            await setDoc(trialLessonsDocRef, {
-                lessons: data.trialLessons,
+            // DEBUG: log dati prima di scrivere
+            console.log("Scrittura trialLessons/main", {
+                userUid: user.uid,
+                trialLessons: data.trialLessons,
                 trialStatus: 'pending_payment',
                 trialExpiryDate: data.trialLessons.length > 1 ? data.trialLessons[2].endTime : data.trialLessons[0].endTime || null,
             });
+
+            // Salva tutte le lezioni di prova in un unico documento users/userId/trialLessons/main
+            const trialLessonsDocRef = doc(db, "users", user.uid, "trialLessons", "main");
+            try {
+                await setDoc(trialLessonsDocRef, {
+                    lessons: data.trialLessons,
+                    trialStatus: 'pending_payment',
+                    trialExpiryDate: data.trialLessons.length > 1 ? data.trialLessons[2].endTime : data.trialLessons[0].endTime || null,
+                });
+                console.log("Documento trialLessons/main scritto correttamente");
+            } catch (err) {
+                console.error("Errore scrittura trialLessons/main", err);
+                throw err;
+            }
             await updateDoc(userDocRef, {
                 lastGrade: grade
             });

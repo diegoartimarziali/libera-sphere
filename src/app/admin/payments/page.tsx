@@ -447,11 +447,11 @@ export default function AdminPaymentsPage() {
                             <SelectValue placeholder="Filtra per stato pagamento" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="pending_completed">Pagamenti Recenti/Pendenti</SelectItem>
                             <SelectItem value="pending">Solo Pagamenti In Sospeso</SelectItem>
-                             <SelectItem value="failed">Solo Pagamenti Falliti</SelectItem>
-                             <SelectItem value="no_payments">Utenti senza Pagamenti</SelectItem>
-                             <SelectItem value="all">Tutti gli Utenti</SelectItem>
+                            <SelectItem value="failed">Solo Pagamenti Falliti</SelectItem>
+                            <SelectItem value="no_payments">Utenti senza Pagamenti</SelectItem>
+                            <SelectItem value="pending_completed">Pagamenti Recenti/Pendenti</SelectItem>
+                            <SelectItem value="all">Tutti gli Utenti</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -470,7 +470,6 @@ export default function AdminPaymentsPage() {
                                             <div className="flex items-center">
                                                 <User className="h-5 w-5 mr-3 text-primary" />
                                                 <span className="font-bold text-sm">{profile.name} {profile.surname}</span>
-                                                {profile.role === 'admin' && <Badge variant="destructive" className="ml-3">Admin</Badge>}
                                             </div>
                                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
                                                 {profile.discipline && <span>{profile.discipline}</span>}
@@ -479,73 +478,22 @@ export default function AdminPaymentsPage() {
                                         </div>
                                     </AccordionTrigger>
                                      <div className="flex items-center gap-2 ml-4">
-                                        {currentUserRole === 'admin' && profile.role !== 'admin' && (
-                                            <Button 
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={(e) => {
-                                                    e.stopPropagation(); 
-                                                    handleMakeAdmin(profile.uid);
-                                                }}
-                                            >
-                                                <ShieldPlus className="h-4 w-4 mr-2" />
-                                                Rendi Admin
-                                            </Button>
-                                        )}
-
+                                        {/* Azioni utente qui, nessun tasto admin */}
                                     </div>
                                 </div>
                                 <AccordionContent className="p-4 bg-muted/20">
-                                    {/* Premi assegnati */}
-                                    {profile.awards && profile.awards.length > 0 && (
-                                        <div className="mb-4">
-                                            <h4 className="font-semibold mb-2">Premi assegnati</h4>
-                                            <ul className="space-y-2">
-                                                {profile.awards.map(a => (
-                                                    <li key={a.id} className="flex items-center justify-between bg-card rounded px-3 py-2">
-                                                        <div>
-                                                            <span className="font-bold">{a.title || "Premio"}</span>
-                                                            <span className="ml-2 text-muted-foreground">Valore: €{typeof a.value === "number" ? a.value.toFixed(2) : "0.00"}</span>
-                                                            <span className="ml-2 text-xs text-muted-foreground">Assegnato il {a.assignedAt ? format(a.assignedAt.toDate(), "dd/MM/yyyy") : "N/D"}</span>
-                                                        </div>
-                                                        <AlertDialog>
-                                                            <AlertDialogTrigger asChild>
-                                                                <Button variant="destructive" size="sm">
-                                                                    <Trash2 className="h-4 w-4 mr-1" />
-                                                                    Elimina
-                                                                </Button>
-                                                            </AlertDialogTrigger>
-                                                            <AlertDialogContent>
-                                                                <AlertDialogHeader>
-                                                                    <AlertDialogTitle>Elimina premio assegnato?</AlertDialogTitle>
-                                                                    <AlertDialogDescription>
-                                                                        Questa azione rimuoverà il premio assegnato all'utente. Sei sicuro?
-                                                                    </AlertDialogDescription>
-                                                                </AlertDialogHeader>
-                                                                <AlertDialogFooter>
-                                                                    <AlertDialogCancel>Annulla</AlertDialogCancel>
-                                                                    <AlertDialogAction onClick={() => handleDeleteAward(a.id, profile.uid)}>
-                                                                        Sì, elimina
-                                                                    </AlertDialogAction>
-                                                                </AlertDialogFooter>
-                                                            </AlertDialogContent>
-                                                        </AlertDialog>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
+                                    {/* Premi assegnati rimossi su richiesta */}
                                     {/* Pagamenti */}
                                     {profile.payments.length > 0 ? (
                                         <Table>
                                             <TableHeader>
                                                 <TableRow>
-                                                    <TableHead>Data</TableHead>
-                                                    <TableHead>Descrizione</TableHead>
-                                                    <TableHead>Metodo</TableHead>
-                                                    <TableHead>Importo</TableHead>
-                                                    <TableHead>Stato</TableHead>
-                                                    <TableHead className="text-left">Azione</TableHead>
+                                                    <TableHead className="font-bold">Data</TableHead>
+                                                    <TableHead className="font-bold">Descrizione</TableHead>
+                                                    <TableHead className="font-bold">Metodo</TableHead>
+                                                    <TableHead className="font-bold">Importo</TableHead>
+                                                    <TableHead className="font-bold">Stato</TableHead>
+                                                    <TableHead className="text-left font-bold">Azione</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -556,9 +504,15 @@ export default function AdminPaymentsPage() {
                                                         <TableCell>{translatePaymentMethod(p.paymentMethod)}</TableCell>
                                                         <TableCell>{p.amount.toFixed(2)} €</TableCell>
                                                         <TableCell>
-                                                            <Badge variant={getStatusVariant(p.status)}>
-                                                                {translateStatus(p.status)}
-                                                            </Badge>
+                                                            {p.status === 'completed' ? (
+                                                                <span className="text-green-600 bg-transparent font-bold">{translateStatus(p.status)}</span>
+                                                            ) : p.status === 'failed' ? (
+                                                                <span className="text-red-600 bg-transparent font-bold">{translateStatus(p.status)}</span>
+                                                            ) : (
+                                                                <Badge variant={getStatusVariant(p.status)}>
+                                                                    {translateStatus(p.status)}
+                                                                </Badge>
+                                                            )}
                                                         </TableCell>
                                                         <TableCell className="text-left">
                                                             {p.status === 'pending' && (
@@ -580,19 +534,6 @@ export default function AdminPaymentsPage() {
                                                                         title="Approva pagamento"
                                                                     >
                                                                         {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4" />}
-                                                                    </Button>
-                                                                </div>
-                                                            )}
-                                                            {p.status === 'completed' && p.type === 'subscription' && (
-                                                                <div className="flex gap-2 justify-start">
-                                                                    <Button
-                                                                        variant="destructive"
-                                                                        size="icon"
-                                                                        onClick={() => handlePaymentUpdate(p, 'failed')}
-                                                                        disabled={updatingPaymentId === p.id}
-                                                                        title="Segna come fallito"
-                                                                    >
-                                                                         {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="h-4 w-4" />}
                                                                     </Button>
                                                                 </div>
                                                             )}

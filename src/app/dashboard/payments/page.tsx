@@ -2,9 +2,6 @@
 // Test: Verifica strumenti di editing - 7 settembre 2025
 "use client"
 
-import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
-
 import { useState, useEffect } from "react"
 import { db, auth } from "@/lib/firebase"
 import { collection, query, orderBy, getDocs, Timestamp } from "firebase/firestore"

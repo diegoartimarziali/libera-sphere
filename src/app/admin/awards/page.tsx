@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react";
@@ -470,14 +471,14 @@ export default function AdminAwardsPage() {
             </CardContent>
 
              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent>
+                <DialogContent className="bg-card">
                     {/* DialogHeader e DialogTitle personalizzato, nessun titolo generico */}
                     {/* DialogTitle nascosto per accessibilità */}
                     <DialogTitle style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(1px, 1px, 1px, 1px)" }}>
                         {editingAward ? `Modifica Premio` : `Crea Nuovo Premio`}
                     </DialogTitle>
                     <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-                        <h2 className="text-lg font-semibold leading-none tracking-tight">{editingAward ? `Modifica Premio` : `Crea Nuovo Premio`}</h2>
+                        <h2 className="text-lg font-semibold leading-none tracking-tight text-background">{editingAward ? `Modifica Premio` : `Crea Nuovo Premio`}</h2>
                     </div>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(handleSaveAward)} className="space-y-4 py-4">
@@ -486,20 +487,19 @@ export default function AdminAwardsPage() {
                                 name="name"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Tipo di Premio</FormLabel>
+                                    <FormLabel className="text-background">Tipo di Premio</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
-                                            <SelectTrigger>
+                                            <SelectTrigger className="bg-white border border-black text-black">
                                                 <SelectValue placeholder="Seleziona un tipo di premio..." />
                                             </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
                                             <SelectItem value="Bonus Inizio Percorso">Bonus Inizio Percorso</SelectItem>
                                             <SelectItem value="Premio Best Samurai">Premio Best Samurai</SelectItem>
-                                            <SelectItem value="Premio Frequenza 1 lezione">Premio Frequenza 1 lezione</SelectItem>
-                                            <SelectItem value="Premio Frequenza 2 lezioni">Premio Frequenza 2 lezioni</SelectItem>
+                                            <SelectItem value="Premio Kata">Premio Kata</SelectItem>
+                                            <SelectItem value="Premio Kumite">Premio Kumite</SelectItem>
                                             <SelectItem value="Premio Stage">Premio Stage</SelectItem>
-                                            <SelectItem value="Altro premio">Altro premio</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -512,7 +512,7 @@ export default function AdminAwardsPage() {
                                 name="value"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Valore del Premio (€)</FormLabel>
+                                    <FormLabel className="text-background">Valore del Premio (€)</FormLabel>
                                      <FormControl>
                                         <Input type="number" step="0.01" placeholder="Es. 50.00" {...field} />
                                     </FormControl>
@@ -522,8 +522,8 @@ export default function AdminAwardsPage() {
                             />
                             
                             <DialogFooter>
-                                <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>Annulla</Button>
-                                <Button type="submit" disabled={isSubmitting}>
+                                <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)} className="bg-transparent text-background border border-background">Annulla</Button>
+                                <Button type="submit" disabled={isSubmitting} className="text-green-600 border border-green-600">
                                      {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
                                      Salva Premio
                                 </Button>

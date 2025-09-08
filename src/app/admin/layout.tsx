@@ -21,6 +21,7 @@ interface AdminNavItem {
 }
 
 const adminNavItems: AdminNavItem[] = [
+    { href: "/dashboard", label: "Torna a utente", icon: Shield },
     { href: "/admin/payments", label: "Pagamenti", icon: CreditCard },
     { href: "/admin/attendances", label: "Presenze", icon: UserCheck },
     { href: "/admin/calendar", label: "Calendario", icon: Calendar },
