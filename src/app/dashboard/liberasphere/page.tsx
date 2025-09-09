@@ -287,10 +287,10 @@ export default function LiberaSpherePage() {
                                         isFormerMember === 'no' && 'border-primary'
                                     )}
                                     style={{
-                                        backgroundColor: '#38bdf8', // azzurro
+                                        backgroundColor: isFormerMember === 'no' ? '#38bdf8' : '#f3f4f6', // azzurro se selezionato, grigio chiaro se non selezionato
                                         borderColor: 'hsl(22.5, 55%, 11%)', // marrone scuro
                                         color: 'hsl(22.5, 55%, 11%)',
-                                        minHeight: '48px' // stessa altezza del tasto Prosegui
+                                        minHeight: '48px'
                                     }}
                                 >
                                     <RadioGroupItem value="no" id="no" className="sr-only" />
@@ -303,10 +303,10 @@ export default function LiberaSpherePage() {
                                         isFormerMember === 'yes' && 'border-primary'
                                     )}
                                     style={{
-                                        backgroundColor: '#38bdf8', // azzurro
+                                        backgroundColor: isFormerMember === 'yes' ? '#38bdf8' : '#f3f4f6', // azzurro se selezionato, grigio chiaro se non selezionato
                                         borderColor: 'hsl(22.5, 55%, 11%)', // marrone scuro
                                         color: 'hsl(22.5, 55%, 11%)',
-                                        minHeight: '48px' // stessa altezza del tasto Prosegui
+                                        minHeight: '48px'
                                     }}
                                 >
                                     <RadioGroupItem value="yes" id="yes" className="sr-only" />

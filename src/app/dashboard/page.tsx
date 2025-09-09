@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState, Suspense } from "react"
@@ -9,6 +8,7 @@ import { doc, getDoc, Timestamp, collection, getDocs, updateDoc } from "firebase
 import { differenceInDays, isPast, format, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
+import { useFirebaseMessaging } from "@/hooks/use-firebase-messaging"
 
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -94,6 +94,10 @@ export default function DashboardPage() {
   const [memberCardProps, setMemberCardProps] = useState<MemberSummaryProps | null>(null);
   const [showDataCorrectionMessage, setShowDataCorrectionMessage] = useState(false);
   const [showSubscriptionActivatedMessage, setShowSubscriptionActivatedMessage] = useState(false);
+
+  useFirebaseMessaging((payload) => {
+    alert(`Notifica: ${payload?.notification?.title}\n${payload?.notification?.body}`);
+  });
 
   useEffect(() => {
   // Logica: se l'ultima lezione di prova è passata (dopo le 20:30), aggiorna trialStatus a 'completed'

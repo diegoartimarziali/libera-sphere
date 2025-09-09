@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { sendPushNotification } from "@/hooks/use-push-notification";
 import { createUserAward } from "@/lib/createUserAward";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -75,6 +76,7 @@ export default function AdminAwardsPage() {
                 mod.createUserAward(selectedUserId, id, name, value)
             );
             toast({ title: "Premio assegnato!" });
+            sendPushNotification("Hai ricevuto un nuovo premio!", `Tipo: ${name}, Valore: ${value}€`);
             setIsAssignOpen(false);
             setSelectedUserId("");
             fetchAssignedAwards(); // Ricarica la lista dei premi assegnati
@@ -500,6 +502,7 @@ export default function AdminAwardsPage() {
                                             <SelectItem value="Premio Kata">Premio Kata</SelectItem>
                                             <SelectItem value="Premio Kumite">Premio Kumite</SelectItem>
                                             <SelectItem value="Premio Stage">Premio Stage</SelectItem>
+                                            <SelectItem value="Premio Presenze">Premio Presenze</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
