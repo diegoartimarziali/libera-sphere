@@ -244,72 +244,100 @@ export default function AdminSubscriptionsPage() {
 
 
     return (
-        <div className="container mx-auto max-w-6xl p-4">
-            <Card>
-                <CardHeader>
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <CardTitle>Gestione Abbonamenti</CardTitle>
-                            <CardDescription>Crea e gestisci i piani di abbonamento per gli utenti.</CardDescription>
-                        </div>
-                        <Button variant="outline" onClick={openCreateForm} className="bg-transparent border-amber-800 w-full sm:w-auto">
-                            <PlusCircle className="mr-2 h-4 w-4" /> Aggiungi Abbonamento
-                        </Button>
+        <Card className="mx-2 sm:mx-4 lg:mx-6 p-3 sm:p-4 lg:p-6">
+            <CardHeader className="p-3 sm:p-4 lg:p-6">
+                <div className="flex flex-col gap-4">
+                    <div>
+                        <CardTitle className="text-xl sm:text-2xl font-bold">Gestione Abbonamenti</CardTitle>
+                        <CardDescription className="text-sm sm:text-base text-muted-foreground mt-1">Crea e gestisci i piani di abbonamento per gli utenti.</CardDescription>
                     </div>
-                </CardHeader>
-            <CardContent>
+                    <Button onClick={openCreateForm} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium h-11 sm:h-10">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span className="hidden sm:inline">Aggiungi Abbonamento</span>
+                        <span className="sm:hidden">Nuovo Abbonamento</span>
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-4 lg:p-6">
                 {loading ? (
                     <div className="flex justify-center items-center h-48"><Loader2 className="w-8 h-8 animate-spin" /></div>
                 ) : (
-                    <div className="rounded-md border overflow-x-auto">
-                        <Table className="min-w-full">
+                    <div className="rounded-lg border overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <Table className="w-full">
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead className="min-w-[120px]">Nome</TableHead>
-                                    <TableHead className="min-w-[80px]">Prezzo</TableHead>
-                                    <TableHead className="min-w-[120px] hidden sm:table-cell">Validità</TableHead>
-                                    <TableHead className="min-w-[100px] hidden md:table-cell">Acquistabile</TableHead>
-                                    <TableHead className="text-right min-w-[100px]">Azioni</TableHead>
+                                <TableRow className="border-b">
+                                    <TableHead className="text-xs sm:text-sm font-semibold px-2 sm:px-4 py-3">Abbonamento</TableHead>
+                                    <TableHead className="text-xs sm:text-sm font-semibold hidden sm:table-cell px-2 sm:px-4 py-3">Prezzo</TableHead>
+                                    <TableHead className="text-xs sm:text-sm font-semibold hidden md:table-cell px-2 sm:px-4 py-3">Validità</TableHead>
+                                    <TableHead className="text-xs sm:text-sm font-semibold hidden lg:table-cell px-2 sm:px-4 py-3">Acquistabile</TableHead>
+                                    <TableHead className="text-right text-xs sm:text-sm font-semibold px-2 sm:px-4 py-3 w-[100px] sm:w-[120px]">Azioni</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {subscriptions.length > 0 ? (
                                     subscriptions.map((sub) => (
-                                        <TableRow key={sub.id}>
-                                            <TableCell className="font-medium">
-                                                <div className="flex flex-col">
-                                                    <Badge variant={sub.type === 'monthly' ? 'secondary' : 'default'} className="w-fit mb-1 sm:mb-0">{sub.name}</Badge>
-                                                    <span className="text-xs text-muted-foreground sm:hidden">
-                                                        {(sub.totalPrice || 0).toFixed(2)} € - {renderValidity(sub)}
-                                                    </span>
+                                        <TableRow key={sub.id} className="border-b hover:bg-muted/50">
+                                            <TableCell className="px-2 sm:px-4 py-3">
+                                                <div className="flex flex-col gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant={sub.type === 'monthly' ? 'secondary' : 'default'} className="text-xs font-medium px-2 py-1">
+                                                            {sub.type === 'monthly' ? '📅 Men' : '🗓️ Stag'}
+                                                        </Badge>
+                                                        <span className="font-semibold text-sm sm:text-base flex-1 min-w-0">
+                                                            <span className="block truncate">{sub.name}</span>
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-xs text-muted-foreground sm:hidden space-y-1 pl-1">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="font-medium">💰 €{(sub.totalPrice || 0).toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <span>📅 {renderValidity(sub)}</span>
+                                                        </div>
+                                                        {sub.purchaseEndDate && (
+                                                            <div className="flex items-center gap-1 text-orange-600">
+                                                                <span>⏰ Fino: {format(sub.purchaseEndDate.toDate(), 'dd/MM/yy')}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="hidden sm:table-cell">{(sub.totalPrice || 0).toFixed(2)} €</TableCell>
-                                            <TableCell className="hidden sm:table-cell">{renderValidity(sub)}</TableCell>
-                                            <TableCell className="hidden md:table-cell">{sub.purchaseEndDate ? format(sub.purchaseEndDate.toDate(), 'dd/MM/yyyy') : 'Sempre'}</TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 sm:justify-end">
-                                                <Button variant="outline" size="sm" onClick={() => openEditForm(sub)} className="bg-transparent border-none text-amber-800 hover:bg-amber-800/5">
-                                                    <Edit className="h-4 w-4 mr-1" />
-                                                    Modifica
+                                            <TableCell className="hidden sm:table-cell px-2 sm:px-4 py-3 text-sm font-semibold">€{(sub.totalPrice || 0).toFixed(2)}</TableCell>
+                                            <TableCell className="hidden md:table-cell px-2 sm:px-4 py-3 text-sm">{renderValidity(sub)}</TableCell>
+                                            <TableCell className="hidden lg:table-cell px-2 sm:px-4 py-3 text-sm">{sub.purchaseEndDate ? format(sub.purchaseEndDate.toDate(), 'dd/MM/yyyy') : 'Sempre'}</TableCell>
+                                            <TableCell className="text-right px-2 sm:px-4 py-3">
+                                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 sm:justify-end">
+                                                <Button 
+                                                    size="sm" 
+                                                    onClick={() => openEditForm(sub)} 
+                                                    className="bg-blue-600 hover:bg-blue-700 text-white h-8 sm:h-7 text-xs font-medium px-2 sm:px-3"
+                                                    title="Modifica abbonamento"
+                                                >
+                                                    <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                    <span className="hidden sm:inline ml-1">Modifica</span>
                                                 </Button>
                                                 <AlertDialog>
                                                     <AlertDialogTrigger asChild>
-                                                        <Button variant="destructive" size="sm" className="bg-transparent border-none text-red-600 hover:bg-red-600/5">
-                                                            <Trash2 className="h-4 w-4 mr-1" />
-                                                            Elimina
+                                                        <Button 
+                                                            size="sm" 
+                                                            className="bg-red-600 hover:bg-red-700 text-white h-8 sm:h-7 text-xs font-medium px-2 sm:px-3"
+                                                            title="Elimina abbonamento"
+                                                        >
+                                                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                            <span className="hidden sm:inline ml-1">Elimina</span>
                                                         </Button>
                                                     </AlertDialogTrigger>
-                                                    <AlertDialogContent>
+                                                    <AlertDialogContent className="w-[90vw] max-w-md">
                                                         <AlertDialogHeader>
-                                                            <AlertDialogTitle>Sei sicuro?</AlertDialogTitle>
-                                                            <AlertDialogDescription>
+                                                            <AlertDialogTitle className="text-base sm:text-lg">Sei sicuro?</AlertDialogTitle>
+                                                            <AlertDialogDescription className="text-sm">
                                                                 Questa azione è irreversibile. L'abbonamento <strong className="mx-1">{sub.name}</strong> sarà eliminato.
                                                             </AlertDialogDescription>
                                                         </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>Annulla</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDeleteSubscription(sub.id)}>
+                                                        <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+                                                            <AlertDialogCancel className="w-full sm:w-auto">Annulla</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteSubscription(sub.id)} className="w-full sm:w-auto bg-red-600 hover:bg-red-700">
                                                                 Sì, elimina
                                                             </AlertDialogAction>
                                                         </AlertDialogFooter>
@@ -321,87 +349,211 @@ export default function AdminSubscriptionsPage() {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                                            Nessun abbonamento trovato. Creane uno per iniziare.
+                                        <TableCell colSpan={5} className="text-center h-32 text-muted-foreground px-4 py-8">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="text-2xl">📋</div>
+                                                <div className="text-sm font-medium">Nessun abbonamento trovato</div>
+                                                <div className="text-xs">Creane uno per iniziare</div>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
-                        </Table>
+                            </Table>
+                        </div>
                     </div>
                 )}
             </CardContent>
 
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="sm:max-w-2xl bg-card [&>button]:text-amber-800 [&>button]:hover:text-amber-900">
-                    <DialogHeader>
-                        <DialogTitle className="text-amber-800 font-bold">{editingSubscription ? "Modifica Abbonamento" : "Crea Nuovo Abbonamento"}</DialogTitle>
+                <DialogContent className="w-[96vw] sm:w-[90vw] max-w-3xl max-h-[90vh] bg-card [&>button]:text-amber-800 [&>button]:hover:text-amber-900 flex flex-col m-2">
+                    <DialogHeader className="flex-shrink-0 pb-4 border-b">
+                        <DialogTitle className="text-lg sm:text-xl font-bold text-amber-800 flex items-center gap-2">
+                            {editingSubscription ? (
+                                <><Edit className="w-5 h-5" /> Modifica Abbonamento</>
+                            ) : (
+                                <><PlusCircle className="w-5 h-5" /> Nuovo Abbonamento</>
+                            )}
+                        </DialogTitle>
                     </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(handleSaveSubscription)} className="space-y-4 py-4">
-                             <FormField control={form.control} name="type" render={({ field }) => (
-                                <FormItem><FormLabel className="text-amber-800">Tipo</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue /></SelectTrigger></FormControl><SelectContent className="bg-white"><SelectItem value="monthly" className="text-black">Mensile</SelectItem><SelectItem value="seasonal" className="text-black">Stagionale</SelectItem></SelectContent></Select><FormMessage /></FormItem>
-                            )} />
+                    <div className="flex-1 overflow-y-auto px-1 sm:px-2 -mx-1 sm:-mx-2">
+                        <Form {...form}>
+                            <form id="subscription-form" onSubmit={form.handleSubmit(handleSaveSubscription)} className="space-y-5 sm:space-y-6 py-4 sm:py-5">
+                                 <FormField control={form.control} name="type" render={({ field }) => (
+                                    <FormItem className="space-y-2">
+                                        <FormLabel className="text-amber-800 text-sm sm:text-base font-medium">Tipo Abbonamento</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger className="bg-white text-black h-11 text-base">
+                                                    <SelectValue placeholder="Seleziona tipo..." />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent className="bg-white">
+                                                <SelectItem value="monthly" className="text-black py-3">📅 Mensile</SelectItem>
+                                                <SelectItem value="seasonal" className="text-black py-3">🗓️ Stagionale</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
                             
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                                 <FormField control={form.control} name="name" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-amber-800">Nome Abbonamento</FormLabel><FormControl><Input placeholder="Es. Abbonamento Ottobre" className="bg-white text-black" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem className="space-y-2">
+                                        <FormLabel className="text-amber-800 text-sm sm:text-base font-medium">Nome Abbonamento</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                placeholder="Es. Abbonamento Ottobre" 
+                                                className="bg-white text-black h-11 text-base" 
+                                                {...field} 
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
                                 )} />
                                 <FormField control={form.control} name="totalPrice" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-amber-800">Prezzo Totale (€)</FormLabel><FormControl><Input type="number" step="0.01" className="bg-white text-black" {...field} /></FormControl><FormMessage /></FormItem>
+                                    <FormItem className="space-y-2">
+                                        <FormLabel className="text-amber-800 text-sm sm:text-base font-medium">Prezzo Totale (€)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="number" 
+                                                step="0.01" 
+                                                placeholder="0.00"
+                                                className="bg-white text-black h-11 text-base" 
+                                                {...field} 
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
                                 )} />
                             </div>
                             
-                            <div className="space-y-2 rounded-md border p-4">
-                                 <h4 className="text-sm font-bold text-amber-800">Periodo di Validità</h4>
-                                 <div className="grid grid-cols-2 gap-4 pt-2">
+                            <div className="space-y-3 rounded-lg border-2 border-amber-200 bg-amber-50/30 p-4">
+                                 <h4 className="text-sm sm:text-base font-bold text-amber-800 flex items-center gap-2">
+                                     📅 Periodo di Validità
+                                 </h4>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                                      <FormField control={form.control} name="validityStartDate" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-amber-800">Valido Dal</FormLabel><FormControl><Input type="date" className="bg-white text-black" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem className="space-y-2">
+                                            <FormLabel className="text-amber-800 text-sm sm:text-base font-medium">📍 Valido Dal</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    type="date" 
+                                                    className="bg-white text-black h-11 text-base" 
+                                                    {...field} 
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )} />
                                      <FormField control={form.control} name="validityEndDate" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-amber-800">Valido Fino Al</FormLabel><FormControl><Input type="date" className="bg-white text-black" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem className="space-y-2">
+                                            <FormLabel className="text-amber-800 text-sm sm:text-base font-medium">🏁 Valido Fino Al</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    type="date" 
+                                                    className="bg-white text-black h-11 text-base" 
+                                                    {...field} 
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )} />
                                  </div>
                                   {subscriptionType === 'seasonal' && activitySettings?.startDate && (
-                                     <div className="text-sm text-muted-foreground pt-2">
+                                     <div className="text-xs sm:text-sm text-muted-foreground pt-2">
                                          Le date per l'abbonamento stagionale vengono pre-compilate automaticamente ma possono essere modificate: <strong>{format(activitySettings.startDate.toDate(), 'dd/MM/yy')} - {format(activitySettings.endDate?.toDate() || new Date(), 'dd/MM/yy')}</strong>.
                                      </div>
                                  )}
                             </div>
                             
-                            <div className="space-y-2 rounded-md border p-4">
-                                <h4 className="text-sm font-bold text-amber-800">Impostazioni Avanzate</h4>
-                                <div className="grid grid-cols-2 gap-4 pt-2">
-                                     <FormField control={form.control} name="expiryWarningDate" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-amber-800">Avviso Scadenza Dal</FormLabel><FormControl><Input type="date" className="bg-white text-black" {...field} /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                    <FormField control={form.control} name="sumupLink" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-amber-800">Link Pagamento SumUp (Opzionale)</FormLabel><FormControl><Input className="bg-white text-black" {...field} placeholder="https://..." /></FormControl><FormMessage /></FormItem>
-                                    )} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4 pt-2">
+                            <div className="space-y-3 rounded-lg border-2 border-blue-200 bg-blue-50/30 p-4">
+                                <h4 className="text-sm sm:text-base font-bold text-amber-800 flex items-center gap-2">
+                                    ⚙️ Impostazioni Avanzate
+                                </h4>
+                                <FormField control={form.control} name="expiryWarningDate" render={({ field }) => (
+                                    <FormItem className="space-y-2">
+                                        <FormLabel className="text-amber-800 text-sm sm:text-base font-medium">⚠️ Avviso Scadenza Dal</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                type="date" 
+                                                className="bg-white text-black h-11 text-base" 
+                                                {...field} 
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="sumupLink" render={({ field }) => (
+                                    <FormItem className="space-y-2">
+                                        <FormLabel className="text-amber-800 text-sm sm:text-base font-medium">💳 Link Pagamento SumUp (Opzionale)</FormLabel>
+                                        <FormControl>
+                                            <Input 
+                                                className="bg-white text-black h-11 text-base" 
+                                                {...field} 
+                                                placeholder="https://checkout.sumup.com/..." 
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-4">
                                      <FormField control={form.control} name="purchaseStartDate" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-amber-800">Acquistabile Dal (Opzionale)</FormLabel><FormControl><Input type="date" className="bg-white text-black" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem className="space-y-2">
+                                            <FormLabel className="text-amber-800 text-sm sm:text-base font-medium">🟢 Acquistabile Dal</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    type="date" 
+                                                    className="bg-white text-black h-11 text-base" 
+                                                    {...field} 
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )} />
                                      <FormField control={form.control} name="purchaseEndDate" render={({ field }) => (
-                                        <FormItem><FormLabel className="text-amber-800">Acquistabile Fino Al (Opzionale)</FormLabel><FormControl><Input type="date" className="bg-white text-black" {...field} /></FormControl><FormMessage /></FormItem>
+                                        <FormItem className="space-y-2">
+                                            <FormLabel className="text-amber-800 text-sm sm:text-base font-medium">🔴 Acquistabile Fino Al</FormLabel>
+                                            <FormControl>
+                                                <Input 
+                                                    type="date" 
+                                                    className="bg-white text-black h-11 text-base" 
+                                                    {...field} 
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )} />
                                 </div>
                             </div>
-
-
-                            <DialogFooter>
-                                <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)} className="text-amber-800 hover:text-amber-900">Annulla</Button>
-                                <Button type="submit" disabled={isSubmitting} className="text-green-600 hover:text-green-700">
-                                    {isSubmitting && <Loader2 className="animate-spin mr-2" />}
-                                    Salva
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
+                            </form>
+                        </Form>
+                    </div>
+                    
+                    <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-3 sm:gap-2 pt-4 sm:pt-5 border-t bg-card">
+                        <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={() => setIsFormOpen(false)} 
+                            className="w-full sm:w-auto h-11 text-base font-medium border-amber-200 text-amber-800 hover:text-amber-900 hover:bg-amber-50"
+                        >
+                            ❌ Annulla
+                        </Button>
+                        <Button 
+                            type="submit" 
+                            form="subscription-form"
+                            disabled={isSubmitting} 
+                            className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto h-11 text-base font-semibold shadow-sm"
+                        >
+                            {isSubmitting ? (
+                                <><Loader2 className="animate-spin mr-2 h-4 w-4" /> Salvando...</>
+                            ) : (
+                                <>💾 Salva Abbonamento</>
+                            )}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </Card>
-        </div>
     );
 }

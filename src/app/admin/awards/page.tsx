@@ -15,8 +15,9 @@ import { useAttendances } from '@/hooks/use-attendances';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, PlusCircle, Trash2, UserPlus, Pencil } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, UserPlus, Pencil, ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -109,6 +110,7 @@ export default function AdminAwardsPage() {
     // Stati per premi assegnati
     const [assignedAwards, setAssignedAwards] = useState<AssignedAward[]>([]);
     const [loadingAssigned, setLoadingAssigned] = useState(false);
+    const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
 
     // Funzione per aprire il dialog di assegnazione premio
     const openAssignDialog = (award: Award) => {
@@ -190,6 +192,36 @@ export default function AdminAwardsPage() {
     useEffect(() => {
         fetchAssignedAwards();
     }, []);
+
+    // Funzioni per gestire l'espansione degli utenti
+    const toggleUserExpansion = (userId: string) => {
+        const newExpanded = new Set(expandedUsers);
+        if (newExpanded.has(userId)) {
+            newExpanded.delete(userId);
+        } else {
+            newExpanded.add(userId);
+        }
+        setExpandedUsers(newExpanded);
+    };
+
+    // Raggruppa i premi per utente
+    const groupedAwards = assignedAwards.reduce((groups, award) => {
+        const key = award.userId;
+        if (!groups[key]) {
+            groups[key] = {
+                user: {
+                    id: award.userId,
+                    name: award.userName,
+                    surname: award.userSurname,
+                    gym: award.userGym,
+                    discipline: award.userDiscipline
+                },
+                awards: []
+            };
+        }
+        groups[key].awards.push(award);
+        return groups;
+    }, {} as Record<string, { user: { id: string, name: string, surname?: string, gym?: string, discipline?: string }, awards: AssignedAward[] }>);
 
     // Funzione per eliminare un premio assegnato
     const handleRemoveAssignedAward = async (assignedAward: AssignedAward) => {
@@ -285,33 +317,41 @@ export default function AdminAwardsPage() {
     }
     
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex justify-between items-center">
+        <Card className="p-4 sm:p-6">
+            <CardHeader className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
                     <div>
-                        <CardTitle>Gestione Premi</CardTitle>
-                        <CardDescription>Crea e gestisci i premi e i bonus che possono essere accumulati dagli atleti.</CardDescription>
+                        <CardTitle className="text-lg sm:text-xl">Gestione Premi</CardTitle>
+                        <CardDescription className="text-sm sm:text-base">Crea e gestisci i premi e i bonus che possono essere accumulati dagli atleti.</CardDescription>
                     </div>
-                     <Button onClick={openCreateForm}>
-                        <PlusCircle className="mr-2 h-4 w-4" /> Crea Premio
+                     <Button onClick={openCreateForm} className="w-full sm:w-auto">
+                        <PlusCircle className="mr-2 h-4 w-4" /> 
+                        <span className="hidden sm:inline">Crea Premio</span>
+                        <span className="sm:hidden">Nuovo</span>
                     </Button>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6">
                 <Tabs defaultValue="disponibili" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="disponibili">Premi Disponibili</TabsTrigger>
-                        <TabsTrigger value="assegnati">Premi Assegnati</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 h-auto">
+                        <TabsTrigger value="disponibili" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+                            <span className="hidden sm:inline">Premi Disponibili</span>
+                            <span className="sm:hidden">Disponibili</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="assegnati" className="text-xs sm:text-sm px-2 sm:px-4 py-2">
+                            <span className="hidden sm:inline">Premi Assegnati</span>
+                            <span className="sm:hidden">Assegnati</span>
+                        </TabsTrigger>
                     </TabsList>
                     
-                    <TabsContent value="disponibili" className="mt-6">
-                <div className="rounded-md border">
+                    <TabsContent value="disponibili" className="mt-4 sm:mt-6">
+                <div className="rounded-md border overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Nome Premio</TableHead>
-                                <TableHead>Valore</TableHead>
-                                <TableHead className="w-[180px] text-right">Azioni</TableHead>
+                                <TableHead className="text-xs sm:text-sm">Nome Premio</TableHead>
+                                <TableHead className="text-xs sm:text-sm">Valore</TableHead>
+                                <TableHead className="w-[120px] sm:w-[180px] text-right text-xs sm:text-sm">Azioni</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -320,28 +360,36 @@ export default function AdminAwardsPage() {
                             ) : awards.length > 0 ? (
                                 awards.map((award) => (
                                     <TableRow key={award.id}>
-                                        <TableCell className="font-medium">{award.name}</TableCell>
-                                        <TableCell className="font-bold">{award.value.toFixed(2)} €</TableCell>
-                                        <TableCell className="text-right space-x-1">
+                                        <TableCell className={`font-bold text-xs sm:text-sm ${
+                                            award.name === 'Premio Presenze' ? 'text-blue-600' :
+                                            award.name === 'Bonus Inizio Percorso' ? 'text-orange-700' :
+                                            award.name === 'Premio Best Samurai' ? 'text-black' :
+                                            award.name === 'Premio Stage' ? 'text-green-700' : ''
+                                        }`}>{award.name}</TableCell>
+                                        <TableCell className="font-bold text-xs sm:text-sm">{award.value.toFixed(2)} €</TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex flex-col sm:flex-row gap-1 sm:gap-1 sm:space-x-1">
                                             <Button 
                                                 size="sm" 
                                                 onClick={() => openAssignDialog(award)}
-                                                className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 p-2"
+                                                className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 p-1 sm:p-2 h-6 sm:h-8 w-6 sm:w-8"
                                                 title="Assegna premio"
                                             >
-                                                <UserPlus className="w-4 h-4" />
+                                                <UserPlus className="w-3 h-3 sm:w-4 sm:h-4" />
                                             </Button>
                                             <Button 
                                                 size="sm" 
                                                 onClick={() => openEditForm(award)}
-                                                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 p-2"
+                                                className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 p-1 sm:p-2 h-6 sm:h-8 w-6 sm:w-8"
                                                 title="Modifica premio"
                                             >
-                                                <Pencil className="w-4 h-4" />
+                                                <Pencil className="w-3 h-3 sm:w-4 sm:h-4" />
                                             </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button>
+                                                    <Button variant="destructive" size="sm" className="p-1 sm:p-2 h-6 sm:h-8 w-6 sm:w-8">
+                                                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                    </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
@@ -358,15 +406,16 @@ export default function AdminAwardsPage() {
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
+                                            </div>
                                         </TableCell>
             {/* Dialog di assegnazione premio */}
             <Dialog open={isAssignOpen} onOpenChange={setIsAssignOpen}>
-                <DialogContent>
+                <DialogContent className="w-[95vw] max-w-md">
                     <DialogHeader>
-                        <DialogTitle>Assegna Premio</DialogTitle>
+                        <DialogTitle className="text-lg sm:text-xl">Assegna Premio</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <label className="block font-medium mb-2">Seleziona utente</label>
+                    <div className="space-y-3 sm:space-y-4 py-4">
+                        <label className="block font-medium mb-2 text-sm sm:text-base">Seleziona utente</label>
                         <Select onValueChange={setSelectedUserId} value={selectedUserId}>
                             <SelectTrigger className="bg-white text-black border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                                 <SelectValue placeholder="Seleziona utente..." />
@@ -382,9 +431,9 @@ export default function AdminAwardsPage() {
                             </SelectContent>
                         </Select>
                     </div>
-                    <DialogFooter>
-                        <Button type="button" variant="ghost" onClick={() => setIsAssignOpen(false)}>Annulla</Button>
-                        <Button type="button" onClick={handleAssignAward} disabled={!selectedUserId}>Assegna</Button>
+                    <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+                        <Button type="button" variant="ghost" onClick={() => setIsAssignOpen(false)} className="w-full sm:w-auto">Annulla</Button>
+                        <Button type="button" onClick={handleAssignAward} disabled={!selectedUserId} className="w-full sm:w-auto">Assegna</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -398,126 +447,170 @@ export default function AdminAwardsPage() {
                 </div>
                     </TabsContent>
                     
-                    <TabsContent value="assegnati" className="mt-6">
-                        <div className="rounded-md border">
+                    <TabsContent value="assegnati" className="mt-4 sm:mt-6">
+                        <div className="rounded-md border overflow-x-auto">
                             <div className="flex justify-end mb-2">
                                 <Button
                                     variant="ghost"
                                     onClick={fetchAssignedAwards}
-                                    className="p-2 bg-transparent border-none shadow-none hover:bg-primary/10"
+                                    className="p-1 sm:p-2 bg-transparent border-none shadow-none hover:bg-primary/10"
                                     title="Aggiorna premi assegnati"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-primary drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-7 sm:w-7 text-primary drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6M5 19A9 9 0 0021 7M19 5A9 9 0 003 17" />
                                     </svg>
                                 </Button>
                             </div>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="font-bold">Utente</TableHead>
-                                        <TableHead className="font-bold">Premio</TableHead>
-                                        <TableHead className="font-bold">Valore</TableHead>
-                                        <TableHead className="font-bold">Utilizzato</TableHead>
-                                        <TableHead className="font-bold">Residuo</TableHead>
-                                        <TableHead className="font-bold">Data Assegnazione</TableHead>
-                                        <TableHead className="text-right font-bold">Azioni</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {loadingAssigned ? (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-24">
-                                                <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-                                                <span className="ml-2">Caricamento premi assegnati...</span>
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : assignedAwards.length === 0 ? (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
-                                                Nessun premio assegnato ancora.
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : (
-                                        assignedAwards.map((assignedAward) => (
-                                            <TableRow key={`${assignedAward.userId}-${assignedAward.id}`}>
-                                                <TableCell className="font-medium">
-                                                    {assignedAward.userName} {assignedAward.userSurname}
-                                                    {assignedAward.userGym && <div className="text-sm text-muted-foreground">{assignedAward.userGym}</div>}
-                                                    {assignedAward.userDiscipline && <div className="text-sm text-muted-foreground">{assignedAward.userDiscipline}</div>}
-                                                </TableCell>
-                                                <TableCell>{assignedAward.name}</TableCell>
-                                                <TableCell>€{assignedAward.value}</TableCell>
-                                                <TableCell>€{assignedAward.usedValue?.toFixed(2) ?? "0.00"}</TableCell>
-                                                <TableCell>
-                                                    €{assignedAward.name === 'Premio Presenze' && !attendancesLoading
-                                                        ? calculateAssignedAwardResiduo(assignedAward, percentage).toFixed(2)
-                                                        : assignedAward.residuo?.toFixed(2) ?? assignedAward.value.toFixed(2)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {assignedAward.assignedAt ? 
-                                                        new Date(assignedAward.assignedAt.toDate()).toLocaleDateString('it-IT') : 
-                                                        "-"
-                                                    }
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button 
-                                                                size="sm" 
-                                                                className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-2"
-                                                                title="Elimina premio assegnato"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Conferma eliminazione</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Sei sicuro di voler rimuovere il premio "{assignedAward.name}" da {assignedAward.userName} {assignedAward.userSurname}? Questa azione non può essere annullata.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Annulla</AlertDialogCancel>
-                                                                <AlertDialogAction
-                                                                    onClick={() => handleRemoveAssignedAward(assignedAward)}
-                                                                    className="bg-red-600 hover:bg-red-700 text-white"
-                                                                >
-                                                                    Elimina
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
+                            {loadingAssigned ? (
+                                <div className="flex justify-center items-center h-32">
+                                    <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                                    <span className="ml-2">Caricamento premi assegnati...</span>
+                                </div>
+                            ) : Object.keys(groupedAwards).length === 0 ? (
+                                <div className="text-center h-32 flex items-center justify-center text-muted-foreground">
+                                    Nessun premio assegnato ancora.
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {Object.values(groupedAwards).map(({ user, awards }) => {
+                                        const isExpanded = expandedUsers.has(user.id);
+                                        const totalValue = awards.reduce((sum, award) => sum + award.value, 0);
+                                        const totalResidue = awards.reduce((sum, award) => {
+                                            const residuo = award.name === 'Premio Presenze' && !attendancesLoading
+                                                ? calculateAssignedAwardResiduo(award, percentage)
+                                                : award.residuo ?? award.value;
+                                            return sum + residuo;
+                                        }, 0);
+                                        
+                                        return (
+                                            <Collapsible key={user.id} open={isExpanded} onOpenChange={() => toggleUserExpansion(user.id)}>
+                                                <CollapsibleTrigger asChild>
+                                                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted/70 cursor-pointer transition-colors">
+                                                        <div className="flex items-center gap-2">
+                                                            {isExpanded ? (
+                                                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                                            ) : (
+                                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                                            )}
+                                                            <div>
+                                                                <div className="font-semibold text-sm sm:text-base">
+                                                                    {user.name} {user.surname}
+                                                                </div>
+                                                                <div className="text-xs sm:text-sm text-muted-foreground">
+                                                                    {user.gym && <span>{user.gym}</span>}
+                                                                    {user.discipline && <span className="ml-2">{user.discipline}</span>}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="text-xs sm:text-sm font-medium">
+                                                                {awards.length} {awards.length === 1 ? 'premio' : 'premi'}
+                                                            </div>
+                                                            <div className="text-xs text-muted-foreground">
+                                                                Totale: €{totalValue.toFixed(2)} | Residuo: €{totalResidue.toFixed(2)}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </CollapsibleTrigger>
+                                                <CollapsibleContent className="mt-2">
+                                                    <div className="bg-white rounded-lg border">
+                                                        <Table>
+                                                            <TableHeader>
+                                                                <TableRow>
+                                                                    <TableHead className="text-xs sm:text-sm">Premio</TableHead>
+                                                                    <TableHead className="text-xs sm:text-sm">Valore</TableHead>
+                                                                    <TableHead className="text-xs sm:text-sm hidden md:table-cell">Utilizzato</TableHead>
+                                                                    <TableHead className="text-xs sm:text-sm">Residuo</TableHead>
+                                                                    <TableHead className="text-xs sm:text-sm hidden lg:table-cell">Data</TableHead>
+                                                                    <TableHead className="text-right text-xs sm:text-sm">Azioni</TableHead>
+                                                                </TableRow>
+                                                            </TableHeader>
+                                                            <TableBody>
+                                                                {awards.map((award) => (
+                                                                    <TableRow key={award.id}>
+                                                                        <TableCell className={`font-bold text-xs sm:text-sm ${
+                                                                            award.name === 'Premio Presenze' ? 'text-blue-600' :
+                                                                            award.name === 'Bonus Inizio Percorso' ? 'text-orange-700' :
+                                                                            award.name === 'Premio Best Samurai' ? 'text-black' :
+                                                                            award.name === 'Premio Stage' ? 'text-green-700' : ''
+                                                                        }`}>{award.name}</TableCell>
+                                                                        <TableCell className="text-xs sm:text-sm">€{award.value}</TableCell>
+                                                                        <TableCell className="hidden md:table-cell text-xs sm:text-sm">€{award.usedValue?.toFixed(2) ?? "0.00"}</TableCell>
+                                                                        <TableCell className="text-xs sm:text-sm">
+                                                                            €{award.name === 'Premio Presenze' && !attendancesLoading
+                                                                                ? calculateAssignedAwardResiduo(award, percentage).toFixed(2)
+                                                                                : award.residuo?.toFixed(2) ?? award.value.toFixed(2)}
+                                                                        </TableCell>
+                                                                        <TableCell className="hidden lg:table-cell text-xs sm:text-sm">
+                                                                            {award.assignedAt ? 
+                                                                                new Date(award.assignedAt.toDate()).toLocaleDateString('it-IT') : 
+                                                                                "-"
+                                                                            }
+                                                                        </TableCell>
+                                                                        <TableCell className="text-right">
+                                                                            <AlertDialog>
+                                                                                <AlertDialogTrigger asChild>
+                                                                                    <Button 
+                                                                                        size="sm" 
+                                                                                        className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-1 sm:p-2 h-6 sm:h-8 w-6 sm:w-8"
+                                                                                        title="Elimina premio assegnato"
+                                                                                    >
+                                                                                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                                                                                    </Button>
+                                                                                </AlertDialogTrigger>
+                                                                                <AlertDialogContent>
+                                                                                    <AlertDialogHeader>
+                                                                                        <AlertDialogTitle>Conferma eliminazione</AlertDialogTitle>
+                                                                                        <AlertDialogDescription>
+                                                                                            Sei sicuro di voler rimuovere il premio "{award.name}" da {award.userName} {award.userSurname}? Questa azione non può essere annullata.
+                                                                                        </AlertDialogDescription>
+                                                                                    </AlertDialogHeader>
+                                                                                    <AlertDialogFooter>
+                                                                                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                                                        <AlertDialogAction
+                                                                                            onClick={() => handleRemoveAssignedAward(award)}
+                                                                                            className="bg-red-600 hover:bg-red-700 text-white"
+                                                                                        >
+                                                                                            Elimina
+                                                                                        </AlertDialogAction>
+                                                                                    </AlertDialogFooter>
+                                                                                </AlertDialogContent>
+                                                                            </AlertDialog>
+                                                                        </TableCell>
+                                                                    </TableRow>
+                                                                ))}
+                                                            </TableBody>
+                                                        </Table>
+                                                    </div>
+                                                </CollapsibleContent>
+                                            </Collapsible>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
                 </Tabs>
             </CardContent>
 
              <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogContent className="bg-card">
+                <DialogContent className="bg-card w-[95vw] max-w-md">
                     {/* DialogHeader e DialogTitle personalizzato, nessun titolo generico */}
                     {/* DialogTitle nascosto per accessibilità */}
                     <DialogTitle style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(1px, 1px, 1px, 1px)" }}>
                         {editingAward ? `Modifica Premio` : `Crea Nuovo Premio`}
                     </DialogTitle>
                     <div className="flex flex-col space-y-1.5 text-center sm:text-left">
-                        <h2 className="text-lg font-semibold leading-none tracking-tight text-background">{editingAward ? `Modifica Premio` : `Crea Nuovo Premio`}</h2>
+                        <h2 className="text-base sm:text-lg font-semibold leading-none tracking-tight text-background">{editingAward ? `Modifica Premio` : `Crea Nuovo Premio`}</h2>
                     </div>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(handleSaveAward)} className="space-y-4 py-4">
+                        <form onSubmit={form.handleSubmit(handleSaveAward)} className="space-y-3 sm:space-y-4 py-4">
                             <FormField
                                 control={form.control}
                                 name="name"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-background">Tipo di Premio</FormLabel>
+                                    <FormLabel className="text-background text-sm sm:text-base">Tipo di Premio</FormLabel>
                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                                         <FormControl>
                                             <SelectTrigger className="bg-white border border-black text-black">
@@ -543,7 +636,7 @@ export default function AdminAwardsPage() {
                                 name="value"
                                 render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel className="text-background">Valore del Premio (€)</FormLabel>
+                                    <FormLabel className="text-background text-sm sm:text-base">Valore del Premio (€)</FormLabel>
                                      <FormControl>
                                         <Input type="number" step="0.01" placeholder="Es. 50.00" {...field} />
                                     </FormControl>
@@ -552,9 +645,9 @@ export default function AdminAwardsPage() {
                                 )}
                             />
                             
-                            <DialogFooter>
-                                <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)} className="bg-transparent text-background border border-background">Annulla</Button>
-                                <Button type="submit" disabled={isSubmitting} className="text-green-600 border border-green-600">
+                            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+                                <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)} className="bg-transparent text-background border border-background w-full sm:w-auto">Annulla</Button>
+                                <Button type="submit" disabled={isSubmitting} className="text-green-600 border border-green-600 w-full sm:w-auto">
                                      {isSubmitting ? <Loader2 className="animate-spin mr-2"/> : null}
                                      Salva Premio
                                 </Button>

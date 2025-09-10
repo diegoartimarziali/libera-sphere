@@ -12,7 +12,7 @@ import { it } from "date-fns/locale";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, Save, Calendar, MapPin, Tag, Users, ExternalLink, Clock, Image as ImageIcon, Award, FileText, Sparkles, LayoutGrid, List } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, Save, Calendar, MapPin, Tag, Users, ExternalLink, Clock, Image as ImageIcon, Award, FileText, Sparkles, LayoutGrid, List, Edit2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -165,8 +165,8 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-3 gap-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     <FormField control={form.control} name="type" render={({ field }) => (
                         <FormItem><FormLabel>Tipologia Evento</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -226,7 +226,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         <FormItem><FormLabel>Descrizione</FormLabel><FormControl><Textarea {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
                         <FormItem><FormLabel>Data</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
@@ -236,7 +236,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         <FormMessage /></FormItem>
                     )} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <FormField control={form.control} name="startTime" render={({ field }) => (
                         <FormItem><FormLabel>Ora Inizio</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
@@ -244,7 +244,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         <FormItem><FormLabel>Ora Fine</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     <FormField control={form.control} name="price" render={({ field }) => (
                         <FormItem><FormLabel>Prezzo (€)</FormLabel><FormControl><Input type="number" step="0.01" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
@@ -273,7 +273,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         </FormItem>
                     )} />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <FormField control={form.control} name="imageUrl" render={({ field }) => (
                         <FormItem><FormLabel>URL Immagine</FormLabel><FormControl><Input {...field} placeholder="https://..." className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
                     )} />
@@ -286,9 +286,9 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                     )} />
                 </div>
                     {/* ...existing code... */}
-                <DialogFooter>
-                    <Button type="button" variant="ghost" onClick={onCancel}>Annulla</Button>
-                    <Button type="submit">Salva Evento</Button>
+                <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+                    <Button type="button" variant="ghost" onClick={onCancel} className="w-full sm:w-auto">Annulla</Button>
+                    <Button type="submit" className="w-full sm:w-auto">Salva Evento</Button>
                 </DialogFooter>
             </form>
         </Form>
@@ -436,21 +436,22 @@ export default function AdminStagesPage() {
     }
     
     return (
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-8 p-4 sm:p-6">
             <Card>
-                <CardHeader className="flex-row items-center justify-between">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
                     <div>
-                        <CardTitle>Gestione Stage ed Eventi</CardTitle>
-                        <CardDescription>Crea e gestisci tutti gli eventi speciali.</CardDescription>
+                        <CardTitle className="text-lg sm:text-xl">Gestione Stage ed Eventi</CardTitle>
+                        <CardDescription className="text-sm sm:text-base">Crea e gestisci tutti gli eventi speciali.</CardDescription>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                          <div className="hidden sm:flex items-center gap-1 rounded-md bg-muted p-1">
                             <Button variant={viewMode === 'card' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('card')} className="h-8 w-8"><LayoutGrid className="h-4 w-4" /></Button>
                             <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('list')} className="h-8 w-8"><List className="h-4 w-4" /></Button>
                          </div>
-                         <Button onClick={openCreateForm}>
+                         <Button onClick={openCreateForm} className="w-full sm:w-auto">
                             <PlusCircle className="mr-2" />
-                            Crea Nuovo Evento
+                            <span className="hidden sm:inline">Crea Nuovo Evento</span>
+                            <span className="sm:hidden">Nuovo Evento</span>
                         </Button>
                     </div>
                 </CardHeader>
@@ -460,11 +461,11 @@ export default function AdminStagesPage() {
                     ) : stages.length === 0 ? (
                         <p className="text-center text-muted-foreground py-12">Nessuno stage o evento trovato. Creane uno per iniziare.</p>
                     ) : viewMode === 'card' ? (
-                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                             {stages.map(stage => (
-                                <Card key={stage.id} className="flex flex-col overflow-hidden max-h-[600px] overflow-y-auto">
+                                <Card key={stage.id} className="flex flex-col overflow-hidden max-h-[500px] sm:max-h-[600px] overflow-y-auto">
                                      {stage.imageUrl && (
-                                        <div className="relative h-64 w-full bg-[var(--my-gialchiar)]">
+                                        <div className="relative h-40 sm:h-64 w-full bg-[var(--my-gialchiar)]">
                                             <Image
                                                 src={stage.imageUrl}
                                                 alt={`Immagine per ${stage.title}`}
@@ -475,9 +476,9 @@ export default function AdminStagesPage() {
                                         </div>
                                     )}
                                     <CardHeader className="p-0">
-                                        <div className="flex flex-col space-y-1.5 p-6 bg-[var(--my-gialchiar)] rounded-t-md">
+                                        <div className="flex flex-col space-y-1.5 p-4 sm:p-6 bg-[var(--my-gialchiar)] rounded-t-md">
                                             <div className="flex flex-col gap-1">
-                                                <div className="flex items-center text-sm text-primary font-semibold">
+                                                <div className="flex items-center text-xs sm:text-sm text-primary font-semibold">
                                                     {getEventTypeIcon(stage.type)}
                                                     {getEventTypeLabel(stage.type, stage.customEventType)}
                                                 </div>
@@ -485,22 +486,28 @@ export default function AdminStagesPage() {
                                                     {stage.discipline ? `Disciplina: ${stage.discipline.charAt(0).toUpperCase() + stage.discipline.slice(1)}` : ''}
                                                 </div>
                                             </div>
-                                            <CardTitle className="font-semibold tracking-tight text-xl capitalize">{stage.title}</CardTitle>
-                                            <CardDescription className="text-sm text-muted-foreground">{stage.description}</CardDescription>
+                                            <CardTitle className="font-semibold tracking-tight text-lg sm:text-xl capitalize">{stage.title}</CardTitle>
+                                            <CardDescription className="text-xs sm:text-sm text-muted-foreground">{stage.description}</CardDescription>
                                         </div>
                                     </CardHeader>
-                                    <CardContent className="flex-grow space-y-3 bg-[var(--my-gialchiar)] overflow-y-auto max-h-[350px]">
+                                    <CardContent className="flex-grow space-y-2 sm:space-y-3 bg-[var(--my-gialchiar)] overflow-y-auto max-h-[300px] sm:max-h-[350px] p-3 sm:p-4">
                                         <InfoRow icon={Calendar} text={stage.startTime ? format(stage.startTime.toDate(), "eeee d MMMM yyyy", { locale: it }) : "Data da definire"} />
                                         <InfoRow icon={Clock} text={stage.startTime && stage.endTime ? `${format(stage.startTime.toDate(), "HH:mm")} - ${format(stage.endTime.toDate(), "HH:mm")}` : "Orario da definire"} />
                                         <InfoRow icon={MapPin} text={stage.location} />
                                         <InfoRow icon={Users} text={`Aperto a: ${stage.open_to}`} />
                                         <InfoRow icon={Tag} text={`Costo: ${stage.price.toFixed(2)} €`} />
                                     </CardContent>
-                                    <CardFooter className="flex justify-end gap-2 bg-muted/50 p-3">
-                                        <Button variant="outline" size="sm" onClick={() => openEditForm(stage)}>Modifica</Button>
+                                    <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 bg-muted/50 p-3">
+                                        <Button variant="outline" size="sm" onClick={() => openEditForm(stage)} className="w-full sm:w-auto">
+                                            <Edit2 className="h-4 w-4 mr-2" />
+                                            Modifica
+                                        </Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                 <Button variant="destructive" size="sm"><Trash2 className="h-4 w-4" /></Button>
+                                                 <Button variant="destructive" size="sm" className="w-full sm:w-auto">
+                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                    <span className="sm:hidden">Elimina</span>
+                                                 </Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
@@ -549,11 +556,17 @@ export default function AdminStagesPage() {
                                         <TableCell>{stage.location}</TableCell>
                                         <TableCell>{stage.open_to}</TableCell>
                                         <TableCell className="text-right">{stage.price.toFixed(2)} €</TableCell>
-                                        <TableCell className="text-right space-x-1">
-                                             <Button variant="ghost" size="sm" onClick={() => openEditForm(stage)}>Modifica</Button>
+                                        <TableCell className="text-right">
+                                            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-1 sm:space-x-1">
+                                             <Button variant="ghost" size="sm" onClick={() => openEditForm(stage)} className="text-xs sm:text-sm">
+                                                <Edit2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                                                <span className="hidden sm:inline">Modifica</span>
+                                             </Button>
                                               <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8"><Trash2 className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-6 w-6 sm:h-8 sm:w-8">
+                                                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                    </Button>
                                                 </AlertDialogTrigger>
                                                 <AlertDialogContent>
                                                     <AlertDialogHeader>
@@ -570,6 +583,7 @@ export default function AdminStagesPage() {
                                                     </AlertDialogFooter>
                                                 </AlertDialogContent>
                                             </AlertDialog>
+                                            </div>
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -580,9 +594,9 @@ export default function AdminStagesPage() {
             </Card>
 
             <Dialog open={isFormOpen} onOpenChange={(isOpen) => { setIsFormOpen(isOpen); if (!isOpen) setEditingStage(undefined); }}>
-                                                <DialogContent className="sm:max-w-2xl" aria-describedby="dialog-desc-stages">
+                                                <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-desc-stages">
                     <DialogHeader>
-                        <DialogTitle>{editingStage ? "Modifica Evento" : "Crea Nuovo Evento"}</DialogTitle>
+                        <DialogTitle className="text-lg sm:text-xl">{editingStage ? "Modifica Evento" : "Crea Nuovo Evento"}</DialogTitle>
                     </DialogHeader>
                     <StageForm 
                         stage={editingStage} 

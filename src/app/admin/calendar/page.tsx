@@ -83,13 +83,13 @@ const dateToInputString = (date?: Date | Timestamp): string | undefined => {
 
 const lessonFormSchema = z.object({
     id: z.string().optional(),
-    title: z.string().min(3, "Il titolo è obbligatorio."),
+    title: z.string().min(1, "Il titolo è obbligatorio."),
     startDate: z.string({ required_error: "La data di inizio è obbligatoria." }),
-    startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
+    startTime: z.string({ required_error: "L'ora di inizio è obbligatoria." }).regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
     endDate: z.string({ required_error: "La data di fine è obbligatoria." }),
-    endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
-    discipline: z.string().optional(),
-    gymId: z.string().optional(),
+    endTime: z.string({ required_error: "L'ora di fine è obbligatoria." }).regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Formato ora non valido (HH:mm)."),
+    discipline: z.string({ required_error: "La disciplina è obbligatoria." }).min(1, "La disciplina è obbligatoria."),
+    gymId: z.string({ required_error: "La palestra è obbligatoria." }).min(1, "La palestra è obbligatoria."),
     status: z.enum(['confermata', 'annullata', 'festivita']).default('confermata'),
     notes: z.string().optional(),
 });
@@ -132,47 +132,47 @@ function LessonForm({ lesson, gyms, onSave, onCancel }: { lesson?: LessonFormDat
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1 sm:p-0">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4 px-1 sm:px-0">
                 <FormField control={form.control} name="title" render={({ field }) => (
                     <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Titolo</FormLabel><FormControl><Input {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
-                        <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Data Inizio</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800 text-sm font-medium">Data Inizio</FormLabel><FormControl><Input type="date" {...field} placeholder="00/00/0000" className="bg-white text-black h-9 sm:h-10 text-sm" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="startTime" render={({ field }) => (
-                        <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Ora Inizio</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800 text-sm font-medium">Ora Inizio</FormLabel><FormControl><Input type="time" {...field} placeholder="00:00" className="bg-white text-black h-9 sm:h-10 text-sm" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4">
                     <FormField control={form.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Data Fine</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800 text-sm font-medium">Data Fine</FormLabel><FormControl><Input type="date" {...field} placeholder="00/00/0000" className="bg-white text-black h-9 sm:h-10 text-sm" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="endTime" render={({ field }) => (
-                        <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Ora Fine</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800 text-sm font-medium">Ora Fine</FormLabel><FormControl><Input type="time" {...field} placeholder="00:00" className="bg-white text-black h-9 sm:h-10 text-sm" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                 
                  <FormField control={form.control} name="discipline" render={({ field }) => (
-                    <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-10 sm:h-auto"><SelectValue placeholder="Seleziona disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800 text-sm font-medium">Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-9 sm:h-10 text-sm"><SelectValue placeholder="Seleziona disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 
                 <FormField control={form.control} name="gymId" render={({ field }) => (
-                    <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-10 sm:h-auto"><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800 text-sm font-medium">Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-9 sm:h-10 text-sm"><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 
                 <FormField control={form.control} name="status" render={({ field }) => (
-                    <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-10 sm:h-auto"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem><SelectItem value="festivita">Festività</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800 text-sm font-medium">Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-9 sm:h-10 text-sm"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem><SelectItem value="festivita">Festività</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
 
                 <FormField control={form.control} name="notes" render={({ field }) => (
-                    <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Note / Avvisi</FormLabel><FormControl><Textarea {...field} placeholder="Es. Portare protezioni, lezione annullata per maltempo..." className="bg-white text-black min-h-[80px] sm:min-h-[100px]" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800 text-sm font-medium">Note / Avvisi</FormLabel><FormControl><Textarea {...field} placeholder="Es. Portare protezioni, lezione annullata per maltempo..." className="bg-white text-black min-h-[60px] sm:min-h-[80px] text-sm resize-none" /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2 space-y-2 sm:space-y-0">
-                    <Button type="button" variant="outline" onClick={onCancel} className="bg-transparent text-amber-800 border-amber-800 hover:bg-amber-50 w-full sm:w-auto order-2 sm:order-1">Annulla</Button>
-                    <Button type="submit" variant="outline" className="bg-transparent text-green-600 border-green-600 hover:bg-green-50 w-full sm:w-auto order-1 sm:order-2">Salva Lezione</Button>
+                <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
+                    <Button type="button" variant="outline" onClick={onCancel} className="bg-transparent text-amber-800 border-amber-800 hover:bg-amber-50 w-full sm:w-auto order-2 sm:order-1 h-9 sm:h-10 text-sm">Annulla</Button>
+                    <Button type="submit" variant="outline" className="bg-transparent text-green-600 border-green-600 hover:bg-green-50 w-full sm:w-auto order-1 sm:order-2 h-9 sm:h-10 text-sm font-medium">Salva Lezione</Button>
                 </DialogFooter>
             </form>
         </Form>
@@ -921,17 +921,18 @@ export default function AdminCalendarPage() {
                                 <span className="sm:hidden">Reset</span>
                             </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialogContent className="bg-white border-2 border-red-800">
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Reset TotalLessons per Tutti gli Utenti</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    Questa azione resetterà il totalLessons a 0 per TUTTI gli utenti. 
-                                    Usa questa funzione solo quando hai cancellato tutti i calendari da Firebase e vuoi azzerare i conteggi.
+                                <AlertDialogTitle className="text-red-800">ATTENZIONE!!</AlertDialogTitle>
+                                <AlertDialogDescription className="space-y-2 text-red-800">
+                                    <p>Vuoi portare il campo totalLessons a 0 per TUTTI gli utenti nel database?</p>
+                                    <p>Questa funzione può essere usata solo quando hai eliminato tutti i calendari da Firebase per azzerare i conteggi delle lezioni totali di tutti gli utenti.</p>
+                                    <p>È una funzione di manutenzione del database. Vuoi Procedere?</p>
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                                <AlertDialogCancel>Annulla</AlertDialogCancel>
-                                <AlertDialogAction onClick={async () => {
+                                <AlertDialogCancel className="bg-transparent border border-green-800 text-green-800 hover:bg-green-50">Annulla</AlertDialogCancel>
+                                <AlertDialogAction className="bg-transparent border border-red-800 text-red-800 hover:bg-red-50" onClick={async () => {
                                     try {
                                         setIsSaving(true);
                                         const { resetAllUsersTotalLessons } = await import('@/lib/updateUserTotalLessons');
@@ -1292,9 +1293,9 @@ export default function AdminCalendarPage() {
              </Card>
 
               <Dialog open={isFormOpen} onOpenChange={(isOpen: boolean) => { setIsFormOpen(isOpen); if (!isOpen) setEditingLesson(undefined); }}>
-                <DialogContent className="sm:max-w-2xl bg-card mx-4 sm:mx-auto max-w-[95vw] sm:max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle className="text-amber-800">{editingLesson ? "Modifica Lezione" : "Crea Nuova Lezione"}</DialogTitle>
+                <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-2xl bg-card mx-2 sm:mx-auto max-h-[90vh] overflow-y-auto">
+                    <DialogHeader className="pb-4">
+                        <DialogTitle className="text-amber-800 text-lg sm:text-xl">{editingLesson ? "Modifica Lezione" : "Crea Nuova Lezione"}</DialogTitle>
                     </DialogHeader>
                     <LessonForm 
                         lesson={editingLesson} 
