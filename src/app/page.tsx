@@ -13,7 +13,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { auth, db } from "@/lib/firebase"
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth"
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth"
 import { doc, setDoc, serverTimestamp } from "firebase/firestore"
 import Image from "next/image"
 
@@ -36,7 +36,11 @@ const registerSchema = z.object({
   name: z.string().min(2, { message: "Il nome è richiesto." }),
   surname: z.string().min(2, { message: "Il cognome è richiesto." }),
   email: z.string().email({ message: "Indirizzo email non valido." }),
-  password: z.string().min(6, { message: "La password deve contenere almeno 6 caratteri." }),
+  password: z.string()
+    .min(8, { message: "La password deve contenere almeno 8 caratteri." })
+    .regex(/[A-Z]/, { message: "La password deve contenere almeno una lettera maiuscola." })
+    .regex(/[a-z]/, { message: "La password deve contenere almeno una lettera minuscola." })
+    .regex(/[0-9]/, { message: "La password deve contenere almeno un numero." }),
   confirmPassword: z.string().min(1, { message: "La conferma password è richiesta." }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Le password non corrispondono.",
@@ -60,6 +64,8 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [showLoginPassword, setShowLoginPassword] = useState(false)
+  const [resetEmailSent, setResetEmailSent] = useState(false)
+  const [resetEmail, setResetEmail] = useState("")
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -147,9 +153,44 @@ export default function AuthPage() {
     }
   }
 
+  const handlePasswordReset = async () => {
+    if (!resetEmail) {
+      toast({
+        variant: "destructive",
+        title: "Errore",
+        description: "Inserisci la tua email per ricevere le istruzioni di reset."
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, resetEmail.toLowerCase());
+      setResetEmailSent(true);
+      toast({
+        title: "Email inviata!",
+        description: "Controlla la tua casella di posta per reimpostare la password."
+      });
+    } catch (error: any) {
+      let description = "Impossibile inviare l'email di reset."
+      if (error.code === 'auth/user-not-found') {
+        description = "Nessun account trovato con questa email."
+      }
+      toast({
+        variant: "destructive",
+        title: "Errore",
+        description: description
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   const onTabChange = (value: string) => {
     setIsLoading(false)
     setActiveTab(value)
+    setResetEmailSent(false)
+    setResetEmail("")
   }
 
   const logoUrl = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Flogo.png?alt=media&token=d1a26a21-2c18-43c5-8cd5-bb9074f84797";
@@ -204,7 +245,21 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="********" {...field} />
+                          <div className="relative">
+                            <Input
+                              type={showLoginPassword ? "text" : "password"}
+                              placeholder="********"
+                              {...field}
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-2 top-2 text-gray-500"
+                              onClick={() => setShowLoginPassword((v) => !v)}
+                              tabIndex={-1}
+                            >
+                              {showLoginPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -216,6 +271,56 @@ export default function AuthPage() {
                     </Button>
                 </form>
               </Form>
+              
+              {/* Sezione Reset Password */}
+              {!resetEmailSent ? (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-sm text-center text-gray-600 mb-3">Password dimenticata?</p>
+                  <div className="space-y-2">
+                    <Input
+                      type="email"
+                      placeholder="Inserisci la tua email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      disabled={isLoading}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={handlePasswordReset}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Invio in corso...
+                        </>
+                      ) : (
+                        "Invia email di reset"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 pt-4 border-t text-center">
+                  <p className="text-sm text-green-600 mb-2">✅ Email inviata!</p>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Controlla la tua casella di posta e segui le istruzioni per reimpostare la password.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setResetEmailSent(false);
+                      setResetEmail("");
+                    }}
+                  >
+                    Invia di nuovo
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -279,7 +384,7 @@ export default function AuthPage() {
                           <div className="relative">
                             <Input
                               type={showPassword ? "text" : "password"}
-                              placeholder="Minimo 6 caratteri"
+                              placeholder="Min 8 caratteri, maiuscole, minuscole, numeri"
                               {...field}
                             />
                             <button
