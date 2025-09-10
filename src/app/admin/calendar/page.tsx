@@ -232,6 +232,7 @@ export default function AdminCalendarPage() {
     const [savedCalendars, setSavedCalendars] = useState<SavedCalendar[]>([]);
     const [lessons, setLessons] = useState<Lesson[]>([]); // Contiene le lezioni dell'anteprima o quelle salvate
     const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
+    const [loadedCalendarId, setLoadedCalendarId] = useState<string | null>(null); // ID del calendario caricato per aggiornamenti
     
     // Stati per il generatore
     const [periodOptions, setPeriodOptions] = useState<PeriodOption[]>([]);
@@ -250,6 +251,43 @@ export default function AdminCalendarPage() {
     const [editingLesson, setEditingLesson] = useState<LessonFormData | undefined>(undefined);
     const [isTestFormOpen, setIsTestFormOpen] = useState(false);
 
+
+    // Funzione helper per aggiornare totalLessons per tutti gli utenti di una palestra/disciplina
+    const updateTotalLessonsForGymDiscipline = async (gymId: string, discipline: string) => {
+        try {
+            console.log(`Aggiornamento totalLessons per ${gymId}-${discipline}`);
+            
+            // Trova tutti gli utenti con questa palestra e disciplina
+            const usersQuery = query(
+                collection(db, "users"),
+                where("gym", "==", gymId),
+                where("discipline", "==", discipline)
+            );
+            const usersSnapshot = await getDocs(usersQuery);
+            
+            // Aggiorna il totalLessons per ogni utente
+            const updatePromises = [];
+            for (const userDoc of usersSnapshot.docs) {
+                const updatePromise = (async () => {
+                    try {
+                        const { updateUserTotalLessons } = await import('@/lib/updateUserTotalLessons');
+                        await updateUserTotalLessons(userDoc.id, gymId, discipline);
+                        console.log(`totalLessons aggiornato per utente ${userDoc.id}`);
+                    } catch (error) {
+                        console.error(`Errore aggiornamento totalLessons per utente ${userDoc.id}:`, error);
+                    }
+                })();
+                updatePromises.push(updatePromise);
+            }
+            
+            // Aspetta che tutti gli aggiornamenti siano completati
+            await Promise.all(updatePromises);
+            console.log(`totalLessons aggiornato per ${usersSnapshot.size} utenti di ${gymId}-${discipline}`);
+            
+        } catch (error) {
+            console.error("Errore nell'aggiornamento totalLessons:", error);
+        }
+    };
 
     const fetchInitialData = async () => {
         setLoading(true);
@@ -477,7 +515,7 @@ export default function AdminCalendarPage() {
             return;
         }
         
-        // Estrai i dati necessari dal titolo generato o da altre fonti di stato
+        // Estrai i dati necessari dal titolo generato o dalle lezioni stesse
         const isTest = generatedTitle.includes("di Test");
         let gymId, discipline, periodLabel;
 
@@ -487,13 +525,23 @@ export default function AdminCalendarPage() {
             discipline = lessons[0].discipline;
             periodLabel = `Test dal ${format(lessons[0].startTime.toDate(), 'dd/MM/yy')} al ${format(lessons[lessons.length - 1].startTime.toDate(), 'dd/MM/yy')}`
         } else {
-             gymId = gymFilter;
-             discipline = disciplineFilter;
-             periodLabel = `dal ${format(parseISO(startDate), 'dd/MM/yy')} al ${format(parseISO(endDate), 'dd/MM/yy')}`;
+            // Per calendari generati o caricati, prova prima i filtri, poi ricava dalle lezioni
+            gymId = gymFilter || lessons[0]?.gymId;
+            discipline = disciplineFilter || lessons[0]?.discipline;
+            
+            // Calcola il periodo dalle lezioni effettive se i filtri non sono disponibili
+            if (!startDate || !endDate || !gymFilter || !disciplineFilter) {
+                const sortedLessons = [...lessons].sort((a, b) => a.startTime.toMillis() - b.startTime.toMillis());
+                const firstLesson = sortedLessons[0];
+                const lastLesson = sortedLessons[sortedLessons.length - 1];
+                periodLabel = `dal ${format(firstLesson.startTime.toDate(), 'dd/MM/yy')} al ${format(lastLesson.startTime.toDate(), 'dd/MM/yy')}`;
+            } else {
+                periodLabel = `dal ${format(parseISO(startDate), 'dd/MM/yy')} al ${format(parseISO(endDate), 'dd/MM/yy')}`;
+            }
         }
 
-        if (!gymId || !discipline || !periodLabel) {
-             toast({ variant: "destructive", title: "Dati insufficienti", description: "Impossibile determinare palestra, disciplina o periodo." });
+        if (!gymId || !discipline) {
+             toast({ variant: "destructive", title: "Dati insufficienti", description: "Impossibile determinare palestra o disciplina dalle lezioni." });
              return;
         }
 
@@ -507,18 +555,47 @@ export default function AdminCalendarPage() {
             }
             
             const gymDisplayName = `${selectedGym.id} - ${selectedGym.name}`;
+            let calendarRefId;
 
-            const calendarData = {
-                gymId: selectedGym.id,
-                gymName: gymDisplayName,
-                year: getYear(lessons[0].startTime.toDate()),
-                discipline: discipline,
-                calendarName: `Calendario per ${gymDisplayName} - ${discipline} (${periodLabel})`,
-                createdAt: serverTimestamp(),
-            };
-            
-            const calendarRef = await addDoc(collection(db, "calendars"), calendarData);
+            if (loadedCalendarId) {
+                // Aggiorna calendario esistente
+                calendarRefId = loadedCalendarId;
+                
+                // Aggiorna i metadati del calendario
+                const calendarRef = doc(db, "calendars", loadedCalendarId);
+                await updateDoc(calendarRef, {
+                    gymId: selectedGym.id,
+                    gymName: gymDisplayName,
+                    year: getYear(lessons[0].startTime.toDate()),
+                    discipline: discipline,
+                    calendarName: `Calendario per ${gymDisplayName} - ${discipline} (${periodLabel})`,
+                    updatedAt: serverTimestamp(),
+                });
+                
+                // Elimina tutte le lezioni esistenti di questo calendario
+                const existingEventsQuery = query(collection(db, "events"), where("calendarId", "==", loadedCalendarId));
+                const existingEventsSnapshot = await getDocs(existingEventsQuery);
+                const deleteBatch = writeBatch(db);
+                existingEventsSnapshot.forEach(eventDoc => {
+                    deleteBatch.delete(eventDoc.ref);
+                });
+                await deleteBatch.commit();
+            } else {
+                // Crea nuovo calendario
+                const calendarData = {
+                    gymId: selectedGym.id,
+                    gymName: gymDisplayName,
+                    year: getYear(lessons[0].startTime.toDate()),
+                    discipline: discipline,
+                    calendarName: `Calendario per ${gymDisplayName} - ${discipline} (${periodLabel})`,
+                    createdAt: serverTimestamp(),
+                };
+                
+                const calendarRef = await addDoc(collection(db, "calendars"), calendarData);
+                calendarRefId = calendarRef.id;
+            }
 
+            // Aggiungi tutte le lezioni (nuove o aggiornate)
             const batch = writeBatch(db);
             const eventsCollectionRef = collection(db, "events");
 
@@ -528,7 +605,7 @@ export default function AdminCalendarPage() {
                 batch.set(newEventRef, {
                     ...lessonData,
                     type: 'lesson', // Aggiungiamo il tipo per distinguerli
-                    calendarId: calendarRef.id, // Colleghiamo l'evento al calendario
+                    calendarId: calendarRefId, // Colleghiamo l'evento al calendario
                     createdAt: serverTimestamp()
                 });
             });
@@ -537,30 +614,8 @@ export default function AdminCalendarPage() {
             
             await fetchSavedCalendars();
             
-            // DOPO aver salvato il calendario, aggiorna i totalLessons per tutti gli utenti interessati
-            try {
-                // Trova tutti gli utenti con questa palestra e disciplina
-                const usersQuery = query(
-                    collection(db, "users"),
-                    where("gym", "==", gymId),
-                    where("discipline", "==", discipline)
-                );
-                const usersSnapshot = await getDocs(usersQuery);
-                
-                // Aggiorna il totalLessons per ogni utente
-                for (const userDoc of usersSnapshot.docs) {
-                    try {
-                        const { updateUserTotalLessons } = await import('@/lib/updateUserTotalLessons');
-                        await updateUserTotalLessons(userDoc.id, gymId, discipline);
-                    } catch (error) {
-                        console.error(`Errore aggiornamento totalLessons per utente ${userDoc.id}:`, error);
-                    }
-                }
-                
-                console.log(`totalLessons aggiornato per ${usersSnapshot.size} utenti di ${gymId}-${discipline}`);
-            } catch (error) {
-                console.error("Errore nell'aggiornamento automatico totalLessons:", error);
-            }
+            // SEMPRE aggiorna i totalLessons dopo aver salvato il calendario
+            await updateTotalLessonsForGymDiscipline(gymId, discipline);
             
             const operationalLessonsCount = lessons.filter(l => l.status === 'confermata').length;
 
@@ -572,6 +627,7 @@ export default function AdminCalendarPage() {
 
             setLessons([]);
             setGeneratedTitle(null);
+            setLoadedCalendarId(null);
         } catch (error) {
             console.error("Error saving calendar to Firebase:", error);
             toast({ variant: "destructive", title: "Errore di Salvataggio", description: "Impossibile salvare il calendario. Riprova." });
@@ -687,6 +743,7 @@ export default function AdminCalendarPage() {
             const simplifiedTitle = `${gymName} - ${discipline} (${operationalLessonsCount} lezioni)`;
             
             setGeneratedTitle(simplifiedTitle);
+            setLoadedCalendarId(calendar.id); // Traccia il calendario caricato
             toast({ title: "Calendario Caricato", description: `Hai caricato ${lessonsList.length} lezioni totali nell'area di anteprima.`});
 
         } catch (error) {
@@ -721,11 +778,22 @@ export default function AdminCalendarPage() {
             // 4. Esegui il batch
             await batch.commit();
 
-            // 5. Aggiorna l'interfaccia
+            // 5. Aggiorna i totalLessons per gli utenti interessati (prima di aggiornare l'interfaccia)
+            const calendarToDelete = savedCalendars.find(cal => cal.id === calendarId);
+            if (calendarToDelete) {
+                // Estrai gymId dalla gymName (formato: "gymId - Nome Palestra")
+                const gymId = calendarToDelete.gymName?.split(' - ')[0] || '';
+                const discipline = calendarToDelete.discipline || '';
+                if (gymId && discipline) {
+                    await updateTotalLessonsForGymDiscipline(gymId, discipline);
+                }
+            }
+
+            // 6. Aggiorna l'interfaccia
             await fetchSavedCalendars(); 
             toast({ 
                 title: "Calendario Eliminato", 
-                description: "Il calendario e tutte le sue lezioni associate sono stati rimossi con successo.", 
+                description: "Il calendario e tutte le sue lezioni associate sono stati rimossi con successo. TotalLessons aggiornato.", 
                 variant: "default" 
             });
 
@@ -844,6 +912,48 @@ export default function AdminCalendarPage() {
                            <TestCalendarDialog gyms={gyms} onGenerate={handleGenerateTestCalendar} onOpenChange={setIsTestFormOpen} />
                         </DialogContent>
                     </Dialog>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="bg-transparent text-red-600 border-red-600 hover:bg-red-50">
+                                <AlertTriangle className="mr-2" />
+                                Reset TotalLessons
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Reset TotalLessons per Tutti gli Utenti</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Questa azione resetterà il totalLessons a 0 per TUTTI gli utenti. 
+                                    Usa questa funzione solo quando hai cancellato tutti i calendari da Firebase e vuoi azzerare i conteggi.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                <AlertDialogAction onClick={async () => {
+                                    try {
+                                        setIsSaving(true);
+                                        const { resetAllUsersTotalLessons } = await import('@/lib/updateUserTotalLessons');
+                                        await resetAllUsersTotalLessons();
+                                        toast({ 
+                                            title: "Reset Completato", 
+                                            description: "TotalLessons resettato a 0 per tutti gli utenti." 
+                                        });
+                                    } catch (error) {
+                                        console.error("Errore reset totalLessons:", error);
+                                        toast({ 
+                                            variant: "destructive", 
+                                            title: "Errore", 
+                                            description: "Impossibile resettare totalLessons." 
+                                        });
+                                    } finally {
+                                        setIsSaving(false);
+                                    }
+                                }}>
+                                    Sì, Resetta Tutto
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </CardFooter>
             </Card>
 
@@ -933,7 +1043,7 @@ export default function AdminCalendarPage() {
                         </div>
                         <div className="flex w-full sm:w-auto gap-2">
                              <Button onClick={openCreateForm} variant="outline" className="w-full sm:w-auto bg-transparent text-amber-800 border-amber-800 hover:bg-amber-100 hover:text-amber-900"><PlusCircle className="mr-2"/>Aggiungi Lezione</Button>
-                             <Button onClick={() => { setLessons([]); setGeneratedTitle(null); toast({ title: "Anteprima Cancellata", description: "Tutte le lezioni sono state rimosse dall'anteprima." }); }} disabled={lessons.length === 0} variant="outline" className="w-full sm:w-auto bg-transparent text-red-600 border-red-600 hover:bg-red-50">
+                             <Button onClick={() => { setLessons([]); setGeneratedTitle(null); setLoadedCalendarId(null); toast({ title: "Anteprima Cancellata", description: "Tutte le lezioni sono state rimosse dall'anteprima." }); }} disabled={lessons.length === 0} variant="outline" className="w-full sm:w-auto bg-transparent text-red-600 border-red-600 hover:bg-red-50">
                                 <X className="mr-2" />
                                 Cancella Anteprima
                              </Button>

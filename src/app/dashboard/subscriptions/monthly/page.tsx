@@ -426,7 +426,7 @@ export default function MonthlySubscriptionPage() {
             // Assegna automaticamente il Premio Presenze
             const premiResult = await assignPremiPresenze(user!.uid, 'monthly');
             if (premiResult.success) {
-                showPremiPresenzeMessage(premiResult.premioValue, premiResult.subscriptionType, toast);
+                showPremiPresenzeMessage(premiResult.premioValue, premiResult.subscriptionType ?? "monthly", toast);
             } else {
                 showPremiPresenzeErrorMessage(toast);
             }

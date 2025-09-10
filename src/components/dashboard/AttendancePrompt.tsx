@@ -252,9 +252,9 @@
     if (showAutoToast && todaysLesson && !alreadyResponded && !alreadySeen) {
     return (
             <Alert className="mb-6 animate-in fade-in-50 border-[4px] !border-green-600 bg-green-50" style={{borderWidth: 4, borderColor: '#16a34a'}}>
-                <CalendarCheck className="h-4 w-4 text-green-600" />
-                <AlertTitle className="font-bold">Appello per la lezione di oggi, ogni presenza ti premia!</AlertTitle>
-                <AlertDescription>
+                <CalendarCheck className="h-4 w-4 text-amber-600" />
+                <AlertTitle className="font-bold text-amber-600 text-center bg-amber-50 p-2 rounded-lg">Appello per la lezione di oggi, ogni presenza ti premia!</AlertTitle>
+                <AlertDescription className="text-amber-600 text-center mt-2">
                     Sei dei nostri stasera per la lezione di {userData?.discipline} delle {format(todaysLesson.startTime.toDate(), "HH:mm", { locale: it })}?
                 </AlertDescription>
                 <div className="mt-4 flex gap-4">
@@ -297,9 +297,9 @@
     // Prompt classico se non è ancora tempo di toast automatico
     return (
         <Alert className="mb-6 animate-in fade-in-50 bg-green-50">
-            <CalendarCheck className="h-4 w-4" />
-            <AlertTitle className="font-bold">Appello per la lezione di oggi, ogni presenza ti premia!</AlertTitle>
-            <AlertDescription>
+            <CalendarCheck className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="font-bold text-amber-600 text-center bg-amber-50 p-2 rounded-lg">Appello per la lezione di oggi, ogni presenza ti premia!</AlertTitle>
+            <AlertDescription className="text-amber-600 text-center mt-2">
                 Sei dei nostri stasera per la lezione di {userData?.discipline} delle {format(todaysLesson.startTime.toDate(), "HH:mm", { locale: it })}?
             </AlertDescription>
             <div className="mt-4 flex gap-4">

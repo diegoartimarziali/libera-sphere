@@ -427,7 +427,11 @@ export default function SeasonalSubscriptionPage() {
             // Assegna automaticamente il Premio Presenze
             const premiResult = await assignPremiPresenze(user!.uid, 'seasonal');
             if (premiResult.success) {
-                showPremiPresenzeMessage(premiResult.premioValue, premiResult.subscriptionType, toast);
+                showPremiPresenzeMessage(
+                    premiResult.premioValue,
+                    premiResult.subscriptionType ?? "seasonal",
+                    toast
+                );
             } else {
                 showPremiPresenzeErrorMessage(toast);
             }
