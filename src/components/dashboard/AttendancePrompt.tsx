@@ -34,27 +34,7 @@
             }
 
             try {
-                // 1. Controlla se l'utente ha già risposto oggi per una lezione
-                const today_start = new Date();
-                today_start.setHours(0, 0, 0, 0);
-                const today_end = new Date();
-                today_end.setHours(23, 59, 59, 999);
-
-                const attendanceQuery = query(
-                    collection(db, "attendances"),
-                    where("userId", "==", user.uid),
-                    where("lessonDate", ">=", Timestamp.fromDate(today_start)),
-                    where("lessonDate", "<=", Timestamp.fromDate(today_end))
-                );
-                const attendanceSnap = await getDocs(attendanceQuery);
-
-                if (!attendanceSnap.empty) {
-                    setAlreadyResponded(true);
-                    setIsLoading(false);
-                    return;
-                }
-
-                // 2. Recupera i dati utente
+                // 1. Recupera i dati utente
                 const userDocRef = doc(db, "users", user.uid);
                 const userDocSnap = await getDoc(userDocRef);
 
@@ -63,22 +43,29 @@
                     return;
                 }
                 const fetchedUserData = userDocSnap.data();
-                // 3. Controlla se l'utente è operativo (socio attivo e abbonamento attivo)
+                
+                // 2. Controlla se l'utente è operativo (socio attivo e abbonamento attivo)
                 if (fetchedUserData.associationStatus !== 'active' || fetchedUserData.subscriptionAccessStatus !== 'active') {
                     setIsLoading(false);
                     return;
                 }
                 setUserData(fetchedUserData);
 
-                // 4. Recupera la lezione di oggi dalla collezione events
+                // 3. Recupera la lezione di oggi dalla collezione events
+                let todaysLessonData = null;
                 if (fetchedUserData.gym && fetchedUserData.discipline) {
+                    const todayStart = new Date();
+                    todayStart.setHours(0, 0, 0, 0);
+                    const todayEnd = new Date();
+                    todayEnd.setHours(23, 59, 59, 999);
+
                     const eventsQuery = query(
                         collection(db, "events"),
                         where("type", "==", "lesson"),
                         where("gymId", "==", fetchedUserData.gym),
                         where("discipline", "==", fetchedUserData.discipline),
-                        where("startTime", ">=", Timestamp.fromDate(today_start)),
-                        where("startTime", "<=", Timestamp.fromDate(today_end)),
+                        where("startTime", ">=", Timestamp.fromDate(todayStart)),
+                        where("startTime", "<=", Timestamp.fromDate(todayEnd)),
                         orderBy("startTime"),
                         limit(1)
                     );
@@ -86,7 +73,61 @@
 
                     if (!eventsSnap.empty) {
                         const lessonDoc = eventsSnap.docs[0];
-                        setTodaysLesson({ id: lessonDoc.id, ...lessonDoc.data() });
+                        todaysLessonData = { id: lessonDoc.id, ...lessonDoc.data() };
+                        setTodaysLesson(todaysLessonData);
+                    }
+                }
+
+                // 4. CONTROLLO SPECIFICO: Verifica se ha già risposto per QUESTA lezione specifica
+                if (todaysLessonData) {
+                    console.log("🔍 DEBUG - Checking attendance for lesson:", todaysLessonData.id);
+                    
+                    // Controlla nella sottocollezione utente (eventId specifico)
+                    const userAttendanceQuery = query(
+                        collection(db, "users", user.uid, "attendances"),
+                        where("eventId", "==", todaysLessonData.id)
+                    );
+                    const userAttendanceSnap = await getDocs(userAttendanceQuery);
+                    console.log("🔍 DEBUG - User attendance docs found:", userAttendanceSnap.size);
+
+                    // Controlla anche nella collezione generale attendances
+                    const globalAttendanceQuery = query(
+                        collection(db, "attendances"),
+                        where("userId", "==", user.uid),
+                        where("eventId", "==", todaysLessonData.id)
+                    );
+                    const globalAttendanceSnap = await getDocs(globalAttendanceQuery);
+                    console.log("🔍 DEBUG - Global attendance docs found:", globalAttendanceSnap.size);
+
+                    // Se esiste una risposta in una delle due collezioni, non mostrare il messaggio
+                    if (!userAttendanceSnap.empty || !globalAttendanceSnap.empty) {
+                        console.log("🔍 DEBUG - Found existing attendance, hiding message");
+                        setAlreadyResponded(true);
+                        setIsLoading(false);
+                        return;
+                    }
+                    
+                    console.log("🔍 DEBUG - No attendance found by eventId, checking by date...");
+                    
+                    // CONTROLLO ALTERNATIVO: Verifica per data se eventId non trova nulla
+                    const todayStart = new Date();
+                    todayStart.setHours(0, 0, 0, 0);
+                    const todayEnd = new Date();
+                    todayEnd.setHours(23, 59, 59, 999);
+                    
+                    const dateAttendanceQuery = query(
+                        collection(db, "users", user.uid, "attendances"),
+                        where("lessonDate", ">=", Timestamp.fromDate(todayStart)),
+                        where("lessonDate", "<=", Timestamp.fromDate(todayEnd))
+                    );
+                    const dateAttendanceSnap = await getDocs(dateAttendanceQuery);
+                    console.log("🔍 DEBUG - Attendance by date found:", dateAttendanceSnap.size);
+                    
+                    if (!dateAttendanceSnap.empty) {
+                        console.log("🔍 DEBUG - Found attendance by date, hiding message");
+                        setAlreadyResponded(true);
+                        setIsLoading(false);
+                        return;
                     }
                 }
             } catch (error) {
@@ -209,7 +250,8 @@
             today_start.setHours(0, 0, 0, 0);
             const batch = writeBatch(db);
             const newAttendanceRef = doc(collection(db, "users", user.uid, "attendances"));
-            batch.set(newAttendanceRef, {
+            const lessonStartTime = todaysLesson.startTime.toDate();
+            const attendanceData = {
                 userId: user.uid,
                 userName: userData.name,
                 userSurname: userData.surname,
@@ -217,10 +259,14 @@
                 gymName: todaysLesson.gymName,
                 discipline: todaysLesson.discipline,
                 lessonDate: Timestamp.fromDate(today_start),
+                lessonTime: format(lessonStartTime, "HH:mm", { locale: it }),
                 status: status,
                 recordedAt: serverTimestamp(),
-                eventId: todaysLesson.id
-            });
+                eventId: todaysLesson.id  // IMPORTANTE: salva sempre l'eventId
+            };
+            
+            console.log("💾 DEBUG - Saving attendance with eventId:", todaysLesson.id);
+            batch.set(newAttendanceRef, attendanceData);
             if (status === 'presente') {
                 const userDocRef = doc(db, "users", user.uid);
                 batch.update(userDocRef, {

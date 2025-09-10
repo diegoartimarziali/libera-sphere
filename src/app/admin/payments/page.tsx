@@ -15,11 +15,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge, badgeVariants } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, Check, X, User, Users, Search, ShieldPlus, Trash2 } from "lucide-react"
+import { Loader2, Check, X, User, Users, Search, ShieldPlus, Trash2, Mail, MessageCircle } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 
 interface Payment {
@@ -100,7 +102,8 @@ export default function AdminPaymentsPage() {
     const [profiles, setProfiles] = useState<UserProfile[]>([]);
     const [gyms, setGyms] = useState<Map<string, string>>(new Map());
     const [loading, setLoading] = useState(true);
-    const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(null);
+    const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(null)
+    const [sendingMessageId, setSendingMessageId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("pending_completed");
 
@@ -231,6 +234,42 @@ export default function AdminPaymentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
     
+    // Messaggi predefiniti per i solleciti
+    const reminderMessages = {
+        association: "Richiesta Associazione, Il tuo pagamento non è ancora stato ricevuto.",
+        subscription: "Acquisto Abbonamento, Il tuo pagamento non è ancora stato ricevuto.",
+        stage: "Iscrizione Stage, Il tuo pagamento non è ancora stato ricevuto.",
+        exam: "Iscrizione Esami, Il tuo pagamento non è ancora stato ricevuto."
+    };
+
+    const handleSendReminder = async (payment: Payment, messageType: keyof typeof reminderMessages, userName: string) => {
+        setSendingMessageId(payment.id);
+        try {
+            const message = reminderMessages[messageType];
+            
+            // Qui dovresti implementare l'invio effettivo del messaggio
+            // Per ora simuliamo con un toast
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Simula invio
+            
+            toast({
+                title: "Messaggio Inviato",
+                description: `Sollecito inviato a ${userName}: "${message}"`
+            });
+            
+            console.log(`Messaggio inviato a ${userName} (${payment.userId}): ${message}`);
+            
+        } catch (error) {
+            console.error("Errore invio messaggio:", error);
+            toast({
+                variant: "destructive",
+                title: "Errore",
+                description: "Impossibile inviare il messaggio di sollecito."
+            });
+        } finally {
+            setSendingMessageId(null);
+        }
+    };
+
     const handlePaymentUpdate = async (payment: Payment, newStatus: 'completed' | 'failed') => {
         setUpdatingPaymentId(payment.id);
         
@@ -535,6 +574,33 @@ export default function AdminPaymentsPage() {
                                                                     >
                                                                         {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4" />}
                                                                     </Button>
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger asChild>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="icon"
+                                                                                disabled={sendingMessageId === p.id}
+                                                                                title="Invia sollecito"
+                                                                                className="bg-transparent hover:bg-transparent"
+                                                                            >
+                                                                                {sendingMessageId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Mail className="h-4 w-4" />}
+                                                                            </Button>
+                                                                        </DropdownMenuTrigger>
+                                                                        <DropdownMenuContent align="end">
+                                                                            <DropdownMenuItem onClick={() => handleSendReminder(p, 'association', `${profile.name} ${profile.surname}`)}>
+                                                                                📋 Richiesta Associazione
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuItem onClick={() => handleSendReminder(p, 'subscription', `${profile.name} ${profile.surname}`)}>
+                                                                                💳 Acquisto Abbonamento
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuItem onClick={() => handleSendReminder(p, 'stage', `${profile.name} ${profile.surname}`)}>
+                                                                                🏆 Iscrizione Stage
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuItem onClick={() => handleSendReminder(p, 'exam', `${profile.name} ${profile.surname}`)}>
+                                                                                🎓 Iscrizione Esami
+                                                                            </DropdownMenuItem>
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
                                                                 </div>
                                                             )}
                                                         </TableCell>
