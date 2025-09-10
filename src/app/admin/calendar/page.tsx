@@ -537,11 +537,36 @@ export default function AdminCalendarPage() {
             
             await fetchSavedCalendars();
             
+            // DOPO aver salvato il calendario, aggiorna i totalLessons per tutti gli utenti interessati
+            try {
+                // Trova tutti gli utenti con questa palestra e disciplina
+                const usersQuery = query(
+                    collection(db, "users"),
+                    where("gym", "==", gymId),
+                    where("discipline", "==", discipline)
+                );
+                const usersSnapshot = await getDocs(usersQuery);
+                
+                // Aggiorna il totalLessons per ogni utente
+                for (const userDoc of usersSnapshot.docs) {
+                    try {
+                        const { updateUserTotalLessons } = await import('@/lib/updateUserTotalLessons');
+                        await updateUserTotalLessons(userDoc.id, gymId, discipline);
+                    } catch (error) {
+                        console.error(`Errore aggiornamento totalLessons per utente ${userDoc.id}:`, error);
+                    }
+                }
+                
+                console.log(`totalLessons aggiornato per ${usersSnapshot.size} utenti di ${gymId}-${discipline}`);
+            } catch (error) {
+                console.error("Errore nell'aggiornamento automatico totalLessons:", error);
+            }
+            
             const operationalLessonsCount = lessons.filter(l => l.status === 'confermata').length;
 
             toast({
                 title: "Calendario Salvato!",
-                description: `Un nuovo calendario con ${operationalLessonsCount} lezioni operative è stato salvato con successo.`,
+                description: `Calendario con ${operationalLessonsCount} lezioni effettive salvato e totalLessons aggiornato per tutti gli utenti interessati.`,
                 variant: "default",
             });
 

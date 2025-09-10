@@ -9,6 +9,8 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
 import { format, isAfter, isBefore, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
+import { assignPremiPresenze } from "@/lib/assignPremiPresenze"
+import { showPremiPresenzeMessage, showPremiPresenzeErrorMessage } from "@/lib/premiPresenzeMessages"
 import Link from "next/link"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -422,6 +424,14 @@ export default function SeasonalSubscriptionPage() {
             
             await addDoc(paymentsRef, paymentData);
 
+            // Assegna automaticamente il Premio Presenze
+            const premiResult = await assignPremiPresenze(user!.uid, 'seasonal');
+            if (premiResult.success) {
+                showPremiPresenzeMessage(premiResult.premioValue, premiResult.subscriptionType, toast);
+            } else {
+                showPremiPresenzeErrorMessage(toast);
+            }
+
             toast({ 
                 title: "Richiesta Inviata!", 
                 description: bonusUsed > 0 
@@ -522,30 +532,31 @@ export default function SeasonalSubscriptionPage() {
                             <DialogHeader>
                                 <DialogTitle style={{ color: 'hsl(var(--background))' }}>Scegli Metodo di Pagamento</DialogTitle>
                                 <DialogDescription className="text-base">
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between">
-                                            <span>Prezzo abbonamento:</span>
-                                            <span>{totaleBonus > 0 ? (
-                                                <span style={{ textDecoration: 'line-through', color: '#888', fontWeight: 'bold' }}>€{availableSubscription.totalPrice.toFixed(2)}</span>
-                                            ) : (
-                                                <b>€{availableSubscription.totalPrice.toFixed(2)}</b>
-                                            )}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Bonus utilizzabili:</span>
-                                            <b>€{totaleBonus.toFixed(2)}</b>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Prezzo finale dopo bonus:</span>
-                                            <span className="font-bold" style={{ color: '#059669' }}>€{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</span>
-                                        </div>
-                                        {totaleBonus >= availableSubscription.totalPrice && (
-                                            <div className="text-center mt-2">
-                                                <span className="font-bold" style={{ color: '#059669' }}>Il tuo abbonamento è completamente coperto dai bonus!</span>
-                                            </div>
-                                        )}
-                                    </div>
+                                    Riepilogo abbonamento stagionale
                                 </DialogDescription>
+                                <div className="space-y-1 mt-2">
+                                    <div className="flex justify-between">
+                                        <span>Prezzo abbonamento:</span>
+                                        <span>{totaleBonus > 0 ? (
+                                            <span style={{ textDecoration: 'line-through', color: '#888', fontWeight: 'bold' }}>€{availableSubscription.totalPrice.toFixed(2)}</span>
+                                        ) : (
+                                            <b>€{availableSubscription.totalPrice.toFixed(2)}</b>
+                                        )}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Bonus utilizzabili:</span>
+                                        <b>€{totaleBonus.toFixed(2)}</b>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>Prezzo finale dopo bonus:</span>
+                                        <span className="font-bold" style={{ color: '#059669' }}>€{Math.max(0, availableSubscription.totalPrice - totaleBonus).toFixed(2)}</span>
+                                    </div>
+                                    {totaleBonus >= availableSubscription.totalPrice && (
+                                        <div className="text-center mt-2">
+                                            <span className="font-bold" style={{ color: '#059669' }}>Il tuo abbonamento è completamente coperto dai bonus!</span>
+                                        </div>
+                                    )}
+                                </div>
                             </DialogHeader>
                             {Math.max(0, availableSubscription.totalPrice - totaleBonus) > 0 ? (
                                 <RadioGroup

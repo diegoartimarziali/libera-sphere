@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import { db, auth } from "@/lib/firebase"
-import { collection, query, where, orderBy, getDocs, Timestamp } from "firebase/firestore"
+import { collection, query, orderBy, getDocs, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils"
 // Definisco il tipo di dati per una presenza
 interface Attendance {
     id: string;
-    lessonDate: Timestamp; // Manteniamo questo per l'ordinamento e la visualizzazione semplice
-    lessonTime: string; // Ora di inizio
+    lessonDate: Timestamp;
+    lessonTime: string;
     discipline: string;
     gymName: string;
     status: 'presente' | 'assente';
@@ -60,7 +60,7 @@ export default function AttendancesPage() {
             }
 
             try {
-                // Leggi presenze
+                // Leggi presenze dell'utente
                 const attendancesRef = collection(db, 'users', user.uid, 'attendances');
                 const q = query(
                     attendancesRef,
@@ -74,7 +74,7 @@ export default function AttendancesPage() {
                 } as Attendance));
                 setAttendances(attendancesList);
 
-                // Leggi lezioni totali
+                // Leggi totale lezioni effettive dalla sottocollezione (ora corretto con solo lezioni confermate)
                 const totalLessonsSnap = await getDocs(collection(db, 'users', user.uid, 'totalLessons'));
                 let total = null;
                 totalLessonsSnap.forEach(doc => {
@@ -98,6 +98,9 @@ export default function AttendancesPage() {
         fetchAttendances();
     }, [user, toast]);
 
+    // Calcola presenze effettive
+    const presentAttendances = attendances.filter(att => att.status === 'presente').length;
+
     return (
         <Card>
             <CardHeader>
@@ -113,8 +116,18 @@ export default function AttendancesPage() {
                     </div>
                 ) : (
                     <>
-                        <div className="mb-4 text-lg font-semibold text-muted-foreground">
-                            Presenze: {attendances.length} / {totalLessons ?? 'N/D'}
+                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="text-lg font-semibold text-blue-800 flex items-center gap-2">
+                                Presenze: {presentAttendances} / {totalLessons ?? 'N/D'}
+                                {totalLessons && totalLessons > 0 && (
+                                    <span className="ml-2 px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold border border-green-300">
+                                        {Math.round((presentAttendances / totalLessons) * 100)}%
+                                    </span>
+                                )}
+                            </div>
+                            <div className="text-sm text-blue-600 mt-1">
+                                Basato solo su lezioni effettive (escluse festività)
+                            </div>
                         </div>
                         <Table>
                             <TableHeader>

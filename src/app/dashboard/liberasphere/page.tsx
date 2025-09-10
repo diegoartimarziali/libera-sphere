@@ -119,7 +119,7 @@ export default function LiberaSpherePage() {
   const years = Array.from({ length: currentYear - startYear + 1 }, (_, i) => (currentYear - i).toString());
   
   const qualifications = [
-      "Nessuna",
+    "Allievo",
       "Allenatore",
       "Istruttore",
       "Maestro"

@@ -47,10 +47,19 @@ const Toast = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => {
+  const destructiveStyle = variant === 'destructive'
+    ? {
+        backgroundColor: 'hsl(var(--destructive))', // usa variabile CSS
+        border: '2px solid hsl(var(--popover))', // bordo da variabile CSS
+        color: 'hsl(var(--popover))', // testo da variabile CSS
+        fontWeight: 'bold',
+      }
+    : {};
   return (
     <ToastPrimitives.Root
       ref={ref}
       className={cn(toastVariants({ variant }), className)}
+      style={destructiveStyle}
       {...props}
     />
   )

@@ -2,12 +2,25 @@ import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Gift } from "lucide-react";
 import { useUserAwards } from "@/context/UserAwardsContext";
+import { useAttendances } from "@/hooks/use-attendances";
+import { calculatePremiPresenzeValue } from "@/lib/premiPresenzeCalculator";
 
 export function TotalAwardsCard() {
   const userAwards = useUserAwards();
-  // Calcola il valore totale dei premi assegnati (anche quelli esauriti)
+  const { percentage, loading: attendancesLoading } = useAttendances();
+  
+  // Calcola il valore totale dei premi assegnati (inclusi quelli già usati e Premio Presenze dinamico)
   const totalAssigned = Array.isArray(userAwards)
-    ? userAwards.reduce((acc: number, award) => acc + (award.value || 0), 0)
+    ? userAwards.reduce((acc: number, award) => {
+        if (award.name === 'Premio Presenze' && !attendancesLoading) {
+          // Per il Premio Presenze, usa il valore calcolato dinamicamente
+          const dynamicValue = calculatePremiPresenzeValue(percentage).value;
+          return acc + dynamicValue;
+        } else {
+          // Per gli altri premi, usa il valore salvato
+          return acc + (award.value || 0);
+        }
+      }, 0)
     : 0;
 
   // Trova la data di assegnamento del primo bonus valida

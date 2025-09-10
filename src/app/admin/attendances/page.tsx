@@ -136,17 +136,24 @@ export default function AdminAttendancesPage() {
             const calendarsSnapshot = await getDocs(collection(db, "calendars"));
             const calendars = calendarsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            // 2. Per ogni calendario, conta le lezioni operative
+            // 2. Per ogni calendario, conta SOLO le lezioni operative (confermate)
             const calendarLessonsCount: { [key: string]: number } = {};
             for (const calendar of calendars) {
                 const calendarData = calendar as any;
                 const eventsQuery = query(collection(db, "events"), where("calendarId", "==", calendar.id));
                 const eventsSnapshot = await getDocs(eventsQuery);
-                const operationalLessons = eventsSnapshot.docs.filter(doc => doc.data().status === 'confermata').length;
+                
+                // CONTA SOLO LEZIONI CONFERMATE (escluse festività e annullate)
+                const operationalLessons = eventsSnapshot.docs.filter(doc => {
+                    const eventData = doc.data();
+                    return eventData.status === 'confermata';
+                }).length;
                 
                 // Chiave univoca per palestra + disciplina
                 const calendarKey = `${calendarData.gymId}-${calendarData.discipline}`;
                 calendarLessonsCount[calendarKey] = operationalLessons;
+                
+                console.log(`Calendario ${calendarKey}: ${operationalLessons} lezioni effettive`);
             }
 
             // 3. Aggiorna il totalLessons per ogni utente
@@ -171,10 +178,11 @@ export default function AdminAttendancesPage() {
                         await deleteDoc(doc.ref);
                     }
                     
-                    // Crea nuovo documento con il valore aggiornato
+                    // Crea nuovo documento con il valore aggiornato (SOLO LEZIONI EFFETTIVE)
                     if (newTotalLessons > 0) {
                         await addDoc(totalLessonsRef, { value: newTotalLessons });
                         updatedCount++;
+                        console.log(`Utente ${userData.name}: ${newTotalLessons} lezioni effettive`);
                     }
                 }
             }
@@ -184,7 +192,7 @@ export default function AdminAttendancesPage() {
             
             toast({
                 title: "Ricalcolo Completato",
-                description: `Aggiornato il totale lezioni per ${updatedCount} utenti basandosi sui calendari attuali.`,
+                description: `Aggiornato il totale lezioni effettive per ${updatedCount} utenti (escluse festività e annullate).`,
                 variant: "default"
             });
 

@@ -40,25 +40,67 @@ exports.handleAcceptedPayment = handleAcceptedPayment;
 var createSubscriptionAward_1 = require("./createSubscriptionAward");
 function handleAcceptedPayment(paymentData, userId) {
     return __awaiter(this, void 0, void 0, function () {
-        var isMonthly, isSeasonal;
+        var isMonthly, isSeasonal, awardsSnap, presenzeAward, toast;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    if (!(paymentData.type === 'subscription')) return [3 /*break*/, 2];
-                    isMonthly = paymentData.description.toLowerCase().includes('mensile');
-                    isSeasonal = paymentData.description.toLowerCase().includes('stagionale');
-                    if (!(isMonthly || isSeasonal)) return [3 /*break*/, 2];
-                    // Crea il premio
-                    return [4 /*yield*/, (0, createSubscriptionAward_1.createSubscriptionAward)({
-                            userId: userId,
-                            subscriptionType: isMonthly ? 'monthly' : 'seasonal',
-                            subscriptionPrice: paymentData.amount + (paymentData.bonusUsed || 0) // Somma importo pagato + bonus usati
-                        })];
-                case 1:
-                    // Crea il premio
-                    _a.sent();
-                    _a.label = 2;
-                case 2: return [2 /*return*/];
+                    console.log('[handleAcceptedPayment] paymentData:', paymentData, 'userId:', userId);
+                    if (paymentData.type === 'subscription') {
+                        isMonthly = paymentData.description.toLowerCase().includes('mensile');
+                        isSeasonal = paymentData.description.toLowerCase().includes('stagionale');
+                        console.log('[handleAcceptedPayment] isMonthly:', isMonthly, 'isSeasonal:', isSeasonal);
+                        if (isMonthly || isSeasonal) {
+                            // Crea il premio abbonamento
+                            console.log('[handleAcceptedPayment] Creo premio abbonamento...');
+                            await (0, createSubscriptionAward_1.createSubscriptionAward)({
+                                userId: userId,
+                                subscriptionType: isMonthly ? 'monthly' : 'seasonal',
+                                subscriptionPrice: paymentData.amount + (paymentData.bonusUsed || 0)
+                            });
+                            console.log('[handleAcceptedPayment] Premio abbonamento creato. Cerco Premio Presenze in awards...');
+                            // Cerca il premio "Premio Presenze" nella collezione awards
+                            awardsSnap = await (0, firestore_1.getDocs)((0, firestore_1.collection)(firebase_1.db, "awards"));
+                            presenzeAward = awardsSnap.docs.find(function(doc) {
+                                var data = doc.data();
+                                return data.name === "Premio Presenze";
+                            });
+                            console.log('[handleAcceptedPayment] presenzeAward trovato:', !!presenzeAward, presenzeAward ? presenzeAward.data() : null);
+                            if (presenzeAward) {
+                                // Assegna il premio all'utente
+                                console.log('[handleAcceptedPayment] Assegno Premio Presenze all\'utente...');
+                                await (0, firestore_1.addDoc)((0, firestore_1.collection)(firebase_1.db, "users", userId, "userAwards"), {
+                                    awardId: presenzeAward.id,
+                                    name: "Premio Presenze",
+                                    value: presenzeAward.data().value,
+                                    residuo: presenzeAward.data().value,
+                                    usedValue: 0,
+                                    used: false,
+                                    assignedAt: firestore_1.Timestamp.now()
+                                });
+                                console.log('[handleAcceptedPayment] Premio Presenze assegnato!');
+                                // Toast per l'utente
+                                if (typeof window !== "undefined" && window.toast) {
+                                    window.toast({
+                                        variant: "success",
+                                        title: "Premio Presenze assegnato!",
+                                        description: "Hai ricevuto il premio Presenze, controlla i tuoi Premi."
+                                    });
+                                }
+                            } else {
+                                console.log('[handleAcceptedPayment] Premio Presenze NON trovato in awards!');
+                                // Notifica l'admin che il premio non esiste
+                                if (typeof window !== "undefined" && window.toast) {
+                                    window.toast({
+                                        variant: "destructive",
+                                        title: "Premio Presenze non configurato",
+                                        description: "Configura il premio 'Premio Presenze' in Gestione Premi per assegnarlo automaticamente."
+                                    });
+                                }
+                                // Puoi aggiungere qui altre notifiche (push, log, ecc.)
+                            }
+                        }
+                    }
+                    return;
             }
         });
     });

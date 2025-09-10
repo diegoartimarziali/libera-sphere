@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react";
@@ -10,6 +9,8 @@ import { createUserAward } from "@/lib/createUserAward";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { calculateAssignedAwardResiduo } from '@/lib/calculateAssignedAwardResiduo';
+import { useAttendances } from '@/hooks/use-attendances';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,8 @@ interface AssignedAward {
     userDiscipline?: string;
     name: string;
     value: number;
+    residuo?: number;
+    usedValue?: number;
     assignedAt?: any;
 }
 
@@ -62,6 +65,7 @@ const awardFormSchema = z.object({
 type AwardFormData = z.infer<typeof awardFormSchema>;
 
 export default function AdminAwardsPage() {
+    const { percentage, loading: attendancesLoading } = useAttendances();
     useEffect(() => {
         fetchAwards();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,6 +81,12 @@ export default function AdminAwardsPage() {
             );
             toast({ title: "Premio assegnato!" });
             sendPushNotification("Hai ricevuto un nuovo premio!", `Tipo: ${name}, Valore: ${value}€`);
+            // Toast per l'utente
+            toast({
+                variant: "success",
+                title: "Premio assegnato!",
+                description: `Hai ricevuto il premio ${name}, controlla i tuoi Premi.`
+            });
             setIsAssignOpen(false);
             setSelectedUserId("");
             fetchAssignedAwards(); // Ricarica la lista dei premi assegnati
@@ -153,6 +163,8 @@ export default function AdminAwardsPage() {
                         userDiscipline: userData.discipline,
                         name: awardData.name,
                         value: awardData.value,
+                        usedValue: awardData.usedValue ?? 0,
+                        residuo: awardData.residuo ?? awardData.value,
                         assignedAt: awardData.assignedAt
                     });
                 });
@@ -388,16 +400,28 @@ export default function AdminAwardsPage() {
                     
                     <TabsContent value="assegnati" className="mt-6">
                         <div className="rounded-md border">
+                            <div className="flex justify-end mb-2">
+                                <Button
+                                    variant="ghost"
+                                    onClick={fetchAssignedAwards}
+                                    className="p-2 bg-transparent border-none shadow-none hover:bg-primary/10"
+                                    title="Aggiorna premi assegnati"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-primary drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v6h6M20 20v-6h-6M5 19A9 9 0 0021 7M19 5A9 9 0 003 17" />
+                                    </svg>
+                                </Button>
+                            </div>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>Utente</TableHead>
-                                        <TableHead>Premio</TableHead>
-                                        <TableHead>Valore</TableHead>
-                                        <TableHead>Utilizzato</TableHead>
-                                        <TableHead>Residuo</TableHead>
-                                        <TableHead>Data Assegnazione</TableHead>
-                                        <TableHead className="text-right">Azioni</TableHead>
+                                        <TableHead className="font-bold">Utente</TableHead>
+                                        <TableHead className="font-bold">Premio</TableHead>
+                                        <TableHead className="font-bold">Valore</TableHead>
+                                        <TableHead className="font-bold">Utilizzato</TableHead>
+                                        <TableHead className="font-bold">Residuo</TableHead>
+                                        <TableHead className="font-bold">Data Assegnazione</TableHead>
+                                        <TableHead className="text-right font-bold">Azioni</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -424,8 +448,12 @@ export default function AdminAwardsPage() {
                                                 </TableCell>
                                                 <TableCell>{assignedAward.name}</TableCell>
                                                 <TableCell>€{assignedAward.value}</TableCell>
-                                                <TableCell>€0</TableCell> {/* TODO: Implementare tracking utilizzo */}
-                                                <TableCell>€{assignedAward.value}</TableCell> {/* TODO: Calcolare residuo */}
+                                                <TableCell>€{assignedAward.usedValue?.toFixed(2) ?? "0.00"}</TableCell>
+                                                <TableCell>
+                                                    €{assignedAward.name === 'Premio Presenze' && !attendancesLoading
+                                                        ? calculateAssignedAwardResiduo(assignedAward, percentage).toFixed(2)
+                                                        : assignedAward.residuo?.toFixed(2) ?? assignedAward.value.toFixed(2)}
+                                                </TableCell>
                                                 <TableCell>
                                                     {assignedAward.assignedAt ? 
                                                         new Date(assignedAward.assignedAt.toDate()).toLocaleDateString('it-IT') : 

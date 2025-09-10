@@ -9,6 +9,8 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
 import { format, isAfter, isBefore, startOfDay } from "date-fns"
 import { Gift } from "lucide-react"
+import { assignPremiPresenze } from "@/lib/assignPremiPresenze"
+import { showPremiPresenzeMessage, showPremiPresenzeErrorMessage } from "@/lib/premiPresenzeMessages"
 import { it } from "date-fns/locale"
 import Link from "next/link"
 
@@ -420,6 +422,14 @@ export default function MonthlySubscriptionPage() {
                 bonusUsed: valoreUsato,
                 awardId: awardIdsUsati.length === 1 ? awardIdsUsati[0] : awardIdsUsati
             });
+
+            // Assegna automaticamente il Premio Presenze
+            const premiResult = await assignPremiPresenze(user!.uid, 'monthly');
+            if (premiResult.success) {
+                showPremiPresenzeMessage(premiResult.premioValue, premiResult.subscriptionType, toast);
+            } else {
+                showPremiPresenzeErrorMessage(toast);
+            }
 
             toast({ title: "Richiesta Inviata!", description: `Pagamento: €${Math.max(0, subscription.totalPrice - valoreUsato).toFixed(2)}. Bonus usati: €${valoreUsato.toFixed(2)}.`, });
             if (method === 'online' && subscription.sumupLink && Math.max(0, subscription.totalPrice - valoreUsato) > 0) {
