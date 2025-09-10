@@ -471,8 +471,8 @@ export default function AdminPaymentsPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                     <div className="relative w-full sm:w-auto flex-1">
+                <div className="flex flex-col gap-4 mb-6">
+                     <div className="relative w-full">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             placeholder="Cerca per nome o email..."
@@ -482,7 +482,7 @@ export default function AdminPaymentsPage() {
                         />
                     </div>
                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-full sm:w-[280px] bg-transparent border-amber-800 text-amber-800 hover:bg-amber-800/5">
+                        <SelectTrigger className="w-full bg-transparent border-amber-800 text-amber-800 hover:bg-amber-800/5">
                             <SelectValue placeholder="Filtra per stato pagamento" />
                         </SelectTrigger>
                         <SelectContent>
@@ -503,111 +503,215 @@ export default function AdminPaymentsPage() {
                     <Accordion type="multiple" className="w-full">
                         {filteredProfiles.length > 0 ? filteredProfiles.map(profile => (
                             <AccordionItem value={profile.uid} key={profile.uid}>
-                                 <div className="flex items-center hover:bg-muted/50 px-4 rounded-md">
+                                 <div className="flex items-center hover:bg-muted/50 px-2 sm:px-4 rounded-md">
                                     <AccordionTrigger className="flex-1">
-                                        <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
+                                        <div className="flex flex-1 flex-col text-left gap-1">
                                             <div className="flex items-center">
-                                                <User className="h-5 w-5 mr-3 text-primary" />
-                                                <span className="font-bold text-sm">{profile.name} {profile.surname}</span>
+                                                <User className="h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 text-primary flex-shrink-0" />
+                                                <span className="font-bold text-sm truncate">{profile.name} {profile.surname}</span>
                                             </div>
-                                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
-                                                {profile.discipline && <span>{profile.discipline}</span>}
-                                                {profile.gym && <span>{profile.gym} - {gyms.get(profile.gym)}</span>}
+                                            <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs sm:text-sm text-muted-foreground pl-6 sm:pl-8">
+                                                {profile.discipline && <span className="truncate">{profile.discipline}</span>}
+                                                {profile.gym && <span className="truncate">{profile.gym} - {gyms.get(profile.gym)}</span>}
                                             </div>
                                         </div>
                                     </AccordionTrigger>
-                                     <div className="flex items-center gap-2 ml-4">
-                                        {/* Azioni utente qui, nessun tasto admin */}
+                                     <div className="flex items-center gap-2 ml-2 sm:ml-4">
+                                        {/* Badge per numero pagamenti pending su mobile */}
+                                        {profile.payments.filter(p => p.status === 'pending').length > 0 && (
+                                            <Badge variant="secondary" className="text-xs md:hidden">
+                                                {profile.payments.filter(p => p.status === 'pending').length}
+                                            </Badge>
+                                        )}
                                     </div>
                                 </div>
                                 <AccordionContent className="p-4 bg-muted/20">
                                     {/* Premi assegnati rimossi su richiesta */}
                                     {/* Pagamenti */}
                                     {profile.payments.length > 0 ? (
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className="font-bold">Data</TableHead>
-                                                    <TableHead className="font-bold">Descrizione</TableHead>
-                                                    <TableHead className="font-bold">Metodo</TableHead>
-                                                    <TableHead className="font-bold">Importo</TableHead>
-                                                    <TableHead className="font-bold">Stato</TableHead>
-                                                    <TableHead className="text-left font-bold">Azione</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {profile.payments.map(p => (
-                                                    <TableRow key={p.id}>
-                                                        <TableCell>{p.createdAt ? format(p.createdAt.toDate(), 'dd/MM/yy HH:mm') : 'N/D'}</TableCell>
-                                                        <TableCell>{p.description || (p.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '')}</TableCell>
-                                                        <TableCell>{translatePaymentMethod(p.paymentMethod)}</TableCell>
-                                                        <TableCell>{p.amount.toFixed(2)} €</TableCell>
-                                                        <TableCell>
-                                                            {p.status === 'completed' ? (
-                                                                <span className="text-green-600 bg-transparent font-bold">{translateStatus(p.status)}</span>
-                                                            ) : p.status === 'failed' ? (
-                                                                <span className="text-red-600 bg-transparent font-bold">{translateStatus(p.status)}</span>
-                                                            ) : (
-                                                                <Badge variant={getStatusVariant(p.status)}>
-                                                                    {translateStatus(p.status)}
-                                                                </Badge>
-                                                            )}
-                                                        </TableCell>
-                                                        <TableCell className="text-left">
-                                                            {p.status === 'pending' && (
-                                                                <div className="flex gap-2 justify-start">
-                                                                    <Button
-                                                                        variant="destructive"
-                                                                        size="icon"
-                                                                        onClick={() => handlePaymentUpdate(p, 'failed')}
-                                                                        disabled={updatingPaymentId === p.id}
-                                                                        title="Segna come fallito"
-                                                                    >
-                                                                         {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="h-4 w-4" />}
-                                                                    </Button>
-                                                                    <Button
-                                                                        variant="success"
-                                                                        size="icon"
-                                                                        onClick={() => handlePaymentUpdate(p, 'completed')}
-                                                                        disabled={updatingPaymentId === p.id}
-                                                                        title="Approva pagamento"
-                                                                    >
-                                                                        {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4" />}
-                                                                    </Button>
-                                                                    <DropdownMenu>
-                                                                        <DropdownMenuTrigger asChild>
+                                        <>
+                                            {/* Vista Desktop */}
+                                            <div className="hidden md:block">
+                                                <Table>
+                                                    <TableHeader>
+                                                        <TableRow>
+                                                            <TableHead className="font-bold">Data</TableHead>
+                                                            <TableHead className="font-bold">Descrizione</TableHead>
+                                                            <TableHead className="font-bold">Metodo</TableHead>
+                                                            <TableHead className="font-bold">Importo</TableHead>
+                                                            <TableHead className="font-bold">Stato</TableHead>
+                                                            <TableHead className="text-left font-bold">Azione</TableHead>
+                                                        </TableRow>
+                                                    </TableHeader>
+                                                    <TableBody>
+                                                        {profile.payments.map(p => (
+                                                            <TableRow key={p.id}>
+                                                                <TableCell>{p.createdAt ? format(p.createdAt.toDate(), 'dd/MM/yy HH:mm') : 'N/D'}</TableCell>
+                                                                <TableCell>{p.description || (p.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '')}</TableCell>
+                                                                <TableCell>{translatePaymentMethod(p.paymentMethod)}</TableCell>
+                                                                <TableCell>{p.amount.toFixed(2)} €</TableCell>
+                                                                <TableCell>
+                                                                    {p.status === 'completed' ? (
+                                                                        <span className="text-green-600 bg-transparent font-bold">{translateStatus(p.status)}</span>
+                                                                    ) : p.status === 'failed' ? (
+                                                                        <span className="text-red-600 bg-transparent font-bold">{translateStatus(p.status)}</span>
+                                                                    ) : (
+                                                                        <Badge variant={getStatusVariant(p.status)}>
+                                                                            {translateStatus(p.status)}
+                                                                        </Badge>
+                                                                    )}
+                                                                </TableCell>
+                                                                <TableCell className="text-left">
+                                                                    {p.status === 'pending' && (
+                                                                        <div className="flex gap-2 justify-start">
                                                                             <Button
                                                                                 variant="outline"
                                                                                 size="icon"
-                                                                                disabled={sendingMessageId === p.id}
-                                                                                title="Invia sollecito"
-                                                                                className="bg-transparent hover:bg-transparent"
+                                                                                onClick={() => handlePaymentUpdate(p, 'failed')}
+                                                                                disabled={updatingPaymentId === p.id}
+                                                                                title="Segna come fallito"
+                                                                                className="bg-transparent border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400"
                                                                             >
-                                                                                {sendingMessageId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Mail className="h-4 w-4" />}
+                                                                                 {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="h-4 w-4" />}
                                                                             </Button>
-                                                                        </DropdownMenuTrigger>
-                                                                        <DropdownMenuContent align="end">
-                                                                            <DropdownMenuItem onClick={() => handleSendReminder(p, 'association', `${profile.name} ${profile.surname}`)}>
-                                                                                📋 Richiesta Associazione
-                                                                            </DropdownMenuItem>
-                                                                            <DropdownMenuItem onClick={() => handleSendReminder(p, 'subscription', `${profile.name} ${profile.surname}`)}>
-                                                                                💳 Acquisto Abbonamento
-                                                                            </DropdownMenuItem>
-                                                                            <DropdownMenuItem onClick={() => handleSendReminder(p, 'stage', `${profile.name} ${profile.surname}`)}>
-                                                                                🏆 Iscrizione Stage
-                                                                            </DropdownMenuItem>
-                                                                            <DropdownMenuItem onClick={() => handleSendReminder(p, 'exam', `${profile.name} ${profile.surname}`)}>
-                                                                                🎓 Iscrizione Esami
-                                                                            </DropdownMenuItem>
-                                                                        </DropdownMenuContent>
-                                                                    </DropdownMenu>
+                                                                            <Button
+                                                                                variant="outline"
+                                                                                size="icon"
+                                                                                onClick={() => handlePaymentUpdate(p, 'completed')}
+                                                                                disabled={updatingPaymentId === p.id}
+                                                                                title="Approva pagamento"
+                                                                                className="bg-transparent border-green-300 text-green-500 hover:bg-green-50 hover:border-green-400"
+                                                                            >
+                                                                                {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4" />}
+                                                                            </Button>
+                                                                            <DropdownMenu>
+                                                                                <DropdownMenuTrigger asChild>
+                                                                                    <Button
+                                                                                        variant="outline"
+                                                                                        size="icon"
+                                                                                        disabled={sendingMessageId === p.id}
+                                                                                        title="Invia sollecito"
+                                                                                        className="bg-transparent hover:bg-transparent"
+                                                                                    >
+                                                                                        {sendingMessageId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Mail className="h-4 w-4" />}
+                                                                                    </Button>
+                                                                                </DropdownMenuTrigger>
+                                                                                <DropdownMenuContent align="end">
+                                                                                    <DropdownMenuItem onClick={() => handleSendReminder(p, 'association', `${profile.name} ${profile.surname}`)}>
+                                                                                        📋 Richiesta Associazione
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuItem onClick={() => handleSendReminder(p, 'subscription', `${profile.name} ${profile.surname}`)}>
+                                                                                        💳 Acquisto Abbonamento
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuItem onClick={() => handleSendReminder(p, 'stage', `${profile.name} ${profile.surname}`)}>
+                                                                                        🏆 Iscrizione Stage
+                                                                                    </DropdownMenuItem>
+                                                                                    <DropdownMenuItem onClick={() => handleSendReminder(p, 'exam', `${profile.name} ${profile.surname}`)}>
+                                                                                        🎓 Iscrizione Esami
+                                                                                    </DropdownMenuItem>
+                                                                                </DropdownMenuContent>
+                                                                            </DropdownMenu>
+                                                                        </div>
+                                                                    )}
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))}
+                                                    </TableBody>
+                                                </Table>
+                                            </div>
+                                            
+                                            {/* Vista Mobile - Cards */}
+                                            <div className="md:hidden space-y-3">
+                                                {profile.payments.map(p => (
+                                                    <Card key={p.id} className="border-l-4 border-l-primary">
+                                                        <CardContent className="p-4">
+                                                            <div className="space-y-3">
+                                                                {/* Header con data e stato */}
+                                                                <div className="flex justify-between items-start">
+                                                                    <div className="text-sm text-muted-foreground">
+                                                                        {p.createdAt ? format(p.createdAt.toDate(), 'dd/MM/yy HH:mm') : 'N/D'}
+                                                                    </div>
+                                                                    <div>
+                                                                        {p.status === 'completed' ? (
+                                                                            <span className="text-green-600 bg-transparent font-bold text-sm">{translateStatus(p.status)}</span>
+                                                                        ) : p.status === 'failed' ? (
+                                                                            <span className="text-red-600 bg-transparent font-bold text-sm">{translateStatus(p.status)}</span>
+                                                                        ) : (
+                                                                            <Badge variant={getStatusVariant(p.status)}>
+                                                                                {translateStatus(p.status)}
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
-                                                            )}
-                                                        </TableCell>
-                                                    </TableRow>
+                                                                
+                                                                {/* Descrizione */}
+                                                                <div className="font-medium text-sm">
+                                                                    {p.description || (p.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '')}
+                                                                </div>
+                                                                
+                                                                {/* Dettagli metodo e importo */}
+                                                                <div className="flex justify-between items-center text-sm">
+                                                                    <span className="text-muted-foreground">{translatePaymentMethod(p.paymentMethod)}</span>
+                                                                    <span className="font-bold">{p.amount.toFixed(2)} €</span>
+                                                                </div>
+                                                                
+                                                                {/* Azioni per pagamenti pending */}
+                                                                {p.status === 'pending' && (
+                                                                    <div className="flex gap-2 pt-2 justify-center">
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="icon"
+                                                                            onClick={() => handlePaymentUpdate(p, 'failed')}
+                                                                            disabled={updatingPaymentId === p.id}
+                                                                            title="Rifiuta"
+                                                                            className="bg-transparent border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400"
+                                                                        >
+                                                                            {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <X className="h-4 w-4" />}
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="icon"
+                                                                            onClick={() => handlePaymentUpdate(p, 'completed')}
+                                                                            disabled={updatingPaymentId === p.id}
+                                                                            title="Approva"
+                                                                            className="bg-transparent border-green-300 text-green-500 hover:bg-green-50 hover:border-green-400"
+                                                                        >
+                                                                            {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4" />}
+                                                                        </Button>
+                                                                        <DropdownMenu>
+                                                                            <DropdownMenuTrigger asChild>
+                                                                                <Button
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    disabled={sendingMessageId === p.id}
+                                                                                    className="bg-transparent hover:bg-transparent px-3"
+                                                                                >
+                                                                                    {sendingMessageId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Mail className="h-4 w-4" />}
+                                                                                </Button>
+                                                                            </DropdownMenuTrigger>
+                                                                            <DropdownMenuContent align="end">
+                                                                                <DropdownMenuItem onClick={() => handleSendReminder(p, 'association', `${profile.name} ${profile.surname}`)}>
+                                                                                    📋 Richiesta Associazione
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem onClick={() => handleSendReminder(p, 'subscription', `${profile.name} ${profile.surname}`)}>
+                                                                                    💳 Acquisto Abbonamento
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem onClick={() => handleSendReminder(p, 'stage', `${profile.name} ${profile.surname}`)}>
+                                                                                    🏆 Iscrizione Stage
+                                                                                </DropdownMenuItem>
+                                                                                <DropdownMenuItem onClick={() => handleSendReminder(p, 'exam', `${profile.name} ${profile.surname}`)}>
+                                                                                    🎓 Iscrizione Esami
+                                                                                </DropdownMenuItem>
+                                                                            </DropdownMenuContent>
+                                                                        </DropdownMenu>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
                                                 ))}
-                                            </TableBody>
-                                        </Table>
+                                            </div>
+                                        </>
                                     ) : (
                                         <p className="text-center text-muted-foreground py-4">Nessun pagamento registrato per questo utente.</p>
                                     )}

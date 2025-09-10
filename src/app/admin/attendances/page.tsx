@@ -31,6 +31,7 @@ interface UserProfile {
     surname: string;
     email: string;
     discipline?: string;
+    gym?: string;
     attendances: Attendance[];
     totalLessons?: number;
 }
@@ -69,14 +70,11 @@ export default function AdminAttendancesPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Fetch gyms
-            const gymsSnapshot = await getDocs(query(collection(db, "gyms"), orderBy("name")));
-            const gymsList = gymsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Gym));
-            setGyms(gymsList);
-
-            // 1. Fetch all users
+            // 1. Fetch all users per raccogliere le palestre reali
             const usersSnapshot = await getDocs(query(collection(db, "users"), orderBy("surname")));
             const profiles: UserProfile[] = [];
+            const uniqueUserGyms = new Set<string>();
+            
             for (const docSnap of usersSnapshot.docs) {
                 const userData = docSnap.data();
                 const attendances: Attendance[] = [];
@@ -101,16 +99,32 @@ export default function AdminAttendancesPage() {
                         totalLessons = tlData.value;
                     }
                 });
+                
+                // Raccogli la palestra dell'utente
+                let gymName = userData.gym; // Usa direttamente l'ID come nome temporaneo
+                if (userData.gym) {
+                    uniqueUserGyms.add(userData.gym);
+                }
+                
                 profiles.push({
                     uid: docSnap.id,
                     name: userData.name,
                     surname: userData.surname,
                     email: userData.email,
                     discipline: userData.discipline,
+                    gym: gymName,
                     attendances,
                     totalLessons
                 });
             }
+            
+            // Crea gymsList dalle palestre uniche trovate negli utenti
+            const gymsList = Array.from(uniqueUserGyms).sort().map(gymId => ({
+                id: gymId,
+                name: gymId // Usa l'ID come nome per ora
+            }));
+            console.log('Palestre trovate dagli utenti:', gymsList);
+            setGyms(gymsList);
             setProfiles(profiles);
 
         } catch (error) {
@@ -210,25 +224,23 @@ export default function AdminAttendancesPage() {
     
 
     const filteredProfiles = profiles
-        .map(profile => {
-            // First, filter the attendances inside each profile
-            const filteredAttendances = profile.attendances.filter(attendance => {
-                const gymMatch = gymFilter === "all" || attendance.gymName.toLowerCase().includes(gymFilter.toLowerCase());
-                return gymMatch;
-            });
-
-            // Return a new profile object with the filtered attendances
-            return {
-                ...profile,
-                attendances: filteredAttendances,
-            };
-        })
         .filter(profile => {
+            // Filtra per disciplina
             const disciplineMatch = disciplineFilter === "all" || profile.discipline === disciplineFilter;
             
-            // A profile should be shown if it matches the discipline,
-            // AND has attendances that match the gym filter (or if gym filter is 'all')
-            return disciplineMatch;
+            // Filtra per palestra dell'utente
+            let gymMatch = false;
+            if (gymFilter === "all") {
+                gymMatch = true;
+            } else {
+                // Usa direttamente l'ID della palestra per il confronto
+                gymMatch = profile.gym === gymFilter;
+                
+                // Debug
+                console.log("User:", profile.name, "UserGym ID:", profile.gym, "Filter:", gymFilter, "Match:", gymMatch);
+            }
+            
+            return disciplineMatch && gymMatch;
         });
 
     return (
@@ -240,9 +252,9 @@ export default function AdminAttendancesPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex flex-col gap-4 mb-6">
                     <Select value={gymFilter} onValueChange={setGymFilter}>
-                        <SelectTrigger className="w-full sm:w-[240px] bg-white text-black">
+                        <SelectTrigger className="w-full bg-white text-black">
                             <SelectValue placeholder="Filtra per palestra..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -253,7 +265,7 @@ export default function AdminAttendancesPage() {
                         </SelectContent>
                     </Select>
                     <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
-                        <SelectTrigger className="w-full sm:w-[240px] bg-white text-black">
+                        <SelectTrigger className="w-full bg-white text-black">
                             <SelectValue placeholder="Filtra per disciplina..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -266,7 +278,7 @@ export default function AdminAttendancesPage() {
                         onClick={recalculateTotalLessons} 
                         disabled={isRecalculating}
                         variant="outline"
-                        className="bg-transparent text-amber-800 border-amber-800 hover:bg-amber-50 w-full sm:w-auto"
+                        className="bg-transparent text-amber-800 border-amber-800 hover:bg-amber-50 w-full"
                     >
                         {isRecalculating ? <Loader2 className="animate-spin mr-2" /> : <RefreshCw className="mr-2" />}
                         Ricalcola Totali
@@ -280,61 +292,95 @@ export default function AdminAttendancesPage() {
                 ) : (
                     <Accordion type="multiple" className="w-full">
                         {filteredProfiles.length > 0 ? filteredProfiles.map(profile => {
-                            // Don't render users who have no matching attendances after filtering
-                            if (profile.attendances.length === 0 && gymFilter !== 'all') {
-                                return null;
-                            }
                             const totalPresences = profile.attendances.filter(a => a.status === 'presente').length;
                             // Mostra "Presenze: X / Y" accanto al nome utente
                             return (
                                 <AccordionItem value={profile.uid} key={profile.uid}>
-                                    <div className="flex items-center hover:bg-amber-50 px-4 rounded-md transition-colors">
+                                    <div className="flex items-center hover:bg-amber-50 px-2 sm:px-4 rounded-md transition-colors">
                                         <AccordionTrigger className="flex-1">
-                                            <div className="flex flex-1 flex-col sm:flex-row sm:items-center sm:gap-4 text-left">
+                                            <div className="flex flex-1 flex-col text-left gap-2">
+                                                {/* Nome utente */}
                                                 <div className="flex items-center gap-2">
-                                                    <User className="h-5 w-5 mr-3 text-primary" />
-                                                    <span className="font-bold">{profile.name} {profile.surname}</span>
-                                                    <span className="ml-3 px-2 py-1 rounded bg-primary/10 text-primary font-semibold text-sm border border-primary/20 flex items-center gap-2">
-                                                        Presenze: {totalPresences} / {typeof profile.totalLessons === 'number' ? profile.totalLessons : 'N/D'}
+                                                    <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                                                    <span className="font-bold text-sm sm:text-base truncate">{profile.name} {profile.surname}</span>
+                                                </div>
+                                                
+                                                {/* Statistiche presenze - responsive */}
+                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 pl-6 sm:pl-7">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="px-2 py-1 rounded bg-primary/10 text-primary font-semibold text-xs sm:text-sm border border-primary/20">
+                                                            Presenze: {totalPresences} / {typeof profile.totalLessons === 'number' ? profile.totalLessons : 'N/D'}
+                                                        </span>
                                                         {typeof profile.totalLessons === 'number' && profile.totalLessons > 0 && (
-                                                            <span className="ml-2 px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold border border-green-300">
+                                                            <span className="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold border border-green-300">
                                                                 {Math.round((totalPresences / profile.totalLessons) * 100)}%
                                                             </span>
                                                         )}
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground pl-8 sm:pl-0">
-                                                    {profile.discipline && <span>{profile.discipline}</span>}
+                                                    </div>
+                                                    
+                                                    {/* Disciplina e Palestra */}
+                                                    <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-muted-foreground">
+                                                        {profile.discipline && <span>{profile.discipline}</span>}
+                                                        {profile.gym && (
+                                                            <span>
+                                                                {gyms.find(g => g.id === profile.gym)?.name || profile.gym}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </AccordionTrigger>
                                     </div>
                                     <AccordionContent className="p-4 bg-amber-50/30">
                                         {profile.attendances.length > 0 ? (
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead>Data</TableHead>
-                                                        <TableHead>Orario</TableHead>
-                                                        <TableHead>Palestra</TableHead>
-                                                        <TableHead className="text-right">Stato</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
+                                            <>
+                                                {/* Vista Desktop */}
+                                                <div className="hidden md:block">
+                                                    <Table>
+                                                        <TableHeader>
+                                                            <TableRow>
+                                                                <TableHead>Data</TableHead>
+                                                                <TableHead className="text-right">Stato</TableHead>
+                                                            </TableRow>
+                                                        </TableHeader>
+                                                        <TableBody>
+                                                            {profile.attendances.map(a => (
+                                                                <TableRow key={a.id}>
+                                                                    <TableCell>{a.lessonDate ? format(a.lessonDate.toDate(), 'eeee dd/MM/yy', { locale: it }) : 'N/D'}</TableCell>
+                                                                    <TableCell className="text-right">
+                                                                        <Badge variant={getStatusVariant(a.status)} className={a.status === 'presente' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}>
+                                                                            {translateStatus(a.status)}
+                                                                        </Badge>
+                                                                    </TableCell>
+                                                                </TableRow>
+                                                            ))}
+                                                        </TableBody>
+                                                    </Table>
+                                                </div>
+                                                
+                                                {/* Vista Mobile - Cards */}
+                                                <div className="md:hidden space-y-3">
                                                     {profile.attendances.map(a => (
-                                                        <TableRow key={a.id}>
-                                                            <TableCell>{a.lessonDate ? format(a.lessonDate.toDate(), 'eeee dd/MM/yy', { locale: it }) : 'N/D'}</TableCell>
-                                                            <TableCell>{a.lessonTime}</TableCell>
-                                                            <TableCell>{a.gymName}</TableCell>
-                                                            <TableCell className="text-right">
-                                                                <Badge variant={getStatusVariant(a.status)} className={a.status === 'presente' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}>
-                                                                    {translateStatus(a.status)}
-                                                                </Badge>
-                                                            </TableCell>
-                                                        </TableRow>
+                                                        <Card key={a.id} className={`border-l-4 ${a.status === 'presente' ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                                                            <CardContent className="p-3">
+                                                                <div className="space-y-2">
+                                                                    {/* Header con data e stato */}
+                                                                    <div className="flex justify-between items-start">
+                                                                        <div className="text-sm font-medium">
+                                                                            {a.lessonDate ? format(a.lessonDate.toDate(), 'eeee dd/MM/yy', { locale: it }) : 'N/D'}
+                                                                        </div>
+                                                                        <Badge variant={getStatusVariant(a.status)} className={a.status === 'presente' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}>
+                                                                            {translateStatus(a.status)}
+                                                                        </Badge>
+                                                                    </div>
+                                                                    
+
+                                                                </div>
+                                                            </CardContent>
+                                                        </Card>
                                                     ))}
-                                                </TableBody>
-                                            </Table>
+                                                </div>
+                                            </>
                                         ) : (
                                             <p className="text-center text-muted-foreground py-4">Nessuna presenza o assenza registrata per questo utente per i filtri selezionati.</p>
                                         )}

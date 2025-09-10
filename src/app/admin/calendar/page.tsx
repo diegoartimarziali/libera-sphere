@@ -12,7 +12,7 @@ import { format, parseISO, addDays, eachDayOfInterval, isValid, isBefore, nextDa
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, PlusCircle, Trash2, X, Save, MessageSquareWarning, FileWarning, Upload, AlertTriangle, PartyPopper, TestTube2 } from "lucide-react";
+import { Loader2, PlusCircle, Trash2, X, Save, MessageSquareWarning, FileWarning, Upload, AlertTriangle, PartyPopper, TestTube2, Edit } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -132,47 +132,47 @@ function LessonForm({ lesson, gyms, onSave, onCancel }: { lesson?: LessonFormDat
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1 sm:p-0">
                 <FormField control={form.control} name="title" render={({ field }) => (
-                    <FormItem><FormLabel className="text-amber-800">Titolo</FormLabel><FormControl><Input {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Titolo</FormLabel><FormControl><Input {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <FormField control={form.control} name="startDate" render={({ field }) => (
-                        <FormItem><FormLabel className="text-amber-800">Data Inizio</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Data Inizio</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="startTime" render={({ field }) => (
-                        <FormItem><FormLabel className="text-amber-800">Ora Inizio</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Ora Inizio</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
-                 <div className="grid grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <FormField control={form.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel className="text-amber-800">Data Fine</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Data Fine</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="endTime" render={({ field }) => (
-                        <FormItem><FormLabel className="text-amber-800">Ora Fine</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Ora Fine</FormLabel><FormControl><Input type="time" {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                 
                  <FormField control={form.control} name="discipline" render={({ field }) => (
-                    <FormItem><FormLabel className="text-amber-800">Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-10 sm:h-auto"><SelectValue placeholder="Seleziona disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 
                 <FormField control={form.control} name="gymId" render={({ field }) => (
-                    <FormItem><FormLabel className="text-amber-800">Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-10 sm:h-auto"><SelectValue placeholder="Seleziona palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                 )} />
                 
                 <FormField control={form.control} name="status" render={({ field }) => (
-                    <FormItem><FormLabel className="text-amber-800">Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem><SelectItem value="festivita">Festività</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Stato Lezione</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-10 sm:h-auto"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="confermata">Confermata</SelectItem><SelectItem value="annullata">Annullata</SelectItem><SelectItem value="festivita">Festività</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
 
                 <FormField control={form.control} name="notes" render={({ field }) => (
-                    <FormItem><FormLabel className="text-amber-800">Note / Avvisi</FormLabel><FormControl><Textarea {...field} placeholder="Es. Portare protezioni, lezione annullata per maltempo..." className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-amber-800 text-sm sm:text-base">Note / Avvisi</FormLabel><FormControl><Textarea {...field} placeholder="Es. Portare protezioni, lezione annullata per maltempo..." className="bg-white text-black min-h-[80px] sm:min-h-[100px]" /></FormControl><FormMessage /></FormItem>
                 )} />
 
-                <DialogFooter>
-                    <Button type="button" variant="outline" onClick={onCancel} className="bg-transparent text-amber-800 border-amber-800 hover:bg-amber-50">Annulla</Button>
-                    <Button type="submit" variant="outline" className="bg-transparent text-green-600 border-green-600 hover:bg-green-50">Salva Lezione</Button>
+                <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2 space-y-2 sm:space-y-0">
+                    <Button type="button" variant="outline" onClick={onCancel} className="bg-transparent text-amber-800 border-amber-800 hover:bg-amber-50 w-full sm:w-auto order-2 sm:order-1">Annulla</Button>
+                    <Button type="submit" variant="outline" className="bg-transparent text-green-600 border-green-600 hover:bg-green-50 w-full sm:w-auto order-1 sm:order-2">Salva Lezione</Button>
                 </DialogFooter>
             </form>
         </Form>
@@ -195,26 +195,26 @@ function TestCalendarDialog({ gyms, onGenerate, onOpenChange }: { gyms: Gym[], o
 
     return (
         <Form {...testForm}>
-            <form onSubmit={testForm.handleSubmit(handleFormSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={testForm.handleSubmit(handleFormSubmit)} className="space-y-4 p-1 sm:p-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <FormField control={testForm.control} name="startDate" render={({ field }) => (
-                        <FormItem><FormLabel>Dal</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-sm sm:text-base">Dal</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={testForm.control} name="endDate" render={({ field }) => (
-                        <FormItem><FormLabel>Al</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black" /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel className="text-sm sm:text-base">Al</FormLabel><FormControl><Input type="date" {...field} className="bg-white text-black h-10 sm:h-auto" /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                  <FormField control={testForm.control} name="gymId" render={({ field }) => (
-                    <FormItem><FormLabel>Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona una palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-sm sm:text-base">Palestra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-10 sm:h-auto"><SelectValue placeholder="Seleziona una palestra..."/></SelectTrigger></FormControl><SelectContent>{gyms.map(g => <SelectItem key={g.id} value={g.id}>{g.id} - {g.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                 )} />
                  <FormField control={testForm.control} name="discipline" render={({ field }) => (
-                    <FormItem><FormLabel>Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona una disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
+                    <FormItem><FormLabel className="text-sm sm:text-base">Disciplina</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger className="bg-white text-black h-10 sm:h-auto"><SelectValue placeholder="Seleziona una disciplina..."/></SelectTrigger></FormControl><SelectContent><SelectItem value="Karate">Karate</SelectItem><SelectItem value="Aikido">Aikido</SelectItem></SelectContent></Select><FormMessage /></FormItem>
                 )} />
-                <DialogFooter>
+                <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2 space-y-2 sm:space-y-0">
                      <DialogClose asChild>
-                        <Button type="button" variant="ghost">Annulla</Button>
+                        <Button type="button" variant="ghost" className="w-full sm:w-auto order-2 sm:order-1">Annulla</Button>
                     </DialogClose>
-                    <Button type="submit">Genera Anteprima Test</Button>
+                    <Button type="submit" className="w-full sm:w-auto order-1 sm:order-2">Genera Anteprima Test</Button>
                 </DialogFooter>
             </form>
         </Form>
@@ -816,58 +816,58 @@ export default function AdminCalendarPage() {
 
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-8 p-4 sm:p-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>Generatore Calendario Allenamenti</CardTitle>
-                    <CardDescription>Crea in massa le lezioni di routine per un periodo, includendo le festività.</CardDescription>
+                    <CardTitle className="text-lg sm:text-xl">Generatore Calendario Allenamenti</CardTitle>
+                    <CardDescription className="text-sm sm:text-base">Crea in massa le lezioni di routine per un periodo, includendo le festività.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="space-y-2">
-                            <Label>Data Inizio Periodo</Label>
+                            <Label className="text-sm sm:text-base">Data Inizio Periodo</Label>
                             <Input 
                                 type="date" 
                                 value={startDate} 
                                 onChange={(e) => setStartDate(e.target.value)}
-                                className="bg-white text-black"
+                                className="bg-white text-black h-10 sm:h-auto"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Data Fine Periodo</Label>
+                            <Label className="text-sm sm:text-base">Data Fine Periodo</Label>
                             <Input 
                                 type="date" 
                                 value={endDate} 
                                 onChange={(e) => setEndDate(e.target.value)}
-                                className="bg-white text-black"
+                                className="bg-white text-black h-10 sm:h-auto"
                             />
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="space-y-2">
-                            <Label>Ora Inizio Lezione</Label>
+                            <Label className="text-sm sm:text-base">Ora Inizio Lezione</Label>
                             <Input 
                                 type="time" 
                                 value={startTime} 
                                 onChange={(e) => setStartTime(e.target.value)}
-                                className="bg-white text-black"
+                                className="bg-white text-black h-10 sm:h-auto"
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label>Ora Fine Lezione</Label>
+                            <Label className="text-sm sm:text-base">Ora Fine Lezione</Label>
                             <Input 
                                 type="time" 
                                 value={endTime} 
                                 onChange={(e) => setEndTime(e.target.value)}
-                                className="bg-white text-black"
+                                className="bg-white text-black h-10 sm:h-auto"
                             />
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="space-y-2">
-                            <Label>Filtra per Disciplina</Label>
+                            <Label className="text-sm sm:text-base">Filtra per Disciplina</Label>
                             <Select value={disciplineFilter} onValueChange={setDisciplineFilter}>
-                                <SelectTrigger className="bg-white text-black"><SelectValue /></SelectTrigger>
+                                <SelectTrigger className="bg-white text-black h-10 sm:h-auto"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Karate">Karate</SelectItem>
                                     <SelectItem value="Aikido">Aikido</SelectItem>
@@ -875,9 +875,9 @@ export default function AdminCalendarPage() {
                             </Select>
                         </div>
                         <div className="space-y-2">
-                            <Label>Filtra per Palestra</Label>
+                            <Label className="text-sm sm:text-base">Filtra per Palestra</Label>
                             <Select value={gymFilter} onValueChange={setGymFilter}>
-                                <SelectTrigger className="bg-white text-black">
+                                <SelectTrigger className="bg-white text-black h-10 sm:h-auto">
                                     <SelectValue placeholder="Seleziona una palestra..." />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -890,16 +890,17 @@ export default function AdminCalendarPage() {
                     </div>
 
                 </CardContent>
-                <CardFooter className="flex gap-2">
-                    <Button onClick={() => handleGenerateCalendar()} disabled={isGenerating || isSaving} className="text-green-600 border-green-600 hover:bg-green-50 font-bold">
+                <CardFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2 space-y-2 sm:space-y-0">
+                    <Button onClick={() => handleGenerateCalendar()} disabled={isGenerating || isSaving} className="text-green-600 border-green-600 hover:bg-green-50 font-bold w-full sm:w-auto">
                         {isGenerating ? <Loader2 className="animate-spin mr-2" /> : <PlusCircle className="mr-2" />}
                         Genera Anteprima
                     </Button>
                     <Dialog open={isTestFormOpen} onOpenChange={setIsTestFormOpen}>
                         <DialogTrigger asChild>
-                             <Button variant="secondary" className="bg-transparent">
+                             <Button variant="secondary" className="bg-transparent w-full sm:w-auto">
                                 <TestTube2 className="mr-2" />
-                                Genera Calendario di Test
+                                <span className="hidden sm:inline">Genera Calendario di Test</span>
+                                <span className="sm:hidden">Test</span>
                             </Button>
                         </DialogTrigger>
                         <DialogContent>
@@ -914,9 +915,10 @@ export default function AdminCalendarPage() {
                     </Dialog>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="bg-transparent text-red-600 border-red-600 hover:bg-red-50">
+                            <Button variant="destructive" className="bg-transparent text-red-600 border-red-600 hover:bg-red-50 w-full sm:w-auto">
                                 <AlertTriangle className="mr-2" />
-                                Reset TotalLessons
+                                <span className="hidden sm:inline">Reset TotalLessons</span>
+                                <span className="sm:hidden">Reset</span>
                             </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -959,20 +961,21 @@ export default function AdminCalendarPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Gestione Calendari Salvati</CardTitle>
-                    <CardDescription>Carica, modifica o elimina i calendari che hai già creato e salvato su Firebase.</CardDescription>
+                    <CardTitle className="text-lg sm:text-xl">Gestione Calendari Salvati</CardTitle>
+                    <CardDescription className="text-sm sm:text-base">Carica, modifica o elimina i calendari che hai già creato e salvato su Firebase.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Nome Calendario</TableHead>
-                                <TableHead>Disciplina</TableHead>
-                                <TableHead>Palestra</TableHead>
-                                <TableHead>Creato il</TableHead>
-                                <TableHead className="text-right">Azioni</TableHead>
-                            </TableRow>
-                        </TableHeader>
+                    <div className="hidden sm:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Nome Calendario</TableHead>
+                                    <TableHead>Disciplina</TableHead>
+                                    <TableHead>Palestra</TableHead>
+                                    <TableHead>Creato il</TableHead>
+                                    <TableHead className="text-right">Azioni</TableHead>
+                                </TableRow>
+                            </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow><TableCell colSpan={5} className="text-center h-24"><Loader2 className="mx-auto h-6 w-6 animate-spin" /></TableCell></TableRow>
@@ -1026,6 +1029,77 @@ export default function AdminCalendarPage() {
                             )}
                         </TableBody>
                     </Table>
+                    </div>
+                    
+                    {/* Vista mobile con card */}
+                    <div className="sm:hidden space-y-4">
+                        {loading ? (
+                            <div className="flex justify-center h-24 items-center">
+                                <Loader2 className="h-6 w-6 animate-spin" />
+                            </div>
+                        ) : savedCalendars.length > 0 ? (
+                            savedCalendars.map((cal) => {
+                                const simplifiedName = `${cal.gymName} - ${cal.discipline}`;
+                                return (
+                                    <Card key={cal.id} className="p-4">
+                                        <div className="space-y-3">
+                                            <div>
+                                                <h3 className="font-medium text-sm">{simplifiedName}</h3>
+                                                <p className="text-xs text-muted-foreground">{cal.discipline} • {cal.gymName}</p>
+                                                <p className="text-xs text-muted-foreground">{cal.createdAt ? format(cal.createdAt.toDate(), 'dd/MM/yy HH:mm') : 'N/D'}</p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    onClick={() => handleLoadCalendar(cal)} 
+                                                    disabled={isDeleting === cal.id} 
+                                                    className="bg-transparent flex-1"
+                                                >
+                                                    <Upload className="h-4 w-4 mr-1" />
+                                                    Carica
+                                                </Button>
+                                                
+                                                <AlertDialog>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button 
+                                                            variant="destructive" 
+                                                            size="sm" 
+                                                            disabled={isDeleting === cal.id} 
+                                                            className="bg-transparent text-red-600 border-red-600 hover:bg-red-50 flex-1"
+                                                        >
+                                                            {isDeleting === cal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
+                                                            Elimina
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>Sei assolutamente sicuro?</AlertDialogTitle>
+                                                            <AlertDialogDescription>
+                                                                Questa azione non può essere annullata. Questo eliminerà permanentemente il calendario
+                                                                <strong className="mx-1">{cal.calendarName}</strong>
+                                                                e tutte le lezioni associate dal database.
+                                                            </AlertDialogDescription>
+                                                        </AlertDialogHeader>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={() => handleDeleteCalendar(cal.id)}>
+                                                                Sì, elimina
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                );
+                            })
+                        ) : (
+                            <div className="text-center text-muted-foreground py-8">
+                                Nessun calendario salvato trovato.
+                            </div>
+                        )}
+                    </div>
                 </CardContent>
             </Card>
 
@@ -1041,13 +1115,13 @@ export default function AdminCalendarPage() {
                                 <CardDescription className="mt-2">Genera o carica un calendario per visualizzare le lezioni. Potrai modificarle o salvarle su Firebase.</CardDescription>
                             )}
                         </div>
-                        <div className="flex w-full sm:w-auto gap-2">
-                             <Button onClick={openCreateForm} variant="outline" className="w-full sm:w-auto bg-transparent text-amber-800 border-amber-800 hover:bg-amber-100 hover:text-amber-900"><PlusCircle className="mr-2"/>Aggiungi Lezione</Button>
-                             <Button onClick={() => { setLessons([]); setGeneratedTitle(null); setLoadedCalendarId(null); toast({ title: "Anteprima Cancellata", description: "Tutte le lezioni sono state rimosse dall'anteprima." }); }} disabled={lessons.length === 0} variant="outline" className="w-full sm:w-auto bg-transparent text-red-600 border-red-600 hover:bg-red-50">
+                        <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
+                             <Button onClick={openCreateForm} variant="ghost" className="w-full sm:w-auto text-amber-800 hover:text-amber-900 bg-transparent border-0 shadow-none"><PlusCircle className="mr-2"/>Aggiungi Lezione</Button>
+                             <Button onClick={() => { setLessons([]); setGeneratedTitle(null); setLoadedCalendarId(null); toast({ title: "Anteprima Cancellata", description: "Tutte le lezioni sono state rimosse dall'anteprima." }); }} disabled={lessons.length === 0} variant="ghost" className="w-full sm:w-auto text-red-600 hover:text-red-700 bg-transparent border-0 shadow-none">
                                 <X className="mr-2" />
                                 Cancella Anteprima
                              </Button>
-                             <Button onClick={handleSaveCalendar} disabled={isSaving || isGenerating || lessons.length === 0} className="w-full sm:w-auto text-green-600 border-green-600 hover:bg-green-50 font-bold bg-transparent" variant="outline">
+                             <Button onClick={handleSaveCalendar} disabled={isSaving || isGenerating || lessons.length === 0} className="w-full sm:w-auto text-green-600 hover:text-green-700 font-bold bg-transparent border-0 shadow-none" variant="ghost">
                                 {isSaving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2" />}
                                 Salva su DB
                              </Button>
@@ -1056,6 +1130,9 @@ export default function AdminCalendarPage() {
                 </CardHeader>
                 <CardContent>
                     {loading ? <div className="flex justify-center h-32 items-center"><Loader2 className="w-8 h-8 animate-spin"/></div> : (
+                        <>
+                        {/* Vista desktop */}
+                        <div className="hidden lg:block">
                          <Table>
                             <TableHeader>
                                 <TableRow>
@@ -1130,12 +1207,92 @@ export default function AdminCalendarPage() {
                                 )}
                             </TableBody>
                          </Table>
+                        </div>
+                        
+                        {/* Vista mobile con card */}
+                        <div className="lg:hidden space-y-4">
+                            {Object.entries(groupedLessons).length > 0 ? (
+                                Object.entries(groupedLessons).map(([monthYear, monthLessons]) => (
+                                    <div key={monthYear} className="space-y-3">
+                                        <h3 className="font-bold text-lg capitalize text-primary py-2 border-b">
+                                            {monthYear}
+                                        </h3>
+                                        {monthLessons.map(lesson => (
+                                            <Card key={lesson.id} className={cn(
+                                                "p-4",
+                                                lesson.status === 'annullata' && 'bg-destructive/10',
+                                                lesson.status === 'festivita' && 'bg-blue-500/10'
+                                            )}>
+                                                <div className="space-y-3">
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-start justify-between mb-2">
+                                                                <div className="flex items-center">
+                                                                    <h4 className="font-medium text-sm">{lesson.title}</h4>
+                                                                    <span className="mx-2"></span>
+                                                                    <p className="text-sm text-muted-foreground">{format(lesson.startTime.toDate(), "dd/MM/yy")} • {format(lesson.startTime.toDate(), "eeee", {locale: it})}</p>
+                                                                </div>
+                                                                <div className="flex flex-col items-end gap-1 ml-2">
+                                                                    <Badge variant={
+                                                                        lesson.status === 'annullata' ? 'destructive' : 
+                                                                        lesson.status === 'festivita' ? 'info' : 'success'
+                                                                    } className="text-xs py-0 px-2 h-5">
+                                                                        {lesson.status === 'annullata' ? 'Annullata' : lesson.status === 'festivita' ? 'Festività' : 'OK'}
+                                                                    </Badge>
+                                                                    {lesson.notes && (
+                                                                        <Popover>
+                                                                            <PopoverTrigger asChild>
+                                                                                <Button variant="ghost" size="icon" className="h-4 w-4 p-0">
+                                                                                    {lesson.status === 'festivita' 
+                                                                                        ? <PartyPopper className="h-3 w-3 text-blue-500" />
+                                                                                        : <MessageSquareWarning className="h-3 w-3 text-amber-500" />
+                                                                                    }
+                                                                                </Button>
+                                                                            </PopoverTrigger>
+                                                                            <PopoverContent className="text-sm w-80">
+                                                                                <p className="font-bold mb-2">Note lezione:</p>
+                                                                                {lesson.notes}
+                                                                            </PopoverContent>
+                                                                        </Popover>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-sm text-muted-foreground">
+                                                                <p>{`${format(lesson.startTime.toDate(), "HH:mm")} - ${format(lesson.endTime.toDate(), "HH:mm")}`}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex gap-2 pt-2 border-t">
+                                                        <Button variant="ghost" size="sm" onClick={() => openEditForm(lesson)} className="flex-1 bg-transparent border-0 shadow-none">
+                                                            <Edit className="w-4 h-4"/>
+                                                        </Button>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="sm" 
+                                                            className="text-destructive hover:text-destructive bg-transparent border-0 shadow-none" 
+                                                            onClick={() => handleDeleteLesson(lesson.id)}
+                                                        >
+                                                            <Trash2 className="w-4 h-4"/>
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        ))}
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center text-muted-foreground py-8">
+                                    Nessuna lezione da mostrare. Genera un'anteprima o aggiungine una manualmente.
+                                </div>
+                            )}
+                        </div>
+                        </>
                     )}
                 </CardContent>
              </Card>
 
               <Dialog open={isFormOpen} onOpenChange={(isOpen: boolean) => { setIsFormOpen(isOpen); if (!isOpen) setEditingLesson(undefined); }}>
-                <DialogContent className="sm:max-w-2xl bg-card">
+                <DialogContent className="sm:max-w-2xl bg-card mx-4 sm:mx-auto max-w-[95vw] sm:max-w-2xl">
                     <DialogHeader>
                         <DialogTitle className="text-amber-800">{editingLesson ? "Modifica Lezione" : "Crea Nuova Lezione"}</DialogTitle>
                     </DialogHeader>
