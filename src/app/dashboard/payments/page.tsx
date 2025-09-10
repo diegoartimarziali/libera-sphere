@@ -216,29 +216,29 @@ export default function UserPaymentsPage() {
     }, [user, toast]);
 
     return (
-        <Card className="max-w-3xl mx-auto">
-            <CardHeader>
-                <div className="flex justify-between items-start">
-                    <div>
-                        <CardTitle>I Miei Pagamenti</CardTitle>
-                        <CardDescription>
-                            Qui trovi lo storico di tutte le tue transazioni e il loro stato.
-                        </CardDescription>
-                        {!loading && payments.length > 0 && (
-                            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                <div className="text-lg font-bold text-green-800">
-                                    Totale pagamenti completati: {totalPayments.toFixed(2)} €
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                    <button
-                        onClick={handleSavePdf}
-                        className="px-3 py-2 bg-green-600 text-white font-bold rounded shadow hover:bg-green-700 transition w-fit"
-                    >
-                        Salva PDF
-                    </button>
+        <Card className="w-full max-w-3xl mx-auto">
+            <CardHeader className="space-y-4">
+                <div>
+                    <CardTitle className="text-xl md:text-2xl">I Miei Pagamenti</CardTitle>
+                    <CardDescription className="text-sm md:text-base">
+                        Qui trovi lo storico di tutte le tue transazioni e il loro stato.
+                    </CardDescription>
                 </div>
+                
+                {!loading && payments.length > 0 && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="text-base md:text-lg font-bold text-green-800">
+                            Totale completati: {totalPayments.toFixed(2)} €
+                        </div>
+                    </div>
+                )}
+                
+                <button
+                    onClick={handleSavePdf}
+                    className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white text-sm md:text-base font-bold rounded shadow hover:bg-green-700 transition"
+                >
+                    📄 Salva PDF
+                </button>
             </CardHeader>
             <CardContent>
                 {loading ? (
@@ -246,26 +246,61 @@ export default function UserPaymentsPage() {
                         <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
                 ) : (
-                    <div className="overflow-x-auto w-full">
-                        <Table className="min-w-[500px] md:min-w-0" id="payments-table">
+                    <div>
+                    {/* Layout Card per mobile */}
+                    <div className="block md:hidden space-y-3">
+                        {payments.length > 0 ? payments.map((payment) => (
+                            <div key={payment.id} className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="text-sm font-medium text-gray-900">
+                                        {payment.createdAt ? format(payment.createdAt.toDate(), 'dd/MM/yy') : 'N/D'}
+                                    </div>
+                                    <Badge variant={getStatusVariant(payment.status)}
+                                           className={cn({
+                                                'bg-success text-success-foreground hover:bg-success/80': payment.status === 'completed',
+                                            })}
+                                    >
+                                        {translateStatus(payment.status)}
+                                    </Badge>
+                                </div>
+                                <div className="text-sm text-gray-600 mb-2">
+                                    {payment.description || (payment.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '')}
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs text-gray-500">{translatePaymentMethod(payment.paymentMethod)}</span>
+                                    <span className="text-lg font-bold text-gray-900">{payment.amount.toFixed(2)} €</span>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="p-8 text-center text-gray-500">
+                                Nessun pagamento trovato.
+                            </div>
+                        )}
+                    </div>
+                    
+                    {/* Layout Tabella per desktop */}
+                    <div className="hidden md:block overflow-x-auto w-full">
+                        <Table className="min-w-full" id="payments-table">
                             <TableHeader>
                                 <TableRow className="border-b-2 border-black">
-                                    <TableHead className="min-w-[90px] font-bold border-r border-black">Data</TableHead>
-                                    <TableHead className="min-w-[80px] font-bold border-r border-black">Descrizione</TableHead>
-                                    <TableHead className="min-w-[80px] font-bold border-r border-black">Metodo</TableHead>
-                                    <TableHead className="text-right min-w-[70px] font-bold border-r border-black">Importo</TableHead>
-                                    <TableHead className="text-center min-w-[80px] font-bold">Stato</TableHead>
+                                    <TableHead className="font-bold border-r border-black">Data</TableHead>
+                                    <TableHead className="font-bold border-r border-black">Descrizione</TableHead>
+                                    <TableHead className="font-bold border-r border-black">Metodo</TableHead>
+                                    <TableHead className="text-right font-bold border-r border-black">Importo</TableHead>
+                                    <TableHead className="text-center font-bold">Stato</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {payments.length > 0 ? payments.map((payment, index) => (
+                                {payments.length > 0 ? payments.map((payment) => (
                                     <TableRow key={payment.id} className="bg-gray-100 border-b-2 border-black">
                                         <TableCell className="font-medium border-r border-black">
                                             {payment.createdAt ? format(payment.createdAt.toDate(), 'dd/MM/yyyy HH:mm') : 'N/D'}
                                         </TableCell>
-                                        <TableCell className="border-r border-black">{payment.description || (payment.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '')}</TableCell>
+                                        <TableCell className="border-r border-black max-w-[200px] truncate">
+                                            {payment.description || (payment.paymentMethod === 'bonus' ? 'Pagamento coperto da premio' : '')}
+                                        </TableCell>
                                         <TableCell className="border-r border-black">{translatePaymentMethod(payment.paymentMethod)}</TableCell>
-                                        <TableCell className="text-right border-r border-black">{payment.amount.toFixed(2)} €</TableCell>
+                                        <TableCell className="text-right border-r border-black font-bold">{payment.amount.toFixed(2)} €</TableCell>
                                         <TableCell className="text-center">
                                             <Badge variant={getStatusVariant(payment.status)}
                                                className={cn({
@@ -285,6 +320,7 @@ export default function UserPaymentsPage() {
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
                     </div>
                 )}
             </CardContent>

@@ -186,22 +186,26 @@ function DashboardHeader({
                  )}
             </div>
 
-            {/* Logo centrale con testi laterali */}
-            <div className="flex-1 flex justify-center items-center gap-3">
-                <span className="text-lg font-bold" style={{ color: 'hsl(var(--foreground))' }}>Libera Energia</span>
-                <img 
-                    src="https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Ftigre-M.png?alt=media&token=b5f3540f-ab42-46ed-9722-9c4e9663a97b"
-                    alt="Logo Libera Energia"
-                    className="w-auto object-contain"
-                    style={{ height: '60px' }}
-                />
-                <span className="text-lg font-bold" style={{ color: 'hsl(var(--foreground))' }}>Arti Marziali</span>
+            {/* Logo centrale con testo diviso */}
+            <div className="flex-1 flex justify-center items-center">
+                <div className="flex flex-col items-center">
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-bold" style={{ color: 'hsl(var(--foreground))' }}>Libera</span>
+                        <img 
+                            src="https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Ftigre-M.png?alt=media&token=b5f3540f-ab42-46ed-9722-9c4e9663a97b"
+                            alt="Logo Libera Energia"
+                            className="w-auto object-contain"
+                            style={{ height: '50px' }}
+                        />
+                        <span className="text-sm font-bold" style={{ color: 'hsl(var(--foreground))' }}>Energia</span>
+                    </div>
+                    <span className="text-sm font-bold mt-1" style={{ color: 'hsl(var(--foreground))' }}>Arti Marziali</span>
+                </div>
             </div>
 
             <div className="flex items-center gap-4">
                 <Button variant="outline" onClick={onLogout} className="border-title-yellow text-title-yellow hover:bg-white/20 hover:text-title-yellow">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    <span className="uppercase font-bold">Log out</span>
+                    <LogOut className="h-5 w-5" />
                 </Button>
             </div>
         </header>
