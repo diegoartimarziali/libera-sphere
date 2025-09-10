@@ -691,10 +691,10 @@ export default function AdminCalendarPage() {
             startTime: format(start, 'HH:mm'),
             endDate: format(end, 'yyyy-MM-dd'),
             endTime: format(end, 'HH:mm'),
-            discipline: lesson.discipline,
-            gymId: lesson.gymId,
+            discipline: lesson.discipline || "",
+            gymId: lesson.gymId || "",
             status: lesson.status,
-            notes: lesson.notes,
+            notes: lesson.notes || "",
         });
         setIsFormOpen(true);
     };
