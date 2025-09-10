@@ -8,15 +8,30 @@ firebase.initializeApp({
   projectId: "libera-energia-soci",
   storageBucket: "libera-energia-soci.firebasestorage.app",
   messagingSenderId: "371255545862",
-  appId: "1:371255545862:web:295479b2e6d2dadebaf387",
-    // measurementId: 'INSERISCI_MEASUREMENT_ID' // opzionale
+  appId: "1:371255545862:web:295479b2e6d2dadebaf387"
 });
 
 const messaging = firebase.messaging();
 
+// Handle background messages
 messaging.onBackgroundMessage(function(payload) {
-  self.registration.showNotification(payload.notification.title, {
+  // Customize notification
+  const notificationTitle = payload.notification.title || 'LiberaSphere';
+  const notificationOptions = {
     body: payload.notification.body,
-    icon: '/icon-192.png'
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: 'libera-sphere-notification', // Group similar notifications
+    renotify: true, // Notify even if there's an existing notification
+    requireInteraction: true, // Keep notification until user interacts
+    actions: [
+      {
+        action: 'open',
+        title: 'Apri'
+      }
+    ]
+  };
+
+  return self.registration.showNotification(notificationTitle, notificationOptions);
   });
 });

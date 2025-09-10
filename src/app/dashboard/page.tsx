@@ -96,7 +96,12 @@ export default function DashboardPage() {
   const [showSubscriptionActivatedMessage, setShowSubscriptionActivatedMessage] = useState(false);
 
   useFirebaseMessaging((payload) => {
-    alert(`Notifica: ${payload?.notification?.title}\n${payload?.notification?.body}`);
+    // Use toast instead of alert for a better UX
+    toast({
+      title: payload?.notification?.title || 'Nuova notifica',
+      description: payload?.notification?.body,
+      duration: 5000
+    });
   });
 
   useEffect(() => {
