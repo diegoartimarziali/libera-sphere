@@ -77,7 +77,7 @@ const stageFormSchema = z.object({
     location: z.string().min(3, "Il luogo è obbligatorio."),
     description: z.string().optional(),
     price: z.preprocess((val) => Number(val), z.number().min(0, "Il prezzo non può essere negativo.")),
-    open_to: z.enum(['Tutti', 'Cinture Nere'], { required_error: "Specifica a chi è rivolto l'evento." }),
+    open_to: z.enum(['Tutti', 'Cinture Nere', 'Tecnici'], { required_error: "Specifica a chi è rivolto l'evento." }),
     imageUrl: z.string().url("Deve essere un URL valido (es. https://images.unsplash.com/...).")
         .refine(val => !val || val.startsWith('https://images.unsplash.com/') || val.startsWith('https://firebasestorage.googleapis.com/'), {
             message: "Solo URL da Unsplash o Firebase Storage sono permessi."
@@ -267,6 +267,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                                 <SelectContent className="bg-white">
                                     <SelectItem value="Tutti" className="text-black">Tutti</SelectItem>
                                     <SelectItem value="Cinture Nere" className="text-black">Cinture Nere</SelectItem>
+                                    <SelectItem value="Tecnici" className="text-black">Tecnici</SelectItem>
                                 </SelectContent>
                             </Select>
                             <FormMessage />
