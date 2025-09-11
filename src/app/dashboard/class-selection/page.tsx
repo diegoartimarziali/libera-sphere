@@ -256,18 +256,6 @@ function GymSelectionStep({ onNext, user }: { onNext: (data: GymSelectionData) =
             </CardHeader>
             <CardContent className="space-y-6">
 
-                 <Alert variant="info" className="w-full text-center">
-                    <MessageSquareQuote className="h-4 w-4" />
-                    <AlertTitle className="font-semibold">
-                       Curioso di sapere cosa ne pensano gli altri?
-                    </AlertTitle>
-                    <AlertDescription>
-                        <Button asChild variant="link" className="p-0 h-auto">
-                            <Link href="/dashboard/reviews" className="font-bold">Leggi le recensioni di chi ha già provato</Link>
-                        </Button>
-                    </AlertDescription>
-                </Alert>
-
                 <div className="space-y-4 rounded-md border p-4" style={{ borderColor: 'hsl(var(--medical-upload-text))', borderWidth: 2 }}>
                     <h3 className="text-lg font-semibold text-center">La tua scelta</h3>
                      <dl className="space-y-2">

@@ -209,7 +209,9 @@ export default function AuthPage() {
           />
         </div>
   <h1 className="text-4xl font-bold my-gialoro">LiberaSphere</h1>
-  <p className="text-lg my-gialoro mt-2">Guerrieri digitali</p>
+  <p className="text-sm my-gialoro mt-2">Ver 1.0.0</p>
+  <p className="text-xs my-gialoro mt-1">© 2025 Diego Carcassi Designer e Sviluppatore full-stack - Tutti i diritti riservati.</p>
+  <p className="text-lg font-bold my-gialoro mt-2">Guerrieri digitali</p>
       </div>
       <Tabs value={activeTab} onValueChange={onTabChange} className="w-full max-w-md">
         <TabsList className="grid w-full grid-cols-2">

@@ -284,9 +284,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     '/dashboard/class-selection',
                     '/dashboard/associates',
                     '/dashboard/trial-completed',
-                    '/dashboard/reviews',
                 ];
-                if (onboardingPages.includes(pathname)) {
+                
+                // Pagine che non richiedono controlli di onboarding
+                const publicPages = ['/dashboard/reviews'];
+                
+                if (onboardingPages.includes(pathname) || publicPages.includes(pathname)) {
                     setLoadingData(false);
                     return;
                 }

@@ -15,10 +15,11 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Card, CardHeader, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed, Mail, CheckCircle } from "lucide-react"
+import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed, Mail, CheckCircle, Star } from "lucide-react"
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
 import { TotalAwardsCard } from "@/components/dashboard/TotalAwardsCard"
 import { AttendancePrompt } from "@/components/dashboard/AttendancePrompt"
+import Link from "next/link"
 
 interface UserData {
   name: string
@@ -594,6 +595,16 @@ export default function DashboardPage() {
       <div className="flex flex-col items-center">
         <div className="w-full max-w-2xl">
           <TotalAwardsCard />
+          
+          {/* Icona Leggi Recensioni */}
+          <div className="mt-4 flex justify-center">
+            <Button asChild variant="outline" className="border-2 border-yellow-400 text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700 font-semibold">
+              <Link href="/dashboard/reviews" className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                Leggi recensioni
+              </Link>
+            </Button>
+          </div>
         </div>
         <div className="w-full max-w-2xl mt-2">
           {dataLoading || !memberCardProps ? (

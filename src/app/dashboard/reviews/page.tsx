@@ -61,8 +61,8 @@ export default function ReviewsPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="text-center md:text-left">
                     <h1 className="text-3xl font-bold">Recensioni delle Lezioni di Prova</h1>
-                    <p className="text-muted-foreground">
-                        Leggi le esperienze anonime degli atleti che hanno provato i nostri corsi.
+                    <p className="">
+                        Leggi le esperienze anonime dei nostri soci e degli atleti che hanno provato i nostri corsi.
                     </p>
                 </div>
                  <Button onClick={() => router.back()} variant="outline">
