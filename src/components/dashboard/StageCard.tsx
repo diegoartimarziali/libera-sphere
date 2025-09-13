@@ -14,8 +14,8 @@ export interface StageCardProps {
     location: string;
     price: number;
     imageUrl?: string;
-    open_to: "Tutti" | "Cinture Nere";
-    type: "stage" | "exam" | "course" | "other";
+  open_to: "Tutti" | "Cinture Nere" | "Insegnanti";
+  type: "stage" | "exam" | "course" | "aggiornamento" | "other";
     discipline?: "karate" | "aikido";
     alertDate?: string;
     requireConfirmation?: boolean;
@@ -35,14 +35,21 @@ const getEventTypeLabel = (type: StageCardProps["stage"]["type"]) => {
     case "stage": return "Stage";
     case "exam": return "Esame";
     case "course": return "Corso";
+    case "aggiornamento": return "Aggiornamento";
     default: return "Evento";
   }
 };
 
-const InfoRow = ({ icon: Icon, text }: { icon: any, text: string }) => (
-  <div className="flex items-center text-sm text-muted-foreground">
-    <Icon className="h-4 w-4 mr-2 flex-shrink-0" />
-    <span>{text}</span>
+interface InfoRowProps {
+  icon: any;
+  text: string;
+  bold?: boolean;
+}
+
+const InfoRow = ({ icon: Icon, text, bold }: InfoRowProps) => (
+  <div className="flex items-center text-sm text-[hsl(var(--background))]">
+    <Icon className="h-4 w-4 mr-2 flex-shrink-0 text-[hsl(var(--background))]" />
+    <span className={`text-[hsl(var(--background))]${bold ? ' font-bold' : ''}`}>{text}</span>
   </div>
 );
 
@@ -62,7 +69,7 @@ export function StageCard({ stage }: StageCardProps) {
         boxSizing: 'border-box',
       }}
     >
-      <Card className="flex flex-col bg-[var(--my-gialchiar)] text-[var(--my-marscuro)]">
+  <Card className="flex flex-col bg-[var(--my-gialchiar)] text-[hsl(var(--background))]">
       {stage.imageUrl && (
         <div className="relative h-64 w-full bg-[var(--my-gialchiar)]">
           <Image
@@ -74,26 +81,30 @@ export function StageCard({ stage }: StageCardProps) {
           />
         </div>
       )}
-      <CardHeader className="p-0 bg-[var(--my-gialchiar)] text-[var(--my-marscuro)]">
+  <CardHeader className="p-0 bg-[var(--my-gialchiar)] text-[hsl(var(--background))]">
         <div className="flex flex-col space-y-1.5 p-6 rounded-t-md">
           <div className="flex flex-col gap-1">
-            <div className="flex items-center text-sm font-semibold text-[var(--my-marscuro)]">
-              {getEventTypeIcon(stage.type)}
-              {getEventTypeLabel(stage.type)}
+            <div className="flex items-center text-sm font-semibold text-[hsl(var(--background))]">
+              <span className="text-[hsl(var(--background))]">{getEventTypeIcon(stage.type)}</span>
+              <span className="text-[hsl(var(--background))]">{getEventTypeLabel(stage.type)}</span>
             </div>
-            <div className="text-xs font-bold text-[var(--my-marscuro)]">
+            <div className="text-xs font-bold text-[hsl(var(--background))]">
               {stage.discipline ? `Disciplina: ${stage.discipline.charAt(0).toUpperCase() + stage.discipline.slice(1)}` : ''}
             </div>
           </div>
-          <CardTitle className="font-semibold tracking-tight text-xl capitalize text-[var(--my-marscuro)]">{stage.title}</CardTitle>
-          <CardDescription className="text-sm text-[var(--my-marscuro)]">{stage.description}</CardDescription>
+          <CardTitle className="font-semibold tracking-tight text-xl capitalize text-[hsl(var(--background))]">{stage.title}</CardTitle>
+          <CardDescription className="text-sm text-[hsl(var(--background))]">{stage.description}</CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow space-y-3 text-[var(--my-marscuro)]">
-        <InfoRow icon={Calendar} text={stage.startTime ? format(stage.startTime.toDate(), "eeee d MMMM yyyy", { locale: it }) : "Data da definire"} />
+  <CardContent className="flex-grow space-y-3 text-[hsl(var(--background))]">
+  <InfoRow icon={Calendar} text={stage.startTime ? format(stage.startTime.toDate(), "eeee d MMMM yyyy", { locale: it }) : "Data da definire"} bold />
         <InfoRow icon={Clock} text={stage.startTime && stage.endTime ? `${format(stage.startTime.toDate(), "HH:mm")} - ${format(stage.endTime.toDate(), "HH:mm")}` : "Orario da definire"} />
         <InfoRow icon={MapPin} text={stage.location} />
-        <InfoRow icon={Users} text={`Aperto a: ${stage.open_to}`} />
+        <InfoRow
+          icon={Users}
+          text={`Aperto a: ${stage.open_to ? stage.open_to : ""}`}
+          bold={stage.open_to === "Insegnanti"}
+        />
         <InfoRow icon={Tag} text={`Costo: ${stage.price.toFixed(2)} €`} />
       </CardContent>
       </Card>

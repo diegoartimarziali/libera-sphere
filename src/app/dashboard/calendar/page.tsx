@@ -38,7 +38,7 @@ interface Event {
     price?: number;
     imageUrl?: string;
     open_to?: string;
-    type: 'lesson' | 'stage' | 'exam' | 'course' | 'other';
+    type: 'lesson' | 'stage' | 'exam' | 'course' | 'aggiornamento' | 'other';
     status?: 'confermata' | 'annullata' | 'festivita';
     gymName?: string;
     gymId?: string;
@@ -52,6 +52,7 @@ const getEventTypeIcon = (type: Event['type']) => {
         case 'stage': return <Award className="h-4 w-4 mr-2 flex-shrink-0" />;
         case 'exam': return <FileText className="h-4 w-4 mr-2 flex-shrink-0" />;
         case 'course': return <Users className="h-4 w-4 mr-2 flex-shrink-0" />;
+        case 'aggiornamento': return <Users className="h-4 w-4 mr-2 flex-shrink-0" />;
         default: return <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />;
     }
 };
@@ -61,6 +62,7 @@ const getEventTypeLabel = (type: Event['type']) => {
         case 'stage': return 'Stage';
         case 'exam': return 'Esame';
         case 'course': return 'Corso';
+        case 'aggiornamento': return 'Aggiornamento';
         case 'lesson': return 'Lezione';
         default: return 'Evento';
     }
@@ -145,7 +147,7 @@ export default function CalendarPage() {
                 // 3. Fetch all special events (stages, exams, etc.)
                 const specialEventsQuery = query(
                     eventsCollection,
-                    where("type", "in", ["stage", "exam", "course", "other"]),
+                    where("type", "in", ["stage", "exam", "course", "aggiornamento", "other"]),
                     where("startTime", ">=", now),
                     orderBy("startTime", "asc")
                 );
@@ -199,17 +201,17 @@ export default function CalendarPage() {
 
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6 sm:space-y-8 p-4 sm:p-6">
             <div className="text-center md:text-left">
-                <h1 className="text-3xl font-bold">Stages, Esami e Corsi</h1>
-                <p className="text-foreground">
+                <h1 className="text-2xl sm:text-3xl font-bold">Stages, Esami e Corsi</h1>
+                <p className="text-sm sm:text-base text-foreground">
                     Qui trovi tutti gli stage, gli esami e i corsi in programma
                 </p>
             </div>
             
             {/* Calendario delle lezioni rimosso su richiesta */}
 
-             <div className="space-y-12">
+             <div className="space-y-8 sm:space-y-12">
                  {loading ? (
                     <div className="flex justify-center items-center h-64">
                         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -220,28 +222,31 @@ export default function CalendarPage() {
                         {specialEvents.filter(event => event.type === 'stage').length > 0 && (
                             <div>
                                 <h2 className="text-2xl font-bold mb-6">Stage</h2>
-                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                    {specialEvents.filter(event => event.type === 'stage').map(event => {
-                                        const isPaid = userPaidEvents.includes(event.id);
-                                        return (
-                                            <div key={event.id} className="relative">
-                                                <StageGridItem
-                                                    event={{
-                                                        id: event.id,
-                                                        iconUrl: (event as any).iconUrl || event.imageUrl,
-                                                        type: event.type,
-                                                        discipline: event.discipline,
-                                                        open_to: event.open_to,
-                                                        startTime: event.startTime,
-                                                        onClick: isPaid ? () => {} : () => setSelectedEvent(event)
-                                                    }}
-                                                />
-                                                {isPaid && (
-                                                    <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                                    {specialEvents
+                                        .filter(event => event.type === 'stage')
+                                        .sort((a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime())
+                                        .map(event => {
+                                            const isPaid = userPaidEvents.includes(event.id);
+                                            return (
+                                                <div key={event.id} className="relative">
+                                                    <StageGridItem
+                                                        event={{
+                                                            id: event.id,
+                                                            iconUrl: (event as any).iconUrl || event.imageUrl,
+                                                            type: event.type,
+                                                            discipline: event.discipline,
+                                                            open_to: event.open_to,
+                                                            startTime: event.startTime,
+                                                            onClick: isPaid ? () => {} : () => setSelectedEvent(event)
+                                                        }}
+                                                    />
+                                                    {isPaid && (
+                                                        <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             </div>
                         )}
@@ -250,28 +255,31 @@ export default function CalendarPage() {
                         {specialEvents.filter(event => event.type === 'exam').length > 0 && (
                             <div>
                                 <h2 className="text-2xl font-bold mb-6">Esami</h2>
-                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                    {specialEvents.filter(event => event.type === 'exam').map(event => {
-                                        const isPaid = userPaidEvents.includes(event.id);
-                                        return (
-                                            <div key={event.id} className="relative">
-                                                <StageGridItem
-                                                    event={{
-                                                        id: event.id,
-                                                        iconUrl: (event as any).iconUrl || event.imageUrl,
-                                                        type: event.type,
-                                                        discipline: event.discipline,
-                                                        open_to: event.open_to,
-                                                        startTime: event.startTime,
-                                                        onClick: isPaid ? () => {} : () => setSelectedEvent(event)
-                                                    }}
-                                                />
-                                                {isPaid && (
-                                                    <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                                    {specialEvents
+                                        .filter(event => event.type === 'exam')
+                                        .sort((a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime())
+                                        .map(event => {
+                                            const isPaid = userPaidEvents.includes(event.id);
+                                            return (
+                                                <div key={event.id} className="relative">
+                                                    <StageGridItem
+                                                        event={{
+                                                            id: event.id,
+                                                            iconUrl: (event as any).iconUrl || event.imageUrl,
+                                                            type: event.type,
+                                                            discipline: event.discipline,
+                                                            open_to: event.open_to,
+                                                            startTime: event.startTime,
+                                                            onClick: isPaid ? () => {} : () => setSelectedEvent(event)
+                                                        }}
+                                                    />
+                                                    {isPaid && (
+                                                        <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             </div>
                         )}
@@ -280,58 +288,97 @@ export default function CalendarPage() {
                         {specialEvents.filter(event => event.type === 'course').length > 0 && (
                             <div>
                                 <h2 className="text-2xl font-bold mb-6">Corsi</h2>
-                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                    {specialEvents.filter(event => event.type === 'course').map(event => {
-                                        const isPaid = userPaidEvents.includes(event.id);
-                                        return (
-                                            <div key={event.id} className="relative">
-                                                <StageGridItem
-                                                    event={{
-                                                        id: event.id,
-                                                        iconUrl: (event as any).iconUrl || event.imageUrl,
-                                                        type: event.type,
-                                                        discipline: event.discipline,
-                                                        open_to: event.open_to,
-                                                        startTime: event.startTime,
-                                                        onClick: isPaid ? () => {} : () => setSelectedEvent(event)
-                                                    }}
-                                                />
-                                                {isPaid && (
-                                                    <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                                    {specialEvents
+                                        .filter(event => event.type === 'course')
+                                        .sort((a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime())
+                                        .map(event => {
+                                            const isPaid = userPaidEvents.includes(event.id);
+                                            return (
+                                                <div key={event.id} className="relative">
+                                                    <StageGridItem
+                                                        event={{
+                                                            id: event.id,
+                                                            iconUrl: (event as any).iconUrl || event.imageUrl,
+                                                            type: event.type,
+                                                            discipline: event.discipline,
+                                                            open_to: event.open_to,
+                                                            startTime: event.startTime,
+                                                            onClick: isPaid ? () => {} : () => setSelectedEvent(event)
+                                                        }}
+                                                    />
+                                                    {isPaid && (
+                                                        <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* SEZIONE AGGIORNAMENTI */}
+                        {specialEvents.filter(event => event.type === 'aggiornamento').length > 0 && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-6">Aggiornamenti</h2>
+                                <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                                    {specialEvents
+                                        .filter(event => event.type === 'aggiornamento')
+                                        .sort((a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime())
+                                        .map(event => {
+                                            const isPaid = userPaidEvents.includes(event.id);
+                                            return (
+                                                <div key={event.id} className="relative">
+                                                    <StageGridItem
+                                                        event={{
+                                                            id: event.id,
+                                                            iconUrl: (event as any).iconUrl || event.imageUrl,
+                                                            type: event.type,
+                                                            discipline: event.discipline,
+                                                            open_to: event.open_to,
+                                                            startTime: event.startTime,
+                                                            onClick: isPaid ? () => {} : () => setSelectedEvent(event)
+                                                        }}
+                                                    />
+                                                    {isPaid && (
+                                                        <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             </div>
                         )}
 
                         {/* SEZIONE ALTRI EVENTI */}
-                        {specialEvents.filter(event => event.type === 'other' || !['stage', 'exam', 'course'].includes(event.type)).length > 0 && (
+                        {specialEvents.filter(event => event.type === 'other' || !['stage', 'exam', 'course', 'aggiornamento'].includes(event.type)).length > 0 && (
                             <div>
                                 <h2 className="text-2xl font-bold mb-6">Altri Eventi</h2>
-                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                                    {specialEvents.filter(event => event.type === 'other' || !['stage', 'exam', 'course'].includes(event.type)).map(event => {
-                                        const isPaid = userPaidEvents.includes(event.id);
-                                        return (
-                                            <div key={event.id} className="relative">
-                                                <StageGridItem
-                                                    event={{
-                                                        id: event.id,
-                                                        iconUrl: (event as any).iconUrl || event.imageUrl,
-                                                        type: event.type,
-                                                        discipline: event.discipline,
-                                                        open_to: event.open_to,
-                                                        startTime: event.startTime,
-                                                        onClick: isPaid ? () => {} : () => setSelectedEvent(event)
-                                                    }}
-                                                />
-                                                {isPaid && (
-                                                    <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
+                                <div className="grid gap-4 sm:gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                                    {specialEvents
+                                        .filter(event => event.type === 'other' || !['stage', 'exam', 'course', 'aggiornamento'].includes(event.type))
+                                        .sort((a, b) => a.startTime.toDate().getTime() - b.startTime.toDate().getTime())
+                                        .map(event => {
+                                            const isPaid = userPaidEvents.includes(event.id);
+                                            return (
+                                                <div key={event.id} className="relative">
+                                                    <StageGridItem
+                                                        event={{
+                                                            id: event.id,
+                                                            iconUrl: (event as any).iconUrl || event.imageUrl,
+                                                            type: event.type,
+                                                            discipline: event.discipline,
+                                                            open_to: event.open_to,
+                                                            startTime: event.startTime,
+                                                            onClick: isPaid ? () => {} : () => setSelectedEvent(event)
+                                                        }}
+                                                    />
+                                                    {isPaid && (
+                                                        <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                 </div>
                             </div>
                         )}
@@ -348,8 +395,8 @@ export default function CalendarPage() {
 
                         {/* Dialog/modal per card dettagliata evento */}
                         {selectedEvent && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setSelectedEvent(null)}>
-                                <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-4" onClick={e => e.stopPropagation()}>
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSelectedEvent(null)}>
+                                <div className="bg-white rounded-lg shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
                                     <StageCard
                                         stage={{
                                             id: selectedEvent.id,
@@ -360,26 +407,39 @@ export default function CalendarPage() {
                                             location: selectedEvent.location ?? "",
                                             price: selectedEvent.price ?? 0,
                                             imageUrl: selectedEvent.imageUrl,
-                                            open_to: selectedEvent.open_to === "Cinture Nere" ? "Cinture Nere" : "Tutti",
+                                            open_to: (selectedEvent.open_to === "Tutti" || selectedEvent.open_to === "Cinture Nere" || selectedEvent.open_to === "Insegnanti")
+                                                ? selectedEvent.open_to
+                                                : "Tutti",
                                             type: selectedEvent.type as "stage" | "exam" | "course" | "other",
                                             discipline: selectedEvent.discipline === "karate" || selectedEvent.discipline === "aikido" ? selectedEvent.discipline : undefined,
                                             requireConfirmation: selectedEvent.requireConfirmation ?? false,
                                         }}
                                     />
-                                    <div className="mt-6 flex justify-end">
-                                        {userPaidEvents.includes(selectedEvent.id) ? (
-                                            <Button className="w-full px-6 py-3 text-lg font-bold" variant="secondary" disabled>
-                                                Iscritto
-                                            </Button>
-                                        ) : (
-                                            <Button 
-                                                className="w-full px-6 py-3 text-lg font-bold"
-                                                variant="default"
-                                                onClick={() => setShowPayment(true)}
+                                    <div className="mt-4 sm:mt-6 flex justify-end p-4">
+                                        <div className="flex gap-4 w-full">
+                                            <button
+                                                className="flex items-center text-base sm:text-lg text-[hsl(var(--background))] bg-transparent border-none shadow-none px-0 font-normal"
+                                                onClick={() => setSelectedEvent(null)}
+                                                type="button"
                                             >
-                                                Iscriviti
-                                            </Button>
-                                        )}
+                                                {/* Icona Indietro */}
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                                                Indietro
+                                            </button>
+                                            {userPaidEvents.includes(selectedEvent.id) ? (
+                                                <Button className="w-full px-4 sm:px-6 py-2 sm:py-3 text-base sm:text-lg font-bold" variant="secondary" disabled>
+                                                    Iscritto
+                                                </Button>
+                                            ) : (
+                                                <Button 
+                                                    className="w-full px-4 sm:px-6 py-2 sm:py-3 text-base sm:text-lg font-bold text-[hsl(var(--my-verscur))] bg-transparent border-2 border-[hsl(var(--my-verscur))] shadow-none"
+                                                    variant="default"
+                                                    onClick={() => setShowPayment(true)}
+                                                >
+                                                    Iscriviti
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
