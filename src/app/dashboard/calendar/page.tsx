@@ -8,6 +8,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { useToast } from "@/hooks/use-toast";
 import { format, isSameDay, isSameMonth, startOfMonth } from "date-fns";
 import { it } from "date-fns/locale";
+import { useSearchParams } from "next/navigation";
 
 import { Card } from "@/components/ui/card";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -85,6 +86,10 @@ const InfoRow = ({ icon: Icon, text }: { icon: React.ElementType, text: string |
 
 export default function CalendarPage() {
     const [user] = useAuthState(auth);
+    const searchParams = useSearchParams();
+    const impersonateId = searchParams.get('impersonate');
+    const effectiveUserId = impersonateId || user?.uid;
+    
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [lessons, setLessons] = useState<Event[]>([]);
@@ -155,19 +160,20 @@ export default function CalendarPage() {
                 const specialEventsList = specialEventsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Event));
 
                 // 4. Fetch user payments for events
-                const paymentsSnap = await getDocs(collection(db, "users", user.uid, "payments"));
-                const paidEventIds: string[] = [];
-                paymentsSnap.forEach(docSnap => {
-                    const data = docSnap.data();
-                    if (data.eventId && data.status === "completed") {
-                        paidEventIds.push(data.eventId);
-                    }
-                });
-                setUserPaidEvents(paidEventIds);
+                if (effectiveUserId) {
+                    const paymentsSnap = await getDocs(collection(db, "users", effectiveUserId, "payments"));
+                    const paidEventIds: string[] = [];
+                    paymentsSnap.forEach(docSnap => {
+                        const data = docSnap.data();
+                        if (data.eventId && data.status === "completed") {
+                            paidEventIds.push(data.eventId);
+                        }
+                    });
+                    setUserPaidEvents(paidEventIds);
+                }
 
                 // Mostra tutti gli eventi speciali
                 setSpecialEvents(specialEventsList);
-                setUserPaidEvents(paidEventIds);
 
             } catch (error) {
                 console.error("Error fetching events:", error);
@@ -182,7 +188,7 @@ export default function CalendarPage() {
         };
 
         fetchEvents();
-    }, [user, toast]);
+    }, [effectiveUserId, toast]);
 
     const DayWithDot = ({ date, children }: { date: Date, children: React.ReactNode }) => {
         const hasLesson = lessons.some(lesson => isSameDay(lesson.startTime.toDate(), date) && lesson.status !== 'festivita');

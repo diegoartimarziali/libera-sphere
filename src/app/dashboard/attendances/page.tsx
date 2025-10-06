@@ -7,6 +7,7 @@ import { collection, query, orderBy, getDocs, Timestamp } from "firebase/firesto
 import { useAuthState } from "react-firebase-hooks/auth"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
+import { useSearchParams } from "next/navigation"
 import type { VariantProps } from "class-variance-authority"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -47,6 +48,10 @@ const translateStatus = (status: Attendance['status']): string => {
 
 export default function AttendancesPage() {
     const [user] = useAuthState(auth);
+    const searchParams = useSearchParams();
+    const impersonateId = searchParams.get('impersonate');
+    const effectiveUserId = impersonateId || user?.uid;
+    
     const [attendances, setAttendances] = useState<Attendance[]>([]);
     const [loading, setLoading] = useState(true);
     const [totalLessons, setTotalLessons] = useState<number | null>(null);
@@ -54,14 +59,14 @@ export default function AttendancesPage() {
 
     useEffect(() => {
         const fetchAttendances = async () => {
-            if (!user) {
+            if (!effectiveUserId) {
                 setLoading(false);
                 return;
             }
 
             try {
                 // Leggi presenze dell'utente
-                const attendancesRef = collection(db, 'users', user.uid, 'attendances');
+                const attendancesRef = collection(db, 'users', effectiveUserId, 'attendances');
                 const q = query(
                     attendancesRef,
                     orderBy('lessonDate', 'desc')
@@ -75,7 +80,7 @@ export default function AttendancesPage() {
                 setAttendances(attendancesList);
 
                 // Leggi totale lezioni effettive dalla sottocollezione (ora corretto con solo lezioni confermate)
-                const totalLessonsSnap = await getDocs(collection(db, 'users', user.uid, 'totalLessons'));
+                const totalLessonsSnap = await getDocs(collection(db, 'users', effectiveUserId, 'totalLessons'));
                 let total = null;
                 totalLessonsSnap.forEach(doc => {
                     const data = doc.data();
@@ -96,7 +101,7 @@ export default function AttendancesPage() {
         };
 
         fetchAttendances();
-    }, [user, toast]);
+    }, [effectiveUserId, toast]);
 
     // Calcola presenze effettive
     const presentAttendances = attendances.filter(att => att.status === 'presente').length;

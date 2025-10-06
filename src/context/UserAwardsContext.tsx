@@ -21,19 +21,22 @@ export function useUserAwards() {
   return useContext(UserAwardsContext);
 }
 
-export function UserAwardsProvider({ children }: { children: React.ReactNode }) {
+export function UserAwardsProvider({ children, userId }: { children: React.ReactNode; userId?: string }) {
   const [user] = useAuthState(auth);
   const [awards, setAwards] = useState<UserAward[]>([]);
   const prevAwardsRef = useRef<UserAward[]>([]);
   const { toast } = useToast();
 
+  // Use provided userId or fallback to authenticated user
+  const effectiveUserId = userId || user?.uid;
+
   useEffect(() => {
-    if (!user) {
+    if (!effectiveUserId) {
       setAwards([]);
       prevAwardsRef.current = [];
       return;
     }
-    const ref = collection(db, `users/${user.uid}/userAwards`);
+    const ref = collection(db, `users/${effectiveUserId}/userAwards`);
     const unsubscribe = onSnapshot(ref, async (snapshot) => {
       const list: UserAward[] = await Promise.all(snapshot.docs.map(async docSnap => {
         const data = docSnap.data();
@@ -77,7 +80,7 @@ export function UserAwardsProvider({ children }: { children: React.ReactNode }) 
       setAwards(list);
     });
     return () => unsubscribe();
-  }, [user, toast]);
+  }, [effectiveUserId, toast]);
 
   return (
     <UserAwardsContext.Provider value={awards}>

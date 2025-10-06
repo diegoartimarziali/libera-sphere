@@ -8,6 +8,7 @@ import { collection, query, orderBy, getDocs, Timestamp } from "firebase/firesto
 import { useAuthState } from "react-firebase-hooks/auth"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
+import { useSearchParams } from "next/navigation"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -73,9 +74,18 @@ const translatePaymentMethod = (method: Payment['paymentMethod']): string => {
 }
 
 export default function UserPaymentsPage() {
+    const [user] = useAuthState(auth);
+    const searchParams = useSearchParams();
+    const impersonateId = searchParams.get('impersonate');
+    const effectiveUserId = impersonateId || user?.uid;
+    
+    const [payments, setPayments] = useState<Payment[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
+
     // Funzione per esportare la tabella come PDF
     const handleSavePdf = async () => {
-        if (!user) return;
+        if (!effectiveUserId) return;
         
         const pdf = new jsPDF({ orientation: "landscape", format: "a4" });
         const pageWidth = pdf.internal.pageSize.getWidth();
@@ -83,7 +93,7 @@ export default function UserPaymentsPage() {
 
         // Recupera nome e cognome dell'utente
         const userDoc = await import('firebase/firestore').then(({ doc, getDoc }) => 
-            getDoc(doc(db, 'users', user.uid))
+            getDoc(doc(db, 'users', effectiveUserId))
         );
         const userData = userDoc.exists() ? userDoc.data() : {};
         const userName = `${userData.name || ''} ${userData.surname || ''}`.trim() || 'Utente';
@@ -171,10 +181,6 @@ export default function UserPaymentsPage() {
 
         pdf.save("pagamenti.pdf");
     };
-    const [user] = useAuthState(auth);
-    const [payments, setPayments] = useState<Payment[]>([]);
-    const [loading, setLoading] = useState(true);
-    const { toast } = useToast();
 
     // Calcola il totale dei pagamenti completati
     const totalPayments = payments
@@ -183,13 +189,13 @@ export default function UserPaymentsPage() {
 
     useEffect(() => {
         const fetchPayments = async () => {
-            if (!user) {
+            if (!effectiveUserId) {
                 setLoading(false);
                 return;
             }
 
             try {
-                const paymentsRef = collection(db, 'users', user.uid, 'payments');
+                const paymentsRef = collection(db, 'users', effectiveUserId, 'payments');
                 const q = query(paymentsRef, orderBy('createdAt', 'desc'));
                 const querySnapshot = await getDocs(q);
 
@@ -213,7 +219,7 @@ export default function UserPaymentsPage() {
         };
 
         fetchPayments();
-    }, [user, toast]);
+    }, [effectiveUserId, toast]);
 
     return (
         <Card className="w-full max-w-3xl mx-auto">

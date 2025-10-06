@@ -1,23 +1,18 @@
-
 "use client"
 
 import { useEffect, useState, ReactNode, useCallback } from "react"
 import { UserAwardsProvider } from "@/context/UserAwardsContext"
 import Link from "next/link"
-import { usePathname, redirect, useRouter } from "next/navigation"
+import { usePathname, redirect, useRouter, useSearchParams } from "next/navigation"
 import { auth, db } from "@/lib/firebase"
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
-
 import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, CalendarDays, Wallet } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { getDocs, collection } from "firebase/firestore";
-// import { getAuth } from "firebase/auth"
-// import getAuth from "firebase/auth"
-// import { signOut } from "firebase/auth";
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -29,7 +24,7 @@ interface UserData {
   regulationsAccepted: boolean
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
-  medicalCertificateStatus?: 'invalid'; // Nuovo campo
+  medicalCertificateStatus?: 'invalid';
   associationStatus?: 'pending' | 'active' | 'expired' | 'not_associated';
   associationPaymentFailed?: boolean;
   associationExpiryDate?: Timestamp;
@@ -40,7 +35,7 @@ interface UserData {
   isFormerMember: 'yes' | 'no';
   isInsured?: boolean;
   subscriptionAccessStatus?: 'pending' | 'active' | 'expired';
-  subscriptionPaymentFailed?: boolean; // Nuovo campo per bloccare accesso
+  subscriptionPaymentFailed?: boolean;
   activeSubscription?: {
       subscriptionId: string;
       name: string;
@@ -55,9 +50,32 @@ interface UserData {
 // COMPONENTI DI NAVIGAZIONE
 // =================================================================
 
-function NavLink({ href, children, icon: Icon, onClick }: { href: string; children: React.ReactNode; icon: React.ElementType, onClick?: () => void }) {
+function NavLink({
+    href,
+    children,
+    icon: Icon,
+    onClick,
+}: {
+    href: string;
+    children: ReactNode;
+    icon: React.ComponentType<{ className?: string }>;
+    onClick?: () => void;
+}) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const isActive = pathname.startsWith(href) && (href !== '/dashboard' || pathname === '/dashboard');
+
+    // Propagate impersonate param if present
+    let finalHref = href;
+    const impersonate = searchParams.get('impersonate');
+    if (impersonate && href.startsWith('/dashboard')) {
+        // Check if href already has query params
+        if (href.includes('?')) {
+            finalHref = `${href}&impersonate=${encodeURIComponent(impersonate)}`;
+        } else {
+            finalHref = `${href}?impersonate=${encodeURIComponent(impersonate)}`;
+        }
+    }
 
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         if (onClick) {
@@ -68,7 +86,7 @@ function NavLink({ href, children, icon: Icon, onClick }: { href: string; childr
     return (
         <SheetClose asChild>
             <Link
-                href={href}
+                href={finalHref}
                 onClick={handleClick}
                 className={cn(
                     "sidebar-menu-link flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
@@ -141,26 +159,28 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
     );
 }
 
-
 // =================================================================
 // HEADER UNIFICATO
 // =================================================================
 
-function DashboardHeader({ 
-    onLogout, 
-    userData, 
-    showMenu,
-}: { 
-    onLogout: () => void; 
-    userData: UserData | null, 
-    showMenu: boolean,
+function DashboardHeader({ onLogout, userData, showMenu }: {
+    onLogout: () => void;
+    userData: UserData | null;
+    showMenu: boolean;
 }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const searchParams = useSearchParams();
+    const impersonate = searchParams.get('impersonate');
+    
+    // Create dashboard link with impersonate param if present
+    const dashboardHref = impersonate ? `/dashboard?impersonate=${encodeURIComponent(impersonate)}` : '/dashboard';
+    
     return (
         <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-dark-brown text-title-yellow px-4 sm:px-6 justify-between">
+            {/* Left: Menu */}
             <div className="flex items-center gap-4">
-                 {showMenu && (
-                     <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+                {showMenu && (
+                    <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                         <SheetTrigger asChild>
                             <Button variant="outline" className="border-title-yellow text-title-yellow hover:bg-white/20 hover:text-title-yellow">
                                 <Menu className="h-5 w-5" />
@@ -171,24 +191,24 @@ function DashboardHeader({
                                 <SheetTitle>Menu</SheetTitle>
                             </SheetHeader>
                             <nav className="flex flex-col gap-1 p-4">
-                                                    <SheetClose asChild>
-                                                        <Link
-                                                            href="/dashboard"
-                                                            className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full text-lg font-semibold text-primary-foreground md:text-base"
-                                                        >
-                                                            <img src="https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Ftigre-PP.png?alt=media&token=8cf5490d-1498-4a13-b827-f2e9fe0b94ba" alt="Tigre" className="w-12 h-12 object-contain" />
-                                                        </Link>
-                                                    </SheetClose>
+                                <SheetClose asChild>
+                                    <Link
+                                        href={dashboardHref}
+                                        className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full text-lg font-semibold text-primary-foreground md:text-base"
+                                    >
+                                        <img src="https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Ftigre-PP.png?alt=media&token=8cf5490d-1498-4a13-b827-f2e9fe0b94ba" alt="Tigre" className="w-12 h-12 object-contain" />
+                                    </Link>
+                                </SheetClose>
                                 <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
                             </nav>
                         </SheetContent>
                     </Sheet>
-                 )}
+                )}
             </div>
 
-            {/* Logo centrale con testo diviso */}
+            {/* Center: Logo */}
             <div className="flex-1 flex justify-center items-center">
-                <div className="flex flex-col items-center">
+                <Link href={dashboardHref} className="flex flex-col items-center hover:opacity-80 transition-opacity">
                     <div className="flex items-center gap-3">
                         <span className="text-sm font-bold" style={{ color: 'hsl(var(--foreground))' }}>Libera</span>
                         <img 
@@ -200,9 +220,10 @@ function DashboardHeader({
                         <span className="text-sm font-bold" style={{ color: 'hsl(var(--foreground))' }}>Energia</span>
                     </div>
                     <span className="text-sm font-bold mt-1" style={{ color: 'hsl(var(--foreground))' }}>Arti Marziali</span>
-                </div>
+                </Link>
             </div>
 
+            {/* Right: Logout */}
             <div className="flex items-center gap-4">
                 <Button variant="outline" onClick={onLogout} className="border-title-yellow text-title-yellow hover:bg-white/20 hover:text-title-yellow">
                     <LogOut className="h-5 w-5" />
@@ -212,12 +233,14 @@ function DashboardHeader({
     );
 }
 
-
 // =================================================================
 // LAYOUT PRINCIPALE
 // =================================================================
 
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const searchParams = useSearchParams();
+  const impersonateId = searchParams.get('impersonate');
   const [user, loadingAuth] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loadingData, setLoadingData] = useState(true)
@@ -236,26 +259,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           toast({ variant: "destructive", title: "Errore di logout", description: "Impossibile disconnettersi. Riprova." });
       }
   }, [router, toast]);
-  
 
   useEffect(() => {
     const fetchAndRedirect = async () => {
-        if (!user) {
+        // Se impersonateId è presente, fetcha i dati di quell'utente, altrimenti quelli dell'utente loggato
+        const effectiveUserId = impersonateId || user?.uid;
+        if (!effectiveUserId) {
             redirect("/");
             return;
         }
         setLoadingData(true);
         try {
-            // Carica dati utente
-            const userDocRef = doc(db, "users", user.uid);
+            // Carica dati utente (impersonato o loggato)
+            const userDocRef = doc(db, "users", effectiveUserId);
             const userDocSnap = await getDoc(userDocRef);
-            let fetchedUserData = userDocSnap.exists() ? userDocSnap.data() as UserData : null;
+            let fetchedUserData = userDocSnap.exists() ? userDocSnap.data() : null;
             // Leggi trialStatus e lezioni di prova dal documento unico 'main'
             let trialStatus = undefined;
             let trialExpiryDate = undefined;
             let trialLessons = [];
             if (userDocSnap.exists()) {
-                const trialMainDocRef = doc(db, `users/${user.uid}/trialLessons/main`);
+                const trialMainDocRef = doc(db, `users/${effectiveUserId}/trialLessons/main`);
                 const trialMainDocSnap = await getDoc(trialMainDocRef);
                 if (trialMainDocSnap.exists()) {
                     const trialData = trialMainDocSnap.data();
@@ -263,19 +287,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     trialExpiryDate = trialData.trialExpiryDate;
                     trialLessons = Array.isArray(trialData.lessons) ? trialData.lessons : [];
                 }
-                                // Assicura che i campi obbligatori non siano undefined
-                                                setUserData({
-                                                    ...fetchedUserData,
-                                                    name: fetchedUserData?.name ?? '',
-                                                    email: fetchedUserData?.email ?? '',
-                                                    regulationsAccepted: fetchedUserData?.regulationsAccepted ?? false,
-                                                    applicationSubmitted: fetchedUserData?.applicationSubmitted ?? false,
-                                                    medicalCertificateSubmitted: fetchedUserData?.medicalCertificateSubmitted ?? false,
-                                                    isFormerMember: fetchedUserData?.isFormerMember ?? 'no',
-                                                    trialStatus,
-                                                    trialExpiryDate,
-                                                    trialLessons
-                                                });
+                setUserData({
+                    ...fetchedUserData,
+                    name: fetchedUserData?.name ?? '',
+                    email: fetchedUserData?.email ?? '',
+                    regulationsAccepted: fetchedUserData?.regulationsAccepted ?? false,
+                    applicationSubmitted: fetchedUserData?.applicationSubmitted ?? false,
+                    medicalCertificateSubmitted: fetchedUserData?.medicalCertificateSubmitted ?? false,
+                    isFormerMember: fetchedUserData?.isFormerMember ?? 'no',
+                    trialStatus,
+                    trialExpiryDate,
+                    trialLessons
+                });
                 // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
                 const onboardingPages = [
                     '/dashboard/regulations',
@@ -285,15 +308,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     '/dashboard/associates',
                     '/dashboard/trial-completed',
                 ];
-                
                 // Pagine che non richiedono controlli di onboarding
                 const publicPages = ['/dashboard/reviews'];
-                
                 if (onboardingPages.includes(pathname) || publicPages.includes(pathname)) {
                     setLoadingData(false);
                     return;
                 }
-
                 // Note: subscriptionPaymentFailed viene gestito solo tramite limitazione del menu
                 // Non c'è più reindirizzamento automatico - troppo restrittivo
                 if (trialStatus === 'completed' && fetchedUserData?.associationStatus === 'not_associated') {
@@ -347,14 +367,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             setLoadingData(false);
         }
     };
-    
-    if (!loadingAuth && user) {
+    if (!loadingAuth && (user || impersonateId)) {
         fetchAndRedirect();
-    } else if (!loadingAuth && !user) {
+    } else if (!loadingAuth && !user && !impersonateId) {
          redirect("/");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loadingAuth, pathname, router, toast]);
+  }, [user, loadingAuth, pathname, router, toast, impersonateId]);
 
   if (loadingAuth || loadingData) {
     return (
@@ -364,8 +383,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     )
   }
   
-  if (!user || !userData) {
-      return null; // Dovrebbe essere già stato reindirizzato
+  // Se non c'è userData (profilo impersonato o proprio), non mostrare nulla
+  if (!userData) {
+      return null;
   }
   
   const onboardingPagesForMenu = [
@@ -383,8 +403,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const showMenu = !isUserOnboarding;
   
-return (
-    <UserAwardsProvider>
+  // Define effectiveUserId for UserAwardsProvider
+  const effectiveUserId = impersonateId || user?.uid;
+  
+  return (
+    <UserAwardsProvider userId={effectiveUserId}>
         <div className="flex min-h-screen w-full flex-col bg-background">
             <DashboardHeader 
                 onLogout={handleLogout} 
@@ -394,5 +417,5 @@ return (
             <main className="flex-1 p-4 md:p-8">{children}</main>
         </div>
     </UserAwardsProvider>
-)
+  );
 }

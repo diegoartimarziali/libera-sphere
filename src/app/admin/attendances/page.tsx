@@ -119,7 +119,11 @@ export default function AdminAttendancesPage() {
             }
             
             // Crea gymsList dalle palestre uniche trovate negli utenti
-            const gymsList = Array.from(uniqueUserGyms).sort().map(gymId => ({
+            let gymsArr = Array.from(uniqueUserGyms);
+            if (!gymsArr.includes('Villeneuve')) {
+                gymsArr.push('Villeneuve');
+            }
+            const gymsList = gymsArr.sort().map(gymId => ({
                 id: gymId,
                 name: gymId // Usa l'ID come nome per ora
             }));
@@ -299,10 +303,20 @@ export default function AdminAttendancesPage() {
                                     <div className="flex items-center hover:bg-amber-50 px-2 sm:px-4 rounded-md transition-colors">
                                         <AccordionTrigger className="flex-1">
                                             <div className="flex flex-1 flex-col text-left gap-2">
-                                                {/* Nome utente */}
+                                                {/* Nome utente + pulsante impersonifica */}
                                                 <div className="flex items-center gap-2">
                                                     <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
                                                     <span className="font-bold text-sm sm:text-base truncate">{profile.name} {profile.surname}</span>
+                                                    <a
+                                                        href={`/dashboard?impersonate=${profile.uid}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="ml-2 text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 transition font-semibold flex-shrink-0"
+                                                        title="Vedi come utente"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        👁️ Vedi come utente
+                                                    </a>
                                                 </div>
                                                 
                                                 {/* Statistiche presenze - responsive */}
