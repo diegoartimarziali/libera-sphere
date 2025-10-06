@@ -2,14 +2,16 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc, serverTimestamp, Timestamp, getDoc } from "firebase/firestore";
+import { useAuthState } from "react-firebase-hooks/auth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
+import { hasFullAdminAccess } from "@/app/dashboard/layout";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+
+interface UserData {
+  name: string;
+  email: string;
+  role?: 'admin' | 'superAdmin' | 'user';
+  [key: string]: any;
+}
 
 interface ActivitySettings {
     startDate?: Timestamp;
@@ -82,6 +91,8 @@ const subscriptionFormSchema = z.object({
 type SubscriptionFormData = z.infer<typeof subscriptionFormSchema>;
 
 export default function AdminSubscriptionsPage() {
+    const [user, loadingAuth] = useAuthState(auth);
+    const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -106,6 +117,27 @@ export default function AdminSubscriptionsPage() {
     });
     
     const subscriptionType = form.watch('type');
+
+    // Fetch current user data to check permissions
+    useEffect(() => {
+        const fetchCurrentUserData = async () => {
+            if (user) {
+                try {
+                    const docRef = doc(db, 'users', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        setCurrentUserData(docSnap.data() as UserData);
+                    }
+                } catch (error) {
+                    console.error("Error fetching current user data:", error);
+                }
+            }
+        };
+
+        if (!loadingAuth && user) {
+            fetchCurrentUserData();
+        }
+    }, [user, loadingAuth]);
 
     useEffect(() => {
         if (isFormOpen && !editingSubscription && subscriptionType === 'seasonal' && activitySettings?.startDate && activitySettings?.endDate) {
@@ -242,6 +274,7 @@ export default function AdminSubscriptionsPage() {
         return 'Non definita';
     };
 
+    const canModifySubscriptions = hasFullAdminAccess(currentUserData);
 
     return (
         <Card className="mx-2 sm:mx-4 lg:mx-6 p-3 sm:p-4 lg:p-6">
@@ -251,7 +284,11 @@ export default function AdminSubscriptionsPage() {
                         <CardTitle className="text-xl sm:text-2xl font-bold">Gestione Abbonamenti</CardTitle>
                         <CardDescription className="text-sm sm:text-base text-muted-foreground mt-1">Crea e gestisci i piani di abbonamento per gli utenti.</CardDescription>
                     </div>
-                    <Button onClick={openCreateForm} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium h-11 sm:h-10">
+                    <Button 
+                        onClick={openCreateForm} 
+                        disabled={!canModifySubscriptions}
+                        className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground font-medium h-11 sm:h-10"
+                    >
                         <PlusCircle className="mr-2 h-4 w-4" />
                         <span className="hidden sm:inline">Aggiungi Abbonamento</span>
                         <span className="sm:hidden">Nuovo Abbonamento</span>
@@ -311,6 +348,7 @@ export default function AdminSubscriptionsPage() {
                                                 <Button 
                                                     size="sm" 
                                                     onClick={() => openEditForm(sub)} 
+                                                    disabled={!canModifySubscriptions}
                                                     className="bg-blue-600 hover:bg-blue-700 text-white h-8 sm:h-7 text-xs font-medium px-2 sm:px-3"
                                                     title="Modifica abbonamento"
                                                 >
@@ -321,7 +359,8 @@ export default function AdminSubscriptionsPage() {
                                                     <AlertDialogTrigger asChild>
                                                         <Button 
                                                             size="sm" 
-                                                            className="bg-red-600 hover:bg-red-700 text-white h-8 sm:h-7 text-xs font-medium px-2 sm:px-3"
+                                                            disabled={!canModifySubscriptions}
+                                                            className="bg-red-600 hover:bg-red-700 text-white h-8 sm:h-7 text-xs font-medium px-2 sm:px-3 shadow-sm"
                                                             title="Elimina abbonamento"
                                                         >
                                                             <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />

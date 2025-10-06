@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { db } from "@/lib/firebase"
-import { collection, getDocs, query, orderBy, Timestamp, where, addDoc, deleteDoc } from "firebase/firestore"
+import { db, auth } from "@/lib/firebase"
+import { collection, getDocs, query, orderBy, Timestamp, where, addDoc, deleteDoc, doc, getDoc } from "firebase/firestore"
+import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import type { VariantProps } from "class-variance-authority"
 import { it } from "date-fns/locale"
+import { hasImpersonationAccess, hasFullAdminAccess } from "@/app/dashboard/layout"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,6 +17,13 @@ import { Badge, badgeVariants } from "@/components/ui/badge"
 import { Loader2, User, Users, ClipboardCheck, RefreshCw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+
+interface UserData {
+  name: string;
+  email: string;
+  role?: 'admin' | 'superAdmin' | 'user';
+  [key: string]: any;
+}
 
 interface Attendance {
     id: string;
@@ -59,6 +68,8 @@ const translateStatus = (status: Attendance['status']) => {
 
 
 export default function AdminAttendancesPage() {
+    const [user, loadingAuth] = useAuthState(auth);
+    const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
     const [profiles, setProfiles] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [gyms, setGyms] = useState<Gym[]>([]);
@@ -66,6 +77,27 @@ export default function AdminAttendancesPage() {
     const [disciplineFilter, setDisciplineFilter] = useState("all");
     const [isRecalculating, setIsRecalculating] = useState(false);
     const { toast } = useToast();
+
+    // Fetch current user data to check permissions
+    useEffect(() => {
+        const fetchCurrentUserData = async () => {
+            if (user) {
+                try {
+                    const docRef = doc(db, 'users', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        setCurrentUserData(docSnap.data() as UserData);
+                    }
+                } catch (error) {
+                    console.error("Error fetching current user data:", error);
+                }
+            }
+        };
+
+        if (!loadingAuth && user) {
+            fetchCurrentUserData();
+        }
+    }, [user, loadingAuth]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -247,6 +279,8 @@ export default function AdminAttendancesPage() {
             return disciplineMatch && gymMatch;
         });
 
+    const canImpersonate = hasImpersonationAccess(currentUserData);
+
     return (
         <Card className="bg-card">
             <CardHeader>
@@ -280,7 +314,7 @@ export default function AdminAttendancesPage() {
                     </Select>
                     <Button 
                         onClick={recalculateTotalLessons} 
-                        disabled={isRecalculating}
+                        disabled={isRecalculating || !hasFullAdminAccess(currentUserData)}
                         variant="outline"
                         className="bg-transparent text-amber-800 border-amber-800 hover:bg-amber-50 w-full"
                     >
@@ -303,20 +337,22 @@ export default function AdminAttendancesPage() {
                                     <div className="flex items-center hover:bg-amber-50 px-2 sm:px-4 rounded-md transition-colors">
                                         <AccordionTrigger className="flex-1">
                                             <div className="flex flex-1 flex-col text-left gap-2">
-                                                {/* Nome utente + pulsante impersonifica */}
+                                                {/* Nome utente + pulsante impersonifica (solo per superAdmin) */}
                                                 <div className="flex items-center gap-2">
                                                     <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
                                                     <span className="font-bold text-sm sm:text-base truncate">{profile.name} {profile.surname}</span>
-                                                    <a
-                                                        href={`/dashboard?impersonate=${profile.uid}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="ml-2 text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 transition font-semibold flex-shrink-0"
-                                                        title="Vedi come utente"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        👁️ Vedi come utente
-                                                    </a>
+                                                    {canImpersonate && (
+                                                        <a
+                                                            href={`/dashboard?impersonate=${profile.uid}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="ml-2 text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 transition font-semibold flex-shrink-0"
+                                                            title="Vedi come utente"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            👁️ Vedi come utente
+                                                        </a>
+                                                    )}
                                                 </div>
                                                 
                                                 {/* Statistiche presenze - responsive */}

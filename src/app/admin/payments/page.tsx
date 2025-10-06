@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import type { VariantProps } from "class-variance-authority"
 import { ref, deleteObject, listAll } from "firebase/storage";
+import { hasFullAdminAccess } from "@/app/dashboard/layout"
 
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -23,6 +24,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
+interface UserData {
+  name: string;
+  email: string;
+  role?: 'admin' | 'superAdmin' | 'user';
+  [key: string]: any;
+}
 
 interface Payment {
     id: string; // Document ID of the payment
@@ -97,7 +104,8 @@ const translatePaymentMethod = (method: Payment['paymentMethod']) => {
 }
 
 export default function AdminPaymentsPage() {
-    const [user] = useAuthState(auth);
+    const [user, loadingAuth] = useAuthState(auth);
+    const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
     const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
     const [profiles, setProfiles] = useState<UserProfile[]>([]);
     const [gyms, setGyms] = useState<Map<string, string>>(new Map());
@@ -108,6 +116,29 @@ export default function AdminPaymentsPage() {
     const [statusFilter, setStatusFilter] = useState("pending_completed");
 
     const { toast } = useToast();
+
+    // Fetch current user data to check permissions
+    useEffect(() => {
+        const fetchCurrentUserData = async () => {
+            if (user) {
+                try {
+                    const docRef = doc(db, 'users', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const userData = docSnap.data() as UserData;
+                        setCurrentUserData(userData);
+                        setCurrentUserRole(userData.role || null);
+                    }
+                } catch (error) {
+                    console.error("Error fetching current user data:", error);
+                }
+            }
+        };
+
+        if (!loadingAuth && user) {
+            fetchCurrentUserData();
+        }
+    }, [user, loadingAuth]);
 
     const handleDeleteAward = async (awardId: string, userId: string) => {
         try {
@@ -462,6 +493,8 @@ export default function AdminPaymentsPage() {
             return true;
         });
 
+    const canModifyPayments = hasFullAdminAccess(currentUserData);
+
     return (
         <Card>
             <CardHeader>
@@ -568,7 +601,7 @@ export default function AdminPaymentsPage() {
                                                                                 variant="outline"
                                                                                 size="icon"
                                                                                 onClick={() => handlePaymentUpdate(p, 'failed')}
-                                                                                disabled={updatingPaymentId === p.id}
+                                                                                disabled={updatingPaymentId === p.id || !canModifyPayments}
                                                                                 title="Segna come fallito"
                                                                                 className="bg-transparent border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400"
                                                                             >
@@ -578,7 +611,7 @@ export default function AdminPaymentsPage() {
                                                                                 variant="outline"
                                                                                 size="icon"
                                                                                 onClick={() => handlePaymentUpdate(p, 'completed')}
-                                                                                disabled={updatingPaymentId === p.id}
+                                                                                disabled={updatingPaymentId === p.id || !canModifyPayments}
                                                                                 title="Approva pagamento"
                                                                                 className="bg-transparent border-green-300 text-green-500 hover:bg-green-50 hover:border-green-400"
                                                                             >
@@ -589,7 +622,7 @@ export default function AdminPaymentsPage() {
                                                                                     <Button
                                                                                         variant="outline"
                                                                                         size="icon"
-                                                                                        disabled={sendingMessageId === p.id}
+                                                                                        disabled={sendingMessageId === p.id || !canModifyPayments}
                                                                                         title="Invia sollecito"
                                                                                         className="bg-transparent hover:bg-transparent"
                                                                                     >
@@ -662,7 +695,7 @@ export default function AdminPaymentsPage() {
                                                                             variant="outline"
                                                                             size="icon"
                                                                             onClick={() => handlePaymentUpdate(p, 'failed')}
-                                                                            disabled={updatingPaymentId === p.id}
+                                                                            disabled={updatingPaymentId === p.id || !canModifyPayments}
                                                                             title="Rifiuta"
                                                                             className="bg-transparent border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400"
                                                                         >
@@ -672,7 +705,7 @@ export default function AdminPaymentsPage() {
                                                                             variant="outline"
                                                                             size="icon"
                                                                             onClick={() => handlePaymentUpdate(p, 'completed')}
-                                                                            disabled={updatingPaymentId === p.id}
+                                                                            disabled={updatingPaymentId === p.id || !canModifyPayments}
                                                                             title="Approva"
                                                                             className="bg-transparent border-green-300 text-green-500 hover:bg-green-50 hover:border-green-400"
                                                                         >
@@ -683,7 +716,7 @@ export default function AdminPaymentsPage() {
                                                                                 <Button
                                                                                     variant="outline"
                                                                                     size="sm"
-                                                                                    disabled={sendingMessageId === p.id}
+                                                                                    disabled={sendingMessageId === p.id || !canModifyPayments}
                                                                                     className="bg-transparent hover:bg-transparent px-3"
                                                                                 >
                                                                                     {sendingMessageId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Mail className="h-4 w-4" />}

@@ -1,14 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, getDocs, doc, writeBatch, query, where, Timestamp, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData, getDoc } from "firebase/firestore";
+import { useAuthState } from "react-firebase-hooks/auth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
+import { hasFullAdminAccess } from "@/app/dashboard/layout";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -314,7 +316,16 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
 // PAGINA PRINCIPALE
 // =================================================================
 
+interface UserData {
+  name: string;
+  email: string;
+  role?: 'admin' | 'superAdmin' | 'user';
+  [key: string]: any;
+}
+
 export default function AdminStagesPage() {
+    const [user, loadingAuth] = useAuthState(auth);
+    const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
     const openEditForm = (stage: Stage) => {
         setEditingStage({
             ...stage,
@@ -439,6 +450,27 @@ export default function AdminStagesPage() {
         }
     };
 
+    // Fetch current user data to check permissions
+    useEffect(() => {
+        const fetchCurrentUserData = async () => {
+            if (user) {
+                try {
+                    const docRef = doc(db, 'users', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        setCurrentUserData(docSnap.data() as UserData);
+                    }
+                } catch (error) {
+                    console.error("Error fetching current user data:", error);
+                }
+            }
+        };
+
+        if (!loadingAuth && user) {
+            fetchCurrentUserData();
+        }
+    }, [user, loadingAuth]);
+
     useEffect(() => {
         fetchInitialData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -526,7 +558,7 @@ export default function AdminStagesPage() {
                          <Button 
                             onClick={migrateEventData} 
                             variant="ghost" 
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !hasFullAdminAccess(currentUserData as any)}
                             className="w-full sm:w-auto hover:bg-transparent"
                             size="sm"
                         >
@@ -534,7 +566,11 @@ export default function AdminStagesPage() {
                             <span className="hidden sm:inline">Migra Dati Eventi</span>
                             <span className="sm:hidden">Migra</span>
                         </Button>
-                         <Button onClick={openCreateForm} className="w-full sm:w-auto">
+                         <Button 
+                            onClick={openCreateForm} 
+                            disabled={!hasFullAdminAccess(currentUserData as any)}
+                            className="w-full sm:w-auto"
+                        >
                             <PlusCircle className="mr-2" />
                             <span className="hidden sm:inline">Crea Nuovo Evento</span>
                             <span className="sm:hidden">Nuovo Evento</span>
@@ -584,12 +620,12 @@ export default function AdminStagesPage() {
                                         <InfoRow icon={Tag} text={`Costo: ${stage.price.toFixed(2)} €`} />
                                     </CardContent>
                                     <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 bg-muted/50 p-3">
-                                        <Button variant="ghost" size="sm" onClick={() => openEditForm(stage)} className="h-8 w-8 p-0 hover:bg-blue-100 text-blue-600 hover:text-blue-700" title="Modifica evento">
+                                        <Button variant="ghost" size="sm" disabled={!hasFullAdminAccess(currentUserData as any)} onClick={() => openEditForm(stage)} className="h-8 w-8 p-0 hover:bg-blue-100 text-blue-600 hover:text-blue-700" title="Modifica evento">
                                             <Edit2 className="h-4 w-4" />
                                         </Button>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-100 text-red-600 hover:text-red-700" title="Elimina evento">
+                                                 <Button variant="ghost" size="sm" disabled={!hasFullAdminAccess(currentUserData as any)} className="h-8 w-8 p-0 hover:bg-red-100 text-red-600 hover:text-red-700" title="Elimina evento">
                                                     <Trash2 className="h-4 w-4" />
                                                  </Button>
                                             </AlertDialogTrigger>
@@ -642,12 +678,12 @@ export default function AdminStagesPage() {
                                         <TableCell className="text-right">{stage.price.toFixed(2)} €</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-1 sm:space-x-1">
-                                             <Button variant="ghost" size="sm" onClick={() => openEditForm(stage)} className="h-8 w-8 p-0 hover:bg-blue-100 text-blue-600 hover:text-blue-700" title="Modifica evento">
+                                             <Button variant="ghost" size="sm" disabled={!hasFullAdminAccess(currentUserData as any)} onClick={() => openEditForm(stage)} className="h-8 w-8 p-0 hover:bg-blue-100 text-blue-600 hover:text-blue-700" title="Modifica evento">
                                                 <Edit2 className="h-4 w-4" />
                                              </Button>
                                               <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-100 text-red-600 hover:text-red-700" title="Elimina evento">
+                                                    <Button variant="ghost" size="sm" disabled={!hasFullAdminAccess(currentUserData as any)} className="h-8 w-8 p-0 hover:bg-red-100 text-red-600 hover:text-red-700" title="Elimina evento">
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </AlertDialogTrigger>

@@ -9,7 +9,7 @@ import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
-import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, CalendarDays, Wallet } from "lucide-react"
+import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, CalendarDays, Wallet, Crown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { getDocs, collection } from "firebase/firestore";
@@ -20,7 +20,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle 
 interface UserData {
   name: string
   email: string
-  role?: 'admin' | 'user';
+  role?: 'admin' | 'superAdmin' | 'user';
   regulationsAccepted: boolean
   applicationSubmitted: boolean
   medicalCertificateSubmitted: boolean
@@ -44,6 +44,30 @@ interface UserData {
       expiresAt?: Timestamp;
   };
   [key: string]: any;
+}
+
+// =================================================================
+// UTILITÀ PER GESTIONE RUOLI E PERMESSI
+// =================================================================
+
+export function isSuperAdmin(userData: UserData | null): boolean {
+    return userData?.role === 'superAdmin';
+}
+
+export function isAdmin(userData: UserData | null): boolean {
+    return userData?.role === 'admin' || userData?.role === 'superAdmin';
+}
+
+export function hasImpersonationAccess(userData: UserData | null): boolean {
+    return isSuperAdmin(userData);
+}
+
+export function hasFullAdminAccess(userData: UserData | null): boolean {
+    return isSuperAdmin(userData);
+}
+
+export function hasReadOnlyAdminAccess(userData: UserData | null): boolean {
+    return userData?.role === 'admin';
 }
 
 // =================================================================
@@ -120,10 +144,14 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
                 <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick}>I Miei Pagamenti</NavLink>
                 <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
                 
-                {userData.role === 'admin' && (
+                {(userData.role === 'admin' || userData.role === 'superAdmin') && (
                     <>
                         <Separator className="my-2" />
-                        <NavLink href="/admin" icon={Shield} onClick={onLinkClick}>Pannello Admin</NavLink>
+                        {userData.role === 'superAdmin' ? (
+                            <NavLink href="/admin" icon={Crown} onClick={onLinkClick}>Pannello SuperAdmin</NavLink>
+                        ) : (
+                            <NavLink href="/admin" icon={Shield} onClick={onLinkClick}>Pannello Admin</NavLink>
+                        )}
                     </>
                 )}
             </>
@@ -149,10 +177,14 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
                 </>
             )}
             
-            {userData.role === 'admin' && (
+            {(userData.role === 'admin' || userData.role === 'superAdmin') && (
                 <>
                     <Separator className="my-2" />
-                    <NavLink href="/admin" icon={Shield} onClick={onLinkClick}>Pannello Admin</NavLink>
+                    {userData.role === 'superAdmin' ? (
+                        <NavLink href="/admin" icon={Crown} onClick={onLinkClick}>Pannello SuperAdmin</NavLink>
+                    ) : (
+                        <NavLink href="/admin" icon={Shield} onClick={onLinkClick}>Pannello Admin</NavLink>
+                    )}
                 </>
             )}
         </>

@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { db, auth } from "@/lib/firebase";
+import { collection, getDocs, doc, query, orderBy, addDoc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
+import { useAuthState } from "react-firebase-hooks/auth";
 import { useToast } from "@/hooks/use-toast";
 import { sendPushNotification } from "@/hooks/use-push-notification";
 import { createUserAward } from "@/lib/createUserAward";
@@ -11,6 +12,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { calculateAssignedAwardResiduo } from '@/lib/calculateAssignedAwardResiduo';
 import { useAttendances } from '@/hooks/use-attendances';
+import { hasFullAdminAccess } from "@/app/dashboard/layout";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,8 +67,39 @@ const awardFormSchema = z.object({
 
 type AwardFormData = z.infer<typeof awardFormSchema>;
 
+interface UserData {
+  name: string;
+  email: string;
+  role?: 'admin' | 'superAdmin' | 'user';
+  [key: string]: any;
+}
+
 export default function AdminAwardsPage() {
+    const [user, loadingAuth] = useAuthState(auth);
+    const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
     const { percentage, loading: attendancesLoading } = useAttendances();
+    
+    // Fetch current user data to check permissions
+    useEffect(() => {
+        const fetchCurrentUserData = async () => {
+            if (user) {
+                try {
+                    const docRef = doc(db, 'users', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        setCurrentUserData(docSnap.data() as UserData);
+                    }
+                } catch (error) {
+                    console.error("Error fetching current user data:", error);
+                }
+            }
+        };
+
+        if (!loadingAuth && user) {
+            fetchCurrentUserData();
+        }
+    }, [user, loadingAuth]);
+
     useEffect(() => {
         fetchAwards();
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -324,7 +357,11 @@ export default function AdminAwardsPage() {
                         <CardTitle className="text-lg sm:text-xl">Gestione Premi</CardTitle>
                         <CardDescription className="text-sm sm:text-base">Crea e gestisci i premi e i bonus che possono essere accumulati dagli atleti.</CardDescription>
                     </div>
-                     <Button onClick={openCreateForm} className="w-full sm:w-auto">
+                     <Button 
+                        onClick={openCreateForm} 
+                        disabled={!hasFullAdminAccess(currentUserData as any)}
+                        className="w-full sm:w-auto"
+                    >
                         <PlusCircle className="mr-2 h-4 w-4" /> 
                         <span className="hidden sm:inline">Crea Premio</span>
                         <span className="sm:hidden">Nuovo</span>
@@ -371,6 +408,7 @@ export default function AdminAwardsPage() {
                                             <div className="flex flex-col sm:flex-row gap-1 sm:gap-1 sm:space-x-1">
                                             <Button 
                                                 size="sm" 
+                                                disabled={!hasFullAdminAccess(currentUserData as any)}
                                                 onClick={() => openAssignDialog(award)}
                                                 className="bg-green-600 hover:bg-green-700 text-white border-green-600 hover:border-green-700 p-1 sm:p-2 h-6 sm:h-8 w-6 sm:w-8"
                                                 title="Assegna premio"
@@ -379,6 +417,7 @@ export default function AdminAwardsPage() {
                                             </Button>
                                             <Button 
                                                 size="sm" 
+                                                disabled={!hasFullAdminAccess(currentUserData as any)}
                                                 onClick={() => openEditForm(award)}
                                                 className="bg-blue-600 hover:bg-blue-700 text-white border-blue-600 hover:border-blue-700 p-1 sm:p-2 h-6 sm:h-8 w-6 sm:w-8"
                                                 title="Modifica premio"
@@ -387,7 +426,7 @@ export default function AdminAwardsPage() {
                                             </Button>
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="destructive" size="sm" className="p-1 sm:p-2 h-6 sm:h-8 w-6 sm:w-8">
+                                                    <Button variant="destructive" size="sm" disabled={!hasFullAdminAccess(currentUserData as any)} className="p-1 sm:p-2 h-6 sm:h-8 w-6 sm:w-8">
                                                         <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                                                     </Button>
                                                 </AlertDialogTrigger>
@@ -453,7 +492,8 @@ export default function AdminAwardsPage() {
                                 <Button
                                     variant="ghost"
                                     onClick={fetchAssignedAwards}
-                                    className="p-1 sm:p-2 bg-transparent border-none shadow-none hover:bg-primary/10"
+                                    disabled={!hasFullAdminAccess(currentUserData as any)}
+                                    className="p-1 sm:p-2 bg-transparent border-none shadow-none hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Aggiorna premi assegnati"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 sm:h-7 sm:w-7 text-primary drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -552,6 +592,7 @@ export default function AdminAwardsPage() {
                                                                                 <AlertDialogTrigger asChild>
                                                                                     <Button 
                                                                                         size="sm" 
+                                                                                        disabled={!hasFullAdminAccess(currentUserData as any)}
                                                                                         className="bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700 p-1 sm:p-2 h-6 sm:h-8 w-6 sm:w-8"
                                                                                         title="Elimina premio assegnato"
                                                                                     >

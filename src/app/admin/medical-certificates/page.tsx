@@ -2,12 +2,14 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { db, storage } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy, Timestamp, doc, updateDoc } from "firebase/firestore";
+import { db, storage, auth } from "@/lib/firebase";
+import { collection, getDocs, query, orderBy, Timestamp, doc, updateDoc, getDoc } from "firebase/firestore";
 import { ref, deleteObject } from "firebase/storage";
+import { useAuthState } from "react-firebase-hooks/auth";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, isPast, format, startOfDay } from "date-fns";
 import { it } from "date-fns/locale";
+import { hasFullAdminAccess } from "@/app/dashboard/layout";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -35,8 +37,16 @@ interface UserProfile {
     daysToExpire?: number;
 }
 
+interface UserData {
+  name: string;
+  email: string;
+  role?: 'admin' | 'superAdmin' | 'user';
+  [key: string]: any;
+}
 
 export default function AdminMedicalCertificatesPage() {
+    const [user, loadingAuth] = useAuthState(auth);
+    const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [profiles, setProfiles] = useState<UserProfile[]>([]);
@@ -93,6 +103,27 @@ export default function AdminMedicalCertificatesPage() {
         }
     };
 
+
+    // Fetch current user data to check permissions
+    useEffect(() => {
+        const fetchCurrentUserData = async () => {
+            if (user) {
+                try {
+                    const docRef = doc(db, 'users', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        setCurrentUserData(docSnap.data() as UserData);
+                    }
+                } catch (error) {
+                    console.error("Error fetching current user data:", error);
+                }
+            }
+        };
+
+        if (!loadingAuth && user) {
+            fetchCurrentUserData();
+        }
+    }, [user, loadingAuth]);
 
     useEffect(() => {
         fetchData();
@@ -237,6 +268,7 @@ export default function AdminMedicalCertificatesPage() {
                                                                         Visualizza
                                                                     </Link>
                                                                 </DropdownMenuItem>
+                                                                {hasFullAdminAccess(currentUserData as any) && (
                                                                 <AlertDialog>
                                                                     <AlertDialogTrigger asChild>
                                                                         <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
@@ -262,6 +294,7 @@ export default function AdminMedicalCertificatesPage() {
                                                                         </AlertDialogFooter>
                                                                     </AlertDialogContent>
                                                                 </AlertDialog>
+                                                                )}
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     ) : (
@@ -333,6 +366,7 @@ export default function AdminMedicalCertificatesPage() {
                                                                     <Eye className="w-4 h-4" />
                                                                 </Link>
                                                             </Button>
+                                                            {hasFullAdminAccess(currentUserData as any) && (
                                                             <AlertDialog>
                                                                 <AlertDialogTrigger asChild>
                                                                     <Button 
@@ -365,6 +399,7 @@ export default function AdminMedicalCertificatesPage() {
                                                                     </AlertDialogFooter>
                                                                 </AlertDialogContent>
                                                             </AlertDialog>
+                                                            )}
                                                         </>
                                                     ) : (
                                                         <div className="text-xs text-muted-foreground text-center py-2">

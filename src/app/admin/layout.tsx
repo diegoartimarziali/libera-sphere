@@ -7,21 +7,35 @@ import { useRouter, usePathname, redirect } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { isAdmin, isSuperAdmin } from "@/app/dashboard/layout";
 
 import { Button } from "@/components/ui/button";
-import { LogOut, Loader2, Menu, X, CreditCard, Users, Calendar, Award, Gift, FileText, UserCheck, Shield, Trash2 } from "lucide-react";
+import { LogOut, Loader2, Menu, X, CreditCard, Users, Calendar, Award, Gift, FileText, UserCheck, Shield, Trash2, Crown } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+
+interface UserData {
+  name: string;
+  email: string;
+  role?: 'admin' | 'superAdmin' | 'user';
+  regulationsAccepted: boolean;
+  applicationSubmitted: boolean;
+  medicalCertificateSubmitted: boolean;
+  isFormerMember: 'yes' | 'no';
+  [key: string]: any;
+}
 
 interface AdminNavItem {
     href: string;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
+    superAdminOnly?: boolean;
 }
 
 const adminNavItems: AdminNavItem[] = [
     { href: "/dashboard", label: "Torna a utente", icon: Shield },
+    { href: "/admin/super-admin", label: "SuperAdmin", icon: Crown, superAdminOnly: true },
     { href: "/admin/payments", label: "Pagamenti", icon: CreditCard },
     { href: "/admin/attendances", label: "Presenze", icon: UserCheck },
     { href: "/admin/calendar", label: "Calendario", icon: Calendar },
@@ -29,7 +43,7 @@ const adminNavItems: AdminNavItem[] = [
     { href: "/admin/awards", label: "Premi", icon: Gift },
     { href: "/admin/subscriptions", label: "Abbonamenti", icon: Users },
     { href: "/admin/medical-certificates", label: "Certificati", icon: FileText },
-    { href: "/admin/delete-users", label: "Elimina/Admin", icon: Trash2 },
+    { href: "/admin/delete-users", label: "Elimina/Admin", icon: Trash2, superAdminOnly: true },
 ];
 
 function AdminNavLink({ href, label, icon: Icon, onClick }: { 
@@ -61,7 +75,7 @@ function AdminNavLink({ href, label, icon: Icon, onClick }: {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const [user, loading] = useAuthState(auth);
-    const [isAdmin, setIsAdmin] = useState(false);
+    const [userData, setUserData] = useState<UserData | null>(null);
     const [adminLoading, setAdminLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -72,17 +86,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     const docRef = doc(db, 'users', user.uid);
                     const docSnap = await getDoc(docRef);
                     if (docSnap.exists()) {
-                        const userData = docSnap.data();
-                        setIsAdmin(userData.role === 'admin');
+                        const fetchedUserData = docSnap.data() as UserData;
+                        setUserData(fetchedUserData);
                     } else {
-                        setIsAdmin(false);
+                        setUserData(null);
                     }
                 } catch (error) {
                     console.error("Error checking admin status:", error);
-                    setIsAdmin(false);
+                    setUserData(null);
                 }
             } else {
-                setIsAdmin(false);
+                setUserData(null);
             }
             setAdminLoading(false);
         };
@@ -100,13 +114,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         );
     }
 
-    if (!user || !isAdmin) {
+    if (!user || !isAdmin(userData)) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div>Accesso negato. Non hai i permessi per accedere a questa area.</div>
             </div>
         );
     }
+
+    // Filtra le voci del menu in base al ruolo
+    const filteredNavItems = adminNavItems.filter(item => {
+        if (item.superAdminOnly) {
+            return isSuperAdmin(userData);
+        }
+        return true;
+    });
 
     return (
         <div className="min-h-screen bg-background">
@@ -127,6 +149,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link href="/admin" className="flex items-center gap-2 font-semibold">
                         <Shield className="h-5 w-5" />
                         Admin
+                        {isSuperAdmin(userData as any) && (
+                            <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded">SUPER</span>
+                        )}
                     </Link>
                     <Button
                         variant="ghost"
@@ -138,7 +163,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     </Button>
                 </div>
                 <nav className="flex flex-col gap-1 p-4">
-                    {adminNavItems.map(({ href, label, icon }) => (
+                    {filteredNavItems.map(({ href, label, icon }) => (
                         <AdminNavLink
                             key={href}
                             href={href}
@@ -166,6 +191,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             <Link href="/admin" className="flex items-center gap-2 font-semibold">
                                 <Shield className="h-5 w-5" />
                                 Admin
+                                {isSuperAdmin(userData as any) && (
+                                    <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded">SUPER</span>
+                                )}
                             </Link>
                         </div>
                         <Button

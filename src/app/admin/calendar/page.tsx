@@ -2,13 +2,15 @@
 "use client"
 
 import { useState, useEffect, Fragment } from "react";
-import { db } from "@/lib/firebase";
+import { db, auth } from "@/lib/firebase";
 import { collection, getDocs, doc, writeBatch, query, where, Timestamp, orderBy, deleteDoc, addDoc, updateDoc, serverTimestamp, DocumentData, getDoc } from "firebase/firestore";
+import { useAuthState } from "react-firebase-hooks/auth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { format, parseISO, addDays, eachDayOfInterval, isValid, isBefore, nextDay, startOfDay, eachMonthOfInterval, startOfMonth, endOfMonth, getDay, isWithinInterval, getYear, startOfYear, endOfYear } from "date-fns";
+import { hasFullAdminAccess } from "@/app/dashboard/layout";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -221,8 +223,16 @@ function TestCalendarDialog({ gyms, onGenerate, onOpenChange }: { gyms: Gym[], o
     );
 }
 
+interface UserData {
+  name: string;
+  email: string;
+  role?: 'admin' | 'superAdmin' | 'user';
+  [key: string]: any;
+}
 
 export default function AdminCalendarPage() {
+    const [user, loadingAuth] = useAuthState(auth);
+    const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -369,6 +379,26 @@ export default function AdminCalendarPage() {
         }
     };
 
+    // Fetch current user data to check permissions
+    useEffect(() => {
+        const fetchCurrentUserData = async () => {
+            if (user) {
+                try {
+                    const docRef = doc(db, 'users', user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        setCurrentUserData(docSnap.data() as UserData);
+                    }
+                } catch (error) {
+                    console.error("Error fetching current user data:", error);
+                }
+            }
+        };
+
+        if (!loadingAuth && user) {
+            fetchCurrentUserData();
+        }
+    }, [user, loadingAuth]);
 
     useEffect(() => {
         fetchInitialData();
@@ -891,13 +921,21 @@ export default function AdminCalendarPage() {
 
                 </CardContent>
                 <CardFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2 space-y-2 sm:space-y-0">
-                    <Button onClick={() => handleGenerateCalendar()} disabled={isGenerating || isSaving} className="text-green-600 border-green-600 hover:bg-green-50 font-bold w-full sm:w-auto">
+                    <Button 
+                        onClick={() => handleGenerateCalendar()} 
+                        disabled={isGenerating || isSaving || !hasFullAdminAccess(currentUserData as any)} 
+                        className="text-green-600 border-green-600 hover:bg-green-50 font-bold w-full sm:w-auto"
+                    >
                         {isGenerating ? <Loader2 className="animate-spin mr-2" /> : <PlusCircle className="mr-2" />}
                         Genera Anteprima
                     </Button>
                     <Dialog open={isTestFormOpen} onOpenChange={setIsTestFormOpen}>
                         <DialogTrigger asChild>
-                             <Button variant="secondary" className="bg-transparent w-full sm:w-auto">
+                             <Button 
+                                variant="secondary" 
+                                disabled={!hasFullAdminAccess(currentUserData as any)}
+                                className="bg-transparent w-full sm:w-auto"
+                            >
                                 <TestTube2 className="mr-2" />
                                 <span className="hidden sm:inline">Genera Calendario di Test</span>
                                 <span className="sm:hidden">Test</span>
@@ -915,7 +953,11 @@ export default function AdminCalendarPage() {
                     </Dialog>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="destructive" className="bg-transparent text-red-600 border-red-600 hover:bg-red-50 w-full sm:w-auto">
+                            <Button 
+                                variant="destructive" 
+                                disabled={!hasFullAdminAccess(currentUserData as any)}
+                                className="bg-transparent text-red-600 border-red-600 hover:bg-red-50 w-full sm:w-auto"
+                            >
                                 <AlertTriangle className="mr-2" />
                                 <span className="hidden sm:inline">Reset TotalLessons</span>
                                 <span className="sm:hidden">Reset</span>
@@ -998,7 +1040,12 @@ export default function AdminCalendarPage() {
                                             
                                             <AlertDialog>
                                                 <AlertDialogTrigger asChild>
-                                                    <Button variant="destructive" size="sm" disabled={isDeleting === cal.id} className="bg-transparent text-red-600 border-red-600 hover:bg-red-50">
+                                                    <Button 
+                                                        variant="destructive" 
+                                                        size="sm" 
+                                                        disabled={isDeleting === cal.id || !hasFullAdminAccess(currentUserData)} 
+                                                        className="bg-transparent text-red-600 border-red-600 hover:bg-red-50"
+                                                    >
                                                         {isDeleting === cal.id ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
                                                         Elimina
                                                     </Button>
@@ -1066,7 +1113,7 @@ export default function AdminCalendarPage() {
                                                         <Button 
                                                             variant="destructive" 
                                                             size="sm" 
-                                                            disabled={isDeleting === cal.id} 
+                                                            disabled={isDeleting === cal.id || !hasFullAdminAccess(currentUserData as any)} 
                                                             className="bg-transparent text-red-600 border-red-600 hover:bg-red-50 flex-1"
                                                         >
                                                             {isDeleting === cal.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4 mr-1" />}
@@ -1117,12 +1164,22 @@ export default function AdminCalendarPage() {
                             )}
                         </div>
                         <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
-                             <Button onClick={openCreateForm} variant="ghost" className="w-full sm:w-auto text-amber-800 hover:text-amber-900 bg-transparent border-0 shadow-none"><PlusCircle className="mr-2"/>Aggiungi Lezione</Button>
+                             <Button 
+                                onClick={openCreateForm} 
+                                disabled={!hasFullAdminAccess(currentUserData as any)}
+                                variant="ghost" 
+                                className="w-full sm:w-auto text-amber-800 hover:text-amber-900 bg-transparent border-0 shadow-none"
+                            ><PlusCircle className="mr-2"/>Aggiungi Lezione</Button>
                              <Button onClick={() => { setLessons([]); setGeneratedTitle(null); setLoadedCalendarId(null); toast({ title: "Anteprima Cancellata", description: "Tutte le lezioni sono state rimosse dall'anteprima." }); }} disabled={lessons.length === 0} variant="ghost" className="w-full sm:w-auto text-red-600 hover:text-red-700 bg-transparent border-0 shadow-none">
                                 <X className="mr-2" />
                                 Cancella Anteprima
                              </Button>
-                             <Button onClick={handleSaveCalendar} disabled={isSaving || isGenerating || lessons.length === 0} className="w-full sm:w-auto text-green-600 hover:text-green-700 font-bold bg-transparent border-0 shadow-none" variant="ghost">
+                             <Button 
+                                onClick={handleSaveCalendar} 
+                                disabled={isSaving || isGenerating || lessons.length === 0 || !hasFullAdminAccess(currentUserData as any)} 
+                                className="w-full sm:w-auto text-green-600 hover:text-green-700 font-bold bg-transparent border-0 shadow-none" 
+                                variant="ghost"
+                            >
                                 {isSaving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2" />}
                                 Salva su DB
                              </Button>
@@ -1192,8 +1249,8 @@ export default function AdminCalendarPage() {
                                                     <TableCell className="font-medium capitalize">{lesson.title}</TableCell>
                                                     <TableCell>{lesson.gymName}</TableCell>
                                                     <TableCell className="text-right">
-                                                        <Button variant="ghost" size="sm" onClick={() => openEditForm(lesson)}>Modifica</Button>
-                                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteLesson(lesson.id)}><Trash2 className="w-4 h-4"/></Button>
+                                                        <Button variant="ghost" size="sm" disabled={!hasFullAdminAccess(currentUserData as any)} onClick={() => openEditForm(lesson)}>Modifica</Button>
+                                                        <Button variant="ghost" size="sm" disabled={!hasFullAdminAccess(currentUserData as any)} className="text-destructive hover:text-destructive" onClick={() => handleDeleteLesson(lesson.id)}><Trash2 className="w-4 h-4"/></Button>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
@@ -1264,12 +1321,13 @@ export default function AdminCalendarPage() {
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-2 pt-2 border-t">
-                                                        <Button variant="ghost" size="sm" onClick={() => openEditForm(lesson)} className="flex-1 bg-transparent border-0 shadow-none">
+                                                        <Button variant="ghost" size="sm" disabled={!hasFullAdminAccess(currentUserData as any)} onClick={() => openEditForm(lesson)} className="flex-1 bg-transparent border-0 shadow-none">
                                                             <Edit className="w-4 h-4"/>
                                                         </Button>
                                                         <Button 
                                                             variant="ghost" 
                                                             size="sm" 
+                                                            disabled={!hasFullAdminAccess(currentUserData as any)}
                                                             className="text-destructive hover:text-destructive bg-transparent border-0 shadow-none" 
                                                             onClick={() => handleDeleteLesson(lesson.id)}
                                                         >
