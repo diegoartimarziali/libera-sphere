@@ -227,6 +227,10 @@ interface UserData {
   name: string;
   email: string;
   role?: 'admin' | 'superAdmin' | 'user';
+  regulationsAccepted: boolean;
+  applicationSubmitted: boolean;
+  medicalCertificateSubmitted: boolean;
+  isFormerMember: 'yes' | 'no';
   [key: string]: any;
 }
 

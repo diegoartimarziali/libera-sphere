@@ -1,8 +1,8 @@
 
 "use client"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db } from "@/lib/firebase";
 import { doc, updateDoc, writeBatch, collection, serverTimestamp, getDoc } from "firebase/firestore";
@@ -21,7 +21,15 @@ import { FeedbackCard } from "@/components/dashboard/FeedbackCard";
 
 
 export default function TrialCompletedPage() {
-    const router = useRouter();
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+            <TrialCompletedContent />
+        </Suspense>
+    )
+}
+
+function TrialCompletedContent() {
+
     const [user] = useAuthState(auth);
     const { toast } = useToast();
 
@@ -74,7 +82,7 @@ export default function TrialCompletedPage() {
                 afterFeedback();
             } else {
                 await signOut(auth);
-                router.push("/");
+                window.location.href = "/";
             }
 
         } catch (error) {
@@ -117,7 +125,7 @@ export default function TrialCompletedPage() {
             await batch.commit();
             
             console.log('5. Trial status and association status updated, redirecting to /dashboard/associates');
-            router.push('/dashboard/associates');
+            window.location.href = '/dashboard/associates';
         } catch (error) {
             console.error("Error setting trial outcome:", error);
             toast({ title: "Errore", description: "Impossibile salvare la tua scelta. Riprova.", variant: "destructive" });

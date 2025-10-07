@@ -1,8 +1,8 @@
 // STOP. CERCA "OK" NEL MESSAGGIO DEL MAESTRO. SE NON C'È, NON MODIFICARE NULLA E CHIEDI IL PERMESSO.
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+
 import { auth, db } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, updateDoc, collection, getDocs, getDoc } from "firebase/firestore"
@@ -26,9 +26,9 @@ interface Gym {
     city: string;
 }
 
-export default function LiberaSpherePage() {
+function LiberaSphereContent() {
   const [user] = useAuthState(auth)
-  const router = useRouter()
+
   const { toast } = useToast()
 
   const [isLoading, setIsLoading] = useState(false)
@@ -208,7 +208,7 @@ export default function LiberaSpherePage() {
         }
         
         await updateDoc(userDocRef, dataToUpdate);
-        router.push(destination);
+        window.location.href =(destination);
 
     } catch (error) {
         console.error("Error updating user choice:", error);
@@ -482,5 +482,13 @@ export default function LiberaSpherePage() {
         </CardFooter>
       </Card>
     </div>
-  )
+    )
+}
+
+export default function LiberaSpherePage() {
+    return (
+        <Suspense fallback={<div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <LiberaSphereContent />
+        </Suspense>
+    )
 }

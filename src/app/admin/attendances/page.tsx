@@ -19,13 +19,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 
 interface UserData {
-  name: string;
-  email: string;
-  role?: 'admin' | 'superAdmin' | 'user';
-  [key: string]: any;
-}
-
-interface Attendance {
+    name: string;
+    email: string;
+    role?: 'admin' | 'superAdmin' | 'user';
+    regulationsAccepted: boolean;
+    applicationSubmitted: boolean;
+    medicalCertificateSubmitted: boolean;
+    isFormerMember: 'yes' | 'no';
+    [key: string]: any;
+}interface Attendance {
     id: string;
     userId: string;
     gymName: string;

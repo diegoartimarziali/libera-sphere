@@ -7,7 +7,7 @@ import { useAuthState } from "react-firebase-hooks/auth"
 import { doc, getDoc, Timestamp, collection, getDocs, updateDoc } from "firebase/firestore"
 import { differenceInDays, isPast, format, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { useFirebaseMessaging } from "@/hooks/use-firebase-messaging"
 
 
@@ -84,7 +84,7 @@ interface Gym {
     name: string;
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { toast } = useToast();
   const [user, authLoading] = useAuthState(auth)
   const router = useRouter();
@@ -96,9 +96,16 @@ export default function DashboardPage() {
   const [showDataCorrectionMessage, setShowDataCorrectionMessage] = useState(false);
   const [showSubscriptionActivatedMessage, setShowSubscriptionActivatedMessage] = useState(false);
 
-  // Impersonificazione: leggi userId dalla query string in modo reattivo
-  const searchParams = useSearchParams();
-  const impersonateId = searchParams.get('impersonate');
+  // Impersonificazione: leggi userId dalla query string
+  const [impersonateId, setImpersonateId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const impersonate = urlParams.get('impersonate');
+      setImpersonateId(impersonate);
+    }
+  }, []);
 
   useFirebaseMessaging((payload) => {
     // Use toast instead of alert for a better UX
@@ -656,4 +663,12 @@ export default function DashboardPage() {
 
     </div>
   )
+}
+
+export default function DashboardPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full"></div></div>}>
+            <DashboardContent />
+        </Suspense>
+    )
 }

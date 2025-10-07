@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
+
 import { doc, getDoc, Timestamp, collection, getDocs, query, where, writeBatch, serverTimestamp, addDoc } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
@@ -296,12 +296,27 @@ function BonusDisplay({ bonusItems, bonusCalculation }: { bonusItems: BonusItem[
 // =================================================================
 
 export default function MonthlySubscriptionPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+            <MonthlySubscriptionContent />
+        </Suspense>
+    )
+}
+
+function MonthlySubscriptionContent() {
     const [user] = useAuthState(auth);
-    const searchParams = useSearchParams();
-    const impersonateId = searchParams.get('impersonate');
+    const [impersonateId, setImpersonateId] = useState<string | null>(null);
     const effectiveUserId = impersonateId || user?.uid;
     
-    const router = useRouter();
+    // Leggiamo l'impersonation dalla URL senza useSearchParams
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const impersonate = urlParams.get('impersonate');
+            setImpersonateId(impersonate);
+        }
+    }, []);
+    
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -458,7 +473,7 @@ export default function MonthlySubscriptionPage() {
             // Aggiorna stato e naviga
             setUserData(prev => prev ? {...prev, subscriptionAccessStatus: 'pending'} : null);
             setIsPaymentDialogOpen(false);
-            router.push('/dashboard');
+            window.location.href = '/dashboard';
 
         } catch (error) {
             console.error("Error purchasing subscription:", error);

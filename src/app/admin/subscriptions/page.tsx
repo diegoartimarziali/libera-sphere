@@ -274,7 +274,7 @@ export default function AdminSubscriptionsPage() {
         return 'Non definita';
     };
 
-    const canModifySubscriptions = hasFullAdminAccess(currentUserData);
+    const canModifySubscriptions = hasFullAdminAccess(currentUserData as any);
 
     return (
         <Card className="mx-2 sm:mx-4 lg:mx-6 p-3 sm:p-4 lg:p-6">

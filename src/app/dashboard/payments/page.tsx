@@ -2,13 +2,13 @@
 // Test: Verifica strumenti di editing - 7 settembre 2025
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { db, auth } from "@/lib/firebase"
 import { collection, query, orderBy, getDocs, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { format } from "date-fns"
 import { it } from "date-fns/locale"
-import { useSearchParams } from "next/navigation"
+
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -73,11 +73,19 @@ const translatePaymentMethod = (method: Payment['paymentMethod']): string => {
     }
 }
 
-export default function UserPaymentsPage() {
+function PaymentsContent() {
     const [user] = useAuthState(auth);
-    const searchParams = useSearchParams();
-    const impersonateId = searchParams.get('impersonate');
+    const [impersonateId, setImpersonateId] = useState<string | null>(null);
     const effectiveUserId = impersonateId || user?.uid;
+    
+    // Leggiamo l'impersonation dalla URL senza useSearchParams
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            const impersonate = urlParams.get('impersonate');
+            setImpersonateId(impersonate);
+        }
+    }, []);
     
     const [payments, setPayments] = useState<Payment[]>([]);
     const [loading, setLoading] = useState(true);
@@ -332,4 +340,12 @@ export default function UserPaymentsPage() {
             </CardContent>
         </Card>
     );
+}
+
+export default function PaymentsPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+            <PaymentsContent />
+        </Suspense>
+    )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, ReactNode, useCallback } from "react"
+import { useEffect, useState, ReactNode, useCallback, Suspense } from "react"
 import { UserAwardsProvider } from "@/context/UserAwardsContext"
 import Link from "next/link"
 import { usePathname, redirect, useRouter, useSearchParams } from "next/navigation"
@@ -79,25 +79,25 @@ function NavLink({
     children,
     icon: Icon,
     onClick,
+    impersonateId,
 }: {
     href: string;
     children: ReactNode;
     icon: React.ComponentType<{ className?: string }>;
     onClick?: () => void;
+    impersonateId?: string | null;
 }) {
     const pathname = usePathname();
-    const searchParams = useSearchParams();
     const isActive = pathname.startsWith(href) && (href !== '/dashboard' || pathname === '/dashboard');
 
     // Propagate impersonate param if present
     let finalHref = href;
-    const impersonate = searchParams.get('impersonate');
-    if (impersonate && href.startsWith('/dashboard')) {
+    if (impersonateId && href.startsWith('/dashboard')) {
         // Check if href already has query params
         if (href.includes('?')) {
-            finalHref = `${href}&impersonate=${encodeURIComponent(impersonate)}`;
+            finalHref = `${href}&impersonate=${encodeURIComponent(impersonateId)}`;
         } else {
-            finalHref = `${href}?impersonate=${encodeURIComponent(impersonate)}`;
+            finalHref = `${href}?impersonate=${encodeURIComponent(impersonateId)}`;
         }
     }
 
@@ -124,7 +124,7 @@ function NavLink({
     );
 }
 
-function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null, onLinkClick: () => void }) {
+function NavigationLinks({ userData, onLinkClick, impersonateId }: { userData: UserData | null, onLinkClick: () => void, impersonateId?: string | null }) {
     if (!userData) return null;
 
     const isOperational = userData.associationStatus === 'active';
@@ -139,18 +139,18 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
     if (isPaymentBlocked) {
         return (
             <>
-                <NavLink href="/dashboard" icon={UserSquare} onClick={onLinkClick}>Scheda Personale</NavLink>
-                <NavLink href="/dashboard/wallet" icon={Wallet} onClick={onLinkClick}>I miei Premi</NavLink>
-                <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick}>I Miei Pagamenti</NavLink>
-                <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
+                <NavLink href="/dashboard" icon={UserSquare} onClick={onLinkClick} impersonateId={impersonateId}>Scheda Personale</NavLink>
+                <NavLink href="/dashboard/wallet" icon={Wallet} onClick={onLinkClick} impersonateId={impersonateId}>I miei Premi</NavLink>
+                <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick} impersonateId={impersonateId}>I Miei Pagamenti</NavLink>
+                <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick} impersonateId={impersonateId}>Abbonamenti</NavLink>
                 
                 {(userData.role === 'admin' || userData.role === 'superAdmin') && (
                     <>
                         <Separator className="my-2" />
                         {userData.role === 'superAdmin' ? (
-                            <NavLink href="/admin" icon={Crown} onClick={onLinkClick}>Pannello SuperAdmin</NavLink>
+                            <NavLink href="/admin" icon={Crown} onClick={onLinkClick} impersonateId={impersonateId}>Pannello SuperAdmin</NavLink>
                         ) : (
-                            <NavLink href="/admin" icon={Shield} onClick={onLinkClick}>Pannello Admin</NavLink>
+                            <NavLink href="/admin" icon={Shield} onClick={onLinkClick} impersonateId={impersonateId}>Pannello Admin</NavLink>
                         )}
                     </>
                 )}
@@ -160,20 +160,20 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
 
     return (
         <>
-            <NavLink href="/dashboard" icon={UserSquare} onClick={onLinkClick}>Scheda Personale</NavLink>
-            <NavLink href="/dashboard/renew-medical-certificate" icon={HeartPulse} onClick={onLinkClick}>Rinnovo Certificato Medico</NavLink>
-            <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick}>I Miei Pagamenti</NavLink>
-            <NavLink href="/dashboard/wallet" icon={Wallet} onClick={onLinkClick}>I miei Premi</NavLink>
+            <NavLink href="/dashboard" icon={UserSquare} onClick={onLinkClick} impersonateId={impersonateId}>Scheda Personale</NavLink>
+            <NavLink href="/dashboard/renew-medical-certificate" icon={HeartPulse} onClick={onLinkClick} impersonateId={impersonateId}>Rinnovo Certificato Medico</NavLink>
+            <NavLink href="/dashboard/payments" icon={CreditCard} onClick={onLinkClick} impersonateId={impersonateId}>I Miei Pagamenti</NavLink>
+            <NavLink href="/dashboard/wallet" icon={Wallet} onClick={onLinkClick} impersonateId={impersonateId}>I miei Premi</NavLink>
 
             {isReadyForAssociation && (
-                 <NavLink href="/dashboard/associates" icon={UserPlus} onClick={onLinkClick}>Diventa Socio</NavLink>
+                 <NavLink href="/dashboard/associates" icon={UserPlus} onClick={onLinkClick} impersonateId={impersonateId}>Diventa Socio</NavLink>
             )}
 
             {isOperational && (
                 <>
-                    <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick}>Abbonamenti</NavLink>
-                    <NavLink href="/dashboard/attendances" icon={ClipboardList} onClick={onLinkClick}>Le Mie Presenze</NavLink>
-                    <NavLink href="/dashboard/calendar" icon={CalendarDays} onClick={onLinkClick}>Stages, Esami e Corsi</NavLink>
+                    <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick} impersonateId={impersonateId}>Abbonamenti</NavLink>
+                    <NavLink href="/dashboard/attendances" icon={ClipboardList} onClick={onLinkClick} impersonateId={impersonateId}>Le Mie Presenze</NavLink>
+                    <NavLink href="/dashboard/calendar" icon={CalendarDays} onClick={onLinkClick} impersonateId={impersonateId}>Stages, Esami e Corsi</NavLink>
                 </>
             )}
             
@@ -181,9 +181,9 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
                 <>
                     <Separator className="my-2" />
                     {userData.role === 'superAdmin' ? (
-                        <NavLink href="/admin" icon={Crown} onClick={onLinkClick}>Pannello SuperAdmin</NavLink>
+                        <NavLink href="/admin" icon={Crown} onClick={onLinkClick} impersonateId={impersonateId}>Pannello SuperAdmin</NavLink>
                     ) : (
-                        <NavLink href="/admin" icon={Shield} onClick={onLinkClick}>Pannello Admin</NavLink>
+                        <NavLink href="/admin" icon={Shield} onClick={onLinkClick} impersonateId={impersonateId}>Pannello Admin</NavLink>
                     )}
                 </>
             )}
@@ -195,17 +195,16 @@ function NavigationLinks({ userData, onLinkClick }: { userData: UserData | null,
 // HEADER UNIFICATO
 // =================================================================
 
-function DashboardHeader({ onLogout, userData, showMenu }: {
+function DashboardHeader({ onLogout, userData, showMenu, impersonateId }: {
     onLogout: () => void;
     userData: UserData | null;
     showMenu: boolean;
+    impersonateId?: string | null;
 }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const searchParams = useSearchParams();
-    const impersonate = searchParams.get('impersonate');
     
     // Create dashboard link with impersonate param if present
-    const dashboardHref = impersonate ? `/dashboard?impersonate=${encodeURIComponent(impersonate)}` : '/dashboard';
+    const dashboardHref = impersonateId ? `/dashboard?impersonate=${encodeURIComponent(impersonateId)}` : '/dashboard';
     
     return (
         <header className="sticky top-0 z-30 flex h-20 items-center gap-4 border-b bg-dark-brown text-title-yellow px-4 sm:px-6 justify-between">
@@ -231,7 +230,7 @@ function DashboardHeader({ onLogout, userData, showMenu }: {
                                         <img src="https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/grafimg%2Ftigre-PP.png?alt=media&token=8cf5490d-1498-4a13-b827-f2e9fe0b94ba" alt="Tigre" className="w-12 h-12 object-contain" />
                                     </Link>
                                 </SheetClose>
-                                <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} />
+                                <NavigationLinks userData={userData} onLinkClick={() => setIsMenuOpen(false)} impersonateId={impersonateId} />
                             </nav>
                         </SheetContent>
                     </Sheet>
@@ -271,11 +270,18 @@ function DashboardHeader({ onLogout, userData, showMenu }: {
 
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const searchParams = useSearchParams();
-  const impersonateId = searchParams.get('impersonate');
+  const [impersonateId, setImpersonateId] = useState<string | null>(null);
   const [user, loadingAuth] = useAuthState(auth)
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loadingData, setLoadingData] = useState(true)
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const impersonate = urlParams.get('impersonate');
+      setImpersonateId(impersonate);
+    }
+  }, []);
 
   const { toast } = useToast()
   const router = useRouter()
@@ -445,8 +451,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 onLogout={handleLogout} 
                 userData={userData} 
                 showMenu={showMenu}
+                impersonateId={impersonateId}
             />
-            <main className="flex-1 p-4 md:p-8">{children}</main>
+            <main className="flex-1 p-4 md:p-8">
+                <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full"></div></div>}>
+                    {children}
+                </Suspense>
+            </main>
         </div>
     </UserAwardsProvider>
   );

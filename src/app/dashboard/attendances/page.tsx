@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { db, auth } from "@/lib/firebase"
 import { collection, query, orderBy, getDocs, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"

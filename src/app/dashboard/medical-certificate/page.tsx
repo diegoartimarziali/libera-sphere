@@ -2,7 +2,6 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -45,7 +44,6 @@ const dateToInputString = (date?: Date | Timestamp): string | undefined => {
 
 export default function MedicalCertificatePage() {
   const [user, authLoading] = useAuthState(auth)
-  const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -160,7 +158,7 @@ export default function MedicalCertificatePage() {
             description: "Le tue informazioni mediche sono state aggiornate.",
         });
         
-        router.push('/dashboard/liberasphere');
+        window.location.href = '/dashboard/liberasphere';
 
     } catch (error) {
         console.error("Errore durante l'invio dei dati medici:", error);
@@ -174,7 +172,7 @@ export default function MedicalCertificatePage() {
       setIsSubmitting(true);
       try {
           await signOut(auth);
-          router.push('/');
+          window.location.href = '/';
           toast({ title: "Logout effettuato", description: "Sei stato disconnesso con successo." });
       } catch (error) {
           console.error("Error during logout:", error);

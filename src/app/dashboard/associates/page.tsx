@@ -275,6 +275,20 @@ function ConfirmationStep({
     )
 }
 
+// Componente separato per gestire i search params
+function SearchParamsHandler({ onStepChange }: { onStepChange: (step: number) => void }) {
+    const searchParams = useSearchParams();
+    
+    useEffect(() => {
+        const stepParam = searchParams.get('step');
+        if (stepParam === '2') {
+            onStepChange(2);
+        }
+    }, [searchParams, onStepChange]);
+    
+    return null;
+}
+
 function AssociatesPageContent() {
     const [step, setStep] = useState(1)
     const [formData, setFormData] = useState<PersonalDataSchemaType | null>(null)
@@ -292,14 +306,6 @@ function AssociatesPageContent() {
 
     const { toast } = useToast()
     const router = useRouter()
-    const searchParams = useSearchParams();
-
-    useEffect(() => {
-        const stepParam = searchParams.get('step');
-        if (stepParam === '2') {
-            setStep(2);
-        }
-    }, [searchParams]);
 
     // Pre-fetch user data to avoid blank summary pages
      useEffect(() => {
@@ -387,8 +393,8 @@ function AssociatesPageContent() {
 
     const handlePaymentSubmit = (method: PaymentMethod) => {
         setPaymentMethod(method);
-        // If this is a retry of a failed payment, submit immediately.
-        if (searchParams.get('step') === '2') {
+        // If this is step 2, submit immediately
+        if (step === 2) {
              if (method === 'bank_transfer') {
                 setIsBankTransferDialogOpen(true);
             } else {
@@ -407,8 +413,8 @@ function AssociatesPageContent() {
     
     const handleBankTransferConfirm = () => {
         setIsBankTransferDialogOpen(false);
-        // If this is a retry, submit now. Otherwise, go to summary.
-        if (searchParams.get('step') === '2') {
+        // If this is step 2, submit now. Otherwise, go to summary.
+        if (step === 2) {
              submitApplication('bank_transfer');
         } else {
              setStep(4);
@@ -464,7 +470,7 @@ function AssociatesPageContent() {
             });
             
             // Handle online payment for retries
-            if(searchParams.get('step') === '2' && methodToUse === 'online' && feeData.sumupLink){
+            if(step === 2 && methodToUse === 'online' && feeData.sumupLink){
                 window.open(feeData.sumupLink, '_blank');
             }
 
@@ -508,6 +514,9 @@ function AssociatesPageContent() {
 
     return (
         <div className="flex w-full flex-col items-center">
+            <Suspense fallback={null}>
+                <SearchParamsHandler onStepChange={setStep} />
+            </Suspense>
             <div className="mb-8 text-center">
                 <h1 className="text-3xl font-bold">Domanda di Associazione</h1>
                                 <p 

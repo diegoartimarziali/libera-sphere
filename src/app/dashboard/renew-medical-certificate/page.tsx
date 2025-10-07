@@ -1,8 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -44,8 +43,15 @@ const dateToInputString = (date?: Date | Timestamp): string | undefined => {
 
 
 export default function RenewMedicalCertificatePage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+            <RenewMedicalCertificateContent />
+        </Suspense>
+    )
+}
+
+function RenewMedicalCertificateContent() {
   const [user, authLoading] = useAuthState(auth)
-  const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -168,7 +174,7 @@ export default function RenewMedicalCertificatePage() {
             description: "Le tue informazioni mediche sono state salvate con successo.",
         });
         
-        router.push("/dashboard");
+        window.location.href = "/dashboard";
 
     } catch (error) {
         console.error("Errore durante l'invio dei dati medici:", error);

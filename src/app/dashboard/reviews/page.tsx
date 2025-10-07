@@ -1,22 +1,33 @@
 
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { collectionGroup, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { ReviewCard, type Review } from "@/components/dashboard/ReviewCard";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
+// Componente separato per gestire la navigazione
+function NavigationHandler({ onBack }: { onBack: () => void }) {
+    const handleBack = () => {
+        window.history.back();
+    };
+    
+    return (
+        <Button onClick={handleBack} variant="outline">
+            <ArrowLeft className="mr-2" />
+            Torna Indietro
+        </Button>
+    );
+}
 
-export default function ReviewsPage() {
+function ReviewsContent() {
     const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
-    const router = useRouter();
 
     useEffect(() => {
         const fetchReviews = async () => {
@@ -65,10 +76,9 @@ export default function ReviewsPage() {
                         Leggi le esperienze anonime dei nostri soci e degli atleti che hanno provato i nostri corsi.
                     </p>
                 </div>
-                 <Button onClick={() => router.back()} variant="outline">
-                    <ArrowLeft className="mr-2" />
-                    Torna Indietro
-                 </Button>
+                <Suspense fallback={<Button variant="outline" disabled><ArrowLeft className="mr-2" />Torna Indietro</Button>}>
+                    <NavigationHandler onBack={() => {}} />
+                </Suspense>
             </div>
 
             {loading ? (
@@ -93,5 +103,13 @@ export default function ReviewsPage() {
             )}
         </div>
     );
+}
+
+export default function ReviewsPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+            <ReviewsContent />
+        </Suspense>
+    )
 }
 

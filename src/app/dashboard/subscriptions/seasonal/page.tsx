@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { doc, getDoc, Timestamp, collection, getDocs, query, where, writeBatch, serverTimestamp, addDoc } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
@@ -142,8 +142,15 @@ function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrP
 }
 
 export default function SeasonalSubscriptionPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center items-center h-64"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+            <SeasonalSubscriptionContent />
+        </Suspense>
+    )
+}
+
+function SeasonalSubscriptionContent() {
     const [user] = useAuthState(auth);
-    const router = useRouter();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -454,7 +461,7 @@ export default function SeasonalSubscriptionPage() {
             }
             
             setIsPaymentDialogOpen(false);
-            router.push('/dashboard');
+            window.location.href = '/dashboard';
         } catch (error) {
             console.error("Error purchasing subscription: ", error);
             toast({ title: "Errore", description: "Impossibile completare l'acquisto. Riprova.", variant: "destructive" });
@@ -478,7 +485,7 @@ export default function SeasonalSubscriptionPage() {
     const handleBankTransferConfirm = () => {
         if (availableSubscription) {
             handlePurchase(availableSubscription, 'bank_transfer');
-            router.push('/dashboard');
+            window.location.href = '/dashboard';
         }
         setIsBankTransferDialogOpen(false);
     };

@@ -493,7 +493,7 @@ export default function AdminPaymentsPage() {
             return true;
         });
 
-    const canModifyPayments = hasFullAdminAccess(currentUserData);
+    const canModifyPayments = hasFullAdminAccess(currentUserData as any);
 
     return (
         <Card>

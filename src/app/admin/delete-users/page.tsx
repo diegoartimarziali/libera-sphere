@@ -166,7 +166,7 @@ export default function DeleteAdminUsersPage() {
         return fullName.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
     });
 
-    if (currentUserRole !== 'admin') {
+    if (currentUserRole !== 'admin' && currentUserRole !== 'superAdmin') {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div>Accesso negato. Solo gli amministratori possono accedere a questa sezione.</div>
