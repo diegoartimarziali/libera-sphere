@@ -5,9 +5,9 @@ import { useUserAwards } from "@/context/UserAwardsContext";
 import { useAttendances } from "@/hooks/use-attendances";
 import { calculatePremiPresenzeValue } from "@/lib/premiPresenzeCalculator";
 
-export function TotalAwardsCard() {
+export function TotalAwardsCard({ userId }: { userId?: string }) {
   const userAwards = useUserAwards();
-  const { percentage, loading: attendancesLoading } = useAttendances();
+  const { percentage, loading: attendancesLoading } = useAttendances(userId);
   
   // Calcola il valore totale dei premi assegnati (inclusi quelli già usati e Premio Presenze dinamico)
   const totalAssigned = Array.isArray(userAwards)

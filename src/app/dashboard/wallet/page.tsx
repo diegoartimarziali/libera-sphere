@@ -5,10 +5,18 @@ import { useUserAwards } from "@/context/UserAwardsContext"
 import { UserAwardsList } from "@/components/dashboard/UserAwardsList"
 import { useAttendances } from "@/hooks/use-attendances"
 import { calculatePremiPresenzeValue } from "@/lib/premiPresenzeCalculator"
+import { useSearchParams } from "next/navigation"
+import { useAuthState } from "react-firebase-hooks/auth"
+import { auth } from "@/lib/firebase"
 
 export default function WalletPage() {
+    const [user] = useAuthState(auth);
+    const searchParams = useSearchParams();
+    const impersonateId = searchParams.get('impersonate');
+    const effectiveUserId = impersonateId || user?.uid;
+    
     const awards = useUserAwards();
-    const { percentage, loading: attendancesLoading } = useAttendances();
+    const { percentage, loading: attendancesLoading } = useAttendances(effectiveUserId);
 
     // Calcola il totale del residuo includendo il valore dinamico del Premio Presenze
     const totalResiduo = awards ? awards.reduce((total, award) => {
@@ -47,7 +55,7 @@ export default function WalletPage() {
                         <span className="text-lg md:text-xl font-semibold">Caricamento premi...</span>
                     </div>
                 ) : (
-                    <UserAwardsList awards={awards} />
+                    <UserAwardsList awards={awards} userId={effectiveUserId} />
                 )}
             </CardContent>
         </Card>

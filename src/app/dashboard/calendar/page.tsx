@@ -101,6 +101,7 @@ export default function CalendarPage() {
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [showPayment, setShowPayment] = useState(false);
     const [userPaidEvents, setUserPaidEvents] = useState<string[]>([]);
+    const [userPaymentDetails, setUserPaymentDetails] = useState<{[eventId: string]: string}>({});
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -163,13 +164,16 @@ export default function CalendarPage() {
                 if (effectiveUserId) {
                     const paymentsSnap = await getDocs(collection(db, "users", effectiveUserId, "payments"));
                     const paidEventIds: string[] = [];
+                    const paymentDetails: {[eventId: string]: string} = {};
                     paymentsSnap.forEach(docSnap => {
                         const data = docSnap.data();
-                        if (data.eventId && data.status === "completed") {
+                        if (data.eventId && (data.status === "completed" || data.status === "pending")) {
                             paidEventIds.push(data.eventId);
+                            paymentDetails[data.eventId] = data.status;
                         }
                     });
                     setUserPaidEvents(paidEventIds);
+                    setUserPaymentDetails(paymentDetails);
                 }
 
                 // Mostra tutti gli eventi speciali
@@ -248,7 +252,11 @@ export default function CalendarPage() {
                                                         }}
                                                     />
                                                     {isPaid && (
-                                                        <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
+                                                        <span className={`absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded shadow ${
+                                                            userPaymentDetails[event.id] === 'completed' ? 'bg-green-600' : 'bg-yellow-600'
+                                                        }`}>
+                                                            {userPaymentDetails[event.id] === 'completed' ? 'Iscritto' : 'Pending'}
+                                                        </span>
                                                     )}
                                                 </div>
                                             );
@@ -281,7 +289,11 @@ export default function CalendarPage() {
                                                         }}
                                                     />
                                                     {isPaid && (
-                                                        <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
+                                                        <span className={`absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded shadow ${
+                                                            userPaymentDetails[event.id] === 'completed' ? 'bg-green-600' : 'bg-yellow-600'
+                                                        }`}>
+                                                            {userPaymentDetails[event.id] === 'completed' ? 'Iscritto' : 'Pending'}
+                                                        </span>
                                                     )}
                                                 </div>
                                             );
@@ -314,7 +326,11 @@ export default function CalendarPage() {
                                                         }}
                                                     />
                                                     {isPaid && (
-                                                        <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
+                                                        <span className={`absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded shadow ${
+                                                            userPaymentDetails[event.id] === 'completed' ? 'bg-green-600' : 'bg-yellow-600'
+                                                        }`}>
+                                                            {userPaymentDetails[event.id] === 'completed' ? 'Iscritto' : 'Pending'}
+                                                        </span>
                                                     )}
                                                 </div>
                                             );
@@ -347,7 +363,11 @@ export default function CalendarPage() {
                                                         }}
                                                     />
                                                     {isPaid && (
-                                                        <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
+                                                        <span className={`absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded shadow ${
+                                                            userPaymentDetails[event.id] === 'completed' ? 'bg-green-600' : 'bg-yellow-600'
+                                                        }`}>
+                                                            {userPaymentDetails[event.id] === 'completed' ? 'Iscritto' : 'Pending'}
+                                                        </span>
                                                     )}
                                                 </div>
                                             );
@@ -380,7 +400,11 @@ export default function CalendarPage() {
                                                         }}
                                                     />
                                                     {isPaid && (
-                                                        <span className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded shadow">Iscritto</span>
+                                                        <span className={`absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded shadow ${
+                                                            userPaymentDetails[event.id] === 'completed' ? 'bg-green-600' : 'bg-yellow-600'
+                                                        }`}>
+                                                            {userPaymentDetails[event.id] === 'completed' ? 'Iscritto' : 'Pending'}
+                                                        </span>
                                                     )}
                                                 </div>
                                             );
@@ -434,7 +458,7 @@ export default function CalendarPage() {
                                             </button>
                                             {userPaidEvents.includes(selectedEvent.id) ? (
                                                 <Button className="w-full px-4 sm:px-6 py-2 sm:py-3 text-base sm:text-lg font-bold" variant="secondary" disabled>
-                                                    Iscritto
+                                                    {userPaymentDetails[selectedEvent.id] === 'completed' ? 'Iscritto' : 'Pagamento in attesa'}
                                                 </Button>
                                             ) : (
                                                 <Button 
@@ -460,7 +484,7 @@ export default function CalendarPage() {
                                         price={selectedEvent.price || 0}
                                         sumupUrl={selectedEvent.sumupUrl}
                                         onClose={() => setShowPayment(false)}
-                                        userId={user?.uid || ''}
+                                        userId={effectiveUserId || ''}
                                         eventId={selectedEvent.id}
                                         eventType={selectedEvent.type || ""}
                                         discipline={selectedEvent.discipline || ""}

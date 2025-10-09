@@ -61,7 +61,7 @@ export default function RootLayout({
 
               {/* Informazioni centrali */}
               <div className="text-center">
-                <p className="text-sm font-semibold mb-1">LiberaSphere v1.0.0</p>
+                <p className="text-sm font-semibold mb-1">LiberaSphere v1.1.0</p>
                 <p className="text-xs opacity-80">Piattaforma Motivazionale e di Gestione Associativa.</p>
               </div>
 

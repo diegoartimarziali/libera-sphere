@@ -9,7 +9,7 @@ import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { isPast, startOfDay } from "date-fns"
 
-import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, CalendarDays, Wallet, Crown } from "lucide-react"
+import { Loader2, UserSquare, HeartPulse, CreditCard, LogOut, Menu, UserPlus, Sparkles, Shield, ClipboardList, CalendarDays, Wallet, Crown, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { getDocs, collection } from "firebase/firestore";
@@ -174,6 +174,7 @@ function NavigationLinks({ userData, onLinkClick, impersonateId }: { userData: U
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick} impersonateId={impersonateId}>Abbonamenti</NavLink>
                     <NavLink href="/dashboard/attendances" icon={ClipboardList} onClick={onLinkClick} impersonateId={impersonateId}>Le Mie Presenze</NavLink>
                     <NavLink href="/dashboard/calendar" icon={CalendarDays} onClick={onLinkClick} impersonateId={impersonateId}>Stages, Esami e Corsi</NavLink>
+                    {/* <NavLink href="/dashboard/budo-pass" icon={BookOpen} onClick={onLinkClick} impersonateId={impersonateId}>Budo Pass</NavLink> */}
                 </>
             )}
             
@@ -300,12 +301,33 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const fetchAndRedirect = async () => {
-        // Se impersonateId è presente, fetcha i dati di quell'utente, altrimenti quelli dell'utente loggato
+        // Se non c'è utente autenticato e nessun impersonateId, redirige
+        if (!user?.uid && !impersonateId) {
+            redirect("/");
+            return;
+        }
+        
+        // Se c'è impersonateId, verifica che l'utente autenticato sia admin
+        if (impersonateId && user?.uid) {
+            // Prima verifica che l'utente autenticato sia admin
+            const adminUserRef = doc(db, "users", user.uid);
+            const adminUserSnap = await getDoc(adminUserRef);
+            const adminUserData = adminUserSnap.exists() ? adminUserSnap.data() : null;
+            
+            if (!adminUserData || (adminUserData.role !== 'admin' && adminUserData.role !== 'superAdmin')) {
+                console.warn('Unauthorized impersonation attempt');
+                redirect("/");
+                return;
+            }
+        }
+        
+        // Determina l'ID utente effettivo da caricare
         const effectiveUserId = impersonateId || user?.uid;
         if (!effectiveUserId) {
             redirect("/");
             return;
         }
+        
         setLoadingData(true);
         try {
             // Carica dati utente (impersonato o loggato)
@@ -337,10 +359,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     trialExpiryDate,
                     trialLessons
                 });
+                
+                // === CONTROLLO CERTIFICATO MEDICO SCADUTO ===
+                // Verifica se il certificato medico è scaduto e redirige alla pagina di rinnovo
+                if (fetchedUserData?.medicalInfo?.type === 'certificate' && fetchedUserData.medicalInfo.expiryDate) {
+                    const expiry = fetchedUserData.medicalInfo.expiryDate.toDate();
+                    const today = new Date();
+                    const isExpired = expiry < today;
+                    
+                    if (isExpired && pathname !== '/dashboard/renew-medical-certificate') {
+                        console.log('🔒 MEDICAL CERTIFICATE EXPIRED: Redirecting to renewal page');
+                        router.push('/dashboard/renew-medical-certificate');
+                        setLoadingData(false);
+                        return;
+                    }
+                }
+                
                 // === LOGICA DI REINDIRIZZAMENTO ONBOARDING ===
                 const onboardingPages = [
                     '/dashboard/regulations',
                     '/dashboard/medical-certificate',
+                    '/dashboard/renew-medical-certificate',
                     '/dashboard/liberasphere',
                     '/dashboard/class-selection',
                     '/dashboard/associates',
@@ -453,6 +492,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 showMenu={showMenu}
                 impersonateId={impersonateId}
             />
+            {impersonateId && userData && (
+                <div className="bg-blue-100 border-b border-blue-300 text-blue-800 px-4 py-3 text-center font-semibold shadow-sm">
+                    <div className="flex items-center justify-center gap-2">
+                        <span className="text-lg">👁️</span>
+                        <span>Stai visualizzando come: <strong>{userData.name} {userData.surname}</strong> ({userData.email})</span>
+                        <button 
+                            onClick={() => window.close()} 
+                            className="ml-4 text-xs bg-blue-200 hover:bg-blue-300 px-3 py-1 rounded-md transition-colors font-medium"
+                            title="Chiudi finestra di impersonificazione"
+                        >
+                            ✕ Chiudi
+                        </button>
+                    </div>
+                </div>
+            )}
             <main className="flex-1 p-4 md:p-8">
                 <Suspense fallback={<div className="flex justify-center items-center h-64"><div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full"></div></div>}>
                     {children}

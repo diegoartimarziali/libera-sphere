@@ -17,22 +17,25 @@ interface AttendanceData {
   loading: boolean;
 }
 
-export function useAttendances(): AttendanceData {
+export function useAttendances(userId?: string): AttendanceData {
   const [user] = useAuthState(auth);
+  
+  // Support for impersonation
+  const effectiveUserId = userId || user?.uid;
   const [presentAttendances, setPresentAttendances] = useState(0);
   const [totalLessons, setTotalLessons] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAttendances = async () => {
-      if (!user) {
+      if (!effectiveUserId) {
         setLoading(false);
         return;
       }
 
       try {
-        // Leggi presenze dell'utente
-        const attendancesRef = collection(db, 'users', user.uid, 'attendances');
+        // Leggi presenze dell'utente (rispetta impersonification)
+        const attendancesRef = collection(db, 'users', effectiveUserId, 'attendances');
         const q = query(attendancesRef, orderBy('lessonDate', 'desc'));
         const querySnapshot = await getDocs(q);
 
@@ -45,7 +48,7 @@ export function useAttendances(): AttendanceData {
         setPresentAttendances(present);
 
         // Leggi totale lezioni effettive dalla sottocollezione
-        const totalLessonsSnap = await getDocs(collection(db, 'users', user.uid, 'totalLessons'));
+        const totalLessonsSnap = await getDocs(collection(db, 'users', effectiveUserId, 'totalLessons'));
         let total = null;
         totalLessonsSnap.forEach(doc => {
           const data = doc.data();
@@ -59,7 +62,7 @@ export function useAttendances(): AttendanceData {
         // Aggiorna automaticamente il Premio Presenze se la percentuale è cambiata
         if (calculatedPercentage > 0) {
           try {
-            await updatePremiPresenzeValue(user.uid, calculatedPercentage);
+            await updatePremiPresenzeValue(effectiveUserId, calculatedPercentage);
           } catch (error) {
             console.error("Errore aggiornamento Premio Presenze:", error);
           }
@@ -73,7 +76,7 @@ export function useAttendances(): AttendanceData {
     };
 
     fetchAttendances();
-  }, [user]);
+  }, [effectiveUserId]);
 
   const percentage = totalLessons && totalLessons > 0 ? Math.round((presentAttendances / totalLessons) * 100) : 0;
 

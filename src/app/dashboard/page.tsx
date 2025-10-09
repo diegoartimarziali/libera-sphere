@@ -9,6 +9,7 @@ import { differenceInDays, isPast, format, startOfDay } from "date-fns"
 import { it } from "date-fns/locale"
 import { useRouter } from "next/navigation"
 import { useFirebaseMessaging } from "@/hooks/use-firebase-messaging"
+import { useSearchParams } from "next/navigation"
 
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -88,6 +89,8 @@ function DashboardContent() {
   const { toast } = useToast();
   const [user, authLoading] = useAuthState(auth)
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const impersonateId = searchParams.get('impersonate');
   const [userData, setUserData] = useState<UserData | null>(null)
   const [dataLoading, setDataLoading] = useState(true)
   const [certificateStatus, setCertificateStatus] = useState<'valid' | 'expiring' | 'expired' | null>(null);
@@ -95,17 +98,6 @@ function DashboardContent() {
   const [memberCardProps, setMemberCardProps] = useState<MemberSummaryProps | null>(null);
   const [showDataCorrectionMessage, setShowDataCorrectionMessage] = useState(false);
   const [showSubscriptionActivatedMessage, setShowSubscriptionActivatedMessage] = useState(false);
-
-  // Impersonificazione: leggi userId dalla query string
-  const [impersonateId, setImpersonateId] = useState<string | null>(null);
-  
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const impersonate = urlParams.get('impersonate');
-      setImpersonateId(impersonate);
-    }
-  }, []);
 
   useFirebaseMessaging((payload) => {
     // Use toast instead of alert for a better UX
@@ -268,18 +260,20 @@ function DashboardContent() {
         let certStatus: 'valid' | 'expiring' | 'expired' | null = null;
         if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
           const expiry = data.medicalInfo.expiryDate.toDate();
-          medicalStatusLabel = `Scade il ${format(expiry, 'dd/MM/yyyy')}`;
-                  
+          
           const today = startOfDay(new Date());
           const expiryDate = startOfDay(expiry);
           const daysDiff = differenceInDays(expiryDate, today);
 
           if (daysDiff < 0) {
             certStatus = 'expired';
+            medicalStatusLabel = 'SCADUTO';
           } else if (daysDiff <= 30) {
             certStatus = 'expiring';
+            medicalStatusLabel = `Scade il ${format(expiry, 'dd/MM/yyyy')}`;
           } else {
             certStatus = 'valid';
+            medicalStatusLabel = `Scade il ${format(expiry, 'dd/MM/yyyy')}`;
           }
           setCertificateStatus(certStatus);
           setDaysToExpire(daysDiff);
@@ -408,7 +402,7 @@ function DashboardContent() {
       } else {
           setDataLoading(false)
       }
-  }, [user, authLoading])
+  }, [user, authLoading, impersonateId])
 
   const handleRenewCertificate = async () => {
     if (!user) return;
@@ -599,12 +593,6 @@ function DashboardContent() {
 
   return (
     <div className="space-y-6">
-      {impersonateId && (
-        <div className="w-full bg-yellow-200 text-yellow-900 text-center py-2 px-4 font-bold border-b-2 border-yellow-400 mb-4 z-50 flex flex-col items-center gap-2">
-          <span>Modalità amministratore: stai visualizzando la dashboard del socio selezionato</span>
-          <a href="/admin/attendances" className="inline-block mt-1 px-3 py-1 rounded bg-yellow-300 text-yellow-900 border border-yellow-400 font-semibold hover:bg-yellow-400 transition">Torna all'admin</a>
-        </div>
-      )}
        <h1 className="text-2xl font-bold text-center">
          {dataLoading ? <Skeleton className="h-8 w-56 mx-auto" /> : `Benvenuto, ${userData?.name?.split(' ')[0] || ''}!`}
       </h1>
@@ -617,7 +605,7 @@ function DashboardContent() {
       
       <div className="flex flex-col items-center">
         <div className="w-full max-w-2xl">
-          <TotalAwardsCard />
+          <TotalAwardsCard userId={impersonateId || user?.uid} />
           
           {/* Icona Leggi Recensioni */}
           <div className="mt-4 flex justify-center">

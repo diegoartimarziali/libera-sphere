@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react"
 
-import { doc, getDoc, Timestamp, collection, getDocs, query, where, writeBatch, serverTimestamp, addDoc } from "firebase/firestore"
+import { doc, getDoc, Timestamp, collection, getDocs, query, where, writeBatch, serverTimestamp, addDoc, updateDoc } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
 import { useAuthState } from "react-firebase-hooks/auth"
 import { useToast } from "@/hooks/use-toast"
@@ -10,6 +10,7 @@ import { format, isAfter, isBefore, startOfMonth, endOfMonth, addMonths } from "
 import { Gift } from "lucide-react"
 import { assignPremiPresenze } from "@/lib/assignPremiPresenze"
 import { showPremiPresenzeMessage, showPremiPresenzeErrorMessage } from "@/lib/premiPresenzeMessages"
+import { usePremiumSystem, BonusCalculation, SpendableAward } from "@/hooks/use-premium-system"
 import { it } from "date-fns/locale"
 import Link from "next/link"
 
@@ -40,16 +41,15 @@ interface UserData {
     surname?: string;
     activeSubscription?: {
         subscriptionId: string;
+        name?: string;
+        type?: 'monthly' | 'seasonal';
+        purchasedAt?: Timestamp;
         expiresAt?: Timestamp;
     };
     subscriptionAccessStatus?: 'active' | 'pending' | 'expired';
 }
 
-interface BonusItem {
-    id: string;
-    value: number;
-    used?: boolean;
-}
+
 
 interface BankDetails {
     recipientName: string;
@@ -74,10 +74,24 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
     
     // Filtra gli abbonamenti che l'utente può acquistare (non quelli già posseduti)
     const purchasableSubscriptions = subscriptions.filter(sub => {
-        // Se l'utente ha già questo abbonamento attivo, non mostrarlo come acquistabile
+        // 🔧 LOGICA CORRETTA: Controlla se l'utente ha GIÀ questo abbonamento E se è ancora valido
         if (userData?.activeSubscription?.subscriptionId === sub.id) {
-            console.log(`🔥🔥🔥 [NUOVA LOGICA] Skipping ${sub.name} - user already has this subscription`);
-            return false;
+            // Se l'abbonamento attivo è lo stesso, controlla se è ancora valido
+            if (userData.activeSubscription.expiresAt) {
+                const expiryDate = userData.activeSubscription.expiresAt.toDate();
+                const isStillValid = expiryDate >= now;
+                
+                if (isStillValid) {
+                    console.log(`🔥🔥🔥 [NUOVA LOGICA] Skipping ${sub.name} - user already has this subscription and it's still valid`);
+                    return false;
+                } else {
+                    console.log(`🔥🔥🔥 [NUOVA LOGICA] User has ${sub.name} but it's expired - allowing repurchase`);
+                    return true; // Permetti di ricomprare se scaduto
+                }
+            } else {
+                console.log(`🔥🔥🔥 [NUOVA LOGICA] Skipping ${sub.name} - user already has this subscription (no expiry date)`);
+                return false;
+            }
         }
         
         // Mostra abbonamenti per il mese corrente o futuro, ma non passati
@@ -115,58 +129,26 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
     return sortedSubs[0];
 }
 
-/**
- * Calcola quanto bonus può essere utilizzato per un abbonamento
- */
-function calculateBonusUsage(bonusItems: BonusItem[], subscriptionPrice: number) {
-    let totalBonus = 0;
-    let bonusToUse: {id: string, value: number}[] = [];
-    let remainingPrice = subscriptionPrice;
-    
-    for (const bonus of bonusItems) {
-        if (remainingPrice <= 0) break;
-        
-        const useAmount = Math.min(bonus.value, remainingPrice);
-        totalBonus += useAmount;
-        remainingPrice -= useAmount;
-        bonusToUse.push({ id: bonus.id, value: useAmount });
-    }
-    
-    return {
-        totalBonus,
-        bonusToUse,
-        finalPrice: Math.max(0, subscriptionPrice - totalBonus)
-    };
-}
+
 
 /**
- * Carica i bonus disponibili dell'utente
+ * Determina se un premio è spendibile per acquisti
+ * REGOLA: Solo "Premio Presenze" NON è spendibile, tutti gli altri sì
+ * @param award - Il premio da controllare
+ * @returns true se il premio è spendibile, false altrimenti
  */
-async function loadUserBonus(userId: string): Promise<BonusItem[]> {
-    const bonusSnap = await getDocs(collection(db, "users", userId, "userAwards"));
-    const bonus = await Promise.all(bonusSnap.docs.map(async docSnap => {
-        const data = docSnap.data();
-        let value = data.value || 0;
-        let residuo = data.residuo || 0;
-        
-        // Recupera valore dal documento awards se necessario
-        if (!data.value && data.awardId) {
-            const awardDoc = await getDoc(doc(db, "awards", data.awardId));
-            if (awardDoc.exists()) {
-                value = awardDoc.data().value || 0;
-                residuo = value - (data.usedValue || 0);
-            }
-        }
-        
-        return {
-            id: docSnap.id,
-            value: residuo,
-            used: data.used || residuo === 0
-        };
-    }));
+function isPremioSpendibile(award: any): boolean {
+    const name = award.name;
     
-    return bonus.filter(b => !b.used && b.value > 0);
+    // Solo il Premio Presenze è non spendibile (accumulabile ma non utilizzabile)
+    const isSpendibile = name !== 'Premio Presenze';
+    
+    console.log(`🔍 [Monthly] Premio "${name || 'SENZA NOME'}" - Spendibile: ${isSpendibile}`);
+    
+    return isSpendibile;
 }
+
+
 
 // =================================================================
 // COMPONENTI
@@ -185,7 +167,7 @@ function SubscriptionCard({
     isSubmitting: boolean; 
     hasActiveOrPending: boolean; 
     onOpenPaymentDialog: () => void; 
-    bonusCalculation: ReturnType<typeof calculateBonusUsage>;
+    bonusCalculation: BonusCalculation;
 }) {
     const now = new Date();
     const isExpired = isAfter(now, subscription.validityEndDate.toDate());
@@ -201,12 +183,12 @@ function SubscriptionCard({
             <CardContent className="space-y-4">
                 <div className="flex items-center justify-between text-lg">
                     <span className="text-muted-foreground">Prezzo</span>
-                    <span className={`font-bold text-3xl ${bonusCalculation.totalBonus > 0 ? 'line-through text-gray-400' : ''}`}>
+                    <span className={`font-bold text-3xl ${bonusCalculation.totalAvailable > 0 ? 'line-through text-gray-400' : ''}`}>
                         {subscription.totalPrice.toFixed(2)} €
                     </span>
                 </div>
                 
-                {bonusCalculation.totalBonus > 0 && (
+                {bonusCalculation.totalAvailable > 0 && (
                     <div className="flex items-center justify-between text-lg">
                         <span className="text-muted-foreground">Prezzo finale dopo bonus:</span>
                         <span className="font-bold text-3xl text-green-600">
@@ -240,11 +222,9 @@ function SubscriptionCard({
             <CardFooter className="flex-col gap-2">
                 <Button 
                     onClick={() => {
-                        if (bonusCalculation.finalPrice === 0) {
-                            onPurchase(subscription, 'bonus');
-                        } else {
-                            onOpenPaymentDialog();
-                        }
+                        // 🎯 SEMPRE apre dialog - anche per bonus gratuiti
+                        console.log('� OPENING PAYMENT DIALOG - Final price:', bonusCalculation.finalPrice);
+                        onOpenPaymentDialog();
                     }} 
                     disabled={isSubmitting || hasActiveOrPending || isExpired}
                     className="w-full text-white font-bold" 
@@ -267,20 +247,20 @@ function SubscriptionCard({
     );
 }
 
-function BonusDisplay({ bonusItems, bonusCalculation }: { bonusItems: BonusItem[], bonusCalculation: ReturnType<typeof calculateBonusUsage> }) {
+function BonusDisplay({ spendableAwards, bonusCalculation }: { spendableAwards: SpendableAward[], bonusCalculation: BonusCalculation }) {
     return (
         <div className="w-full max-w-lg my-4 p-4 border-2 rounded-lg bg-green-50" style={{ borderColor: '#10b981' }}>
             <div className="flex items-center gap-2 mb-2">
                 <Gift className="h-6 w-6 text-yellow-500" />
                 <span className="font-bold" style={{ color: '#059669' }}>Bonus disponibili:</span>
-                <span className="text-lg font-bold" style={{ color: '#059669' }}>€{bonusCalculation.totalBonus.toFixed(2)}</span>
+                <span className="text-lg font-bold" style={{ color: '#059669' }}>€{bonusCalculation.totalAvailable.toFixed(2)}</span>
             </div>
-            {bonusItems.length > 0 ? (
+            {spendableAwards.length > 0 ? (
                 <ul className="text-sm">
-                    {bonusItems.map(b => (
-                        <li key={b.id} className="flex justify-between">
-                            <span className="font-bold" style={{ color: '#059669' }}>ID: {b.id}</span>
-                            <span className="font-bold" style={{ color: '#059669' }}>€{b.value.toFixed(2)}</span>
+                    {spendableAwards.map(award => (
+                        <li key={award.id} className="flex justify-between">
+                            <span className="font-bold" style={{ color: '#059669' }}>{award.name || award.id}</span>
+                            <span className="font-bold" style={{ color: '#059669' }}>€{award.availableAmount.toFixed(2)}</span>
                         </li>
                     ))}
                 </ul>
@@ -308,6 +288,8 @@ function MonthlySubscriptionContent() {
     const [impersonateId, setImpersonateId] = useState<string | null>(null);
     const effectiveUserId = impersonateId || user?.uid;
     
+
+    
     // Leggiamo l'impersonation dalla URL senza useSearchParams
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -323,14 +305,55 @@ function MonthlySubscriptionContent() {
     const [availableSubscription, setAvailableSubscription] = useState<Subscription | null>(null);
     const [userData, setUserData] = useState<UserData | null>(null);
     const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
-    const [bonusItems, setBonusItems] = useState<BonusItem[]>([]);
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
+    const [hasRealPendingPayments, setHasRealPendingPayments] = useState(false);
+    
+    // 🎁 Sistema premi unificato
+    const { 
+        spendableAwards, 
+        totalSpendable, 
+        calculateBonus, 
+        applyBonus,
+        isLoading: premiumLoading 
+    } = usePremiumSystem(effectiveUserId);
 
     const bonusCalculation = availableSubscription ? 
-        calculateBonusUsage(bonusItems, availableSubscription.totalPrice) : 
-        { totalBonus: 0, bonusToUse: [], finalPrice: 0 };
+        calculateBonus(availableSubscription.totalPrice) : 
+        { 
+            spendableAwards: [],
+            totalAvailable: 0, 
+            bonusToUse: 0, 
+            finalPrice: 0, 
+            awardUsage: [] 
+        };
+
+    // 🎁 DEBUG: Dettagli calcolo bonus
+    if (availableSubscription && spendableAwards.length > 0) {
+        console.log('🎁 BONUS CALCULATION DEBUG:');
+        console.log('- Subscription price:', availableSubscription.totalPrice);
+        console.log('- Available bonus items:', spendableAwards.length);
+        console.log('- Total spendable:', totalSpendable);
+        console.log('- Total bonus calculated:', bonusCalculation.totalAvailable);
+        console.log('- Bonus to use:', bonusCalculation.bonusToUse);
+        console.log('- Final price:', bonusCalculation.finalPrice);
+    }
+
+    // 🐛 DEBUG LOGGING per tracciare il bug dei pagamenti fantasma
+    useEffect(() => {
+        if (availableSubscription && userData) {
+            console.log('🐛 MONTHLY SUB BUG TRACKING:');
+            console.log('- Subscription:', availableSubscription.name);
+            console.log('- User has active sub:', !!userData.activeSubscription);
+            console.log('- Active sub ID:', userData.activeSubscription?.subscriptionId);
+            console.log('- Subscription status:', userData.subscriptionAccessStatus);
+            console.log('- Total bonus items:', spendableAwards.length);
+            console.log('- Bonus calculation:', bonusCalculation);
+            console.log('- Final price:', bonusCalculation.finalPrice);
+            console.log('- Should show dialog:', bonusCalculation.finalPrice > 0);
+        }
+    }, [availableSubscription, userData, spendableAwards, bonusCalculation]);
 
     // Carica tutti i dati
     useEffect(() => {
@@ -342,11 +365,10 @@ function MonthlySubscriptionContent() {
         const fetchData = async () => {
             try {
                 // Carica tutti i dati in parallelo
-                const [subsSnapshot, userDocSnap, bankDetailsSnap, bonusData] = await Promise.all([
+                const [subsSnapshot, userDocSnap, bankDetailsSnap] = await Promise.all([
                     getDocs(query(collection(db, "subscriptions"), where("type", "==", "monthly"))),
                     getDoc(doc(db, "users", effectiveUserId)),
-                    getDoc(doc(db, "settings", "bankDetails")),
-                    loadUserBonus(effectiveUserId)
+                    getDoc(doc(db, "settings", "bankDetails"))
                 ]);
 
                 // Abbonamenti
@@ -354,6 +376,76 @@ function MonthlySubscriptionContent() {
                 
                 // Dati utente (da caricare prima della selezione abbonamento)
                 const currentUserData = userDocSnap.exists() ? userDocSnap.data() as UserData : null;
+                
+                // 🔧 VERIFICA E RESET AUTOMATICO: Controlla inconsistenze nei dati
+                if (currentUserData?.subscriptionAccessStatus === 'pending') {
+                    // Controlla se esiste un pagamento pending corrispondente
+                    const pendingPaymentsSnap = await getDocs(
+                        query(
+                            collection(db, "users", effectiveUserId, "payments"),
+                            where("type", "==", "subscription"),
+                            where("status", "==", "pending")
+                        )
+                    );
+                    
+                    if (pendingPaymentsSnap.empty) {
+                        console.log('🔧 AUTO-RESET: User has pending status but no pending payments - resetting');
+                        // Reset stato utente se non ci sono pagamenti pending
+                        const userRef = doc(db, "users", effectiveUserId);
+                        await updateDoc(userRef, {
+                            subscriptionAccessStatus: 'expired',
+                            subscriptionPaymentFailed: false
+                        });
+                        
+                        // Aggiorna i dati locali
+                        currentUserData.subscriptionAccessStatus = 'expired';
+                        // NON cancellare activeSubscription automaticamente
+                        setHasRealPendingPayments(false);
+                        
+                        toast({
+                            title: "Stato ripristinato",
+                            description: "Il tuo stato abbonamento è stato ripristinato. Puoi procedere con un nuovo acquisto.",
+                            duration: 5000
+                        });
+                    } else {
+                        console.log('✅ PENDING STATUS VALID: Found', pendingPaymentsSnap.size, 'pending payments');
+                        setHasRealPendingPayments(true);
+                    }
+                } else if (currentUserData?.subscriptionAccessStatus === 'active' && currentUserData?.activeSubscription) {
+                    // ✅ VERIFICA CONSISTENZA E AUTO-RESET per abbonamenti scaduti
+                    console.log('🔍 CONSISTENCY CHECK: User has active subscription');
+                    
+                    // Controlla se l'abbonamento è effettivamente scaduto
+                    if (currentUserData.activeSubscription.expiresAt) {
+                        const expiryDate = currentUserData.activeSubscription.expiresAt.toDate();
+                        const isExpired = expiryDate <= new Date();
+                        
+                        if (isExpired) {
+                            console.log('🔧 AUTO-RESET: Subscription is expired, updating status');
+                            
+                            // Reset automatico per abbonamento scaduto
+                            const userRef = doc(db, "users", effectiveUserId);
+                            await updateDoc(userRef, {
+                                subscriptionAccessStatus: 'expired'
+                            });
+                            
+                            // Aggiorna i dati locali
+                            currentUserData.subscriptionAccessStatus = 'expired';
+                            
+                            toast({
+                                title: "Abbonamento scaduto",
+                                description: "Il tuo abbonamento è scaduto. Puoi procedere con un nuovo acquisto.",
+                                duration: 5000
+                            });
+                        }
+                    }
+                    
+                    console.log('- Active subscription:', currentUserData.activeSubscription);
+                    setHasRealPendingPayments(false);
+                } else {
+                    setHasRealPendingPayments(false);
+                }
+                
                 setUserData(currentUserData);
                 
                 // Debug logging
@@ -361,7 +453,11 @@ function MonthlySubscriptionContent() {
                 console.log('🔥🔥🔥 [NUOVA LOGICA ATTIVA] User data:', {
                     hasActiveSubscription: !!currentUserData?.activeSubscription,
                     activeSubscriptionId: currentUserData?.activeSubscription?.subscriptionId,
-                    subscriptionStatus: currentUserData?.subscriptionAccessStatus
+                    activeSubscriptionName: currentUserData?.activeSubscription?.name,
+                    activeSubscriptionType: currentUserData?.activeSubscription?.type,
+                    activeSubscriptionExpiresAt: currentUserData?.activeSubscription?.expiresAt?.toDate(),
+                    subscriptionStatus: currentUserData?.subscriptionAccessStatus,
+                    hasRealPendingPayments: hasRealPendingPayments
                 });
                 console.log('🔥🔥🔥 [NUOVA LOGICA ATTIVA] All subscriptions:', allMonthlySubs.map(sub => ({
                     id: sub.id,
@@ -380,9 +476,6 @@ function MonthlySubscriptionContent() {
                     setBankDetails(bankDetailsSnap.data() as BankDetails);
                 }
 
-                // Bonus
-                setBonusItems(bonusData);
-
             } catch (error) {
                 console.error("Error fetching data:", error);
                 toast({ title: "Errore", description: "Impossibile caricare i dati.", variant: "destructive" });
@@ -394,18 +487,46 @@ function MonthlySubscriptionContent() {
         fetchData();
     }, [effectiveUserId, toast]);
 
+    // 🎯 Auto-selezione metodo bonus per pagamenti gratuiti
+    useEffect(() => {
+        if (isPaymentDialogOpen && availableSubscription) {
+            if (bonusCalculation.finalPrice === 0) {
+                setSelectedPaymentMethod('bonus');
+            } else {
+                setSelectedPaymentMethod(null); // Reset per pagamenti a pagamento
+            }
+        }
+    }, [isPaymentDialogOpen, availableSubscription, bonusCalculation]);
+
     // Gestisce l'acquisto
-    const handlePurchase = async (subscription: Subscription, method: PaymentMethod) => {
+    const handlePurchase = async (subscription: Subscription, method: PaymentMethod, userConfirmed: boolean = false) => {
         if (!effectiveUserId) return;
+        
+        // 🛡️ GUARDRAIL: Previeni creazione pagamenti senza conferma utente
+        if (method !== 'bonus' && !userConfirmed) {
+            console.error('🚨 BLOCKED: Tentativo di creare pagamento senza conferma utente!');
+            console.error('- Method:', method);
+            console.error('- UserConfirmed:', userConfirmed);
+            console.error('- Subscription:', subscription.name);
+            toast({ 
+                title: "Errore di sicurezza", 
+                description: "Pagamento bloccato per sicurezza. Riprova usando il dialog di pagamento.", 
+                variant: "destructive" 
+            });
+            return;
+        }
+        
+        // 🐛 DEBUG: Log dell'acquisto
+        console.log('💳 PURCHASE ATTEMPT:');
+        console.log('- Method:', method);
+        console.log('- UserConfirmed:', userConfirmed);
+        console.log('- Final price:', bonusCalculation.finalPrice);
         
         setIsSubmitting(true);
         try {
-            const calculation = calculateBonusUsage(bonusItems, subscription.totalPrice);
-            
             // Aggiorna stato utente
-            const batch = writeBatch(db);
             const userRef = doc(db, "users", effectiveUserId);
-            batch.update(userRef, {
+            await updateDoc(userRef, {
                 subscriptionAccessStatus: 'pending',
                 subscriptionPaymentFailed: false,
                 activeSubscription: {
@@ -417,39 +538,23 @@ function MonthlySubscriptionContent() {
                 }
             });
 
-            // Aggiorna bonus utilizzati
-            for (const bonusUsed of calculation.bonusToUse) {
-                const bonusDocRef = doc(db, "users", effectiveUserId, "userAwards", bonusUsed.id);
-                const bonusDocSnap = await getDoc(bonusDocRef);
-                
-                if (bonusDocSnap.exists()) {
-                    const currentData = bonusDocSnap.data();
-                    const usedValuePrecedente = currentData.usedValue || 0;
-                    const nuovoUsedValue = usedValuePrecedente + bonusUsed.value;
-                    const residuo = Math.max(0, currentData.value - nuovoUsedValue);
-                    
-                    batch.update(bonusDocRef, {
-                        used: residuo === 0,
-                        usedValue: nuovoUsedValue,
-                        residuo: residuo
-                    });
-                }
+            // Applica il bonus usando il sistema unificato
+            if (bonusCalculation.bonusToUse > 0) {
+                await applyBonus(bonusCalculation);
             }
-
-            await batch.commit();
 
             // Registra pagamento
             const paymentsRef = collection(db, "users", effectiveUserId, "payments");
             await addDoc(paymentsRef, {
                 createdAt: serverTimestamp(),
-                description: `${subscription.name} - ${calculation.totalBonus > 0 ? 'Con Bonus' : 'Pagamento Standard'}`,
-                amount: calculation.finalPrice,
-                paymentMethod: calculation.finalPrice === 0 ? 'bonus' : method,
+                description: `${subscription.name} - ${bonusCalculation.totalAvailable > 0 ? 'Con Bonus' : 'Pagamento Standard'}`,
+                amount: bonusCalculation.finalPrice,
+                paymentMethod: bonusCalculation.finalPrice === 0 ? 'bonus' : method,
                 status: 'pending',
                 type: 'subscription',
                 userId: effectiveUserId,
-                bonusUsed: calculation.totalBonus,
-                awardId: calculation.bonusToUse.length === 1 ? calculation.bonusToUse[0].id : calculation.bonusToUse.map(b => b.id)
+                bonusUsed: bonusCalculation.bonusToUse,
+                awardId: bonusCalculation.awardUsage.length === 1 ? bonusCalculation.awardUsage[0].id : bonusCalculation.awardUsage.map(a => a.id)
             });
 
             // Assegna premio presenze
@@ -462,11 +567,11 @@ function MonthlySubscriptionContent() {
 
             toast({ 
                 title: "Acquisto completato!", 
-                description: `Pagamento: €${calculation.finalPrice.toFixed(2)}. Bonus utilizzati: €${calculation.totalBonus.toFixed(2)}.`
+                description: `Pagamento: €${bonusCalculation.finalPrice.toFixed(2)}. Bonus utilizzati: €${bonusCalculation.bonusToUse.toFixed(2)}.`
             });
 
             // Apri link pagamento se necessario
-            if (method === 'online' && subscription.sumupLink && calculation.finalPrice > 0) {
+            if (method === 'online' && subscription.sumupLink && bonusCalculation.finalPrice > 0) {
                 window.open(subscription.sumupLink, '_blank');
             }
 
@@ -492,13 +597,13 @@ function MonthlySubscriptionContent() {
         if (selectedPaymentMethod === 'bank_transfer') {
             setIsBankTransferDialogOpen(true);
         } else {
-            handlePurchase(availableSubscription, selectedPaymentMethod);
+            handlePurchase(availableSubscription, selectedPaymentMethod, true); // userConfirmed = true
         }
     };
 
     const handleBankTransferConfirm = () => {
         if (availableSubscription) {
-            handlePurchase(availableSubscription, 'bank_transfer');
+            handlePurchase(availableSubscription, 'bank_transfer', true); // userConfirmed = true
         }
         setIsBankTransferDialogOpen(false);
     };
@@ -511,10 +616,104 @@ function MonthlySubscriptionContent() {
         );
     }
 
-    const hasActiveOrPending = userData?.subscriptionAccessStatus === 'active' || userData?.subscriptionAccessStatus === 'pending';
+    // 🎯 LOGICA CORRETTA: Controlla stato active O pagamenti pending REALI + abbonamento stagionale
+    const hasSeasonalSubscription = userData?.activeSubscription?.type === 'seasonal' && 
+                                   userData?.subscriptionAccessStatus === 'active' &&
+                                   userData?.activeSubscription?.expiresAt &&
+                                   userData.activeSubscription.expiresAt.toDate() > new Date();
+    
+    // Controlla se l'abbonamento corrente è veramente attivo (non scaduto)
+    const hasValidActiveSubscription = userData?.subscriptionAccessStatus === 'active' && 
+                                      userData?.activeSubscription?.expiresAt &&
+                                      userData.activeSubscription.expiresAt.toDate() > new Date();
+    
+    const hasActiveOrPending = hasValidActiveSubscription || 
+                              (userData?.subscriptionAccessStatus === 'pending' && hasRealPendingPayments) ||
+                              hasSeasonalSubscription;
+
+    // 🔍 DEBUG: Stampa le variabili che determinano il blocco
+    console.log('🔍 BLOCKING LOGIC DEBUG:');
+    console.log('- subscriptionAccessStatus:', userData?.subscriptionAccessStatus);
+    console.log('- hasRealPendingPayments:', hasRealPendingPayments);
+    console.log('- hasSeasonalSubscription:', hasSeasonalSubscription);
+    console.log('- hasValidActiveSubscription:', hasValidActiveSubscription);
+    console.log('- hasActiveOrPending:', hasActiveOrPending);
+    console.log('- activeSubType:', userData?.activeSubscription?.type);
+    console.log('- activeSubName:', userData?.activeSubscription?.name);
+    console.log('- activeSubExpiresAt:', userData?.activeSubscription?.expiresAt?.toDate());
+    console.log('- isActiveSubExpired:', userData?.activeSubscription?.expiresAt ? userData.activeSubscription.expiresAt.toDate() <= new Date() : null);
+
+    // 🔧 FUNZIONE RESET MANUALE per utenti bloccati
+    const handleManualReset = async () => {
+        if (!effectiveUserId || !userData) return;
+        
+        try {
+            // Verifica se ci sono pagamenti pending
+            const pendingPaymentsSnap = await getDocs(
+                query(
+                    collection(db, "users", effectiveUserId, "payments"),
+                    where("type", "==", "subscription"),
+                    where("status", "==", "pending")
+                )
+            );
+            
+            if (pendingPaymentsSnap.empty) {
+                // Reset sicuro
+                const userRef = doc(db, "users", effectiveUserId);
+                await updateDoc(userRef, {
+                    subscriptionAccessStatus: 'expired',
+                    subscriptionPaymentFailed: false
+                });
+                
+                setUserData(prev => prev ? {...prev, subscriptionAccessStatus: 'expired'} : null);
+                setHasRealPendingPayments(false);
+                
+                toast({
+                    title: "Reset completato",
+                    description: "Il tuo stato è stato ripristinato. Puoi procedere con un nuovo acquisto.",
+                    duration: 5000
+                });
+            } else {
+                toast({
+                    title: "Reset non possibile",
+                    description: "Esistono pagamenti in elaborazione. Contatta la segreteria.",
+                    variant: "destructive"
+                });
+            }
+        } catch (error) {
+            console.error("Error in manual reset:", error);
+            toast({
+                title: "Errore",
+                description: "Impossibile resettare lo stato. Riprova più tardi.",
+                variant: "destructive"
+            });
+        }
+    };
 
     return (
         <div className="flex w-full flex-col items-center justify-center">
+            {/* 🚨 ALERT per utenti bloccati in pending */}
+            {userData?.subscriptionAccessStatus === 'pending' && (
+                <Alert className="w-full max-w-lg mb-6 border-yellow-500 bg-yellow-50">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Stato in Verifica</AlertTitle>
+                    <AlertDescription className="space-y-2">
+                        <p>Il tuo abbonamento è in fase di approvazione.</p>
+                        <p className="text-sm text-muted-foreground">
+                            Se il problema persiste o non hai effettuato alcun pagamento, puoi ripristinare lo stato.
+                        </p>
+                        <Button 
+                            onClick={handleManualReset}
+                            variant="outline" 
+                            size="sm"
+                            className="mt-2 border-yellow-600 text-yellow-700 hover:bg-yellow-100"
+                        >
+                            🔧 Ripristina Stato
+                        </Button>
+                    </AlertDescription>
+                </Alert>
+            )}
+
             {availableSubscription ? (
                 <>
                     <SubscriptionCard 
@@ -526,7 +725,7 @@ function MonthlySubscriptionContent() {
                         bonusCalculation={bonusCalculation}
                     />
                     
-                    <BonusDisplay bonusItems={bonusItems} bonusCalculation={bonusCalculation} />
+                    <BonusDisplay spendableAwards={spendableAwards} bonusCalculation={bonusCalculation} />
 
                     {/* Dialog scelta pagamento */}
                     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
@@ -535,7 +734,7 @@ function MonthlySubscriptionContent() {
                                 <DialogTitle style={{ color: 'hsl(var(--background))' }}>Scegli Metodo di Pagamento</DialogTitle>
                                 <DialogDescription className="text-base">
                                     Prezzo abbonamento: <b>€{availableSubscription.totalPrice.toFixed(2)}</b><br />
-                                    Bonus utilizzabili: <b>€{bonusCalculation.totalBonus.toFixed(2)}</b><br />
+                                    Bonus utilizzabili: <b>€{bonusCalculation.totalAvailable.toFixed(2)}</b><br />
                                     <span style={{ color: '#059669' }}>Prezzo finale: <b>€{bonusCalculation.finalPrice.toFixed(2)}</b></span>
                                 </DialogDescription>
                             </DialogHeader>
@@ -592,8 +791,10 @@ function MonthlySubscriptionContent() {
                                     </Label>
                                 </RadioGroup>
                             ) : (
-                                <div className="py-4 text-center text-green-700 font-semibold">
-                                    Il tuo abbonamento è interamente coperto dai bonus. Nessun pagamento richiesto.
+                                <div className="py-4 space-y-4">
+                                    <div className="text-center text-green-700 font-semibold">
+                                        Il tuo abbonamento è interamente coperto dai bonus. Conferma per procedere.
+                                    </div>
                                 </div>
                             )}
                             
@@ -603,13 +804,14 @@ function MonthlySubscriptionContent() {
                                 </Button>
                                 <Button
                                     onClick={() => {
+                                        // ✅ Ora la scelta è sempre fatta nel dialog
                                         if (bonusCalculation.finalPrice === 0) {
-                                            handlePurchase(availableSubscription, "bonus");
+                                            handlePurchase(availableSubscription, "bonus", true);
                                         } else {
                                             handlePaymentDialogSubmit();
                                         }
                                     }}
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || (!selectedPaymentMethod && bonusCalculation.finalPrice > 0)}
                                     className="text-white font-bold"
                                     style={{ backgroundColor: 'hsl(var(--primary))' }}
                                     size="lg"

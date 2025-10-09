@@ -7,8 +7,10 @@ import { auth, db } from "@/lib/firebase";
 import { isSuperAdmin } from "@/app/dashboard/layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Database, UserX, Settings, FileX, Trash2, AlertTriangle, Crown } from "lucide-react";
+import { Shield, Database, UserX, Settings, FileX, Trash2, AlertTriangle, Crown, Unlock, BarChart3 } from "lucide-react";
 import Link from "next/link";
+import AdminUserUnlocker from "@/components/admin/UserUnlocker";
+import SubscriptionAnalyzer from "@/components/admin/SubscriptionAnalyzer";
 
 interface UserData {
   name: string;
@@ -131,6 +133,50 @@ export default function SuperAdminPage() {
                 <p className="text-muted-foreground text-lg">
                     Benvenuto nell'area riservata ai SuperAdmin. Qui hai accesso a tutte le funzionalità avanzate del sistema.
                 </p>
+            </div>
+
+            {/* 🚨 SEZIONE EMERGENZA: Sblocco utenti con pending fantasma */}
+            <div className="mb-8">
+                <Card className="border-red-200 bg-red-50">
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-red-100 rounded-lg">
+                                <Unlock className="h-6 w-6 text-red-600" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-lg text-red-800">🚨 Sblocco Utenti di Emergenza</CardTitle>
+                                <CardDescription className="text-red-600">
+                                    Gestisci utenti bloccati con abbonamenti pending senza pagamenti corrispondenti
+                                </CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <AdminUserUnlocker />
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* 📊 SEZIONE ANALISI: Abbonamenti utenti */}
+            <div className="mb-8">
+                <Card className="border-blue-200 bg-blue-50">
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <BarChart3 className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-lg text-blue-800">📊 Analisi Abbonamenti Utenti</CardTitle>
+                                <CardDescription className="text-blue-600">
+                                    Verifica lo stato di tutti gli abbonamenti utenti e identifica problemi sistematici
+                                </CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <SubscriptionAnalyzer />
+                    </CardContent>
+                </Card>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

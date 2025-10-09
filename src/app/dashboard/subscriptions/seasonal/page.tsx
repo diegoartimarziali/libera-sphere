@@ -52,6 +52,23 @@ interface BankDetails {
 
 type PaymentMethod = "online" | "in_person" | "bank_transfer" | "bonus";
 
+/**
+ * Determina se un premio è spendibile per acquisti
+ * REGOLA: Solo "Premio Presenze" NON è spendibile, tutti gli altri sì
+ * @param award - Il premio da controllare
+ * @returns true se il premio è spendibile, false altrimenti
+ */
+function isPremioSpendibile(award: any): boolean {
+    const name = award.name;
+    
+    // Solo il Premio Presenze è non spendibile (accumulabile ma non utilizzabile)
+    const isSpendibile = name !== 'Premio Presenze';
+    
+    console.log(`🔍 [Seasonal] Premio "${name || 'SENZA NOME'}" - Spendibile: ${isSpendibile}`);
+    
+    return isSpendibile;
+}
+
 function SubscriptionCard({ subscription, onPurchase, isSubmitting, hasActiveOrPending, onOpenPaymentDialog, totaleBonus }: { subscription: Subscription; onPurchase: (sub: Subscription, method: PaymentMethod) => void; isSubmitting: boolean; hasActiveOrPending: boolean; onOpenPaymentDialog: () => void; totaleBonus: number }) {
     const now = new Date();
     const isPurchaseWindowOpen = 
@@ -160,7 +177,7 @@ function SeasonalSubscriptionContent() {
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
-    const [bonusDisponibili, setBonusDisponibili] = useState<{id: string, value: number, used?: boolean}[]>([]);
+    const [bonusDisponibili, setBonusDisponibili] = useState<{id: string, name: string, value: number, used?: boolean}[]>([]);
     const [totaleBonus, setTotaleBonus] = useState(0);
 
     useEffect(() => {
@@ -185,12 +202,14 @@ function SeasonalSubscriptionContent() {
                                     const bonusSnap = await getDocs(collection(db, "users", user.uid, "userAwards"));
                                     const bonus = await Promise.all(bonusSnap.docs.map(async docSnap => {
                                         const data = docSnap.data();
+                                        let name = data.name;
                                         let value = data.value || 0;
                                         let residuo = data.residuo || 0;
                                         
                                         if (!data.value && data.awardId) {
                                             const awardDoc = await getDoc(doc(db, "awards", data.awardId));
                                             if (awardDoc.exists()) {
+                                                name = awardDoc.data().name;
                                                 value = awardDoc.data().value || 0;
                                                 residuo = value - (data.usedValue || 0);
                                             }
@@ -198,12 +217,18 @@ function SeasonalSubscriptionContent() {
                                         
                                         return {
                                             id: docSnap.id,
+                                            name: name,
                                             value: residuo,
                                             used: data.used || residuo === 0
                                         };
                                     }));
                                     
-                                    const bonusNonUsati = bonus.filter(b => !b.used && b.value > 0);
+                                    // ⚠️ FILTRO CRITICO: Esclude solo premi specificamente non spendibili
+                                    const bonusNonUsati = bonus.filter(b => 
+                                        !b.used && 
+                                        b.value > 0 && 
+                                        isPremioSpendibile(b)
+                                    );
                                     setBonusDisponibili(bonusNonUsati);
                                     setTotaleBonus(bonusNonUsati.reduce((acc, b) => acc + (b.value || 0), 0));
                                     
@@ -232,6 +257,7 @@ function SeasonalSubscriptionContent() {
                 const bonusSnap = await getDocs(collection(db, "users", user.uid, "userAwards"));
                 const bonus = await Promise.all(bonusSnap.docs.map(async docSnap => {
                     const data = docSnap.data();
+                    let name = data.name;
                     let value = data.value || 0;
                     let residuo = data.residuo || 0;
                     
@@ -239,6 +265,7 @@ function SeasonalSubscriptionContent() {
                     if (!data.value && data.awardId) {
                         const awardDoc = await getDoc(doc(db, "awards", data.awardId));
                         if (awardDoc.exists()) {
+                            name = awardDoc.data().name;
                             value = awardDoc.data().value || 0;
                             residuo = value - (data.usedValue || 0);
                         }
@@ -246,13 +273,18 @@ function SeasonalSubscriptionContent() {
                     
                     return {
                         id: docSnap.id,
+                        name: name,  // Necessario per il filtering
                         value: residuo, // Usa il residuo come valore disponibile
                         used: data.used || residuo === 0
                     };
                 }));
                 
-                // Filtra solo bonus con residuo > 0
-                const bonusNonUsati = bonus.filter(b => !b.used && b.value > 0);
+                // ⚠️ FILTRO CRITICO: Esclude solo premi specificamente non spendibili
+                const bonusNonUsati = bonus.filter(b => 
+                    !b.used && 
+                    b.value > 0 && 
+                    isPremioSpendibile(b)
+                );
                 setBonusDisponibili(bonusNonUsati);
                 setTotaleBonus(bonusNonUsati.reduce((acc, b) => acc + (b.value || 0), 0));
 
@@ -384,12 +416,14 @@ function SeasonalSubscriptionContent() {
             const bonusSnapRefresh = await getDocs(collection(db, "users", user!.uid, "userAwards"));
             const bonusRefresh = await Promise.all(bonusSnapRefresh.docs.map(async docSnap => {
                 const data = docSnap.data();
+                let name = data.name;
                 let value = data.value || 0;
                 let residuo = data.residuo || 0;
                 
                 if (!data.value && data.awardId) {
                     const awardDoc = await getDoc(doc(db, "awards", data.awardId));
                     if (awardDoc.exists()) {
+                        name = awardDoc.data().name;
                         value = awardDoc.data().value || 0;
                         residuo = value - (data.usedValue || 0);
                     }
@@ -397,12 +431,18 @@ function SeasonalSubscriptionContent() {
                 
                 return {
                     id: docSnap.id,
+                    name: name,
                     value: residuo,
                     used: data.used || residuo === 0
                 };
             }));
             
-            const bonusNonUsatiRefresh = bonusRefresh.filter(b => !b.used && b.value > 0);
+            // ⚠️ FILTRO CRITICO: Esclude solo premi specificamente non spendibili
+            const bonusNonUsatiRefresh = bonusRefresh.filter(b => 
+                !b.used && 
+                b.value > 0 && 
+                isPremioSpendibile(b)
+            );
             setBonusDisponibili(bonusNonUsatiRefresh);
             setTotaleBonus(bonusNonUsatiRefresh.reduce((acc, b) => acc + (b.value || 0), 0));
             

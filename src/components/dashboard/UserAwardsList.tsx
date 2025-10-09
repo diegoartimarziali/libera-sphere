@@ -4,8 +4,8 @@ import { useAttendances } from '@/hooks/use-attendances';
 import { Progress } from '@/components/ui/progress';
 import { calculatePremiPresenzeValue } from '@/lib/premiPresenzeCalculator';
 
-export function UserAwardsList({ awards, onRefresh }: { awards: UserAward[]; onRefresh?: () => void }) {
-  const { presentAttendances, totalLessons, percentage, loading: attendancesLoading } = useAttendances();
+export function UserAwardsList({ awards, onRefresh, userId }: { awards: UserAward[]; onRefresh?: () => void; userId?: string }) {
+  const { presentAttendances, totalLessons, percentage, loading: attendancesLoading } = useAttendances(userId);
   if (!awards || awards.length === 0) {
     return <div className="text-center text-muted-foreground">Nessun premio assegnato</div>;
   }

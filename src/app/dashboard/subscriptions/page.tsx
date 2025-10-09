@@ -196,13 +196,15 @@ function SubscriptionSelection({
     availableMonthly,
     bankDetails, 
     userData,
-    onPurchase 
+    onPurchase,
+    impersonateId
 }: { 
     seasonalSub: Subscription | null, 
     availableMonthly: Subscription | null,
     bankDetails: BankDetails | null, 
     userData: UserData | null,
-    onPurchase: (sub: Subscription, method: PaymentMethod) => Promise<void> 
+    onPurchase: (sub: Subscription, method: PaymentMethod) => Promise<void>,
+    impersonateId: string | null
 }) {
     return (
         <div className="flex w-full flex-col items-center">
@@ -261,7 +263,7 @@ function SubscriptionSelection({
                     </CardContent>
                     <CardFooter>
                          <Button asChild className="w-full text-white font-bold" size="lg" style={{ backgroundColor: 'hsl(var(--primary))' }}>
-                            <Link href="/dashboard/subscriptions/monthly">
+                            <Link href={`/dashboard/subscriptions/monthly${impersonateId ? `?impersonate=${impersonateId}` : ''}`}>
                                 {availableMonthly ? `Acquista ${availableMonthly.name}` : 'Scegli Piano Mensile'}
                             </Link>
                         </Button>
@@ -491,7 +493,10 @@ function SubscriptionsContent() {
             expiryDate: expiryDate,
             currentDate: now,
             isValid: subscriptionIsValid,
-            subscriptionStatus: userData?.subscriptionAccessStatus
+            subscriptionStatus: userData?.subscriptionAccessStatus,
+            activeSubscription: userData?.activeSubscription,
+            subscriptionType: userData?.activeSubscription?.type,
+            subscriptionName: userData?.activeSubscription?.name
         });
     }
 
@@ -506,6 +511,7 @@ function SubscriptionsContent() {
                     bankDetails={bankDetails}
                     userData={userData}
                     onPurchase={handlePurchase}
+                    impersonateId={impersonateId}
                 />
             )}
         </div>

@@ -5,11 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Euro, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, QueryDocumentSnapshot, DocumentData, collection, addDoc, Timestamp, onSnapshot } from 'firebase/firestore';
-import { getDocs } from 'firebase/firestore';
+import { doc, updateDoc, QueryDocumentSnapshot, DocumentData, collection, addDoc, Timestamp, onSnapshot } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { updateUserBonus } from '../../lib/updateUserBonus';
+import { usePremiumSystem } from '@/hooks/use-premium-system';
 
 interface StagePaymentCardProps {
   title: string;
@@ -25,45 +24,36 @@ interface StagePaymentCardProps {
 
 export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, eventId, eventType, discipline, onRefresh }: StagePaymentCardProps): JSX.Element {
   const router = useRouter();
-
-  const [userAwards, setUserAwards] = useState<any[]>([]);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const { toast } = useToast();
-  const [isLoadingBonus, setIsLoadingBonus] = useState(true);
-  // Bonus viene usato automaticamente se disponibile
-  const useBonus = userAwards.length > 0 && userAwards.some(a => a.residuo > 0 && !a.used);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  
+  // 🚀 SISTEMA UNIFICATO: sostituisce tutta la logica sparsa precedente
+  const {
+    totalSpendable,
+    calculateBonus,
+    applyBonus,
+    refundBonus,
+    isLoading: isLoadingBonus,
+    getAwardsSummary
+  } = usePremiumSystem(userId);
 
-  const fetchUserAwards = async () => {
-    try {
-      const userAwardsQuery = collection(db, `users/${userId}/userAwards`);
-      const userAwardsSnap = await getDocs(userAwardsQuery);
-      const awards = userAwardsSnap.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
-      setUserAwards(awards);
-    } catch (error) {
-      console.error("Errore nel recupero dei premi:", error);
-      toast({
-        variant: "destructive",
-        title: "Errore",
-        description: "Impossibile recuperare i premi."
-      });
-    } finally {
-      setIsLoadingBonus(false);
-    }
-  };
-  useEffect(() => {
-    fetchUserAwards();
-  }, [userId, toast]);
-
-  // Calcola il totale bonus residuo
-  const totalBonus = userAwards.filter(a => !a.used && a.residuo > 0).reduce((acc, a) => acc + a.residuo, 0);
-  const bonusToUse = useBonus ? (totalBonus >= price ? price : totalBonus) : 0;
-  const finalPrice = useBonus ? Math.max(0, price - bonusToUse) : price;
+  
+  // 🧮 CALCOLO BONUS UNIFICATO: sostituisce logiche manuali precedenti
+  const bonusCalculation = calculateBonus(price);
+  const { bonusToUse, finalPrice, awardUsage } = bonusCalculation;
+  const useBonus = bonusToUse > 0;
+  
+  // 📊 RIEPILOGO PREMI per visualizzazione UI
+  const awardsSummary = getAwardsSummary();
+  
+  console.log('� [StagePayment] Sistema unificato - Bonus disponibile:', totalSpendable);
+  console.log('� [StagePayment] Calcolo per acquisto €', price, '→ Bonus da usare:', bonusToUse, '€');
+  console.log('🚀 [StagePayment] Prezzo finale:', finalPrice, '€');
 
   const handleGymPayment = async () => {
-    // Calcola gli awardId usati per il pagamento bonus
-    const awardIdsUsati = userAwards.filter(a => !a.used && a.residuo > 0).map(a => a.id);
     let paymentDocRef;
     try {
+      // Crea documento pagamento
       paymentDocRef = await addDoc(collection(db, `users/${userId}/payments`), {
         eventId,
         amount: finalPrice,
@@ -72,7 +62,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
         createdAt: Timestamp.now(),
         eventTitle: title,
         bonusUsed: bonusToUse,
-        awardId: awardIdsUsati.length === 1 ? awardIdsUsati[0] : awardIdsUsati,
+        awardId: awardUsage.length === 1 ? awardUsage[0].id : awardUsage.map(u => u.id),
         description: `Tipologia Evento: ${eventType} - Disciplina: ${discipline}`,
       });
     } catch (error) {
@@ -84,24 +74,21 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
       return;
     }
 
-  // Listener per aggiornamento pagamento a "failed" (rimborso bonus)
-  onSnapshot(paymentDocRef, async (docSnap: import('firebase/firestore').DocumentSnapshot<DocumentData>) => {
+    // Listener per aggiornamento pagamento a "failed" (rimborso bonus)
+    onSnapshot(paymentDocRef, async (docSnap: import('firebase/firestore').DocumentSnapshot<DocumentData>) => {
       const data = docSnap.data();
       if (data && data.status === 'failed' && data.bonusUsed > 0 && data.awardId) {
-        // Rimborso bonus
-        const { refundUserBonus } = await import('@/lib/refundUserBonus');
-        await refundUserBonus(userId, data.awardId, data.bonusUsed);
-        await fetchUserAwards(); // Aggiorna la UI premi
-        toast({
-          title: "Bonus riaccreditato",
-          description: `Il tuo bonus di ${data.bonusUsed}€ è stato riaccreditato perché il pagamento non è stato accettato.`,
-          variant: "success"
-        });
+        // 🔙 RIMBORSO UNIFICATO: sostituisce logica manuale
+        try {
+          await refundBonus(data.awardId, data.bonusUsed);
+        } catch (error) {
+          console.error('Errore rimborso:', error);
+        }
       }
     });
 
-  // Listener per aggiornamento pagamento a "completed"
-  onSnapshot(paymentDocRef, async (docSnap: import('firebase/firestore').DocumentSnapshot<DocumentData>) => {
+    // Listener per aggiornamento pagamento a "completed"
+    onSnapshot(paymentDocRef, async (docSnap: import('firebase/firestore').DocumentSnapshot<DocumentData>) => {
       const data = docSnap.data();
       if (data && data.status === 'completed') {
         // Aggiungi presenza solo se non già registrata
@@ -118,36 +105,32 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
         });
       }
     });
+    
+    // 💸 APPLICAZIONE BONUS UNIFICATA: sostituisce loop manuale
     if (useBonus && bonusToUse > 0) {
-      let importoDaScalare = bonusToUse;
-      for (const award of userAwards.filter(a => !a.used && a.residuo > 0)) {
-        if (importoDaScalare <= 0) break;
-        const daUsare = Math.min(award.residuo, importoDaScalare);
-        await updateUserBonus(award.id, userId, daUsare);
-        importoDaScalare -= daUsare;
+      try {
+        await applyBonus(bonusCalculation);
+        if (onRefresh) onRefresh(); // Aggiorna UI premi nel wallet
+      } catch (error) {
+        console.error('Errore applicazione bonus:', error);
+        return; // Interrompe se fallisce applicazione bonus
       }
-      await fetchUserAwards(); // Aggiorna lo stato premi locale
-      if (onRefresh) onRefresh(); // Aggiorna la UI premi nel wallet
-      toast({
-        title: "Bonus applicato",
-        description: `Utilizzati ${bonusToUse}€ dal tuo bonus. ${finalPrice > 0 ? 'Porta il saldo rimanente in palestra.' : 'Iscrizione completata!'}`,
-      });
-    }
-
-    toast({
+    }    toast({
       title: finalPrice > 0 ? "Pagamento in palestra selezionato" : "Iscrizione completata",
       description: finalPrice > 0 
         ? `Ti aspettiamo in palestra per completare l'iscrizione! (${finalPrice}€)`
         : "Iscrizione confermata con il tuo bonus!",
     });
-  onClose();
-  router.push('/dashboard');
+    onClose();
+    router.push('/dashboard');
   };
 
   const handleOnlinePayment = async () => {
+    let paymentDocRef;
+    
     // Crea il documento pagamento in Firestore
     try {
-      await addDoc(collection(db, `users/${userId}/payments`), {
+      paymentDocRef = await addDoc(collection(db, `users/${userId}/payments`), {
         eventId,
         amount: finalPrice,
         method: "online",
@@ -155,6 +138,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
         createdAt: Timestamp.now(),
         eventTitle: title,
         bonusUsed: bonusToUse,
+        awardId: awardUsage.length === 1 ? awardUsage[0].id : awardUsage.map(u => u.id),
         description: `Tipologia Evento: ${eventType} - Disciplina: ${discipline}`,
       });
     } catch (error) {
@@ -165,7 +149,39 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
       });
       return;
     }
-    // ...già aggiornato sopra...
+
+    // Listener per aggiornamento pagamento a "failed" (rimborso bonus)
+    onSnapshot(paymentDocRef, async (docSnap: import('firebase/firestore').DocumentSnapshot<DocumentData>) => {
+      const data = docSnap.data();
+      if (data && data.status === 'failed' && data.bonusUsed > 0 && data.awardId) {
+        // 🔙 RIMBORSO UNIFICATO
+        try {
+          await refundBonus(data.awardId, data.bonusUsed);
+        } catch (error) {
+          console.error('Errore rimborso:', error);
+        }
+      }
+    });
+
+    // Listener per aggiornamento pagamento a "completed"
+    onSnapshot(paymentDocRef, async (docSnap: import('firebase/firestore').DocumentSnapshot<DocumentData>) => {
+      const data = docSnap.data();
+      if (data && data.status === 'completed') {
+        // Aggiungi presenza solo se non già registrata
+        const attendancesRef = collection(db, `users/${userId}/attendances`);
+        await addDoc(attendancesRef, {
+          lessonDate: Timestamp.now(),
+          lessonTime: '',
+          discipline,
+          gymName: '',
+          status: 'presente',
+          eventId,
+          eventType,
+          eventTitle: title
+        });
+      }
+    });
+
     if (!sumupUrl) {
       toast({
         variant: "destructive",
@@ -174,17 +190,48 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
       });
       return;
     }
-    router.push('/dashboard');
 
     // Se il prezzo finale è 0, non serve andare su SumUp
     if (finalPrice === 0) {
+      // 💸 APPLICAZIONE BONUS UNIFICATA per acquisto a costo zero
+      if (useBonus && bonusToUse > 0) {
+        try {
+          await applyBonus(bonusCalculation);
+          if (onRefresh) onRefresh(); // Aggiorna UI premi nel wallet
+        } catch (error) {
+          console.error('Errore applicazione bonus:', error);
+          return;
+        }
+      }
+      
       toast({
         title: "Iscrizione completata",
         description: "Iscrizione confermata con il tuo bonus!"
       });
       onClose();
+      router.push('/dashboard');
       return;
     }
+
+    // 💸 APPLICAZIONE BONUS UNIFICATA prima di reindirizzare a SumUp
+    if (useBonus && bonusToUse > 0) {
+      try {
+        await applyBonus(bonusCalculation);
+        if (onRefresh) onRefresh(); // Aggiorna UI premi nel wallet
+      } catch (error) {
+        console.error('Errore applicazione bonus:', error);
+        return;
+      }
+    }
+
+    // Chiudi il dialog
+    onClose();
+    
+    // Reindirizza a SumUp per il pagamento
+    window.open(sumupUrl, '_blank');
+    
+    // Torna alla dashboard
+    router.push('/dashboard');
   };
 
   return (
@@ -207,22 +254,22 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
                 <div className="text-center text-lg text-muted-foreground">
                   Scegli la modalità di pagamento
                 </div>
-                {/* Visualizza il bonus residuo solo una volta, in modo chiaro */}
+                {/* 🏆 VISUALIZZAZIONE PREMI UNIFICATA */}
                 <div className="flex flex-col items-center gap-1 mb-2">
-                  <span className="text-sm font-bold text-green-700">Bonus totale disponibile: {totalBonus}€</span>
+                  <span className="text-sm font-bold text-green-700">Bonus totale disponibile: {totalSpendable}€</span>
                   <div className="text-xs text-muted-foreground mt-1">
                     Premi nel wallet:
                     <ul className="list-disc ml-4">
-                      {/* Premi attivi sopra */}
-                      {userAwards.filter(a => !a.used && a.residuo > 0).map(a => (
-                        <li key={a.id} className="font-semibold text-green-700">
-                          {a.name || 'Premio'}: {a.residuo}€
+                      {/* Premi spendibili */}
+                      {awardsSummary.spendableAwards.map(award => (
+                        <li key={award.id} className="font-semibold text-green-700">
+                          {award.name}: {award.availableAmount}€
                         </li>
                       ))}
-                      {/* Premi esauriti sotto */}
-                      {userAwards.filter(a => a.used || a.residuo === 0).map(a => (
-                        <li key={a.id} className="text-muted-foreground">
-                          {a.name || 'Premio'}: 0€ <span className="italic">(esaurito)</span>
+                      {/* Premi non spendibili (es. Premio Presenze) */}
+                      {awardsSummary.nonSpendableAwards.map(award => (
+                        <li key={award.id} className="text-blue-600">
+                          {award.name}: {award.amount}€ <span className="italic">(non spendibile)</span>
                         </li>
                       ))}
                     </ul>
@@ -250,7 +297,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
               <div className="grid gap-4">
                 {finalPrice === 0 ? (
                   <div className="space-y-2">
-                    <div className="font-semibold text-green-700 text-center">Residuo bonus dopo il pagamento: {totalBonus - bonusToUse}€</div>
+                    <div className="font-semibold text-green-700 text-center">Residuo bonus dopo il pagamento: {totalSpendable - bonusToUse}€</div>
                     <Button 
                       variant="default"
                       size="lg"
@@ -264,7 +311,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
                   <Button 
                     variant="outline"
                     size="lg"
-                    className="w-full text-lg font-medium border-2 border-[var(--my-marscuro)] hover:bg-[var(--my-marscuro)] hover:text-white transition-colors"
+                    className="w-full text-lg font-medium bg-transparent text-green-600 border-2 border-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
                     onClick={() => setShowConfirmDialog(true)}
                   >
                     Paga in Palestra
@@ -273,7 +320,7 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
                 {sumupUrl && finalPrice > 0 && (
                   <Button
                     size="lg" 
-                    className="w-full text-lg font-medium bg-[var(--my-arancio)] hover:bg-[var(--my-aranscuro)] text-white transition-colors"
+                    className="w-full text-lg font-medium bg-transparent text-green-600 border-2 border-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
                     onClick={handleOnlinePayment}
                   >
                     Paga Online con Carta
@@ -289,16 +336,16 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
       {showConfirmDialog && finalPrice > 0 && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={() => setShowConfirmDialog(false)}>
           <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
-            <h2 className="text-xl font-bold mb-2">Conferma pagamento in palestra</h2>
+            <h2 className="text-xl font-bold mb-2 text-[hsl(22.5_55%_11%)]">Conferma pagamento in palestra</h2>
             <div className="mb-4 space-y-1">
-              <div className="font-semibold">Importo stage: {price}€</div>
-              <div className="font-semibold">Bonus totale disponibile: <span className="text-green-700">{totalBonus}€</span></div>
-              <div className="font-bold text-lg">Da pagare in palestra: {finalPrice}€</div>
-              <div className="font-semibold text-green-700">Residuo bonus dopo il pagamento: {totalBonus - bonusToUse}€</div>
+              <div className="font-semibold text-[hsl(22.5_55%_11%)]">Importo stage: {price}€</div>
+              <div className="font-semibold text-[hsl(22.5_55%_11%)]">Bonus totale disponibile: <span className="text-green-700">{totalSpendable}€</span></div>
+              <div className="font-bold text-lg text-[hsl(22.5_55%_11%)]">Da pagare in palestra: {finalPrice}€</div>
+              <div className="font-semibold text-green-700">Residuo bonus dopo il pagamento: {totalSpendable - bonusToUse}€</div>
             </div>
             <div className="flex gap-2 justify-end mt-6">
-              <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>Annulla</Button>
-              <Button variant="default" onClick={() => { handleGymPayment(); setShowConfirmDialog(false); }}>Conferma</Button>
+              <Button variant="outline" className="bg-transparent text-[hsl(22.5_55%_11%)] border-[hsl(22.5_55%_11%)] hover:bg-[hsl(22.5_55%_11%)] hover:text-white" onClick={() => setShowConfirmDialog(false)}>Annulla</Button>
+              <Button variant="outline" className="bg-transparent text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700 font-bold" onClick={() => { handleGymPayment(); setShowConfirmDialog(false); }}>Conferma</Button>
             </div>
           </div>
         </div>
