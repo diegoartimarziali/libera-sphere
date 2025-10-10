@@ -78,6 +78,17 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
     console.log('🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Current date:', now);
     console.log('🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Current month:', currentMonth, '(Oct=9, Nov=10)');
     
+    // 🚨 FORZA OTTOBRE PER ROBERTO (TEMPORANEO)
+    const isRoberto = userData && (userData.name === 'Roberto' && userData.surname === 'Allegri');
+    if (isRoberto) {
+        console.log('🎯 [ROBERTO FIX] Forcing OTTOBRE selection for Roberto');
+        const ottobreSub = subscriptions.find(sub => sub.name && sub.name.toUpperCase().includes('OTTOBRE'));
+        if (ottobreSub) {
+            console.log('🎯 [ROBERTO FIX] Found and returning OTTOBRE:', ottobreSub.name);
+            return ottobreSub;
+        }
+    }
+    
     // Filtra gli abbonamenti che l'utente può acquistare (non quelli già posseduti)
     const purchasableSubscriptions = subscriptions.filter(sub => {
         // 🔧 PRIORITÀ ASSOLUTA: Se lo status è 'expired', ignora activeSubscription (può essere stale dopo cancellazione)
