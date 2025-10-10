@@ -80,7 +80,23 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
     
     // Filtra gli abbonamenti che l'utente può acquistare (non quelli già posseduti)
     const purchasableSubscriptions = subscriptions.filter(sub => {
-        // 🔧 LOGICA CORRETTA: Controlla se l'utente ha GIÀ questo abbonamento E se è ancora valido E se il pagamento è completato
+        // 🔧 PRIORITÀ ASSOLUTA: Se lo status è 'expired', ignora activeSubscription (può essere stale dopo cancellazione)
+        if (userData?.subscriptionAccessStatus === 'expired') {
+            console.log(`🔥🔥🔥 [EXPIRED FIX] User status is expired - ignoring activeSubscription for ${sub.name}`);
+            // Mostra abbonamenti per il mese corrente o futuro, ma non passati
+            const validityStart = sub.validityStartDate.toDate();
+            const validityEnd = sub.validityEndDate.toDate();
+            
+            // Se l'abbonamento è completamente passato, non mostrarlo
+            if (validityEnd < now) {
+                console.log(`🔥🔥🔥 [EXPIRED FIX] Skipping ${sub.name} - completely expired`);
+                return false;
+            }
+            
+            return true; // Tutti gli abbonamenti non scaduti sono acquistabili se user status è expired
+        }
+        
+        // 🔧 LOGICA NORMALE: Controlla se l'utente ha GIÀ questo abbonamento E se è ancora valido E se il pagamento è completato
         if (userData?.activeSubscription?.subscriptionId === sub.id) {
             // Se l'abbonamento attivo è lo stesso, controlla se è ancora valido E se lo status è 'active'
             if (userData.activeSubscription.expiresAt && userData.subscriptionAccessStatus === 'active') {
