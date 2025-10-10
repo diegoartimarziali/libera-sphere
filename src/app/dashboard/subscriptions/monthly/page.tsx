@@ -14,6 +14,11 @@ import { usePremiumSystem, BonusCalculation, SpendableAward } from "@/hooks/use-
 import { it } from "date-fns/locale"
 import Link from "next/link"
 
+// Helper function per ottenere user ID corrente
+function getCurrentUserId(): string | null {
+    return auth.currentUser?.uid || null;
+}
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Loader2, CalendarClock, ArrowLeft, ShieldCheck, Zap, AlertTriangle, CreditCard, Landmark, University } from "lucide-react"
@@ -71,6 +76,19 @@ type PaymentMethod = "online" | "in_person" | "bank_transfer" | "bonus";
 function findAvailableSubscription(subscriptions: Subscription[], userData: UserData | null): Subscription | null {
     if (subscriptions.length === 0) return null;
     
+    // 🚨 ROBERTO FORCE: Override assoluto per Roberto
+    const currentUserId = getCurrentUserId();
+    if (currentUserId === 'JZQhkgnXsTdvoiU5fLIgXfJqIR82') {
+        console.log('🚨 [FINDAVAILABLE ROBERTO FORCE] Detected Roberto - forcing OTTOBRE subscription');
+        const ottobreSub = subscriptions.find(sub => sub.name && sub.name.includes('OTTOBRE'));
+        if (ottobreSub) {
+            console.log('🚨 [FINDAVAILABLE ROBERTO FORCE] Found and returning OTTOBRE:', ottobreSub);
+            return ottobreSub;
+        } else {
+            console.log('🚨 [FINDAVAILABLE ROBERTO FORCE] OTTOBRE not found in subscriptions:', subscriptions.map(s => s.name));
+        }
+    }
+    
     const now = new Date();
     const currentMonth = now.getMonth(); // 0-11 (ottobre = 9)
     const currentYear = now.getFullYear();
@@ -97,7 +115,20 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
     
     // Filtra gli abbonamenti che l'utente può acquistare (non quelli già posseduti)
     const purchasableSubscriptions = subscriptions.filter(sub => {
-        // 🔧 PRIORITÀ ASSOLUTA: Se lo status è 'expired', ignora activeSubscription (può essere stale dopo cancellazione)
+        // � ROBERTO FORCE: Override assoluto per Roberto
+        const currentUserId = getCurrentUserId();
+        if (currentUserId === 'JZQhkgnXsTdvoiU5fLIgXfJqIR82') {
+            console.log('🚨 [FINDAVAILABLE ROBERTO FORCE] Detected Roberto - forcing OTTOBRE subscription');
+            const ottobreSub = subscriptions.find(sub => sub.name && sub.name.includes('OTTOBRE'));
+            if (ottobreSub) {
+                console.log('🚨 [FINDAVAILABLE ROBERTO FORCE] Found and returning OTTOBRE:', ottobreSub);
+                return ottobreSub;
+            } else {
+                console.log('🚨 [FINDAVAILABLE ROBERTO FORCE] OTTOBRE not found in subscriptions:', subscriptions.map(s => s.name));
+            }
+        }
+
+        // �🔧 PRIORITÀ ASSOLUTA: Se lo status è 'expired', ignora activeSubscription (può essere stale dopo cancellazione)
         if (userData?.subscriptionAccessStatus === 'expired') {
             console.log(`🔥🔥🔥 [EXPIRED FIX] User status is expired - ignoring activeSubscription for ${sub.name}`);
             // Mostra abbonamenti per il mese corrente o futuro, ma non passati
@@ -115,6 +146,13 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
         
         // 🔧 LOGICA NORMALE: Controlla se l'utente ha GIÀ questo abbonamento E se è ancora valido E se il pagamento è completato
         if (userData?.activeSubscription?.subscriptionId === sub.id) {
+            // 🚨 ROBERTO FORCE: Allow repurchase anche se ha già l'abbonamento
+            const currentUserId = getCurrentUserId();
+            if (currentUserId === 'JZQhkgnXsTdvoiU5fLIgXfJqIR82' && sub.name && sub.name.includes('OTTOBRE')) {
+                console.log('🚨 [PURCHASABLE ROBERTO FORCE] Roberto can always repurchase OTTOBRE regardless of status');
+                return true;
+            }
+            
             // Se l'abbonamento attivo è lo stesso, controlla se è ancora valido E se lo status è 'active'
             if (userData.activeSubscription.expiresAt && userData.subscriptionAccessStatus === 'active') {
                 const expiryDate = userData.activeSubscription.expiresAt.toDate();
