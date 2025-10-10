@@ -80,23 +80,28 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
     
     // Filtra gli abbonamenti che l'utente può acquistare (non quelli già posseduti)
     const purchasableSubscriptions = subscriptions.filter(sub => {
-        // 🔧 LOGICA CORRETTA: Controlla se l'utente ha GIÀ questo abbonamento E se è ancora valido
+        // 🔧 LOGICA CORRETTA: Controlla se l'utente ha GIÀ questo abbonamento E se è ancora valido E se il pagamento è completato
         if (userData?.activeSubscription?.subscriptionId === sub.id) {
-            // Se l'abbonamento attivo è lo stesso, controlla se è ancora valido
-            if (userData.activeSubscription.expiresAt) {
+            // Se l'abbonamento attivo è lo stesso, controlla se è ancora valido E se lo status è 'active'
+            if (userData.activeSubscription.expiresAt && userData.subscriptionAccessStatus === 'active') {
                 const expiryDate = userData.activeSubscription.expiresAt.toDate();
                 const isStillValid = expiryDate >= now;
                 
                 if (isStillValid) {
-                    console.log(`🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Skipping ${sub.name} - user already has this subscription and it's still valid`);
+                    console.log(`🔥🔥🔥 [NUOVA LOGICA] Skipping ${sub.name} - user already has this subscription and it's active and valid`);
                     return false;
                 } else {
-                    console.log(`🔥🔥🔥 [PRIORITÀ MESE CORRENTE] User has ${sub.name} but it's expired - allowing repurchase`);
+                    console.log(`🔥🔥🔥 [NUOVA LOGICA] User has ${sub.name} but it's expired - allowing repurchase`);
                     return true; // Permetti di ricomprare se scaduto
                 }
+            } else if (userData.subscriptionAccessStatus === 'pending') {
+                // 🔧 NUOVO: Se l'utente ha un pagamento pending per questo abbonamento, PERMETTI di ricomprare
+                // Questo evita che un pagamento pending blocchi l'acquisto dello stesso mese
+                console.log(`🔥🔥🔥 [PENDING FIX] User has pending ${sub.name} - ALLOWING repurchase (pending can be replaced)`);
+                return true;
             } else {
-                console.log(`🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Skipping ${sub.name} - user already has this subscription (no expiry date)`);
-                return false;
+                console.log(`🔥🔥🔥 [NUOVA LOGICA] User has ${sub.name} but status is ${userData.subscriptionAccessStatus} - allowing repurchase`);
+                return true; // Permetti di ricomprare se stato non è 'active'
             }
         }
         
