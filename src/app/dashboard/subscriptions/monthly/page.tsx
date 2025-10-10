@@ -453,7 +453,8 @@ function MonthlySubscriptionContent() {
                 const currentUserData = userDocSnap.exists() ? userDocSnap.data() as UserData : null;
                 
                 // 🔧 VERIFICA E RESET AUTOMATICO: Controlla inconsistenze nei dati
-                if (currentUserData?.subscriptionAccessStatus === 'pending') {
+                // 🚨 TEMPORANEAMENTE DISABILITATO PER ROBERTO PER DEBUG
+                if (currentUserData?.subscriptionAccessStatus === 'pending' && effectiveUserId !== 'JZQhkgnXsTdvoiU5fLIgXfJqIR82') {
                     // Controlla se esiste un pagamento pending corrispondente
                     const pendingPaymentsSnap = await getDocs(
                         query(
