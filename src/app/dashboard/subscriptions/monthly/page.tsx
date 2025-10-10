@@ -1175,6 +1175,30 @@ function MonthlySubscriptionContent() {
                     
                     <BonusDisplay spendableAwards={spendableAwards} bonusCalculation={bonusCalculation} />
 
+                    {/* 🚨 EMERGENCY BUTTON - TEMP */}
+                    <button 
+                        style={{
+                            position: 'fixed',
+                            top: '20px',
+                            right: '20px',
+                            zIndex: 9999,
+                            backgroundColor: 'red',
+                            color: 'white',
+                            padding: '10px 20px',
+                            border: 'none',
+                            borderRadius: '5px',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                            console.log('🚨 EMERGENCY BUTTON CLICKED!');
+                            setIsPaymentDialogOpen(true);
+                            console.log('🚨 Dialog should open now!');
+                        }}
+                    >
+                        EMERGENCY OPEN DIALOG
+                    </button>
+
                     {/* Dialog scelta pagamento */}
                     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
                         <DialogContent className="bg-gray-100 [&>button]:text-[hsl(var(--background))] pointer-events-auto" style={{pointerEvents: 'auto', zIndex: 1000}}>
