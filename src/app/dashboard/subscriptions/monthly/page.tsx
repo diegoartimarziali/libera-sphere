@@ -330,9 +330,23 @@ function SubscriptionCard({
             <CardFooter className="flex-col gap-2">
                 <Button 
                     onClick={() => {
+                        console.log('🚨 BUTTON CLICKED - Starting payment dialog');
+                        console.log('🚨 Current state:', {
+                            isSubmitting,
+                            hasActiveOrPending,
+                            isExpired,
+                            isPaymentDialogOpen,
+                            finalPrice: bonusCalculation.finalPrice
+                        });
+                        
                         // 🎯 SEMPRE apre dialog - anche per bonus gratuiti
-                        console.log('� OPENING PAYMENT DIALOG - Final price:', bonusCalculation.finalPrice);
-                        onOpenPaymentDialog();
+                        console.log('🚨 OPENING PAYMENT DIALOG - Final price:', bonusCalculation.finalPrice);
+                        try {
+                            onOpenPaymentDialog();
+                            console.log('🚨 onOpenPaymentDialog called successfully');
+                        } catch (error) {
+                            console.error('🚨 Error calling onOpenPaymentDialog:', error);
+                        }
                     }} 
                     disabled={isSubmitting || hasActiveOrPending || isExpired}
                     className="w-full text-white font-bold" 
@@ -1108,7 +1122,11 @@ function MonthlySubscriptionContent() {
                         onPurchase={handlePurchase}
                         isSubmitting={isSubmitting}
                         hasActiveOrPending={!!hasActiveOrPending}
-                        onOpenPaymentDialog={() => setIsPaymentDialogOpen(true)}
+                        onOpenPaymentDialog={() => {
+                            console.log('🚨 setIsPaymentDialogOpen(true) called');
+                            setIsPaymentDialogOpen(true);
+                            console.log('🚨 Dialog state should now be true');
+                        }}
                         bonusCalculation={bonusCalculation}
                     />
                     
