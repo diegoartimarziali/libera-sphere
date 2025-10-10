@@ -14,11 +14,6 @@ import { usePremiumSystem, BonusCalculation, SpendableAward } from "@/hooks/use-
 import { it } from "date-fns/locale"
 import Link from "next/link"
 
-// Helper function per ottenere user ID corrente
-function getCurrentUserId(): string | null {
-    return auth.currentUser?.uid || null;
-}
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Loader2, CalendarClock, ArrowLeft, ShieldCheck, Zap, AlertTriangle, CreditCard, Landmark, University } from "lucide-react"
@@ -73,12 +68,11 @@ type PaymentMethod = "online" | "in_person" | "bank_transfer" | "bonus";
  * Mostra sempre l'abbonamento ACQUISTABILE, non quello già posseduto
  * PRIORITIZZA IL MESE CORRENTE RISPETTO AL FUTURO
  */
-function findAvailableSubscription(subscriptions: Subscription[], userData: UserData | null): Subscription | null {
+function findAvailableSubscription(subscriptions: Subscription[], userData: UserData | null, userId?: string): Subscription | null {
     if (subscriptions.length === 0) return null;
     
     // 🚨 ROBERTO FORCE: Override assoluto per Roberto
-    const currentUserId = getCurrentUserId();
-    if (currentUserId === 'JZQhkgnXsTdvoiU5fLIgXfJqIR82') {
+    if (userId === 'JZQhkgnXsTdvoiU5fLIgXfJqIR82') {
         console.log('🚨 [FINDAVAILABLE ROBERTO FORCE] Detected Roberto - forcing OTTOBRE subscription');
         const ottobreSub = subscriptions.find(sub => sub.name && sub.name.includes('OTTOBRE'));
         if (ottobreSub) {
@@ -147,8 +141,7 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
         // 🔧 LOGICA NORMALE: Controlla se l'utente ha GIÀ questo abbonamento E se è ancora valido E se il pagamento è completato
         if (userData?.activeSubscription?.subscriptionId === sub.id) {
             // 🚨 ROBERTO FORCE: Allow repurchase anche se ha già l'abbonamento
-            const currentUserId = getCurrentUserId();
-            if (currentUserId === 'JZQhkgnXsTdvoiU5fLIgXfJqIR82' && sub.name && sub.name.includes('OTTOBRE')) {
+            if (userId === 'JZQhkgnXsTdvoiU5fLIgXfJqIR82' && sub.name && sub.name.includes('OTTOBRE')) {
                 console.log('🚨 [PURCHASABLE ROBERTO FORCE] Roberto can always repurchase OTTOBRE regardless of status');
                 return true;
             }
@@ -773,11 +766,11 @@ function MonthlySubscriptionContent() {
                         selectedSub = currentMonthSub;
                     } else {
                         console.log('🎯 [FALLBACK] Current month not found, using findAvailableSubscription logic');
-                        selectedSub = findAvailableSubscription(allMonthlySubs, currentUserData);
+                        selectedSub = findAvailableSubscription(allMonthlySubs, currentUserData, effectiveUserId);
                     }
                 } else {
                     console.log('🔥🔥🔥 [NORMAL LOGIC] User has active subscription, using normal logic');
-                    selectedSub = findAvailableSubscription(allMonthlySubs, currentUserData);
+                    selectedSub = findAvailableSubscription(allMonthlySubs, currentUserData, effectiveUserId);
                 }
                 
                 console.log('🔥🔥🔥 [FINAL SELECTION] Selected subscription:', selectedSub?.name || 'None');
