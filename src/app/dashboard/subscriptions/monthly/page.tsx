@@ -744,6 +744,18 @@ function MonthlySubscriptionContent() {
                 
                 console.log('🔥🔥🔥 [FINAL SELECTION] Selected subscription:', selectedSub?.name || 'None');
                 
+                // 🚨 FORCE OVERRIDE PER ROBERTO - IGNORA TUTTO E FORZA OTTOBRE
+                if (effectiveUserId === 'JZQhkgnXsTdvoiU5fLIgXfJqIR82') {
+                    console.log('🚨 [ROBERTO FORCE] Overriding selection for Roberto - forcing OTTOBRE');
+                    const ottobreSub = allMonthlySubs.find(sub => sub.name && sub.name.toUpperCase().includes('OTTOBRE'));
+                    if (ottobreSub) {
+                        console.log('🚨 [ROBERTO FORCE] Found OTTOBRE, forcing selection:', ottobreSub.name);
+                        selectedSub = ottobreSub;
+                    } else {
+                        console.log('🚨 [ROBERTO FORCE] OTTOBRE not found in subscriptions!');
+                    }
+                }
+                
                 setAvailableSubscription(selectedSub);
 
                 // Dati bancari
