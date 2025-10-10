@@ -328,6 +328,7 @@ function SubscriptionCard({
             </CardContent>
             <CardFooter className="flex-col gap-2">
                 <Button 
+                    data-payment-button="true"
                     onClick={() => {
                         console.log('🚨 BUTTON CLICKED - Starting payment dialog');
                         console.log('🚨 Current state:', {
@@ -410,6 +411,32 @@ function MonthlySubscriptionContent() {
     const effectiveUserId = impersonateId || user?.uid;
     
 
+    // 🚨 EMERGENCY: Event listener diretto per il bottone
+    useEffect(() => {
+        const handleDirectClick = () => {
+            console.log('🚨 DIRECT EVENT LISTENER TRIGGERED!');
+            setIsPaymentDialogOpen(true);
+        };
+        
+        // Trova il bottone dopo un breve delay per assicurarsi che sia renderizzato
+        const timer = setTimeout(() => {
+            const button = document.querySelector('button[data-payment-button="true"]');
+            if (button) {
+                console.log('🚨 EMERGENCY: Adding direct event listener to button');
+                button.addEventListener('click', handleDirectClick, { capture: true });
+            } else {
+                console.log('🚨 EMERGENCY: Button not found');
+            }
+        }, 1000);
+        
+        return () => {
+            clearTimeout(timer);
+            const button = document.querySelector('button[data-payment-button="true"]');
+            if (button) {
+                button.removeEventListener('click', handleDirectClick, { capture: true });
+            }
+        };
+    }, []);
     
     // Leggiamo l'impersonation dalla URL senza useSearchParams
     useEffect(() => {
@@ -1091,7 +1118,24 @@ function MonthlySubscriptionContent() {
     };
 
     return (
-        <div className="flex w-full flex-col items-center justify-center">
+        <div className="flex w-full flex-col items-center justify-center" style={{ position: 'relative', zIndex: 1, pointerEvents: 'auto' }}>
+            {/* 🚨 EMERGENCY CSS FIX */}
+            <style jsx>{`
+                * {
+                    pointer-events: auto !important;
+                    z-index: auto !important;
+                }
+                button {
+                    pointer-events: auto !important;
+                    z-index: 1000 !important;
+                    position: relative !important;
+                }
+                input[type="radio"] {
+                    pointer-events: auto !important;
+                    z-index: 1001 !important;
+                }
+            `}</style>
+            
             {/* 🚨 ALERT per utenti bloccati in pending */}
             {userData?.subscriptionAccessStatus === 'pending' && (
                 <Alert className="w-full max-w-lg mb-6 border-yellow-500 bg-yellow-50">
