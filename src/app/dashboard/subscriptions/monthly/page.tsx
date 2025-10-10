@@ -78,14 +78,20 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
     console.log('🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Current date:', now);
     console.log('🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Current month:', currentMonth, '(Oct=9, Nov=10)');
     
-    // 🚨 FORZA OTTOBRE PER ROBERTO (TEMPORANEO)
-    const isRoberto = userData && (userData.name === 'Roberto' && userData.surname === 'Allegri');
+    // 🚨 FORZA OTTOBRE PER ROBERTO (TEMPORANEO) - ANCHE SE PENDING
+    const isRoberto = userData && (
+        (userData.name === 'Roberto' && userData.surname === 'Allegri') ||
+        userData.email === 'roby.allegri@gmail.com'
+    );
     if (isRoberto) {
         console.log('🎯 [ROBERTO FIX] Forcing OTTOBRE selection for Roberto');
+        console.log('🎯 [ROBERTO FIX] Roberto status:', userData.subscriptionAccessStatus);
         const ottobreSub = subscriptions.find(sub => sub.name && sub.name.toUpperCase().includes('OTTOBRE'));
         if (ottobreSub) {
             console.log('🎯 [ROBERTO FIX] Found and returning OTTOBRE:', ottobreSub.name);
             return ottobreSub;
+        } else {
+            console.log('🎯 [ROBERTO FIX] OTTOBRE not found in subscriptions!');
         }
     }
     
