@@ -477,8 +477,17 @@ export default function CalendarPage() {
 
                         {/* Dialog pagamento stage */}
                         {showPayment && selectedEvent && (
-                            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" onClick={() => setShowPayment(false)}>
-                                <div onClick={e => e.stopPropagation()} className="p-4 w-full max-w-lg">
+                            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+                                <div className="p-4 w-full max-w-lg relative">
+                                    {/* Pulsante chiudi in alto a destra */}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="absolute -top-2 -right-2 z-10 bg-white hover:bg-gray-50 border-gray-300"
+                                        onClick={() => setShowPayment(false)}
+                                    >
+                                        ✕
+                                    </Button>
                                     <StagePaymentCard
                                         title={selectedEvent.title}
                                         price={selectedEvent.price || 0}

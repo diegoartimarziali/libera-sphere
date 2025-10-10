@@ -87,10 +87,20 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
       }
     });
 
-    // Listener per aggiornamento pagamento a "completed"
+    // Listener per aggiornamento pagamento a "completed" (GYM PAYMENT)
     onSnapshot(paymentDocRef, async (docSnap: import('firebase/firestore').DocumentSnapshot<DocumentData>) => {
       const data = docSnap.data();
       if (data && data.status === 'completed') {
+        // Applica il bonus se previsto e non ancora applicato (solo per pagamenti > 0)
+        if (data.bonusUsed > 0 && data.awardId && finalPrice > 0) {
+          try {
+            await applyBonus(bonusCalculation);
+            if (onRefresh) onRefresh();
+          } catch (error) {
+            console.error('Errore applicazione bonus dopo conferma:', error);
+          }
+        }
+        
         // Aggiungi presenza solo se non già registrata
         const attendancesRef = collection(db, `users/${userId}/attendances`);
         await addDoc(attendancesRef, {
@@ -106,19 +116,34 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
       }
     });
     
-    // 💸 APPLICAZIONE BONUS UNIFICATA: sostituisce loop manuale
-    if (useBonus && bonusToUse > 0) {
+    // 💸 APPLICAZIONE BONUS: Solo se il pagamento è completamente coperto dal bonus
+    if (finalPrice === 0 && useBonus && bonusToUse > 0) {
       try {
         await applyBonus(bonusCalculation);
         if (onRefresh) onRefresh(); // Aggiorna UI premi nel wallet
+        
+        // Aggiungi immediatamente la presenza se l'iscrizione è gratuita
+        const attendancesRef = collection(db, `users/${userId}/attendances`);
+        await addDoc(attendancesRef, {
+          lessonDate: Timestamp.now(),
+          lessonTime: '',
+          discipline,
+          gymName: '',
+          status: 'presente',
+          eventId,
+          eventType,
+          eventTitle: title
+        });
       } catch (error) {
         console.error('Errore applicazione bonus:', error);
         return; // Interrompe se fallisce applicazione bonus
       }
-    }    toast({
+    }
+    
+    toast({
       title: finalPrice > 0 ? "Pagamento in palestra selezionato" : "Iscrizione completata",
       description: finalPrice > 0 
-        ? `Ti aspettiamo in palestra per completare l'iscrizione! (${finalPrice}€)`
+        ? `Ti aspettiamo in palestra per completare l'iscrizione! (${finalPrice}€)${useBonus && bonusToUse > 0 ? ` Il bonus di ${bonusToUse}€ sarà applicato alla conferma del pagamento.` : ''}`
         : "Iscrizione confermata con il tuo bonus!",
     });
     onClose();
@@ -185,8 +210,8 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
     if (!sumupUrl) {
       toast({
         variant: "destructive",
-        title: "Errore",
-        description: "Link di pagamento non disponibile. Contatta la segreteria.",
+        title: "Link Pagamento Mancante",
+        description: `Il link di pagamento per "${title}" non è configurato. Contatta la segreteria.`,
       });
       return;
     }
@@ -227,8 +252,18 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
     // Chiudi il dialog
     onClose();
     
-    // Reindirizza a SumUp per il pagamento
-    window.open(sumupUrl, '_blank');
+    // Verifica che il link SumUp sia valido prima di aprirlo
+    try {
+      new URL(sumupUrl); // Verifica che sia un URL valido
+      window.open(sumupUrl, '_blank');
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Link Pagamento Non Valido",
+        description: "Il link di pagamento non è corretto. Contatta la segreteria.",
+      });
+      return;
+    }
     
     // Torna alla dashboard
     router.push('/dashboard');
@@ -312,44 +347,57 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
                     variant="outline"
                     size="lg"
                     className="w-full text-lg font-medium bg-transparent text-green-600 border-2 border-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
-                    onClick={() => setShowConfirmDialog(true)}
+                    onClick={(e) => {
+                      console.log('🔥 CLICK Paga in Palestra - evento ricevuto!', e);
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // Usa confirm nativo per debug
+                      const confirmed = window.confirm(
+                        `Confermi il pagamento in palestra?\n\n` +
+                        `Importo stage: ${price}€\n` +
+                        `Bonus disponibile: ${totalSpendable}€\n` +
+                        `Da pagare in palestra: ${finalPrice}€\n` +
+                        `Residuo bonus: ${totalSpendable - bonusToUse}€`
+                      );
+                      if (confirmed) {
+                        console.log('🟢 Pagamento confermato, eseguendo handleGymPayment');
+                        handleGymPayment();
+                      } else {
+                        console.log('🔴 Pagamento annullato');
+                      }
+                    }}
                   >
                     Paga in Palestra
                   </Button>
                 )}
-                {sumupUrl && finalPrice > 0 && (
-                  <Button
-                    size="lg" 
-                    className="w-full text-lg font-medium bg-transparent text-green-600 border-2 border-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
-                    onClick={handleOnlinePayment}
-                  >
-                    Paga Online con Carta
-                  </Button>
-                )}
+                {sumupUrl && finalPrice > 0 && (() => {
+                  try {
+                    new URL(sumupUrl); // Verifica che sia un URL valido
+                    return (
+                      <Button
+                        size="lg" 
+                        className="w-full text-lg font-medium bg-transparent text-green-600 border-2 border-green-600 hover:bg-green-50 hover:text-green-700 transition-colors"
+                        onClick={(e) => {
+                          console.log('🔥 CLICK Paga Online - evento ricevuto!', e);
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleOnlinePayment();
+                        }}
+                      >
+                        Paga Online con Carta
+                      </Button>
+                    );
+                  } catch {
+                    // Se l'URL non è valido, non mostrare il pulsante
+                    return null;
+                  }
+                })()}
               </div>
             </React.Fragment>
           )}
         </CardContent>
       </Card>
 
-      {/* Dialog di conferma pagamento palestra */}
-      {showConfirmDialog && finalPrice > 0 && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={() => setShowConfirmDialog(false)}>
-          <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
-            <h2 className="text-xl font-bold mb-2 text-[hsl(22.5_55%_11%)]">Conferma pagamento in palestra</h2>
-            <div className="mb-4 space-y-1">
-              <div className="font-semibold text-[hsl(22.5_55%_11%)]">Importo stage: {price}€</div>
-              <div className="font-semibold text-[hsl(22.5_55%_11%)]">Bonus totale disponibile: <span className="text-green-700">{totalSpendable}€</span></div>
-              <div className="font-bold text-lg text-[hsl(22.5_55%_11%)]">Da pagare in palestra: {finalPrice}€</div>
-              <div className="font-semibold text-green-700">Residuo bonus dopo il pagamento: {totalSpendable - bonusToUse}€</div>
-            </div>
-            <div className="flex gap-2 justify-end mt-6">
-              <Button variant="outline" className="bg-transparent text-[hsl(22.5_55%_11%)] border-[hsl(22.5_55%_11%)] hover:bg-[hsl(22.5_55%_11%)] hover:text-white" onClick={() => setShowConfirmDialog(false)}>Annulla</Button>
-              <Button variant="outline" className="bg-transparent text-green-600 border-green-600 hover:bg-green-50 hover:text-green-700 font-bold" onClick={() => { handleGymPayment(); setShowConfirmDialog(false); }}>Conferma</Button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

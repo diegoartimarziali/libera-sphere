@@ -66,11 +66,17 @@ type PaymentMethod = "online" | "in_person" | "bank_transfer" | "bonus";
 /**
  * Logica semplificata per trovare l'abbonamento mensile da mostrare
  * Mostra sempre l'abbonamento ACQUISTABILE, non quello già posseduto
+ * PRIORITIZZA IL MESE CORRENTE RISPETTO AL FUTURO
  */
 function findAvailableSubscription(subscriptions: Subscription[], userData: UserData | null): Subscription | null {
     if (subscriptions.length === 0) return null;
     
     const now = new Date();
+    const currentMonth = now.getMonth(); // 0-11 (ottobre = 9)
+    const currentYear = now.getFullYear();
+    
+    console.log('🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Current date:', now);
+    console.log('🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Current month:', currentMonth, '(Oct=9, Nov=10)');
     
     // Filtra gli abbonamenti che l'utente può acquistare (non quelli già posseduti)
     const purchasableSubscriptions = subscriptions.filter(sub => {
@@ -82,16 +88,22 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
                 const isStillValid = expiryDate >= now;
                 
                 if (isStillValid) {
-                    console.log(`🔥🔥🔥 [NUOVA LOGICA] Skipping ${sub.name} - user already has this subscription and it's still valid`);
+                    console.log(`🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Skipping ${sub.name} - user already has this subscription and it's still valid`);
                     return false;
                 } else {
-                    console.log(`🔥🔥🔥 [NUOVA LOGICA] User has ${sub.name} but it's expired - allowing repurchase`);
+                    console.log(`🔥🔥🔥 [PRIORITÀ MESE CORRENTE] User has ${sub.name} but it's expired - allowing repurchase`);
                     return true; // Permetti di ricomprare se scaduto
                 }
             } else {
-                console.log(`🔥🔥🔥 [NUOVA LOGICA] Skipping ${sub.name} - user already has this subscription (no expiry date)`);
+                console.log(`🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Skipping ${sub.name} - user already has this subscription (no expiry date)`);
                 return false;
             }
+        }
+        
+        // 🔧 AGGIUNTO: Se l'utente non ha activeSubscription ma il suo stato è 'active', 
+        // potrebbe aver avuto un abbonamento cancellato - permetti l'acquisto
+        if (!userData?.activeSubscription && userData?.subscriptionAccessStatus === 'active') {
+            console.log(`🔥🔥🔥 [CANCELLATION FIX] User has active status but no activeSubscription - allowing purchase of ${sub.name}`);
         }
         
         // Mostra abbonamenti per il mese corrente o futuro, ma non passati
@@ -100,33 +112,60 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
         
         // Se l'abbonamento è completamente passato, non mostrarlo
         if (validityEnd < now) {
-            console.log(`🔥🔥🔥 [NUOVA LOGICA] Skipping ${sub.name} - completely expired`);
+            console.log(`🔥🔥🔥 [PRIORITÀ MESE CORRENTE] Skipping ${sub.name} - completely expired`);
             return false;
         }
         
-        // Se l'abbonamento inizia nel futuro, è acquistabile
-        if (validityStart > now) {
-            console.log(`🔥🔥🔥 [NUOVA LOGICA] ${sub.name} is purchasable - starts in future`);
-            return true;
-        }
+        console.log(`🔥🔥🔥 [PRIORITÀ MESE CORRENTE] ${sub.name} validity:`, {
+            start: validityStart,
+            end: validityEnd,
+            startMonth: validityStart.getMonth(),
+            endMonth: validityEnd.getMonth()
+        });
         
-        // Se l'abbonamento è in corso ma l'utente non lo ha acquistato, potrebbe essere acquistabile
-        // (caso edge: abbonamento di ottobre iniziato ma utente non l'ha ancora comprato)
-        console.log(`🔥🔥🔥 [NUOVA LOGICA] ${sub.name} is current and purchasable`);
-        return true;
+        return true; // Tutti gli abbonamenti non scaduti sono acquistabili
     });
     
     if (purchasableSubscriptions.length === 0) {
-        console.log('🔥🔥🔥 [NUOVA LOGICA] No purchasable subscriptions found');
+        console.log('🔥🔥🔥 [PRIORITÀ MESE CORRENTE] No purchasable subscriptions found');
         return null;
     }
     
-    // Ordina per data di inizio validità e prendi il primo disponibile
+    console.log('🔥🔥🔥 [PRIORITÀ MESE CORRENTE] All purchasable subscriptions:', purchasableSubscriptions.map(s => ({
+        name: s.name,
+        validityStart: s.validityStartDate.toDate(),
+        validityEnd: s.validityEndDate.toDate(),
+        startMonth: s.validityStartDate.toDate().getMonth()
+    })));
+    
+    // 🎯 PRIORITÀ: Prima cerca abbonamenti per il mese CORRENTE
+    const currentMonthSubs = purchasableSubscriptions.filter(sub => {
+        const subStartMonth = sub.validityStartDate.toDate().getMonth();
+        const subStartYear = sub.validityStartDate.toDate().getFullYear();
+        return subStartMonth === currentMonth && subStartYear === currentYear;
+    });
+    
+    if (currentMonthSubs.length > 0) {
+        console.log('🎯 [PRIORITÀ MESE CORRENTE] Found current month subscription:', currentMonthSubs[0].name);
+        return currentMonthSubs[0];
+    }
+    
+    // Se non ci sono abbonamenti per il mese corrente, prendi il più vicino nel futuro
+    const futureSubs = purchasableSubscriptions
+        .filter(sub => sub.validityStartDate.toDate() > now)
+        .sort((a, b) => a.validityStartDate.toMillis() - b.validityStartDate.toMillis());
+    
+    if (futureSubs.length > 0) {
+        console.log('� [PRIORITÀ MESE CORRENTE] No current month sub, taking next future:', futureSubs[0].name);
+        return futureSubs[0];
+    }
+    
+    // Fallback: prendi il primo disponibile ordinato per data
     const sortedSubs = purchasableSubscriptions
         .sort((a, b) => a.validityStartDate.toMillis() - b.validityStartDate.toMillis());
     
-    console.log('🔥🔥🔥 [NUOVA LOGICA] Purchasable subscriptions:', sortedSubs.map(s => s.name));
-    return sortedSubs[0];
+    console.log('� [PRIORITÀ MESE CORRENTE] Fallback to first available:', sortedSubs[0]?.name || 'None');
+    return sortedSubs[0] || null;
 }
 
 
@@ -307,6 +346,13 @@ function MonthlySubscriptionContent() {
     const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+    
+    // Reset selectedPaymentMethod solo quando il dialog si chiude/apre
+    useEffect(() => {
+        if (!isPaymentDialogOpen) {
+            setSelectedPaymentMethod(null);
+        }
+    }, [isPaymentDialogOpen]);
     const [isBankTransferDialogOpen, setIsBankTransferDialogOpen] = useState(false);
     const [hasRealPendingPayments, setHasRealPendingPayments] = useState(false);
     
@@ -339,6 +385,14 @@ function MonthlySubscriptionContent() {
         console.log('- Bonus to use:', bonusCalculation.bonusToUse);
         console.log('- Final price:', bonusCalculation.finalPrice);
     }
+
+    // 🐛 DEBUG: Traccia cambiamenti di availableSubscription
+    useEffect(() => {
+        if (availableSubscription) {
+            console.log('🔍 [SUBSCRIPTION CHANGE] availableSubscription changed to:', availableSubscription.name);
+            console.log('🔍 [SUBSCRIPTION CHANGE] Stack trace:', new Error().stack);
+        }
+    }, [availableSubscription]);
 
     // 🐛 DEBUG LOGGING per tracciare il bug dei pagamenti fantasma
     useEffect(() => {
@@ -388,18 +442,96 @@ function MonthlySubscriptionContent() {
                         )
                     );
                     
-                    if (pendingPaymentsSnap.empty) {
+                    // 🔧 AGGIUNTO: Controlla anche pagamenti cancellati per cleanup
+                    const cancelledPaymentsSnap = await getDocs(
+                        query(
+                            collection(db, "users", effectiveUserId, "payments"),
+                            where("type", "==", "subscription"),
+                            where("status", "==", "cancelled")
+                        )
+                    );
+                    
+                    console.log('🔧 PENDING STATUS CHECK:');
+                    console.log('- Pending payments:', pendingPaymentsSnap.size);
+                    console.log('- Cancelled payments:', cancelledPaymentsSnap.size);
+                    
+                    // Se ci sono pagamenti cancellati e pending, potrebbe essere una situazione inconsistente
+                    if (cancelledPaymentsSnap.size > 0 && pendingPaymentsSnap.size > 0) {
+                        console.log('🔧 INCONSISTENT STATE: Both cancelled and pending payments found - auto-cleaning');
+                        
+                        // Auto-cleanup: rimuovi pending più vecchi dei cancelled
+                        const batch = writeBatch(db);
+                        let hasCleanup = false;
+                        
+                        pendingPaymentsSnap.docs.forEach(pendingDoc => {
+                            const pendingData = pendingDoc.data();
+                            const pendingCreated = pendingData.createdAt?.toDate();
+                            
+                            // Trova il più recente pagamento cancellato
+                            const latestCancelled = cancelledPaymentsSnap.docs.reduce((latest, doc) => {
+                                const data = doc.data();
+                                const cancelledDate = data.cancelledAt?.toDate() || data.createdAt?.toDate();
+                                return cancelledDate && (!latest || cancelledDate > latest) ? cancelledDate : latest;
+                            }, null);
+                            
+                            // Se il pending è più vecchio dell'ultimo cancellato, rimuovilo
+                            if (pendingCreated && latestCancelled && pendingCreated < latestCancelled) {
+                                console.log(`🗑️ Auto-removing stale pending payment ${pendingDoc.id}`);
+                                batch.delete(doc(db, "users", effectiveUserId, "payments", pendingDoc.id));
+                                hasCleanup = true;
+                            }
+                        });
+                        
+                        if (hasCleanup) {
+                            await batch.commit();
+                            console.log('✅ Auto-cleanup completed');
+                            
+                            // Re-verifica dopo cleanup
+                            const remainingPendingSnap = await getDocs(
+                                query(
+                                    collection(db, "users", effectiveUserId, "payments"),
+                                    where("type", "==", "subscription"),
+                                    where("status", "==", "pending")
+                                )
+                            );
+                            
+                            if (remainingPendingSnap.empty) {
+                                console.log('🔧 No remaining pending payments - resetting user state');
+                                const userRef = doc(db, "users", effectiveUserId);
+                                await updateDoc(userRef, {
+                                    subscriptionAccessStatus: 'expired',
+                                    subscriptionPaymentFailed: false,
+                                    activeSubscription: null
+                                });
+                                
+                                currentUserData.subscriptionAccessStatus = 'expired';
+                                currentUserData.activeSubscription = undefined;
+                                setHasRealPendingPayments(false);
+                                
+                                toast({
+                                    title: "Stato corretto automaticamente",
+                                    description: "I pagamenti inconsistenti sono stati puliti. Puoi procedere con un nuovo acquisto.",
+                                    duration: 5000
+                                });
+                            } else {
+                                setHasRealPendingPayments(true);
+                            }
+                        } else {
+                            setHasRealPendingPayments(true);
+                        }
+                    } else if (pendingPaymentsSnap.empty) {
                         console.log('🔧 AUTO-RESET: User has pending status but no pending payments - resetting');
                         // Reset stato utente se non ci sono pagamenti pending
                         const userRef = doc(db, "users", effectiveUserId);
                         await updateDoc(userRef, {
                             subscriptionAccessStatus: 'expired',
-                            subscriptionPaymentFailed: false
+                            subscriptionPaymentFailed: false,
+                            activeSubscription: null
                         });
                         
                         // Aggiorna i dati locali
                         currentUserData.subscriptionAccessStatus = 'expired';
-                        // NON cancellare activeSubscription automaticamente
+                        currentUserData.activeSubscription = undefined;
                         setHasRealPendingPayments(false);
                         
                         toast({
@@ -442,6 +574,41 @@ function MonthlySubscriptionContent() {
                     
                     console.log('- Active subscription:', currentUserData.activeSubscription);
                     setHasRealPendingPayments(false);
+                } else if (currentUserData?.subscriptionAccessStatus === 'active' && !currentUserData?.activeSubscription) {
+                    // 🔧 NUOVO: Verifica se l'utente ha stato 'active' ma nessun activeSubscription
+                    // Questo può succedere dopo un pagamento cancellato se il reset non è completato
+                    console.log('🔧 INCONSISTENT STATE: User has active status but no activeSubscription - checking for cancelled payments');
+                    
+                    // Controlla se ci sono pagamenti cancellati recenti
+                    const cancelledPaymentsSnap = await getDocs(
+                        query(
+                            collection(db, "users", effectiveUserId, "payments"),
+                            where("type", "==", "subscription"),
+                            where("status", "==", "cancelled")
+                        )
+                    );
+                    
+                    if (!cancelledPaymentsSnap.empty) {
+                        console.log('🔧 FOUND CANCELLED PAYMENTS: Resetting user status after cancellation');
+                        
+                        // Reset completo dopo pagamento cancellato
+                        const userRef = doc(db, "users", effectiveUserId);
+                        await updateDoc(userRef, {
+                            subscriptionAccessStatus: 'expired',
+                            subscriptionPaymentFailed: false
+                        });
+                        
+                        // Aggiorna i dati locali
+                        currentUserData.subscriptionAccessStatus = 'expired';
+                        
+                        toast({
+                            title: "Stato corretto",
+                            description: "Il tuo stato è stato aggiornato dopo l'annullamento del pagamento. Puoi procedere con un nuovo acquisto.",
+                            duration: 5000
+                        });
+                    }
+                    
+                    setHasRealPendingPayments(false);
                 } else {
                     setHasRealPendingPayments(false);
                 }
@@ -459,15 +626,61 @@ function MonthlySubscriptionContent() {
                     subscriptionStatus: currentUserData?.subscriptionAccessStatus,
                     hasRealPendingPayments: hasRealPendingPayments
                 });
-                console.log('🔥🔥🔥 [NUOVA LOGICA ATTIVA] All subscriptions:', allMonthlySubs.map(sub => ({
+                console.log('🔥🔥🔥 [PRIORITÀ MESE CORRENTE] All subscriptions:', allMonthlySubs.map(sub => ({
                     id: sub.id,
                     name: sub.name,
                     validityStart: sub.validityStartDate?.toDate?.(),
                     validityEnd: sub.validityEndDate?.toDate?.()
                 })));
                 
-                const selectedSub = findAvailableSubscription(allMonthlySubs, currentUserData);
-                console.log('🔥🔥🔥 [NUOVA LOGICA ATTIVA] Selected subscription:', selectedSub?.name || 'None');
+                // 🎯 FORZA MESE CORRENTE: Se l'utente non ha abbonamenti attivi, cerca il mese corrente
+                let selectedSub = null;
+                if (!currentUserData?.activeSubscription || currentUserData?.subscriptionAccessStatus !== 'active') {
+                    console.log('🎯 [FORZA MESE CORRENTE] User has no active subscription - looking for current month');
+                    
+                    const now = new Date();
+                    const currentMonth = now.getMonth(); // 0-11
+                    const currentYear = now.getFullYear();
+                    
+                    console.log('🎯 [FORZA MESE CORRENTE] Current date:', {
+                        month: currentMonth,
+                        year: currentYear,
+                        monthName: new Date(currentYear, currentMonth).toLocaleString('it-IT', { month: 'long' })
+                    });
+                    
+                    // Cerca specificamente il mese corrente
+                    const currentMonthSub = allMonthlySubs.find(sub => {
+                        const startDate = sub.validityStartDate?.toDate();
+                        const endDate = sub.validityEndDate?.toDate();
+                        if (!startDate || !endDate) return false;
+                        
+                        const isCurrentMonth = startDate.getMonth() === currentMonth && 
+                                             startDate.getFullYear() === currentYear &&
+                                             endDate >= now; // Non scaduto
+                        
+                        console.log(`🎯 [FORZA MESE CORRENTE] Checking ${sub.name}:`, {
+                            startMonth: startDate.getMonth(),
+                            startYear: startDate.getFullYear(),
+                            isCurrentMonth,
+                            isExpired: endDate < now
+                        });
+                        
+                        return isCurrentMonth;
+                    });
+                    
+                    if (currentMonthSub) {
+                        console.log('🎯 [FORZA MESE CORRENTE] FOUND current month subscription:', currentMonthSub.name);
+                        selectedSub = currentMonthSub;
+                    } else {
+                        console.log('🎯 [FORZA MESE CORRENTE] Current month not found, using normal logic');
+                        selectedSub = findAvailableSubscription(allMonthlySubs, currentUserData);
+                    }
+                } else {
+                    console.log('🔥🔥🔥 [NORMAL LOGIC] User has active subscription, using normal logic');
+                    selectedSub = findAvailableSubscription(allMonthlySubs, currentUserData);
+                }
+                
+                console.log('🔥🔥🔥 [FINAL SELECTION] Selected subscription:', selectedSub?.name || 'None');
                 
                 setAvailableSubscription(selectedSub);
 
@@ -487,16 +700,18 @@ function MonthlySubscriptionContent() {
         fetchData();
     }, [effectiveUserId, toast]);
 
-    // 🎯 Auto-selezione metodo bonus per pagamenti gratuiti
+    // 🎯 Auto-selezione metodo bonus per pagamenti gratuiti (solo una volta all'apertura del dialog)
     useEffect(() => {
         if (isPaymentDialogOpen && availableSubscription) {
             if (bonusCalculation.finalPrice === 0) {
                 setSelectedPaymentMethod('bonus');
-            } else {
-                setSelectedPaymentMethod(null); // Reset per pagamenti a pagamento
             }
+            // Non resettiamo più a null per pagamenti a pagamento - l'utente deve scegliere
         }
-    }, [isPaymentDialogOpen, availableSubscription, bonusCalculation]);
+        // 🚨 IMPORTANTE: Non modificare availableSubscription qui!
+    }, [isPaymentDialogOpen, availableSubscription?.id, bonusCalculation.finalPrice]); // Dipendenze specifiche
+
+
 
     // Gestisce l'acquisto
     const handlePurchase = async (subscription: Subscription, method: PaymentMethod, userConfirmed: boolean = false) => {
@@ -643,47 +858,114 @@ function MonthlySubscriptionContent() {
     console.log('- activeSubExpiresAt:', userData?.activeSubscription?.expiresAt?.toDate());
     console.log('- isActiveSubExpired:', userData?.activeSubscription?.expiresAt ? userData.activeSubscription.expiresAt.toDate() <= new Date() : null);
 
-    // 🔧 FUNZIONE RESET MANUALE per utenti bloccati
+    // � FORCE REFRESH: Se i dati sembrano inconsistenti, forza un refresh
+    useEffect(() => {
+        if (userData && availableSubscription) {
+            const shouldBeBlocked = userData.subscriptionAccessStatus === 'expired' && 
+                                  !hasRealPendingPayments && 
+                                  !hasSeasonalSubscription && 
+                                  !hasValidActiveSubscription;
+            
+            if (shouldBeBlocked && hasActiveOrPending) {
+                console.log('🚨 INCONSISTENT STATE DETECTED: User should NOT be blocked but hasActiveOrPending=true');
+                console.log('🚨 Current userData from React state:', userData);
+                console.log('🚨 This suggests stale data in React state. Forcing data refresh...');
+                
+                // Forza un re-fetch dei dati utente
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        }
+    }, [userData, hasActiveOrPending, hasRealPendingPayments, hasSeasonalSubscription, hasValidActiveSubscription, availableSubscription]);
+
+    // �🔧 FUNZIONE RESET MANUALE per utenti bloccati
     const handleManualReset = async () => {
         if (!effectiveUserId || !userData) return;
         
         try {
-            // Verifica se ci sono pagamenti pending
-            const pendingPaymentsSnap = await getDocs(
-                query(
+            console.log('🔧 MANUAL RESET STARTED for user:', effectiveUserId);
+            console.log('🔧 Current user status:', userData.subscriptionAccessStatus);
+            
+            // Verifica tutti i pagamenti subscription
+            const [pendingPaymentsSnap, cancelledPaymentsSnap] = await Promise.all([
+                getDocs(query(
                     collection(db, "users", effectiveUserId, "payments"),
                     where("type", "==", "subscription"),
                     where("status", "==", "pending")
-                )
-            );
+                )),
+                getDocs(query(
+                    collection(db, "users", effectiveUserId, "payments"),
+                    where("type", "==", "subscription"),
+                    where("status", "==", "cancelled")
+                ))
+            ]);
             
+            console.log('🔧 PAYMENT STATUS:');
+            console.log('- Pending payments:', pendingPaymentsSnap.size);
+            console.log('- Cancelled payments:', cancelledPaymentsSnap.size);
+            
+            // 🚨 RESET AGGRESSIVO: Se ci sono pagamenti cancellati, forza reset completo
+            if (cancelledPaymentsSnap.size > 0) {
+                console.log('🔧 AGGRESSIVE RESET: Found cancelled payments - removing ALL pending and resetting user');
+                
+                const batch = writeBatch(db);
+                
+                // Rimuovi TUTTI i pagamenti pending (potrebbero essere stale dopo cancellazione)
+                pendingPaymentsSnap.docs.forEach(pendingDoc => {
+                    console.log(`🗑️ Force removing pending payment ${pendingDoc.id}`);
+                    batch.delete(doc(db, "users", effectiveUserId, "payments", pendingDoc.id));
+                });
+                
+                // Reset completo stato utente
+                const userRef = doc(db, "users", effectiveUserId);
+                batch.update(userRef, {
+                    subscriptionAccessStatus: 'expired',
+                    subscriptionPaymentFailed: false,
+                    activeSubscription: null
+                });
+                
+                await batch.commit();
+                console.log('✅ AGGRESSIVE RESET completed');
+                
+                toast({
+                    title: "Reset forzato completato",
+                    description: "Tutti i pagamenti inconsistenti sono stati rimossi. La pagina si ricaricherà.",
+                    duration: 2000
+                });
+                
+                // Forza reload immediato
+                setTimeout(() => window.location.reload(), 2000);
+                return;
+            }
+            
+            // Reset normale se non ci sono inconsistenze
             if (pendingPaymentsSnap.empty) {
-                // Reset sicuro
                 const userRef = doc(db, "users", effectiveUserId);
                 await updateDoc(userRef, {
                     subscriptionAccessStatus: 'expired',
-                    subscriptionPaymentFailed: false
+                    subscriptionPaymentFailed: false,
+                    activeSubscription: null
                 });
-                
-                setUserData(prev => prev ? {...prev, subscriptionAccessStatus: 'expired'} : null);
-                setHasRealPendingPayments(false);
                 
                 toast({
                     title: "Reset completato",
-                    description: "Il tuo stato è stato ripristinato. Puoi procedere con un nuovo acquisto.",
-                    duration: 5000
+                    description: "Il tuo stato è stato ripristinato. La pagina si ricaricherà.",
+                    duration: 2000
                 });
+                
+                setTimeout(() => window.location.reload(), 2000);
             } else {
                 toast({
-                    title: "Reset non possibile",
-                    description: "Esistono pagamenti in elaborazione. Contatta la segreteria.",
+                    title: "Pagamenti attivi trovati",
+                    description: `Esistono ${pendingPaymentsSnap.size} pagamenti in elaborazione. Se sono obsoleti, contatta la segreteria.`,
                     variant: "destructive"
                 });
             }
         } catch (error) {
             console.error("Error in manual reset:", error);
             toast({
-                title: "Errore",
+                title: "Errore durante reset",
                 description: "Impossibile resettare lo stato. Riprova più tardi.",
                 variant: "destructive"
             });
@@ -729,7 +1011,7 @@ function MonthlySubscriptionContent() {
 
                     {/* Dialog scelta pagamento */}
                     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-                        <DialogContent className="bg-gray-100 [&>button]:text-[hsl(var(--background))]">
+                        <DialogContent className="bg-gray-100 [&>button]:text-[hsl(var(--background))] pointer-events-auto" style={{pointerEvents: 'auto', zIndex: 1000}}>
                             <DialogHeader>
                                 <DialogTitle style={{ color: 'hsl(var(--background))' }}>Scegli Metodo di Pagamento</DialogTitle>
                                 <DialogDescription className="text-base">
@@ -798,13 +1080,12 @@ function MonthlySubscriptionContent() {
                                 </div>
                             )}
                             
-                            <DialogFooter className="justify-between gap-8 px-4">
+                            <DialogFooter className="justify-between gap-8 px-4" style={{pointerEvents: 'auto'}}>
                                 <Button variant="ghost" onClick={() => setIsPaymentDialogOpen(false)} className="bg-transparent border-2" style={{ borderColor: 'hsl(var(--background))', color: 'hsl(var(--background))' }}>
                                     Annulla
                                 </Button>
                                 <Button
                                     onClick={() => {
-                                        // ✅ Ora la scelta è sempre fatta nel dialog
                                         if (bonusCalculation.finalPrice === 0) {
                                             handlePurchase(availableSubscription, "bonus", true);
                                         } else {

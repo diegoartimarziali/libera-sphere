@@ -38,10 +38,12 @@ interface Payment {
     createdAt: Timestamp;
     description: string;
     paymentMethod: 'online' | 'in_person' | 'bank_transfer' | 'bonus';
-    status: 'pending' | 'completed' | 'failed';
+    status: 'pending' | 'completed' | 'failed' | 'cancelled';
     type: 'association' | 'trial' | 'subscription';
     awardId?: string | string[]; // Può essere singolo ID o array di ID
     bonusUsed?: number;
+    cancelledAt?: Timestamp;
+    cancelledBy?: string;
 }
 
 interface UserAward {
@@ -82,6 +84,7 @@ const getStatusVariant = (status: Payment['status']): VariantProps<typeof badgeV
         case 'completed': return 'success';
         case 'pending': return 'secondary';
         case 'failed': return 'destructive';
+        case 'cancelled': return 'outline';
         default: return 'secondary';
     }
 }
@@ -90,6 +93,7 @@ const translateStatus = (status: Payment['status']) => {
         case 'completed': return 'Completato';
         case 'pending': return 'In attesa';
         case 'failed': return 'Fallito';
+        case 'cancelled': return 'Annullato';
         default: return status;
     }
 }
@@ -446,6 +450,111 @@ export default function AdminPaymentsPage() {
         }
     }
 
+    // Nuova funzione per annullare pagamenti completati
+    const handleCancelCompletedPayment = async (payment: Payment) => {
+        if (!window.confirm(`Sei sicuro di voler annullare questo pagamento completato?\n\nQuesta azione:\n- Cambierà lo stato in "Annullato"\n- Rimborserà automaticamente i bonus utilizzati\n- Revocherà i servizi attivati\n\nPagamento: ${payment.description}\nImporto: ${payment.amount}€`)) {
+            return;
+        }
+
+        setUpdatingPaymentId(payment.id);
+        
+        try {
+            const batch = writeBatch(db);
+            const userDocRef = doc(db, 'users', payment.userId);
+            const paymentDocRef = doc(db, 'users', payment.userId, 'payments', payment.id);
+
+            // Cambia stato a "cancelled" invece di "failed"
+            batch.update(paymentDocRef, { 
+                status: 'cancelled',
+                cancelledAt: serverTimestamp(),
+                cancelledBy: user?.uid || 'admin'
+            });
+
+            // Rimborso bonus se utilizzato
+            if (payment.awardId && typeof payment.bonusUsed === 'number' && payment.bonusUsed > 0) {
+                const { refundUserBonus } = await import('@/lib/refundUserBonus');
+                
+                if (Array.isArray(payment.awardId)) {
+                    const bonusPerAward = payment.bonusUsed / payment.awardId.length;
+                    for (const awardId of payment.awardId) {
+                        await refundUserBonus(payment.userId, awardId, bonusPerAward);
+                    }
+                } else {
+                    await refundUserBonus(payment.userId, payment.awardId, payment.bonusUsed);
+                }
+            }
+
+            // Revoca servizi attivati
+            if (payment.type === 'association') {
+                batch.update(userDocRef, { 
+                    associationStatus: 'not_associated',
+                    isInsured: false,
+                    associationPaymentFailed: false,
+                });
+            } else if (payment.type === 'trial') {
+                batch.update(userDocRef, { 
+                    trialStatus: 'not_applicable',
+                    trialPaymentFailed: false,
+                    trialLessons: null,
+                    trialExpiryDate: null,
+                });
+            } else if (payment.type === 'subscription') {
+                // IMPORTANTE: Reset completo per abbonamenti cancellati
+                batch.update(userDocRef, { 
+                    subscriptionAccessStatus: 'expired',
+                    subscriptionPaymentFailed: false,
+                    activeSubscription: null, // Reset dell'abbonamento attivo
+                });
+            }
+            
+            await batch.commit();
+
+            toast({
+                title: "Pagamento Annullato!",
+                description: `Il pagamento è stato annullato. I bonus utilizzati sono stati rimborsati e i servizi revocati.`
+            });
+            
+            setProfiles(prevProfiles => {
+                return prevProfiles.map(profile => {
+                    if (profile.uid === payment.userId) {
+                        const updatedPayments = profile.payments.map(p => 
+                            p.id === payment.id ? { ...p, status: 'cancelled' as any } : p
+                        );
+                        
+                        let updatedProfile = { ...profile, payments: updatedPayments };
+
+                        // Revoca servizi
+                        if (payment.type === 'association') {
+                            updatedProfile.associationStatus = 'not_associated';
+                            updatedProfile.associationPaymentFailed = false;
+                        }
+                        if (payment.type === 'trial') {
+                            updatedProfile.trialStatus = 'not_applicable';
+                            updatedProfile.trialPaymentFailed = false;
+                        }
+                        if (payment.type === 'subscription') {
+                            updatedProfile.subscriptionAccessStatus = 'expired';
+                            updatedProfile.subscriptionPaymentFailed = false;
+                        }
+                        
+                        return updatedProfile;
+                    }
+                    return profile;
+                });
+            });
+
+        } catch (error) {
+            console.error('Error cancelling payment:', error);
+            toast({
+                variant: "destructive",
+                title: "Errore",
+                description: `Impossibile annullare il pagamento. Errore: ${error instanceof Error ? error.message : 'Sconosciuto'}`
+            });
+        } finally {
+            setUpdatingPaymentId(null);
+        }
+    }
+
     const handleMakeAdmin = async (userId: string) => {
         if (!window.confirm("Sei sicuro di voler rendere questo utente un amministratore? Avrà pieno accesso a tutte le funzioni di gestione.")) {
             return;
@@ -588,6 +697,8 @@ export default function AdminPaymentsPage() {
                                                                         <span className="text-green-600 bg-transparent font-bold">{translateStatus(p.status)}</span>
                                                                     ) : p.status === 'failed' ? (
                                                                         <span className="text-red-600 bg-transparent font-bold">{translateStatus(p.status)}</span>
+                                                                    ) : p.status === 'cancelled' ? (
+                                                                        <span className="text-orange-600 bg-transparent font-bold">{translateStatus(p.status)}</span>
                                                                     ) : (
                                                                         <Badge variant={getStatusVariant(p.status)}>
                                                                             {translateStatus(p.status)}
@@ -646,6 +757,56 @@ export default function AdminPaymentsPage() {
                                                                             </DropdownMenu>
                                                                         </div>
                                                                     )}
+                                                                    {p.status === 'completed' && canModifyPayments && (
+                                                                        <div className="flex gap-2 justify-start">
+                                                                            <AlertDialog>
+                                                                                <AlertDialogTrigger asChild>
+                                                                                    <Button
+                                                                                        variant="outline"
+                                                                                        size="icon"
+                                                                                        disabled={updatingPaymentId === p.id}
+                                                                                        title="Annulla pagamento completato"
+                                                                                        className="bg-transparent border-orange-300 text-orange-500 hover:bg-orange-50 hover:border-orange-400"
+                                                                                    >
+                                                                                        {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <Trash2 className="h-4 w-4" />}
+                                                                                    </Button>
+                                                                                </AlertDialogTrigger>
+                                                                                <AlertDialogContent>
+                                                                                    <AlertDialogHeader>
+                                                                                        <AlertDialogTitle>Annulla Pagamento Completato</AlertDialogTitle>
+                                                                                        <AlertDialogDescription>
+                                                                                            Questa azione annullerà definitivamente il pagamento:
+                                                                                            <br /><br />
+                                                                                            <strong>Descrizione:</strong> {p.description}<br />
+                                                                                            <strong>Importo:</strong> {p.amount.toFixed(2)}€<br />
+                                                                                            {p.bonusUsed && p.bonusUsed > 0 && (
+                                                                                                <>
+                                                                                                    <strong>Bonus utilizzato:</strong> {p.bonusUsed.toFixed(2)}€ (verrà rimborsato)<br />
+                                                                                                </>
+                                                                                            )}
+                                                                                        </AlertDialogDescription>
+                                                                                        <div className="mt-4">
+                                                                                            <strong>Conseguenze:</strong>
+                                                                                            <div className="mt-2 text-sm space-y-1">
+                                                                                                <div>• Il pagamento sarà marcato come "Annullato"</div>
+                                                                                                <div>• I bonus utilizzati verranno automaticamente rimborsati</div>
+                                                                                                <div>• I servizi attivati (associazione/abbonamento) verranno revocati</div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </AlertDialogHeader>
+                                                                                    <AlertDialogFooter>
+                                                                                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                                                        <AlertDialogAction 
+                                                                                            onClick={() => handleCancelCompletedPayment(p)}
+                                                                                            className="bg-red-600 hover:bg-red-700"
+                                                                                        >
+                                                                                            Conferma Annullamento
+                                                                                        </AlertDialogAction>
+                                                                                    </AlertDialogFooter>
+                                                                                </AlertDialogContent>
+                                                                            </AlertDialog>
+                                                                        </div>
+                                                                    )}
                                                                 </TableCell>
                                                             </TableRow>
                                                         ))}
@@ -669,6 +830,8 @@ export default function AdminPaymentsPage() {
                                                                             <span className="text-green-600 bg-transparent font-bold text-sm">{translateStatus(p.status)}</span>
                                                                         ) : p.status === 'failed' ? (
                                                                             <span className="text-red-600 bg-transparent font-bold text-sm">{translateStatus(p.status)}</span>
+                                                                        ) : p.status === 'cancelled' ? (
+                                                                            <span className="text-orange-600 bg-transparent font-bold text-sm">{translateStatus(p.status)}</span>
                                                                         ) : (
                                                                             <Badge variant={getStatusVariant(p.status)}>
                                                                                 {translateStatus(p.status)}
@@ -737,6 +900,47 @@ export default function AdminPaymentsPage() {
                                                                                 </DropdownMenuItem>
                                                                             </DropdownMenuContent>
                                                                         </DropdownMenu>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                {/* Azioni per pagamenti completati */}
+                                                                {p.status === 'completed' && canModifyPayments && (
+                                                                    <div className="flex gap-2 pt-2 justify-center">
+                                                                        <AlertDialog>
+                                                                            <AlertDialogTrigger asChild>
+                                                                                <Button
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    disabled={updatingPaymentId === p.id}
+                                                                                    className="bg-transparent border-orange-300 text-orange-500 hover:bg-orange-50 hover:border-orange-400"
+                                                                                >
+                                                                                    {updatingPaymentId === p.id ? <Loader2 className="h-4 w-4 animate-spin"/> : <><Trash2 className="h-4 w-4 mr-1" /> Annulla</>}
+                                                                                </Button>
+                                                                            </AlertDialogTrigger>
+                                                                            <AlertDialogContent>
+                                                                                <AlertDialogHeader>
+                                                                                    <AlertDialogTitle>Annulla Pagamento</AlertDialogTitle>
+                                                                                    <AlertDialogDescription>
+                                                                                        Annullare definitivamente questo pagamento?
+                                                                                        <br /><br />
+                                                                                        <strong>{p.description}</strong><br />
+                                                                                        <strong>{p.amount.toFixed(2)}€</strong>
+                                                                                        {p.bonusUsed && p.bonusUsed > 0 && (
+                                                                                            <><br />Bonus: {p.bonusUsed.toFixed(2)}€ (rimborsato)</>
+                                                                                        )}
+                                                                                    </AlertDialogDescription>
+                                                                                </AlertDialogHeader>
+                                                                                <AlertDialogFooter>
+                                                                                    <AlertDialogCancel>Annulla</AlertDialogCancel>
+                                                                                    <AlertDialogAction 
+                                                                                        onClick={() => handleCancelCompletedPayment(p)}
+                                                                                        className="bg-red-600 hover:bg-red-700"
+                                                                                    >
+                                                                                        Conferma
+                                                                                    </AlertDialogAction>
+                                                                                </AlertDialogFooter>
+                                                                            </AlertDialogContent>
+                                                                        </AlertDialog>
                                                                     </div>
                                                                 )}
                                                             </div>

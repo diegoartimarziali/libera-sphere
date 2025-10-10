@@ -677,7 +677,9 @@ function SeasonalSubscriptionContent() {
                                 <div className="py-4 text-center text-green-700 font-semibold">Il tuo abbonamento è interamente coperto dai bonus. Nessun pagamento richiesto.</div>
                             )}
                             <DialogFooter className="justify-between gap-8 px-4">
-                                <Button variant="ghost" onClick={() => setIsPaymentDialogOpen(false)} className="bg-transparent border-2" style={{ borderColor: 'hsl(var(--background))', color: 'hsl(var(--background))' }}>Annulla</Button>
+                                <Button variant="ghost" onClick={() => setIsPaymentDialogOpen(false)} className="bg-transparent border-2" style={{ borderColor: 'hsl(var(--background))', color: 'hsl(var(--background))' }}>
+                                    Annulla
+                                </Button>
                                 <Button
                                     onClick={() => {
                                         if (Math.max(0, availableSubscription.totalPrice - totaleBonus) === 0) {
