@@ -351,7 +351,7 @@ function SubscriptionCard({
                     disabled={isSubmitting || hasActiveOrPending || isExpired}
                     className="w-full text-white font-bold" 
                     size="lg"
-                    style={{ backgroundColor: 'hsl(var(--primary))' }}
+                    style={{ backgroundColor: 'hsl(var(--primary))', zIndex: 1000, position: 'relative', pointerEvents: 'auto' }}
                 >
                     {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
                     {hasActiveOrPending ? "Pagamento in fase di approvazione" : 
@@ -1149,13 +1149,14 @@ function MonthlySubscriptionContent() {
                                     value={selectedPaymentMethod || ""}
                                     onValueChange={(value: string) => setSelectedPaymentMethod(value as PaymentMethod)}
                                     className="space-y-4 py-4"
+                                    style={{ pointerEvents: 'auto', zIndex: 1001 }}
                                 >
                                     <Label
                                         htmlFor="online"
                                         className="flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                                        style={{ borderColor: 'hsl(var(--background))' }}
+                                        style={{ borderColor: 'hsl(var(--background))', pointerEvents: 'auto', zIndex: 1001 }}
                                     >
-                                        <RadioGroupItem value="online" id="online" className="mt-1" style={{ borderColor: 'hsl(var(--background))' }} />
+                                        <RadioGroupItem value="online" id="online" className="mt-1" style={{ borderColor: 'hsl(var(--background))', pointerEvents: 'auto', zIndex: 1001 }} />
                                         <div className="flex-1 space-y-1">
                                             <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>Online (Carta di Credito)</h4>
                                             <p className="text-sm text-muted-foreground">
@@ -1170,7 +1171,7 @@ function MonthlySubscriptionContent() {
                                         className="flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                                         style={{ borderColor: 'hsl(var(--background))' }}
                                     >
-                                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" style={{ borderColor: 'hsl(var(--background))' }} />
+                                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" style={{ borderColor: 'hsl(var(--background))', pointerEvents: 'auto', zIndex: 1001 }} />
                                         <div className="flex-1 space-y-1">
                                             <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>Bonifico Bancario</h4>
                                             <p className="text-sm text-muted-foreground">
@@ -1185,7 +1186,7 @@ function MonthlySubscriptionContent() {
                                         className="flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                                         style={{ borderColor: 'hsl(var(--background))' }}
                                     >
-                                        <RadioGroupItem value="in_person" id="in_person" className="mt-1" style={{ borderColor: 'hsl(var(--background))' }} />
+                                        <RadioGroupItem value="in_person" id="in_person" className="mt-1" style={{ borderColor: 'hsl(var(--background))', pointerEvents: 'auto', zIndex: 1001 }} />
                                         <div className="flex-1 space-y-1">
                                             <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>In Sede (Contanti o Bancomat)</h4>
                                             <p className="text-sm text-muted-foreground">
