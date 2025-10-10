@@ -19,7 +19,6 @@ import { Button } from "@/components/ui/button"
 import { Loader2, CalendarClock, ArrowLeft, ShieldCheck, Zap, AlertTriangle, CreditCard, Landmark, University } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 
 // =================================================================
@@ -1145,18 +1144,22 @@ function MonthlySubscriptionContent() {
                             </DialogHeader>
                             
                             {bonusCalculation.finalPrice > 0 ? (
-                                <RadioGroup
-                                    value={selectedPaymentMethod || ""}
-                                    onValueChange={(value: string) => setSelectedPaymentMethod(value as PaymentMethod)}
-                                    className="space-y-4 py-4"
-                                    style={{ pointerEvents: 'auto', zIndex: 1001 }}
-                                >
+                                <div className="space-y-4 py-4" style={{ pointerEvents: 'auto', zIndex: 1001 }}>
                                     <Label
                                         htmlFor="online"
                                         className="flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                                         style={{ borderColor: 'hsl(var(--background))', pointerEvents: 'auto', zIndex: 1001 }}
                                     >
-                                        <RadioGroupItem value="online" id="online" className="mt-1" style={{ borderColor: 'hsl(var(--background))', pointerEvents: 'auto', zIndex: 1001 }} />
+                                        <input 
+                                            type="radio" 
+                                            value="online" 
+                                            id="online" 
+                                            name="paymentMethod"
+                                            checked={selectedPaymentMethod === "online"}
+                                            onChange={(e) => setSelectedPaymentMethod(e.target.value as PaymentMethod)}
+                                            className="mt-1 h-4 w-4 border-2 border-gray-300 rounded-full focus:ring-2 focus:ring-primary"
+                                            style={{ borderColor: 'hsl(var(--background))', accentColor: 'hsl(var(--primary))' }}
+                                        />
                                         <div className="flex-1 space-y-1">
                                             <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>Online (Carta di Credito)</h4>
                                             <p className="text-sm text-muted-foreground">
@@ -1171,7 +1174,16 @@ function MonthlySubscriptionContent() {
                                         className="flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                                         style={{ borderColor: 'hsl(var(--background))' }}
                                     >
-                                        <RadioGroupItem value="bank_transfer" id="bank_transfer" className="mt-1" style={{ borderColor: 'hsl(var(--background))', pointerEvents: 'auto', zIndex: 1001 }} />
+                                        <input 
+                                            type="radio" 
+                                            value="bank_transfer" 
+                                            id="bank_transfer" 
+                                            name="paymentMethod"
+                                            checked={selectedPaymentMethod === "bank_transfer"}
+                                            onChange={(e) => setSelectedPaymentMethod(e.target.value as PaymentMethod)}
+                                            className="mt-1 h-4 w-4 border-2 border-gray-300 rounded-full focus:ring-2 focus:ring-primary"
+                                            style={{ borderColor: 'hsl(var(--background))', accentColor: 'hsl(var(--primary))' }}
+                                        />
                                         <div className="flex-1 space-y-1">
                                             <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>Bonifico Bancario</h4>
                                             <p className="text-sm text-muted-foreground">
@@ -1184,9 +1196,18 @@ function MonthlySubscriptionContent() {
                                     <Label
                                         htmlFor="in_person"
                                         className="flex cursor-pointer items-start space-x-4 rounded-md border-2 p-4 transition-all bg-white hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-                                        style={{ borderColor: 'hsl(var(--background))' }}
+                                        style={{ borderColor: 'hsl(var(--background))', pointerEvents: 'auto', zIndex: 1001 }}
                                     >
-                                        <RadioGroupItem value="in_person" id="in_person" className="mt-1" style={{ borderColor: 'hsl(var(--background))', pointerEvents: 'auto', zIndex: 1001 }} />
+                                        <input 
+                                            type="radio" 
+                                            value="in_person" 
+                                            id="in_person" 
+                                            name="paymentMethod"
+                                            checked={selectedPaymentMethod === "in_person"}
+                                            onChange={(e) => setSelectedPaymentMethod(e.target.value as PaymentMethod)}
+                                            className="mt-1 h-4 w-4 border-2 border-gray-300 rounded-full focus:ring-2 focus:ring-primary"
+                                            style={{ borderColor: 'hsl(var(--background))', accentColor: 'hsl(var(--primary))' }}
+                                        />
                                         <div className="flex-1 space-y-1">
                                             <h4 className="font-semibold" style={{ color: 'hsl(var(--background))' }}>In Sede (Contanti o Bancomat)</h4>
                                             <p className="text-sm text-muted-foreground">
@@ -1195,7 +1216,7 @@ function MonthlySubscriptionContent() {
                                         </div>
                                         <Landmark className="h-6 w-6 text-muted-foreground" />
                                     </Label>
-                                </RadioGroup>
+                                </div>
                             ) : (
                                 <div className="py-4 space-y-4">
                                     <div className="text-center text-green-700 font-semibold">
