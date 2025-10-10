@@ -639,40 +639,63 @@ function MonthlySubscriptionContent() {
                     console.log('🎯 [FORZA MESE CORRENTE] User has no active subscription - looking for current month');
                     
                     const now = new Date();
-                    const currentMonth = now.getMonth(); // 0-11
+                    const currentMonth = now.getMonth(); // 0-11 (ottobre = 9)
                     const currentYear = now.getFullYear();
                     
-                    console.log('🎯 [FORZA MESE CORRENTE] Current date:', {
+                    console.log('🎯 [FORZA MESE CORRENTE] Current date details:', {
+                        fullDate: now.toISOString(),
                         month: currentMonth,
                         year: currentYear,
-                        monthName: new Date(currentYear, currentMonth).toLocaleString('it-IT', { month: 'long' })
+                        monthName: new Date(currentYear, currentMonth).toLocaleString('it-IT', { month: 'long' }),
+                        isOctober: currentMonth === 9,
+                        today: `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`
+                    });
+                    
+                    // Debug tutti gli abbonamenti disponibili
+                    allMonthlySubs.forEach((sub, index) => {
+                        const startDate = sub.validityStartDate?.toDate();
+                        const endDate = sub.validityEndDate?.toDate();
+                        console.log(`🔍 [SUB ${index}] ${sub.name}:`, {
+                            startDate: startDate?.toISOString(),
+                            endDate: endDate?.toISOString(),
+                            startMonth: startDate?.getMonth(),
+                            startYear: startDate?.getFullYear(),
+                            isCurrentMonth: startDate?.getMonth() === currentMonth && startDate?.getFullYear() === currentYear,
+                            isExpired: endDate ? endDate < now : 'NO_END_DATE',
+                            isValidNow: endDate ? endDate >= now : 'NO_END_DATE'
+                        });
                     });
                     
                     // Cerca specificamente il mese corrente
                     const currentMonthSub = allMonthlySubs.find(sub => {
                         const startDate = sub.validityStartDate?.toDate();
                         const endDate = sub.validityEndDate?.toDate();
-                        if (!startDate || !endDate) return false;
+                        if (!startDate || !endDate) {
+                            console.log(`⚠️ [INVALID DATES] ${sub.name} has invalid dates`);
+                            return false;
+                        }
                         
                         const isCurrentMonth = startDate.getMonth() === currentMonth && 
                                              startDate.getFullYear() === currentYear &&
                                              endDate >= now; // Non scaduto
                         
-                        console.log(`🎯 [FORZA MESE CORRENTE] Checking ${sub.name}:`, {
+                        console.log(`🎯 [CHECK] ${sub.name}:`, {
                             startMonth: startDate.getMonth(),
-                            startYear: startDate.getFullYear(),
-                            isCurrentMonth,
-                            isExpired: endDate < now
+                            currentMonth: currentMonth,
+                            monthMatch: startDate.getMonth() === currentMonth,
+                            yearMatch: startDate.getFullYear() === currentYear,
+                            notExpired: endDate >= now,
+                            isCurrentMonth
                         });
                         
                         return isCurrentMonth;
                     });
                     
                     if (currentMonthSub) {
-                        console.log('🎯 [FORZA MESE CORRENTE] FOUND current month subscription:', currentMonthSub.name);
+                        console.log('🎯 [SUCCESS] FOUND current month subscription:', currentMonthSub.name);
                         selectedSub = currentMonthSub;
                     } else {
-                        console.log('🎯 [FORZA MESE CORRENTE] Current month not found, using normal logic');
+                        console.log('🎯 [FALLBACK] Current month not found, using findAvailableSubscription logic');
                         selectedSub = findAvailableSubscription(allMonthlySubs, currentUserData);
                     }
                 } else {
