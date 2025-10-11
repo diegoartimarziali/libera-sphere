@@ -340,7 +340,7 @@ function SubscriptionCard({
                     disabled={isSubmitting || hasActiveOrPending || isExpired}
                     className="w-full text-white font-bold" 
                     size="lg"
-                    style={{ backgroundColor: 'hsl(var(--primary))', zIndex: 1000, position: 'relative', pointerEvents: 'auto' }}
+                    style={{ backgroundColor: 'hsl(var(--primary))', position: 'relative', pointerEvents: 'auto' }}
                 >
                     {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
                     {hasActiveOrPending ? "Pagamento in fase di approvazione" : 
@@ -398,34 +398,6 @@ function MonthlySubscriptionContent() {
     const [user] = useAuthState(auth);
     const [impersonateId, setImpersonateId] = useState<string | null>(null);
     const effectiveUserId = impersonateId || user?.uid;
-    
-
-    // 🚨 EMERGENCY: Event listener diretto per il bottone
-    useEffect(() => {
-        const handleDirectClick = () => {
-            console.log('🚨 DIRECT EVENT LISTENER TRIGGERED!');
-            setIsPaymentDialogOpen(true);
-        };
-        
-        // Trova il bottone dopo un breve delay per assicurarsi che sia renderizzato
-        const timer = setTimeout(() => {
-            const button = document.querySelector('button[data-payment-button="true"]');
-            if (button) {
-                console.log('🚨 EMERGENCY: Adding direct event listener to button');
-                button.addEventListener('click', handleDirectClick, { capture: true });
-            } else {
-                console.log('🚨 EMERGENCY: Button not found');
-            }
-        }, 1000);
-        
-        return () => {
-            clearTimeout(timer);
-            const button = document.querySelector('button[data-payment-button="true"]');
-            if (button) {
-                button.removeEventListener('click', handleDirectClick, { capture: true });
-            }
-        };
-    }, []);
     
     // Leggiamo l'impersonation dalla URL senza useSearchParams
     useEffect(() => {
@@ -927,11 +899,17 @@ function MonthlySubscriptionContent() {
             // Aggiorna stato e naviga
             setUserData(prev => prev ? {...prev, subscriptionAccessStatus: 'pending'} : null);
             setIsPaymentDialogOpen(false);
-            window.location.href = '/dashboard';
+            
+            // Mantieni impersonificazione nel redirect
+            const currentUrl = new URL(window.location.href);
+            const impersonateParam = currentUrl.searchParams.get('impersonate');
+            const redirectUrl = impersonateParam 
+                ? `/dashboard?impersonate=${impersonateParam}`
+                : '/dashboard';
+            window.location.href = redirectUrl;
 
         } catch (error) {
             console.error("Error purchasing subscription:", error);
-            toast({ title: "Errore", description: "Impossibile completare l'acquisto. Riprova.", variant: "destructive" });
         } finally {
             setIsSubmitting(false);
         }
@@ -944,7 +922,8 @@ function MonthlySubscriptionContent() {
             return;
         }
         if (selectedPaymentMethod === 'bank_transfer') {
-            setIsBankTransferDialogOpen(true);
+            setIsPaymentDialogOpen(false); // Chiudi dialog pagamento
+            setIsBankTransferDialogOpen(true); // Apri dialog bonifico
         } else {
             handlePurchase(availableSubscription, selectedPaymentMethod, true); // userConfirmed = true
         }
@@ -1144,30 +1123,6 @@ function MonthlySubscriptionContent() {
                     />
                     
                     <BonusDisplay spendableAwards={spendableAwards} bonusCalculation={bonusCalculation} />
-
-                    {/* 🚨 EMERGENCY BUTTON - TEMP */}
-                    <button 
-                        style={{
-                            position: 'fixed',
-                            top: '20px',
-                            right: '20px',
-                            zIndex: 9999,
-                            backgroundColor: 'red',
-                            color: 'white',
-                            padding: '10px 20px',
-                            border: 'none',
-                            borderRadius: '5px',
-                            fontSize: '12px',
-                            cursor: 'pointer'
-                        }}
-                        onClick={() => {
-                            console.log('🚨 EMERGENCY BUTTON CLICKED!');
-                            setIsPaymentDialogOpen(true);
-                            console.log('🚨 Dialog should open now!');
-                        }}
-                    >
-                        EMERGENCY OPEN DIALOG
-                    </button>
 
                     {/* Dialog scelta pagamento */}
                     <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
