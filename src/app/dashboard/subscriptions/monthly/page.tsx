@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, Suspense } from "react"
+import { useState, useEffect, Suspense, useMemo } from "react"
 
 import { doc, getDoc, Timestamp, collection, getDocs, query, where, writeBatch, serverTimestamp, addDoc, updateDoc } from "firebase/firestore"
 import { db, auth } from "@/lib/firebase"
@@ -91,8 +91,7 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
     
     // 🚨 FORZA OTTOBRE PER ROBERTO (TEMPORANEO) - ANCHE SE PENDING
     const isRoberto = userData && (
-        (userData.name === 'Roberto' && userData.surname === 'Allegri') ||
-        userData.email === 'roby.allegri@gmail.com'
+        (userData.name === 'Roberto' && userData.surname === 'Allegri')
     );
     if (isRoberto) {
         console.log('🎯 [ROBERTO FIX] Forcing OTTOBRE selection for Roberto');
@@ -109,17 +108,8 @@ function findAvailableSubscription(subscriptions: Subscription[], userData: User
     // Filtra gli abbonamenti che l'utente può acquistare (non quelli già posseduti)
     const purchasableSubscriptions = subscriptions.filter(sub => {
         // � ROBERTO FORCE: Override assoluto per Roberto
-        const currentUserId = getCurrentUserId();
-        if (currentUserId === 'JZQhkgnXsTdvoiU5fLIgXfJqIR82') {
-            console.log('🚨 [FINDAVAILABLE ROBERTO FORCE] Detected Roberto - forcing OTTOBRE subscription');
-            const ottobreSub = subscriptions.find(sub => sub.name && sub.name.includes('OTTOBRE'));
-            if (ottobreSub) {
-                console.log('🚨 [FINDAVAILABLE ROBERTO FORCE] Found and returning OTTOBRE:', ottobreSub);
-                return ottobreSub;
-            } else {
-                console.log('🚨 [FINDAVAILABLE ROBERTO FORCE] OTTOBRE not found in subscriptions:', subscriptions.map(s => s.name));
-            }
-        }
+        // Logica semplificata senza Roberto force
+
 
         // �🔧 PRIORITÀ ASSOLUTA: Se lo status è 'expired', ignora activeSubscription (può essere stale dopo cancellazione)
         if (userData?.subscriptionAccessStatus === 'expired') {
@@ -335,7 +325,6 @@ function SubscriptionCard({
                             isSubmitting,
                             hasActiveOrPending,
                             isExpired,
-                            isPaymentDialogOpen,
                             finalPrice: bonusCalculation.finalPrice
                         });
                         
@@ -976,13 +965,12 @@ function MonthlySubscriptionContent() {
         );
     }
 
-    // 🎯 LOGICA CORRETTA: Controlla stato active O pagamenti pending REALI + abbonamento stagionale
+    // 🎯 LOGICA SEMPLIFICATA: Calcolo diretto senza memoizzazione problematica
     const hasSeasonalSubscription = userData?.activeSubscription?.type === 'seasonal' && 
                                    userData?.subscriptionAccessStatus === 'active' &&
                                    userData?.activeSubscription?.expiresAt &&
                                    userData.activeSubscription.expiresAt.toDate() > new Date();
     
-    // Controlla se l'abbonamento corrente è veramente attivo (non scaduto)
     const hasValidActiveSubscription = userData?.subscriptionAccessStatus === 'active' && 
                                       userData?.activeSubscription?.expiresAt &&
                                       userData.activeSubscription.expiresAt.toDate() > new Date();
@@ -1003,26 +991,8 @@ function MonthlySubscriptionContent() {
     console.log('- activeSubExpiresAt:', userData?.activeSubscription?.expiresAt?.toDate());
     console.log('- isActiveSubExpired:', userData?.activeSubscription?.expiresAt ? userData.activeSubscription.expiresAt.toDate() <= new Date() : null);
 
-    // � FORCE REFRESH: Se i dati sembrano inconsistenti, forza un refresh
-    useEffect(() => {
-        if (userData && availableSubscription) {
-            const shouldBeBlocked = userData.subscriptionAccessStatus === 'expired' && 
-                                  !hasRealPendingPayments && 
-                                  !hasSeasonalSubscription && 
-                                  !hasValidActiveSubscription;
-            
-            if (shouldBeBlocked && hasActiveOrPending) {
-                console.log('🚨 INCONSISTENT STATE DETECTED: User should NOT be blocked but hasActiveOrPending=true');
-                console.log('🚨 Current userData from React state:', userData);
-                console.log('🚨 This suggests stale data in React state. Forcing data refresh...');
-                
-                // Forza un re-fetch dei dati utente
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            }
-        }
-    }, [userData, hasActiveOrPending, hasRealPendingPayments, hasSeasonalSubscription, hasValidActiveSubscription, availableSubscription]);
+    // CONSISTENCY CHECK: Rimosso useEffect per evitare hooks order violation
+
 
     // �🔧 FUNZIONE RESET MANUALE per utenti bloccati
     const handleManualReset = async () => {
