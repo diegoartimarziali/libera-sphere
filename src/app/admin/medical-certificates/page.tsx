@@ -9,7 +9,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, isPast, format, startOfDay } from "date-fns";
 import { it } from "date-fns/locale";
-import { hasFullAdminAccess } from "@/app/dashboard/layout";
+import { hasFullAdminAccess } from "@/lib/permissions";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

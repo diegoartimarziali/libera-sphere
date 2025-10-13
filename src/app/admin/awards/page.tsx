@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { calculateAssignedAwardResiduo } from '@/lib/calculateAssignedAwardResiduo';
 import { useAttendances } from '@/hooks/use-attendances';
-import { hasFullAdminAccess } from "@/app/dashboard/layout";
+import { hasFullAdminAccess } from "@/lib/permissions";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

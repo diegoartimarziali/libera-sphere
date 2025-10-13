@@ -1,3 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&display=swap');
+
+.font-unifraktur {
+  font-family: 'UnifrakturCook', serif !important;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -31,6 +36,49 @@ a.sidebar-menu-link.bg-muted,
 
 body {
   font-family: 'Montserrat', sans-serif;
+}
+
+/* === Budo Pass / Schede stampabili ===
+   - Su schermo: layout responsive con rapporto 7:10 (10.5cm x 15cm)
+   - In stampa: dimensioni fisiche esatte 10.5cm larghezza x 15cm altezza
+*/
+.budo-card,
+.print-card {
+  position: relative;
+  width: 100%;
+  /* Rapporto 7:10 (10.5 : 15) */
+  aspect-ratio: 7 / 10;
+  max-width: 720px; /* può essere regolato, mantiene la card grande su desktop */
+}
+
+@media (max-width: 640px) {
+  .budo-card,
+  .print-card {
+    max-width: 100%;
+  }
+}
+
+@media print {
+  @page {
+    margin: 10mm; /* margine standard di stampa */
+  }
+  html, body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .budo-card,
+  .print-card {
+    width: 10.5cm !important;
+    height: 15cm !important;
+    max-width: none !important;
+    aspect-ratio: auto !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }
 
 @layer base {
@@ -130,6 +178,48 @@ body {
 .medical-upload-text,
 h4.medical-upload-text {
   color: hsl(22.5, 55%, 11%) !important;
+}
+
+/* ====== Page flip effect for Budo Pass ====== */
+.flip-book {
+  perspective: 1200px;
+}
+.flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s ease;
+}
+.flip-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+.flip-face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+.flip-face.flip-back {
+  transform: rotateY(180deg);
+}
+
+/* Make inner cards fill the flip faces */
+.flip-book .flip-face > .budo-card {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: auto !important;
+}
+
+/* Screen/print visibility helpers */
+.screen-only { display: block; }
+.print-only { display: none; }
+
+@media print {
+  .screen-only { display: none !important; }
+  .print-only { display: block !important; }
 }
 
 

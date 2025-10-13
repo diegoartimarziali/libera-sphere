@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
-import { hasFullAdminAccess } from "@/app/dashboard/layout";
+import { hasFullAdminAccess } from "@/lib/permissions";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

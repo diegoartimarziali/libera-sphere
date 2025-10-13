@@ -289,7 +289,12 @@ export default function AuthPage() {
                     <Button
                       type="button"
                       variant="outline"
-                      className="w-full"
+                      className="w-full bg-transparent border-[1.5px]"
+                      style={{
+                        color: 'hsl(var(--my-marscuro, 22.5 55% 11%))',
+                        borderColor: 'hsl(var(--my-marscuro, 22.5 55% 11%))',
+                        background: 'transparent'
+                      }}
                       onClick={handlePasswordReset}
                       disabled={isLoading}
                     >

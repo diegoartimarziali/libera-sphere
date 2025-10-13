@@ -8,56 +8,56 @@ export function useFirebaseMessaging(onForegroundMessage: (payload: any) => void
       try {
         // Check if we're in a browser environment
         if (typeof window === 'undefined') return;
-        
         // Check if browser supports notifications
         if (!('Notification' in window)) {
           console.warn('Browser does not support notifications');
           return;
         }
-
+        // Evita richieste multiple nella stessa sessione
+        if (sessionStorage.getItem('pushPermissionRequested')) {
+          return;
+        }
         // Get messaging instance
         const messaging = getMessaging(app);
-
         // If already denied, don't show the prompt again
         if (Notification.permission === 'denied') {
           console.log('Notification permission was previously denied');
+          sessionStorage.setItem('pushPermissionRequested', 'true');
           return;
         }
-
         // Show custom prompt first if permission not granted yet
         if (Notification.permission !== 'granted') {
           const customPromptResult = confirm(
             'LiberaSphere vorrebbe inviarti notifiche per tenerti aggiornato sulle tue attività. Vuoi attivare le notifiche?'
           );
-
           if (!customPromptResult) {
             console.log('User declined custom notification prompt');
+            sessionStorage.setItem('pushPermissionRequested', 'true');
             return;
           }
-
           const permission = await Notification.requestPermission();
+          sessionStorage.setItem('pushPermissionRequested', 'true');
           if (permission !== 'granted') {
             console.log('Browser notification permission denied');
             return;
           }
+        } else {
+          // Se già concesso, segna come gestito
+          sessionStorage.setItem('pushPermissionRequested', 'true');
         }
-
         try {
           // Register service worker
           const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-          
           // Get FCM token
           const currentToken = await getToken(messaging, {
             vapidKey: 'BOI3i5-vI456ivaSxwQ0RcaZLe7Bz77LCL9QlMA65_kbogFNtMZCnjpd74KYEaL4nORtZ0bBbntvTdGovK4IpsU',
             serviceWorkerRegistration: registration,
           });
-
           if (currentToken) {
             console.log('FCM Token:', currentToken);
           } else {
             console.warn('No FCM token available');
           }
-
           // Setup foreground message handler
           onMessage(messaging, (payload) => {
             if (onForegroundMessage) onForegroundMessage(payload);

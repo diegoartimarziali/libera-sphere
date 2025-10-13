@@ -255,8 +255,15 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
     // Verifica che il link SumUp sia valido prima di aprirlo
     try {
       new URL(sumupUrl); // Verifica che sia un URL valido
-      window.open(sumupUrl, '_blank');
+      const popup = window.open(sumupUrl, '_blank');
+      // Verifica se il popup è stato bloccato (common on mobile)
+      if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+        // Fallback per mobile: usa window.location
+        window.location.href = sumupUrl;
+        return; // Non continuare con il redirect alla dashboard
+      }
     } catch (error) {
+      console.error('Error opening SumUp link:', error);
       toast({
         variant: "destructive",
         title: "Link Pagamento Non Valido",

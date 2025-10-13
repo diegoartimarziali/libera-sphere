@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
-interface UserData {
+export interface UserData {
   name: string
   email: string
   role?: 'admin' | 'superAdmin' | 'user';
@@ -46,29 +46,8 @@ interface UserData {
   [key: string]: any;
 }
 
-// =================================================================
-// UTILITÀ PER GESTIONE RUOLI E PERMESSI
-// =================================================================
-
-export function isSuperAdmin(userData: UserData | null): boolean {
-    return userData?.role === 'superAdmin';
-}
-
-export function isAdmin(userData: UserData | null): boolean {
-    return userData?.role === 'admin' || userData?.role === 'superAdmin';
-}
-
-export function hasImpersonationAccess(userData: UserData | null): boolean {
-    return isSuperAdmin(userData);
-}
-
-export function hasFullAdminAccess(userData: UserData | null): boolean {
-    return isSuperAdmin(userData);
-}
-
-export function hasReadOnlyAdminAccess(userData: UserData | null): boolean {
-    return userData?.role === 'admin';
-}
+// Utility functions moved to separate file to avoid Next.js compilation issues
+// Import from @/lib/utils if needed
 
 // =================================================================
 // COMPONENTI DI NAVIGAZIONE
@@ -174,7 +153,7 @@ function NavigationLinks({ userData, onLinkClick, impersonateId }: { userData: U
                     <NavLink href="/dashboard/subscriptions" icon={CreditCard} onClick={onLinkClick} impersonateId={impersonateId}>Abbonamenti</NavLink>
                     <NavLink href="/dashboard/attendances" icon={ClipboardList} onClick={onLinkClick} impersonateId={impersonateId}>Le Mie Presenze</NavLink>
                     <NavLink href="/dashboard/calendar" icon={CalendarDays} onClick={onLinkClick} impersonateId={impersonateId}>Stages, Esami e Corsi</NavLink>
-                    {/* <NavLink href="/dashboard/budo-pass" icon={BookOpen} onClick={onLinkClick} impersonateId={impersonateId}>Budo Pass</NavLink> */}
+                    <NavLink href="/dashboard/budo-pass" icon={BookOpen} onClick={onLinkClick} impersonateId={impersonateId}>Budo Pass</NavLink>
                 </>
             )}
             

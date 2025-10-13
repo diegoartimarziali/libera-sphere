@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import type { VariantProps } from "class-variance-authority"
 import { it } from "date-fns/locale"
-import { hasImpersonationAccess, hasFullAdminAccess } from "@/app/dashboard/layout"
+import { hasImpersonationAccess, hasFullAdminAccess } from "@/lib/permissions"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"

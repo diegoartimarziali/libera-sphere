@@ -755,7 +755,20 @@ export default function ClassSelectionPage() {
             setPaymentMethod(method);
             
             if (String(method) === 'online' && feeData?.sumupLink) {
-                window.open(feeData.sumupLink, '_blank');
+                try {
+                    const popup = window.open(feeData.sumupLink, '_blank');
+                    // Verifica se il popup è stato bloccato (common on mobile)
+                    if (!popup || popup.closed || typeof popup.closed == 'undefined') {
+                        // Fallback per mobile: usa window.location
+                        window.location.href = feeData.sumupLink;
+                        return; // Non continuare con il redirect
+                    }
+                } catch (error) {
+                    console.error('Error opening SumUp link:', error);
+                    // Fallback per mobile
+                    window.location.href = feeData.sumupLink;
+                    return; // Non continuare con il redirect
+                }
             }
             setStep(4);
 

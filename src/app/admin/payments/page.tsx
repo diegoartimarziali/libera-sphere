@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import type { VariantProps } from "class-variance-authority"
 import { ref, deleteObject, listAll } from "firebase/storage";
-import { hasFullAdminAccess } from "@/app/dashboard/layout"
+import { hasFullAdminAccess } from "@/lib/permissions"
 
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"

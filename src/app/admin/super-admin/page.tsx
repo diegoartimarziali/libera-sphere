@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { isSuperAdmin } from "@/app/dashboard/layout";
+import { isSuperAdmin } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Shield, Database, UserX, Settings, FileX, Trash2, AlertTriangle, Crown, Unlock, BarChart3 } from "lucide-react";

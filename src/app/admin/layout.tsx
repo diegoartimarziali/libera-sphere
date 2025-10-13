@@ -7,7 +7,7 @@ import { useRouter, usePathname, redirect } from "next/navigation";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { isAdmin, isSuperAdmin } from "@/app/dashboard/layout";
+import { isAdmin, isSuperAdmin } from "@/lib/permissions";
 
 import { Button } from "@/components/ui/button";
 import { LogOut, Loader2, Menu, X, CreditCard, Users, Calendar, Award, Gift, FileText, UserCheck, Shield, Trash2, Crown } from "lucide-react";
