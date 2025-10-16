@@ -422,38 +422,6 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: "hsl(var(--my-marscuro))" }}>Nazionalità:</label>
-            <div className="flex gap-2 items-center">
-              <Input
-                type="text"
-                value={extra.nationality || ""}
-                onChange={(e) => setExtra((prev) => ({ ...prev, nationality: e.target.value }))}
-                placeholder="Inserisci nazionalità"
-                className="flex-1"
-              />
-              <Button 
-                type="button" 
-                size="sm" 
-                onClick={() => handleSaveField('nationality')} 
-                disabled={saving}
-                className="px-2"
-              >
-                <Save className="h-4 w-4" />
-              </Button>
-              <Button 
-                type="button" 
-                size="sm" 
-                variant="destructive" 
-                onClick={() => handleClearField('nationality')} 
-                disabled={saving}
-                className="px-2"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
           {/* Sezione Tabella "Ente di Appartenenza" */}
           <div className="mt-8 space-y-4">
             <h3 className="text-sm font-bold" style={{ color: "hsl(var(--my-marscuro))" }}>

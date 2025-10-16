@@ -4,12 +4,13 @@
 import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, Upload, X } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 const TOTAL_PAGES = 4;
 const BG_URL = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/budopass%2Fsfondo.jpg?alt=media&token=825019f1-2a51-4567-b0c6-8e7f98860307";
@@ -19,18 +20,33 @@ const BG_COPERTINA = "https://firebasestorage.googleapis.com/v0/b/libera-energia
 function formatDateIT(dateStr: string | null | undefined): string {
   if (!dateStr) return "";
   try {
-    const date = new Date(dateStr);
+    // Handle Firestore Timestamp objects
+    let date: Date;
+    if (typeof dateStr === 'object' && 'seconds' in dateStr) {
+      // @ts-ignore - Firestore Timestamp
+      date = new Date(dateStr.seconds * 1000);
+    } else {
+      date = new Date(dateStr);
+    }
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "";
+    }
+    
     const day = String(date.getDate()).padStart(2, "0");
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const year = date.getFullYear();
     return `${day}/${month}/${year}`;
   } catch {
-    return dateStr; // Return original if parsing fails
+    return ""; // Return empty string if parsing fails
   }
 }
 
-function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, presidenteSignature, direttivoSignature }: { pageNum: number; budoPassNumber?: string | null; issuedAt?: string | null; from?: string | null; scadenza?: string | null; presidenteSignature?: string | null; direttivoSignature?: string | null }) {
+function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, presidenteSignature, direttivoSignature, photoUrl, onPhotoUpload, userName, userSurname, birthDate, birthPlace, address, streetNumber, city, province, phone }: { pageNum: number; budoPassNumber?: string | null; issuedAt?: string | null; from?: string | null; scadenza?: string | null; presidenteSignature?: string | null; direttivoSignature?: string | null; photoUrl?: string | null; onPhotoUpload?: (file: File) => void; userName?: string | null; userSurname?: string | null; birthDate?: string | null; birthPlace?: string | null; address?: string | null; streetNumber?: string | null; city?: string | null; province?: string | null; phone?: string | null }) {
   const [bg, setBg] = useState("");
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  
   useEffect(() => {
     // Pagina 1 usa la copertina, le altre usano lo sfondo standard
     setBg(pageNum === 1 ? BG_COPERTINA : BG_URL);
@@ -39,7 +55,7 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
   return (
     <Card
       className="budo-card relative overflow-hidden border-0 shadow-none"
-      style={{ width: "10.5cm", height: "15cm" }}
+      style={{ width: "10.5cm", height: "14.8cm" }}
     >
       {bg && (
         <div
@@ -190,6 +206,202 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
           </div>
         </div>
       )}
+
+      {/* Pagina 3: Dati Personali - Fototessera */}
+      {pageNum === 3 && (
+        <div className="absolute inset-0 flex flex-col items-center pt-6">
+          <div className="text-center">
+            {/* Fototessera */}
+            <div className="flex flex-col items-center relative">
+              {photoUrl ? (
+                <div
+                  onClick={() => onPhotoUpload && setShowUploadDialog(true)}
+                  style={{
+                    cursor: "pointer",
+                    width: "3.5cm",
+                    height: "4.5cm",
+                  }}
+                >
+                  <img
+                    src={photoUrl}
+                    alt="Fototessera"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      border: "2px solid #000",
+                    }}
+                  />
+                </div>
+              ) : (
+                <div
+                  onClick={() => onPhotoUpload && setShowUploadDialog(true)}
+                  style={{
+                    width: "3.5cm",
+                    height: "4.5cm",
+                    border: "3px dashed #000",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "11pt",
+                    color: "#000",
+                    textAlign: "center",
+                    padding: "0.5cm",
+                    cursor: "pointer",
+                    backgroundColor: "rgba(255, 255, 255, 0.7)",
+                    fontWeight: "500",
+                  }}
+                >
+                  Clicca per caricare fototessera
+                </div>
+              )}
+              
+              {/* Dialog informativo */}
+              {showUploadDialog && onPhotoUpload && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    backgroundColor: "#fff",
+                    border: "2px solid #000",
+                    padding: "0.5cm",
+                    borderRadius: "8px",
+                    maxWidth: "8cm",
+                    boxShadow: "0 4px 6px rgba(0,0,0,0.3)",
+                    zIndex: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "9pt",
+                      color: "#000",
+                      textAlign: "left",
+                      lineHeight: "1.4",
+                      marginBottom: "0.4cm",
+                    }}
+                  >
+                    <strong>Formati accettati:</strong> JPG, PNG
+                    <br /><br />
+                    La foto deve essere <strong>verticale</strong>, a <strong>colori</strong>, il viso deve essere <strong>frontale</strong>, ben <strong>centrato</strong>, <strong>nitido</strong> e <strong>senza ombre</strong>, su uno <strong>sfondo bianco e uniforme</strong>.
+                  </div>
+                  
+                  <div style={{ display: "flex", gap: "0.3cm", justifyContent: "center" }}>
+                    <label
+                      htmlFor="photo-upload"
+                      style={{
+                        padding: "0.2cm 0.5cm",
+                        backgroundColor: "#4CAF50",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "10pt",
+                        fontWeight: "500",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.2cm",
+                      }}
+                    >
+                      <Upload size={14} />
+                      Carica
+                    </label>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowUploadDialog(false);
+                      }}
+                      style={{
+                        padding: "0.2cm 0.5cm",
+                        backgroundColor: "#f44336",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "10pt",
+                        fontWeight: "500",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.2cm",
+                      }}
+                    >
+                      <X size={14} />
+                      Annulla
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {onPhotoUpload && (
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png"
+                  id="photo-upload"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      onPhotoUpload(file);
+                      setShowUploadDialog(false);
+                    }
+                  }}
+                />
+              )}
+            </div>
+            
+            {/* Dati anagrafici */}
+            <div
+              style={{
+                marginTop: "2cm",
+                textAlign: "left",
+                width: "9cm",
+                fontSize: "12pt",
+                fontFamily: "'Noto Serif', serif",
+                color: "#000",
+                lineHeight: "1.6",
+              }}
+            >
+              <div style={{ marginBottom: "0.18cm" }}>
+                <span style={{ fontWeight: "bold" }}>NOME E COGNOME:</span>{" "}
+                <span style={{ fontFamily: "'Special Elite', cursive", fontSize: "13pt" }}>
+                  {userName && userSurname ? `${userName} ${userSurname}` : ""}
+                </span>
+              </div>
+              <div style={{ marginBottom: "0.18cm" }}>
+                <span style={{ fontWeight: "bold" }}>DATA DI NASCITA:</span>{" "}
+                <span style={{ fontFamily: "'Special Elite', cursive", fontSize: "13pt" }}>
+                  {birthDate ? formatDateIT(birthDate) : ""}
+                </span>
+              </div>
+              <div style={{ marginBottom: "0.18cm" }}>
+                <span style={{ fontWeight: "bold" }}>LUOGO DI NASCITA:</span>{" "}
+                <span style={{ fontFamily: "'Special Elite', cursive", fontSize: "13pt" }}>
+                  {birthPlace || ""}
+                </span>
+              </div>
+              <div style={{ marginBottom: "0.18cm" }}>
+                <span style={{ fontWeight: "bold" }}>INDIRIZZO:</span>{" "}
+                <span style={{ fontFamily: "'Special Elite', cursive", fontSize: "13pt" }}>
+                  {address && streetNumber ? `${address} ${streetNumber}` : address || ""}
+                </span>
+              </div>
+              <div style={{ marginBottom: "0.18cm" }}>
+                <span style={{ fontWeight: "bold" }}>CITTÀ:</span>{" "}
+                <span style={{ fontFamily: "'Special Elite', cursive", fontSize: "13pt" }}>
+                  {city && province ? `${city} (${province})` : city || ""}
+                </span>
+              </div>
+              <div style={{ marginBottom: "0.18cm" }}>
+                <span style={{ fontWeight: "bold" }}>TELEFONO:</span>{" "}
+                <span style={{ fontFamily: "'Special Elite', cursive", fontSize: "13pt" }}>
+                  {phone || ""}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
@@ -204,6 +416,19 @@ export default function BudoPassPage() {
   const [scadenza, setScadenza] = useState<string | null>(null);
   const [presidenteSignature, setPresidenteSignature] = useState<string | null>(null);
   const [direttivoSignature, setDirettivoSignature] = useState<string | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  
+  // Dati anagrafici
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userSurname, setUserSurname] = useState<string | null>(null);
+  const [birthDate, setBirthDate] = useState<string | null>(null);
+  const [birthPlace, setBirthPlace] = useState<string | null>(null);
+  const [address, setAddress] = useState<string | null>(null);
+  const [streetNumber, setStreetNumber] = useState<string | null>(null);
+  const [city, setCity] = useState<string | null>(null);
+  const [province, setProvince] = useState<string | null>(null);
+  const [phone, setPhone] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -219,12 +444,36 @@ export default function BudoPassPage() {
           const scadenzaVal = data?.budoPassExtra?.scadenza ?? null;
           const presidenteImg = data?.budoPassExtra?.tableRows?.[0]?.imageUrl ?? null;
           const direttivoImg = data?.budoPassExtra?.tableRows?.[1]?.imageUrl ?? null;
+          const photo = data?.budoPassExtra?.photoUrl ?? null;
+          
+          // Dati anagrafici
+          const name = data?.name ?? null;
+          const surname = data?.surname ?? null;
+          const birth = data?.birthDate ?? null;
+          const birthPl = data?.birthPlace ?? null;
+          const addr = data?.address ?? null;
+          const street = data?.streetNumber ?? null;
+          const cty = data?.city ?? null;
+          const prov = data?.province ?? null;
+          const ph = data?.phone ?? null;
+          
           setBudoPassNumber(num);
           setIssuedAt(issued);
           setFrom(fromVal);
           setScadenza(scadenzaVal);
           setPresidenteSignature(presidenteImg);
           setDirettivoSignature(direttivoImg);
+          setPhotoUrl(photo);
+          
+          setUserName(name);
+          setUserSurname(surname);
+          setBirthDate(birth);
+          setBirthPlace(birthPl);
+          setAddress(addr);
+          setStreetNumber(street);
+          setCity(cty);
+          setProvince(prov);
+          setPhone(ph);
         }
       } catch (e) {
         console.error("Errore lettura BudoPass number:", e);
@@ -235,6 +484,31 @@ export default function BudoPassPage() {
 
   const handlePrev = () => setPageIndex((i) => Math.max(0, i - 1));
   const handleNext = () => setPageIndex((i) => Math.min(TOTAL_PAGES - 1, i + 1));
+
+  const handlePhotoUpload = async (file: File) => {
+    if (!user?.uid) return;
+    
+    try {
+      setUploading(true);
+      const storage = getStorage();
+      const photoRef = storageRef(storage, `budopass/fototessere/${user.uid}_${Date.now()}.jpg`);
+      
+      await uploadBytes(photoRef, file);
+      const url = await getDownloadURL(photoRef);
+      
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        "budoPassExtra.photoUrl": url,
+      });
+      
+      setPhotoUrl(url);
+    } catch (error) {
+      console.error("Errore caricamento foto:", error);
+      alert("Errore durante il caricamento della foto. Riprova.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleExportPDF = async () => {
     setExporting(true);
@@ -277,7 +551,33 @@ export default function BudoPassPage() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 px-4 py-6">
-  <SimplePage pageNum={pageIndex + 1} budoPassNumber={budoPassNumber} issuedAt={issuedAt} from={from} scadenza={scadenza} presidenteSignature={presidenteSignature} direttivoSignature={direttivoSignature} />
+      <SimplePage 
+        pageNum={pageIndex + 1} 
+        budoPassNumber={budoPassNumber} 
+        issuedAt={issuedAt} 
+        from={from} 
+        scadenza={scadenza} 
+        presidenteSignature={presidenteSignature} 
+        direttivoSignature={direttivoSignature}
+        photoUrl={photoUrl}
+        onPhotoUpload={handlePhotoUpload}
+        userName={userName}
+        userSurname={userSurname}
+        birthDate={birthDate}
+        birthPlace={birthPlace}
+        address={address}
+        streetNumber={streetNumber}
+        city={city}
+        province={province}
+        phone={phone}
+      />
+
+      {uploading && (
+        <div className="text-sm text-gray-600 flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Caricamento foto...
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <Button
