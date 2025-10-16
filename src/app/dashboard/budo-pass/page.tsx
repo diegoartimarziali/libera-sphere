@@ -313,12 +313,12 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
             <div style={{ height: "0.7cm" }} />
             <div style={{
               flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.3cm",
+              display: "grid",
+              gridTemplateRows: "repeat(5, 1fr)",
+              rowGap: "0.3cm",
               paddingBottom: "0.6cm",
             }}>
-              {Array.from({ length: 5 }, (_, i) => {
+              {Array.from({ length: pageNum === 7 ? 4 : 5 }, (_, i) => {
                 const start = (pageNum - 5) * 5;
                 const examIndex = start + i;
                 // Usa grades[examIndex] e grades[examIndex + 1] come nella tabella admin
@@ -328,6 +328,13 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
                 const row = (exams || []).find(
                   (ex) => ex.fromGrade === fromGrade && ex.toGrade === toGrade
                 );
+                // Escludi esplicitamente la progressione "da: 5°kyu-verde a: 4°kyu-blu" dalle pagine BudoPass
+                const norm = (s: string) => (s || "").toLowerCase().replace(/\s+/g, "").replace(/–|—/g, "-");
+                const isExcluded = norm(fromGrade) === "5°kyu-verde" && norm(toGrade) === "4°kyu-blu";
+                if (isExcluded) {
+                  // Mantiene lo slot di griglia vuoto per non alterare le altezze
+                  return <div key={i} />;
+                }
                 return (
                   <div key={i} style={{
                     border: "1px solid #000",
@@ -337,13 +344,7 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
                     flexDirection: "column",
                     gap: "0.15cm",
                   }}>
-                    {/* Riga A: da ... a ... */}
-                    <div style={{ fontSize: "10pt", lineHeight: 1.2 }}>
-                      <span style={{ fontWeight: 600 }}>da:</span>{" "}
-                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{fromGrade}</span>
-                      {" "}<span style={{ fontWeight: 600 }}>a:</span>{" "}
-                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{toGrade}</span>
-                    </div>
+                    {/* Riga A rimossa: non mostrare 'da:'/'a:' nelle pagine utente */}
                     {/* Riga B: Esame di + Data esame sulla stessa riga */}
                     <div style={{ fontSize: "10pt", lineHeight: 1.2 }}>
                       <span style={{ fontWeight: 600 }}>Esame di:</span>{" "}
