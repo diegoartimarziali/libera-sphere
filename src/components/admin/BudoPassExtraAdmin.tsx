@@ -21,6 +21,15 @@ interface BudoPassExtra {
     imageUrl?: string;
     text?: string;
   }>;
+  // Esami: storico progressioni di grado
+  exams?: Array<{
+    fromGrade: string;
+    toGrade: string;
+    stars?: number; // 1..5
+    examDate?: string; // ISO date
+    place?: string;
+    examiner?: string;
+  }>;
 }
 
 interface User {
@@ -41,6 +50,8 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>(initialUserId || "");
+  const [lastGrade, setLastGrade] = useState<string>("");
+  const [grades, setGrades] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchUsers() {
@@ -75,10 +86,21 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
       setLoading(true);
       setError(null);
       try {
-        const userDoc = await getDoc(doc(db, "users", selectedUserId));
+        const userRef = doc(db, "users", selectedUserId);
+        const userDoc = await getDoc(userRef);
         if (userDoc.exists()) {
           const data = userDoc.data();
           setExtra(data.budoPassExtra || {});
+          setLastGrade((data.lastGrade as string) || "");
+        }
+        // Carico elenco gradi da config/karate (campo 'grades' come array di stringhe)
+        try {
+          const karateDoc = await getDoc(doc(db, "config", "karate"));
+          const arr = (karateDoc.exists() && Array.isArray(karateDoc.data()?.grades)) ? karateDoc.data()!.grades as string[] : [];
+          setGrades(arr);
+        } catch (e) {
+          // fallback: se non disponibile, lascio vuoto
+          setGrades([]);
         }
       } catch (err) {
         setError("Errore nel caricamento dati.");
@@ -279,15 +301,7 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
               <div className="text-sm font-medium" style={{
                 color: new Date(extra.scadenza) >= new Date() ? '#15803d' : '#dc2626'
               }}>
-                Status: {new Date(extra.scadenza) >= new Date() ? 'VALIDO' : 'SCADUTO'}
-              </div>
-              <div className="text-xs mt-1" style={{
-                color: new Date(extra.scadenza) >= new Date() ? '#15803d' : '#dc2626'
-              }}>
-                {new Date(extra.scadenza) >= new Date() 
-                  ? 'Il Budo Pass è attualmente valido' 
-                  : 'Il Budo Pass è scaduto'
-                }
+                {new Date(extra.scadenza) >= new Date() ? 'VALIDO' : 'SCADUTO'}
               </div>
             </div>
           )}
@@ -428,7 +442,8 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
               Tabella "Ente di Appartenenza" (6 righe con logo ente e stagione)
             </h3>
             {[...Array(6)].map((_, rowIndex) => {
-              const rowData = extra.tableRows?.[rowIndex] || {};
+              const actualIndex = rowIndex + 2; // Salta indici 0 e 1 (firme)
+              const rowData = extra.tableRows?.[actualIndex] || {};
               return (
                 <div key={rowIndex} className="border rounded p-2 bg-transparent">
                   <h4 className="text-xs font-medium mb-2" style={{ color: "hsl(var(--my-marscuro))" }}>
@@ -445,8 +460,8 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
                         type="url"
                         value={rowData.imageUrl || ""}
                         onChange={(e) => {
-                          const newTableRows = [...(extra.tableRows || Array(6).fill({}))];
-                          newTableRows[rowIndex] = { ...newTableRows[rowIndex], imageUrl: e.target.value };
+                          const newTableRows = [...(extra.tableRows || Array(8).fill({}))];
+                          newTableRows[actualIndex] = { ...newTableRows[actualIndex], imageUrl: e.target.value };
                           setExtra((prev) => ({ ...prev, tableRows: newTableRows }));
                         }}
                         placeholder="https://esempio.com/logo-ente.png"
@@ -456,16 +471,16 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
                     
                     <div className="flex-1">
                       <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--my-marscuro))" }}>
-                        testo inserito da admin:
+                        Stagione:
                       </label>
                       <Input
                         value={rowData.text || ""}
                         onChange={(e) => {
-                          const newTableRows = [...(extra.tableRows || Array(6).fill({}))];
-                          newTableRows[rowIndex] = { ...newTableRows[rowIndex], text: e.target.value };
+                          const newTableRows = [...(extra.tableRows || Array(8).fill({}))];
+                          newTableRows[actualIndex] = { ...newTableRows[actualIndex], text: e.target.value };
                           setExtra((prev) => ({ ...prev, tableRows: newTableRows }));
                         }}
-                        placeholder="Inserisci testo per questa riga..."
+                        placeholder="Inserisci stagione per questa riga..."
                         className="text-xs h-7"
                       />
                     </div>
@@ -501,8 +516,8 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
                           if (!selectedUserId) return;
                           setSaving(true);
                           try {
-                            const newTableRows = [...(extra.tableRows || Array(12).fill({}))];
-                            newTableRows[rowIndex] = {};
+                            const newTableRows = [...(extra.tableRows || Array(8).fill({}))];
+                            newTableRows[actualIndex] = {};
                             await updateDoc(doc(db, "users", selectedUserId), {
                               "budoPassExtra.tableRows": newTableRows
                             });
@@ -537,6 +552,189 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
                 </div>
               );
             })}
+          </div>
+
+          {/* Sezione Tabella ESAMI */}
+          <div className="mt-10 space-y-3">
+            <h3 className="text-sm font-bold" style={{ color: "hsl(var(--my-marscuro))" }}>
+              Tabella "ESAMI"
+            </h3>
+            {/* Grado attuale come indicatore */}
+            <div className="mb-3">
+              <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--my-marscuro))" }}>Grado attuale (solo indicazione)</label>
+              <Input value={lastGrade} readOnly className="text-xs h-7 bg-gray-50 border-black/50" />
+            </div>
+
+            {/* 15 righe fisse: progressioni da grades[i] a grades[i+1] */}
+            <div className="space-y-2">
+              {Array.from({ length: 14 }, (_, idx) => {
+                const fromGrade = grades[idx] || "";
+                const toGrade = grades[idx + 1] || "";
+                // Cerca nell'array exams un match con fromGrade e toGrade
+                const existingExam = (extra.exams || []).find(
+                  (ex) => ex.fromGrade === fromGrade && ex.toGrade === toGrade
+                );
+                const stars = existingExam?.stars ?? 0;
+                const examDate = existingExam?.examDate || "";
+                const place = existingExam?.place || "";
+                const examiner = existingExam?.examiner || "";
+
+                return (
+                  <div key={idx} className="border rounded p-2">
+                    <div className="text-xs font-medium mb-2" style={{ color: "hsl(var(--my-marscuro))" }}>
+                      Progressi da: <span className="font-bold">{fromGrade}</span> a: <span className="font-bold">{toGrade}</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--my-marscuro))" }}>Stelle (1-5)</label>
+                        <Input
+                          type="number" min={0} max={5}
+                          value={stars}
+                          onChange={(e) => {
+                            const val = Math.max(0, Math.min(5, Number(e.target.value || 0)));
+                            setExtra((prev) => {
+                              let newEx = [...(prev.exams || [])];
+                              const foundIdx = newEx.findIndex(
+                                (ex) => ex.fromGrade === fromGrade && ex.toGrade === toGrade
+                              );
+                              if (foundIdx >= 0) {
+                                newEx[foundIdx] = { ...newEx[foundIdx], stars: val };
+                              } else {
+                                newEx.push({ fromGrade, toGrade, stars: val, examDate: "", place: "", examiner: "" });
+                              }
+                              return { ...prev, exams: newEx };
+                            });
+                          }}
+                          className="text-xs h-7"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--my-marscuro))" }}>Data esame</label>
+                        <Input
+                          type="date"
+                          value={examDate}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExtra((prev) => {
+                              let newEx = [...(prev.exams || [])];
+                              const foundIdx = newEx.findIndex(
+                                (ex) => ex.fromGrade === fromGrade && ex.toGrade === toGrade
+                              );
+                              if (foundIdx >= 0) {
+                                newEx[foundIdx] = { ...newEx[foundIdx], examDate: val };
+                              } else {
+                                newEx.push({ fromGrade, toGrade, stars: 0, examDate: val, place: "", examiner: "" });
+                              }
+                              return { ...prev, exams: newEx };
+                            });
+                          }}
+                          className="text-xs h-7"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--my-marscuro))" }}>Luogo</label>
+                        <Input
+                          value={place}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExtra((prev) => {
+                              let newEx = [...(prev.exams || [])];
+                              const foundIdx = newEx.findIndex(
+                                (ex) => ex.fromGrade === fromGrade && ex.toGrade === toGrade
+                              );
+                              if (foundIdx >= 0) {
+                                newEx[foundIdx] = { ...newEx[foundIdx], place: val };
+                              } else {
+                                newEx.push({ fromGrade, toGrade, stars: 0, examDate: "", place: val, examiner: "" });
+                              }
+                              return { ...prev, exams: newEx };
+                            });
+                          }}
+                          className="text-xs h-7"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1" style={{ color: "hsl(var(--my-marscuro))" }}>Esaminatore</label>
+                        <Input
+                          value={examiner}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setExtra((prev) => {
+                              let newEx = [...(prev.exams || [])];
+                              const foundIdx = newEx.findIndex(
+                                (ex) => ex.fromGrade === fromGrade && ex.toGrade === toGrade
+                              );
+                              if (foundIdx >= 0) {
+                                newEx[foundIdx] = { ...newEx[foundIdx], examiner: val };
+                              } else {
+                                newEx.push({ fromGrade, toGrade, stars: 0, examDate: "", place: "", examiner: val });
+                              }
+                              return { ...prev, exams: newEx };
+                            });
+                          }}
+                          className="text-xs h-7"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={saving}
+                        className="px-2 h-7"
+                        onClick={async () => {
+                          if (!selectedUserId) return;
+                          setSaving(true);
+                          setError(null);
+                          try {
+                            await updateDoc(doc(db, "users", selectedUserId), {
+                              "budoPassExtra.exams": extra.exams || [],
+                            });
+                          } catch (e) {
+                            setError("Errore nel salvataggio esame.");
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                      >
+                        Salva riga
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        disabled={saving}
+                        className="px-2 h-7"
+                        onClick={async () => {
+                          if (!selectedUserId) return;
+                          setSaving(true);
+                          setError(null);
+                          try {
+                            let newEx = [...(extra.exams || [])];
+                            const foundIdx = newEx.findIndex(
+                              (ex) => ex.fromGrade === fromGrade && ex.toGrade === toGrade
+                            );
+                            if (foundIdx >= 0) {
+                              newEx.splice(foundIdx, 1);
+                            }
+                            await updateDoc(doc(db, "users", selectedUserId), {
+                              "budoPassExtra.exams": newEx,
+                            });
+                            setExtra((prev) => ({ ...prev, exams: newEx }));
+                          } catch (e) {
+                            setError("Errore nella cancellazione esame.");
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                      >
+                        Elimina riga
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

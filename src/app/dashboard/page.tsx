@@ -98,6 +98,8 @@ function DashboardContent() {
   const [memberCardProps, setMemberCardProps] = useState<MemberSummaryProps | null>(null);
   const [showDataCorrectionMessage, setShowDataCorrectionMessage] = useState(false);
   const [showSubscriptionActivatedMessage, setShowSubscriptionActivatedMessage] = useState(false);
+  const [grades, setGrades] = useState<string[]>([]);
+  const [exams, setExams] = useState<Array<{ fromGrade: string; toGrade: string; stars?: number }>>([]);
 
   useFirebaseMessaging((payload) => {
     // Use toast instead of alert for a better UX
@@ -185,12 +187,14 @@ function DashboardContent() {
         const gymsCollectionRef = collection(db, "gyms");
         // Nuovo: stato pagamento abbonamento
         const paymentStatusDocRef = doc(db, `users/${effectiveUserId}/payments/status`);
-        const [userDocSnap, seasonDocSnap, gymsSnapshot, paymentStatusSnap, trialMainDocSnap] = await Promise.all([
+        const karateConfigRef = doc(db, "config", "karate");
+        const [userDocSnap, seasonDocSnap, gymsSnapshot, paymentStatusSnap, trialMainDocSnap, karateConfigSnap] = await Promise.all([
           getDoc(userDocRef),
           getDoc(seasonSettingsRef),
           getDocs(gymsCollectionRef),
           getDoc(paymentStatusDocRef),
-          getDoc(doc(db, `users/${effectiveUserId}/trialLessons/main`))
+          getDoc(doc(db, `users/${effectiveUserId}/trialLessons/main`)),
+          getDoc(karateConfigRef)
         ]);
 
         const gymsMap = new Map<string, string>();
@@ -198,6 +202,15 @@ function DashboardContent() {
 
         if (userDocSnap.exists()) {
           const data = userDocSnap.data() as UserData;
+          
+          // Carico grades da config/karate
+          const gradesArr = (karateConfigSnap.exists() && Array.isArray(karateConfigSnap.data()?.grades)) ? karateConfigSnap.data()!.grades as string[] : [];
+          setGrades(gradesArr);
+          
+          // Carico exams da budoPassExtra
+          const examsArr = (data as any)?.budoPassExtra?.exams || [];
+          setExams(examsArr);
+          
           // Leggi lezioni di prova e stato dal documento unico 'main'
           let trialStatus = data.trialStatus;
           let trialExpiryDate = data.trialExpiryDate;
@@ -389,6 +402,8 @@ function DashboardContent() {
           fullAddress: data.address ? `${data.address}, ${data.streetNumber}, ${data.zipCode} ${data.city} (${data.province})` : undefined,
           isMinor: data.isMinor,
           parentData: data.parentData,
+          grades: gradesArr,
+          exams: examsArr,
         });
 
             }

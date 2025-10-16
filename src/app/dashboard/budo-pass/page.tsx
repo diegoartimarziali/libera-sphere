@@ -12,7 +12,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
-const TOTAL_PAGES = 4;
+const TOTAL_PAGES = 7; // 1: copertina, 2: dati tessera, 3: foto+dati, 4: ente, 5-7: esami (5 righe/pagina)
 const BG_URL = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/budopass%2Fsfondo.jpg?alt=media&token=825019f1-2a51-4567-b0c6-8e7f98860307";
 const BG_COPERTINA = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/budopass%2Fcopertina.jpg?alt=media&token=69f1dc9f-c19a-4b07-9974-d0f5150b1d88";
 
@@ -43,7 +43,8 @@ function formatDateIT(dateStr: string | null | undefined): string {
   }
 }
 
-function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, presidenteSignature, direttivoSignature, photoUrl, onPhotoUpload, userName, userSurname, birthDate, birthPlace, address, streetNumber, city, province, phone }: { pageNum: number; budoPassNumber?: string | null; issuedAt?: string | null; from?: string | null; scadenza?: string | null; presidenteSignature?: string | null; direttivoSignature?: string | null; photoUrl?: string | null; onPhotoUpload?: (file: File) => void; userName?: string | null; userSurname?: string | null; birthDate?: string | null; birthPlace?: string | null; address?: string | null; streetNumber?: string | null; city?: string | null; province?: string | null; phone?: string | null }) {
+type Exam = { fromGrade: string; toGrade: string; stars?: number; examDate?: string; place?: string; examiner?: string };
+function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, presidenteSignature, direttivoSignature, photoUrl, onPhotoUpload, userName, userSurname, birthDate, birthPlace, address, streetNumber, city, province, phone, enteRows, exams, grades }: { pageNum: number; budoPassNumber?: string | null; issuedAt?: string | null; from?: string | null; scadenza?: string | null; presidenteSignature?: string | null; direttivoSignature?: string | null; photoUrl?: string | null; onPhotoUpload?: (file: File) => void; userName?: string | null; userSurname?: string | null; birthDate?: string | null; birthPlace?: string | null; address?: string | null; streetNumber?: string | null; city?: string | null; province?: string | null; phone?: string | null; enteRows?: Array<{ imageUrl?: string; text?: string }>; exams?: Exam[]; grades?: string[] }) {
   const [bg, setBg] = useState("");
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   
@@ -99,10 +100,22 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
             >
               Valle d'Aosta
             </div>
-            {/* Spaziatura verticale di 3 cm sotto l'intestazione (1 cm originale + 2 cm spostamento) */}
+            {/* Status VALIDO/SCADUTO sopra BUDOPASS */}
             <div
               style={{
-                marginTop: "3cm",
+                marginTop: "2.5cm",
+                fontSize: "12pt",
+                color: scadenza && new Date(scadenza) >= new Date() ? "#15803d" : "#dc2626",
+                fontWeight: "bold",
+                fontFamily: "'Noto Serif', serif",
+              }}
+            >
+              {scadenza ? (new Date(scadenza) >= new Date() ? "VALIDO" : "SCADUTO") : ""}
+            </div>
+            {/* Spaziatura verticale di 0.5cm sotto status */}
+            <div
+              style={{
+                marginTop: "0.5cm",
                 fontSize: "14pt",
                 color: "#000",
                 fontWeight: "normal",
@@ -170,7 +183,7 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
           <div
             style={{
               position: "absolute",
-              bottom: "3.5cm",
+              bottom: "1.5cm",
               left: "0",
               right: "0",
               paddingLeft: "0.5cm",
@@ -207,6 +220,152 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
         </div>
       )}
 
+      {/* Pagina 4: Ente di Appartenenza */}
+      {pageNum === 4 && (
+        <div className="absolute inset-0" style={{ paddingLeft: "0.5cm", paddingRight: "0.5cm" }}>
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            color: "#000",
+            fontFamily: "'Noto Serif', serif",
+          }}>
+            <div style={{
+              textAlign: "center",
+              fontSize: "12pt",
+              fontWeight: "normal",
+              marginTop: "0.6cm",
+            }}>
+              ENTE DI APPARTENENZA
+            </div>
+            {/* Spazio di 1cm sotto il sottotitolo */}
+            <div style={{ height: "1cm" }} />
+            {/* Area tabella: occupa tutto lo spazio rimanente con 1cm dal fondo */}
+            <div style={{
+              flex: 1,
+              display: "grid",
+              gridTemplateRows: "repeat(6, 1fr)",
+              rowGap: "0.1cm",
+              paddingBottom: "1cm",
+            }}>
+              {Array.from({ length: 6 }, (_, i) => (enteRows?.[i + 2] ?? {})).map((row: any, idx: number) => (
+                <div key={idx} style={{
+                  display: "grid",
+                  gridTemplateColumns: "20% 80%",
+                  alignItems: "center",
+                  gap: "0.3cm",
+                  border: "1px solid #000",
+                  padding: "0.2cm 0.3cm",
+                  backgroundColor: "transparent",
+                }}>
+                  {/* Colonna sinistra: logo/immagine ente */}
+                  <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", marginLeft: "0.5cm" }}>
+                    {row?.imageUrl ? (
+                      <img
+                        src={row.imageUrl}
+                        alt={`Logo Ente ${idx + 1}`}
+                        style={{ maxWidth: "160%", maxHeight: "160%", objectFit: "contain" }}
+                        onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+                      />
+                    ) : null}
+                  </div>
+                  {/* Colonna destra: testo */}
+                  <div style={{
+                    fontSize: "16pt",
+                    fontWeight: 400,
+                    fontFamily: "'Special Elite', cursive",
+                    color: "#000",
+                    lineHeight: 1.3,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical" as any,
+                    marginLeft: "2cm",
+                  }}>
+                    {row?.text || ""}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Pagine 5-7: ESAMI (5 righe per pagina) */}
+      {pageNum >= 5 && pageNum <= 7 && (
+        <div className="absolute inset-0" style={{ paddingLeft: "0.5cm", paddingRight: "0.5cm" }}>
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            color: "#000",
+            fontFamily: "'Noto Serif', serif",
+          }}>
+            <div style={{
+              textAlign: "center",
+              fontSize: "12pt",
+              fontWeight: "normal",
+              marginTop: "0.6cm",
+            }}>
+              ESAMI
+            </div>
+            {/* Spazio di 0.7cm sotto il titolo per bilanciare layout su 5 righe */}
+            <div style={{ height: "0.7cm" }} />
+            <div style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.3cm",
+              paddingBottom: "0.6cm",
+            }}>
+              {Array.from({ length: 5 }, (_, i) => {
+                const start = (pageNum - 5) * 5;
+                const examIndex = start + i;
+                // Usa grades[examIndex] e grades[examIndex + 1] come nella tabella admin
+                const fromGrade = grades?.[examIndex] || "";
+                const toGrade = grades?.[examIndex + 1] || "";
+                // Cerca nell'array exams un match con fromGrade e toGrade
+                const row = (exams || []).find(
+                  (ex) => ex.fromGrade === fromGrade && ex.toGrade === toGrade
+                );
+                return (
+                  <div key={i} style={{
+                    border: "1px solid #000",
+                    padding: "0.2cm 0.3cm",
+                    backgroundColor: "transparent",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.15cm",
+                  }}>
+                    {/* Riga A: da ... a ... */}
+                    <div style={{ fontSize: "10pt", lineHeight: 1.2 }}>
+                      <span style={{ fontWeight: 600 }}>da:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{fromGrade}</span>
+                      {" "}<span style={{ fontWeight: 600 }}>a:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{toGrade}</span>
+                    </div>
+                    {/* Riga B: Esame di + Data esame sulla stessa riga */}
+                    <div style={{ fontSize: "10pt", lineHeight: 1.2 }}>
+                      <span style={{ fontWeight: 600 }}>Esame di:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{toGrade}</span>
+                      {" "}<span style={{ fontWeight: 600 }}>Data:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{row?.examDate ? formatDateIT(row.examDate) : ""}</span>
+                    </div>
+                    {/* Riga C: Luogo - Esaminatore */}
+                    <div style={{ fontSize: "9pt", lineHeight: 1.2 }}>
+                      <span style={{ fontWeight: 600 }}>Luogo:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{row?.place || ""}</span>
+                      {" - "}
+                      <span style={{ fontWeight: 600 }}>Esaminatore:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{row?.examiner || ""}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Pagina 3: Dati Personali - Fototessera */}
       {pageNum === 3 && (
         <div className="absolute inset-0 flex flex-col items-center pt-6">
@@ -418,6 +577,9 @@ export default function BudoPassPage() {
   const [direttivoSignature, setDirettivoSignature] = useState<string | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [enteRows, setEnteRows] = useState<Array<{ imageUrl?: string; text?: string }>>([]);
+  const [exams, setExams] = useState<Array<{ fromGrade: string; toGrade: string; stars?: number; examDate?: string; place?: string; examiner?: string }>>([]);
+  const [grades, setGrades] = useState<string[]>([]);
   
   // Dati anagrafici
   const [userName, setUserName] = useState<string | null>(null);
@@ -445,6 +607,8 @@ export default function BudoPassPage() {
           const presidenteImg = data?.budoPassExtra?.tableRows?.[0]?.imageUrl ?? null;
           const direttivoImg = data?.budoPassExtra?.tableRows?.[1]?.imageUrl ?? null;
           const photo = data?.budoPassExtra?.photoUrl ?? null;
+          const rows = data?.budoPassExtra?.tableRows ?? [];
+          const examsArr = data?.budoPassExtra?.exams ?? [];
           
           // Dati anagrafici
           const name = data?.name ?? null;
@@ -464,6 +628,17 @@ export default function BudoPassPage() {
           setPresidenteSignature(presidenteImg);
           setDirettivoSignature(direttivoImg);
           setPhotoUrl(photo);
+          setEnteRows(rows);
+          setExams(examsArr);
+          
+          // Carico elenco gradi da config/karate
+          try {
+            const karateDoc = await getDoc(doc(db, "config", "karate"));
+            const gradesArr = (karateDoc.exists() && Array.isArray(karateDoc.data()?.grades)) ? karateDoc.data()!.grades as string[] : [];
+            setGrades(gradesArr);
+          } catch (e) {
+            setGrades([]);
+          }
           
           setUserName(name);
           setUserSurname(surname);
@@ -570,6 +745,9 @@ export default function BudoPassPage() {
         city={city}
         province={province}
         phone={phone}
+        enteRows={enteRows}
+        exams={exams}
+        grades={grades}
       />
 
       {uploading && (
