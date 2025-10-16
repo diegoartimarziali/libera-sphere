@@ -7,7 +7,7 @@ import { auth, db } from "@/lib/firebase";
 import { isSuperAdmin } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Database, UserX, Settings, FileX, Trash2, AlertTriangle, Crown, Unlock, BarChart3 } from "lucide-react";
+import { Shield, Database, UserX, Settings, FileX, Trash2, AlertTriangle, Crown, Unlock, BarChart3, IdCard } from "lucide-react";
 import Link from "next/link";
 import AdminUserUnlocker from "@/components/admin/UserUnlocker";
 import SubscriptionAnalyzer from "@/components/admin/SubscriptionAnalyzer";
@@ -76,6 +76,13 @@ export default function SuperAdminPage() {
     }
 
     const superAdminFeatures = [
+        {
+            title: "Gestione BudoPass",
+            description: "Configurazione dati BudoPass per ogni utente (numero, date, firme, tabella enti)",
+            icon: IdCard,
+            href: "/admin/budopass-extra",
+            features: ["Modifica dati BudoPass", "Upload fototessera", "Gestione tabella enti", "Date e firme"]
+        },
         {
             title: "Gestione Database",
             description: "Reset completo del database, migrazione dati, backup e ripristino",
