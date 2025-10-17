@@ -12,7 +12,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
-const TOTAL_PAGES = 7; // 1: copertina, 2: dati tessera, 3: foto+dati, 4: ente, 5-7: esami (5 righe/pagina)
+const TOTAL_PAGES = 8; // 1: copertina, 2: dati tessera, 3: foto+dati, 4: ente, 5-7: esami (5 righe/pagina), 8: qualifiche
 const BG_URL = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/budopass%2Fsfondo.jpg?alt=media&token=825019f1-2a51-4567-b0c6-8e7f98860307";
 const BG_COPERTINA = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/budopass%2Fcopertina.jpg?alt=media&token=69f1dc9f-c19a-4b07-9974-d0f5150b1d88";
 
@@ -44,7 +44,8 @@ function formatDateIT(dateStr: string | null | undefined): string {
 }
 
 type Exam = { fromGrade: string; toGrade: string; stars?: number; examDate?: string; place?: string; examiner?: string };
-function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, presidenteSignature, direttivoSignature, photoUrl, onPhotoUpload, userName, userSurname, birthDate, birthPlace, address, streetNumber, city, province, phone, enteRows, exams, grades }: { pageNum: number; budoPassNumber?: string | null; issuedAt?: string | null; from?: string | null; scadenza?: string | null; presidenteSignature?: string | null; direttivoSignature?: string | null; photoUrl?: string | null; onPhotoUpload?: (file: File) => void; userName?: string | null; userSurname?: string | null; birthDate?: string | null; birthPlace?: string | null; address?: string | null; streetNumber?: string | null; city?: string | null; province?: string | null; phone?: string | null; enteRows?: Array<{ imageUrl?: string; text?: string }>; exams?: Exam[]; grades?: string[] }) {
+type Qualification = { tipo?: string; ente?: string; data?: string; esaminatore?: string };
+function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, presidenteSignature, direttivoSignature, photoUrl, onPhotoUpload, userName, userSurname, birthDate, birthPlace, address, streetNumber, city, province, phone, enteRows, exams, grades, qualifications }: { pageNum: number; budoPassNumber?: string | null; issuedAt?: string | null; from?: string | null; scadenza?: string | null; presidenteSignature?: string | null; direttivoSignature?: string | null; photoUrl?: string | null; onPhotoUpload?: (file: File) => void; userName?: string | null; userSurname?: string | null; birthDate?: string | null; birthPlace?: string | null; address?: string | null; streetNumber?: string | null; city?: string | null; province?: string | null; phone?: string | null; enteRows?: Array<{ imageUrl?: string; text?: string }>; exams?: Exam[]; grades?: string[]; qualifications?: Qualification[] }) {
   const [bg, setBg] = useState("");
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   
@@ -346,19 +347,82 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
                   }}>
                     {/* Riga A rimossa: non mostrare 'da:'/'a:' nelle pagine utente */}
                     {/* Riga B: Esame di + Data esame sulla stessa riga */}
-                    <div style={{ fontSize: "10pt", lineHeight: 1.2 }}>
+                    <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
                       <span style={{ fontWeight: 600 }}>Esame di:</span>{" "}
                       <span style={{ fontFamily: "'Special Elite', cursive" }}>{toGrade}</span>
                       {" "}<span style={{ fontWeight: 600 }}>Data:</span>{" "}
                       <span style={{ fontFamily: "'Special Elite', cursive" }}>{row?.examDate ? formatDateIT(row.examDate) : ""}</span>
                     </div>
                     {/* Riga C: Luogo - Esaminatore */}
-                    <div style={{ fontSize: "9pt", lineHeight: 1.2 }}>
+                    <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
                       <span style={{ fontWeight: 600 }}>Luogo:</span>{" "}
                       <span style={{ fontFamily: "'Special Elite', cursive" }}>{row?.place || ""}</span>
                       {" - "}
                       <span style={{ fontWeight: 600 }}>Esaminatore:</span>{" "}
                       <span style={{ fontFamily: "'Special Elite', cursive" }}>{row?.examiner || ""}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Pagina 8: QUALIFICHE (5 righe) */}
+      {pageNum === 8 && (
+        <div className="absolute inset-0" style={{ paddingLeft: "0.5cm", paddingRight: "0.5cm" }}>
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            color: "#000",
+            fontFamily: "'Noto Serif', serif",
+          }}>
+            <div style={{
+              textAlign: "center",
+              fontSize: "12pt",
+              fontWeight: "normal",
+              marginTop: "0.6cm",
+            }}>
+              QUALIFICHE
+            </div>
+            {/* Spazio di 0.7cm sotto il titolo */}
+            <div style={{ height: "0.7cm" }} />
+            <div style={{
+              flex: 1,
+              display: "grid",
+              gridTemplateRows: "repeat(5, 1fr)",
+              rowGap: "0.3cm",
+              paddingBottom: "0.6cm",
+            }}>
+              {Array.from({ length: 5 }, (_, i) => {
+                const qual = qualifications?.[i];
+                return (
+                  <div key={i} style={{
+                    border: "1px solid #000",
+                    padding: "0.2cm 0.3cm",
+                    backgroundColor: "transparent",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.1cm",
+                  }}>
+                    {/* Riga 1: Tipo e Ente */}
+                    <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
+                      <span style={{ fontWeight: 600 }}>Tipo:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{qual?.tipo || ""}</span>
+                      {" - "}
+                      <span style={{ fontWeight: 600 }}>Ente:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{qual?.ente || ""}</span>
+                    </div>
+                    {/* Riga 2: Data */}
+                    <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
+                      <span style={{ fontWeight: 600 }}>Data:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{qual?.data ? formatDateIT(qual.data) : ""}</span>
+                    </div>
+                    {/* Riga 3: Esaminatore */}
+                    <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
+                      <span style={{ fontWeight: 600 }}>Esaminatore:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{qual?.esaminatore || ""}</span>
                     </div>
                   </div>
                 );
@@ -581,6 +645,7 @@ export default function BudoPassPage() {
   const [enteRows, setEnteRows] = useState<Array<{ imageUrl?: string; text?: string }>>([]);
   const [exams, setExams] = useState<Array<{ fromGrade: string; toGrade: string; stars?: number; examDate?: string; place?: string; examiner?: string }>>([]);
   const [grades, setGrades] = useState<string[]>([]);
+  const [qualifications, setQualifications] = useState<Array<{ tipo?: string; ente?: string; data?: string; esaminatore?: string }>>([]);
   
   // Dati anagrafici
   const [userName, setUserName] = useState<string | null>(null);
@@ -631,6 +696,10 @@ export default function BudoPassPage() {
           setPhotoUrl(photo);
           setEnteRows(rows);
           setExams(examsArr);
+          
+          // Carico qualifications da budoPassExtra
+          const qualificationsArr = (data as any)?.budoPassExtra?.qualifications || [];
+          setQualifications(qualificationsArr);
           
           // Carico elenco gradi da config/karate
           try {
@@ -749,6 +818,7 @@ export default function BudoPassPage() {
         enteRows={enteRows}
         exams={exams}
         grades={grades}
+        qualifications={qualifications}
       />
 
       {uploading && (

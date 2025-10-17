@@ -144,28 +144,29 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                 {props.grades && props.exams && props.exams.length > 0 && (
                   <div className="text-base pt-3 space-y-1">
                     <div className="font-bold text-center mb-1" style={{ color: 'hsl(var(--background))' }}>Progressi Tecnici:</div>
-                    {props.grades.slice(0, 14).map((_, idx) => {
-                      const fromGrade = props.grades![idx] || "";
-                      const toGrade = props.grades![idx + 1] || "";
-                      const exam = props.exams!.find(
-                        (ex) => ex.fromGrade === fromGrade && ex.toGrade === toGrade
-                      );
-                      if (!exam || !exam.stars) return null;
+                    {(() => {
+                      // Trova l'ultimo esame con stelle (il più recente)
+                      const lastExam = [...props.exams]
+                        .reverse()
+                        .find(ex => ex.stars && ex.stars > 0);
+                      
+                      if (!lastExam) return null;
+                      
                       return (
-                        <div key={idx} className="flex flex-col items-center gap-2 text-sm">
+                        <div className="flex flex-col items-center gap-2 text-sm">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold">da:</span>
-                            <span className="font-bold">{fromGrade}</span>
+                            <span className="font-bold">{lastExam.fromGrade}</span>
                             <span className="font-semibold">a:</span>
-                            <span className="font-bold">{toGrade}</span>
+                            <span className="font-bold">{lastExam.toGrade}</span>
                           </div>
                           <div style={{ letterSpacing: "0.15cm", display: "flex", gap: "0.08cm" }}>
-                            {Array.from({ length: 5 }, (_, starIdx) => (
+                            {Array.from({ length: 5 }, (_, idx) => (
                               <span
-                                key={starIdx}
+                                key={idx}
                                 style={{
                                   fontSize: "26pt",
-                                  color: starIdx < exam.stars! ? "#FFD700" : "transparent",
+                                  color: idx < lastExam.stars! ? "#FFD700" : "transparent",
                                   WebkitTextStroke: "1px #000",
                                 }}
                               >
@@ -175,7 +176,12 @@ export function MemberSummaryCard(props: MemberSummaryProps) {
                           </div>
                         </div>
                       );
-                    })}
+                    })()}
+                  </div>
+                )}
+                {props.grades && (!props.exams || props.exams.length === 0 || !props.exams.some(ex => ex.stars && ex.stars > 0)) && (
+                  <div className="text-base pt-3">
+                    <div className="font-bold text-center" style={{ color: 'hsl(var(--background))' }}>Progressi Tecnici:</div>
                   </div>
                 )}
             </CardHeader>

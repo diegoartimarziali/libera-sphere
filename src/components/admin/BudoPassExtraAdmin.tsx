@@ -30,6 +30,13 @@ interface BudoPassExtra {
     place?: string;
     examiner?: string;
   }>;
+  // Qualifiche (5 righe)
+  qualifications?: Array<{
+    tipo?: string;
+    ente?: string;
+    data?: string; // ISO date
+    esaminatore?: string;
+  }>;
 }
 
 interface User {
@@ -723,6 +730,131 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
                             setExtra((prev) => ({ ...prev, exams: newEx }));
                           } catch (e) {
                             setError("Errore nella cancellazione esame.");
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                      >
+                        Elimina riga
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sezione Tabella QUALIFICHE */}
+          <div className="mt-10 space-y-3">
+            <h3 className="text-sm font-bold" style={{ color: "hsl(var(--my-marscuro))" }}>
+              Tabella "QUALIFICHE" (5 righe)
+            </h3>
+            <div className="space-y-3">
+              {Array.from({ length: 5 }, (_, idx) => {
+                const qual = (extra.qualifications || [])[idx] || {};
+                return (
+                  <div key={idx} className="border rounded p-3 bg-gray-50">
+                    <div className="text-sm font-medium mb-2">Riga {idx + 1}</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Tipo */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Tipo</label>
+                        <Input
+                          value={qual.tipo || ""}
+                          onChange={(e) => {
+                            const newQual = [...(extra.qualifications || [])];
+                            if (!newQual[idx]) newQual[idx] = {};
+                            newQual[idx].tipo = e.target.value;
+                            setExtra((prev) => ({ ...prev, qualifications: newQual }));
+                          }}
+                          placeholder="Es. Arbitro"
+                        />
+                      </div>
+                      {/* Ente */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Ente</label>
+                        <Input
+                          value={qual.ente || ""}
+                          onChange={(e) => {
+                            const newQual = [...(extra.qualifications || [])];
+                            if (!newQual[idx]) newQual[idx] = {};
+                            newQual[idx].ente = e.target.value;
+                            setExtra((prev) => ({ ...prev, qualifications: newQual }));
+                          }}
+                          placeholder="Es. FIJLKAM"
+                        />
+                      </div>
+                      {/* Data */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Data</label>
+                        <Input
+                          type="date"
+                          value={qual.data || ""}
+                          onChange={(e) => {
+                            const newQual = [...(extra.qualifications || [])];
+                            if (!newQual[idx]) newQual[idx] = {};
+                            newQual[idx].data = e.target.value;
+                            setExtra((prev) => ({ ...prev, qualifications: newQual }));
+                          }}
+                        />
+                      </div>
+                      {/* Esaminatore */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Esaminatore</label>
+                        <Input
+                          value={qual.esaminatore || ""}
+                          onChange={(e) => {
+                            const newQual = [...(extra.qualifications || [])];
+                            if (!newQual[idx]) newQual[idx] = {};
+                            newQual[idx].esaminatore = e.target.value;
+                            setExtra((prev) => ({ ...prev, qualifications: newQual }));
+                          }}
+                          placeholder="Es. M° Rossi"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={saving}
+                        className="px-2 h-7"
+                        onClick={async () => {
+                          if (!selectedUserId) return;
+                          setSaving(true);
+                          setError(null);
+                          try {
+                            await updateDoc(doc(db, "users", selectedUserId), {
+                              "budoPassExtra.qualifications": extra.qualifications || [],
+                            });
+                          } catch (e) {
+                            setError("Errore nel salvataggio qualifica.");
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                      >
+                        Salva riga
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        disabled={saving}
+                        className="px-2 h-7"
+                        onClick={async () => {
+                          if (!selectedUserId) return;
+                          setSaving(true);
+                          setError(null);
+                          try {
+                            let newQual = [...(extra.qualifications || [])];
+                            newQual[idx] = {};
+                            await updateDoc(doc(db, "users", selectedUserId), {
+                              "budoPassExtra.qualifications": newQual,
+                            });
+                            setExtra((prev) => ({ ...prev, qualifications: newQual }));
+                          } catch (e) {
+                            setError("Errore nella cancellazione qualifica.");
                           } finally {
                             setSaving(false);
                           }
