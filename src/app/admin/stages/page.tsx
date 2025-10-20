@@ -179,7 +179,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                                 field.onChange(value);
                             }} value={field.value}>
                                 <FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona una tipologia..." /></SelectTrigger></FormControl>
-                                <SelectContent className="bg-white">
+                                <SelectContent className="bg-white z-[9999] max-h-[300px]" position="popper" sideOffset={5} align="start">
                                     <SelectItem value="stage" className="text-black">Stage</SelectItem>
                                     <SelectItem value="exam" className="text-black">Esami</SelectItem>
                                     <SelectItem value="aggiornamento" className="text-black">Aggiornamento</SelectItem>
@@ -204,7 +204,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         <FormItem><FormLabel>Disciplina</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona disciplina..." /></SelectTrigger></FormControl>
-                                <SelectContent className="bg-white">
+                                <SelectContent className="bg-white z-[9999] max-h-[300px]" position="popper" sideOffset={5} align="start">
                                     <SelectItem value="karate" className="text-black">Karate</SelectItem>
                                     <SelectItem value="aikido" className="text-black">Aikido</SelectItem>
                                 </SelectContent>
@@ -215,7 +215,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                         <FormItem><FormLabel>Luogo</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl><SelectTrigger className="bg-white text-black"><SelectValue placeholder="Seleziona una palestra..." /></SelectTrigger></FormControl>
-                                <SelectContent className="bg-white">
+                                <SelectContent className="bg-white z-[9999] max-h-[300px]" position="popper" sideOffset={5} align="start">
                                     {gyms.map(g => (
                                         <SelectItem key={g.id} value={g.name + (g.address ? ` - ${g.address}` : '')} className="text-black">
                                             {g.name}{g.address ? ` - ${g.address}` : ''}
@@ -278,7 +278,7 @@ function StageForm({ stage, gyms, onSave, onCancel }: { stage?: StageFormData, g
                                         <SelectValue placeholder="Seleziona a chi è rivolto..." />
                                     </SelectTrigger>
                                 </FormControl>
-                                <SelectContent className="bg-white">
+                                <SelectContent className="bg-white z-[9999] max-h-[300px]" position="popper" sideOffset={5} align="start">
                                     <SelectItem value="Tutti" className="text-black">Tutti</SelectItem>
                                     <SelectItem value="Cinture Nere" className="text-black">Cinture Nere</SelectItem>
                                     <SelectItem value="Insegnanti" className="text-black">Insegnanti</SelectItem>

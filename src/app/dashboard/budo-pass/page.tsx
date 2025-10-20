@@ -9,10 +9,11 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { auth, db } from "@/lib/firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useSearchParams } from "next/navigation";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
-const TOTAL_PAGES = 8; // 1: copertina, 2: dati tessera, 3: foto+dati, 4: ente, 5-7: esami (5 righe/pagina), 8: qualifiche
+const TOTAL_PAGES = 25; // 1: copertina, 2: dati tessera, 3: foto+dati, 4: ente, 5-7: esami (5 righe/pagina), 8: qualifiche (5 righe), 9-25: stages ed eventi (4 righe/pagina)
 const BG_URL = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/budopass%2Fsfondo.jpg?alt=media&token=825019f1-2a51-4567-b0c6-8e7f98860307";
 const BG_COPERTINA = "https://firebasestorage.googleapis.com/v0/b/libera-energia-soci.firebasestorage.app/o/budopass%2Fcopertina.jpg?alt=media&token=69f1dc9f-c19a-4b07-9974-d0f5150b1d88";
 
@@ -43,9 +44,82 @@ function formatDateIT(dateStr: string | null | undefined): string {
   }
 }
 
+// Helper function to get belt colors for a grade
+function getBeltColors(grade: string): { left: string; right: string; hasStripe?: boolean; stripeCount?: number } {
+  const normalized = grade.toLowerCase().replace(/\s+/g, "");
+  
+  // Kyu grades
+  if (normalized.includes("10°kyu") || normalized.includes("bianca")) {
+    return { left: "#FFFFFF", right: "#FFFFFF" };
+  }
+  if (normalized.includes("9°kyu") || normalized.includes("biancagialla")) {
+    return { left: "#FFFFFF", right: "#FFD700" };
+  }
+  if (normalized.includes("8°kyu") || normalized.includes("gialla")) {
+    return { left: "#FFD700", right: "#FFD700" };
+  }
+  if (normalized.includes("7°kyu") || normalized.includes("gialloarancio")) {
+    return { left: "#FFD700", right: "#FFA500" };
+  }
+  if (normalized.includes("6°kyu") || normalized.includes("arancio")) {
+    return { left: "#FFA500", right: "#FFA500" };
+  }
+  if (normalized.includes("5°kyu") || normalized.includes("arancioverde")) {
+    return { left: "#FFA500", right: "#00AA00" };
+  }
+  if (normalized.includes("4°kyu") || normalized.includes("blu")) {
+    return { left: "#0066CC", right: "#0066CC" };
+  }
+  if (normalized.includes("3°kyu") || normalized.includes("marrone")) {
+    return { left: "#8B4513", right: "#8B4513" };
+  }
+  if (normalized.includes("2°kyu")) {
+    return { left: "#8B4513", right: "#8B4513" };
+  }
+  if (normalized.includes("1°kyu")) {
+    return { left: "#8B4513", right: "#8B4513" };
+  }
+  
+  // Dan grades (nera con righe gialle)
+  if (normalized.includes("1°dan") || normalized.includes("1dan")) {
+    return { left: "#000000", right: "#000000", hasStripe: true, stripeCount: 1 };
+  }
+  if (normalized.includes("2°dan") || normalized.includes("2dan")) {
+    return { left: "#000000", right: "#000000", hasStripe: true, stripeCount: 2 };
+  }
+  if (normalized.includes("3°dan") || normalized.includes("3dan")) {
+    return { left: "#000000", right: "#000000", hasStripe: true, stripeCount: 3 };
+  }
+  if (normalized.includes("4°dan") || normalized.includes("4dan")) {
+    return { left: "#000000", right: "#000000", hasStripe: true, stripeCount: 4 };
+  }
+  if (normalized.includes("5°dan") || normalized.includes("5dan")) {
+    return { left: "#000000", right: "#000000", hasStripe: true, stripeCount: 5 };
+  }
+  if (normalized.includes("6°dan") || normalized.includes("6dan")) {
+    return { left: "#000000", right: "#000000", hasStripe: true, stripeCount: 6 };
+  }
+  if (normalized.includes("7°dan") || normalized.includes("7dan")) {
+    return { left: "#000000", right: "#000000", hasStripe: true, stripeCount: 7 };
+  }
+  if (normalized.includes("8°dan") || normalized.includes("8dan")) {
+    return { left: "#000000", right: "#000000", hasStripe: true, stripeCount: 8 };
+  }
+  if (normalized.includes("9°dan") || normalized.includes("9dan")) {
+    return { left: "#000000", right: "#000000", hasStripe: true, stripeCount: 9 };
+  }
+  if (normalized.includes("10°dan") || normalized.includes("10dan")) {
+    return { left: "#000000", right: "#000000", hasStripe: true, stripeCount: 10 };
+  }
+  
+  // Default: transparent
+  return { left: "transparent", right: "transparent" };
+}
+
 type Exam = { fromGrade: string; toGrade: string; stars?: number; examDate?: string; place?: string; examiner?: string };
 type Qualification = { tipo?: string; ente?: string; data?: string; esaminatore?: string };
-function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, presidenteSignature, direttivoSignature, photoUrl, onPhotoUpload, userName, userSurname, birthDate, birthPlace, address, streetNumber, city, province, phone, enteRows, exams, grades, qualifications }: { pageNum: number; budoPassNumber?: string | null; issuedAt?: string | null; from?: string | null; scadenza?: string | null; presidenteSignature?: string | null; direttivoSignature?: string | null; photoUrl?: string | null; onPhotoUpload?: (file: File) => void; userName?: string | null; userSurname?: string | null; birthDate?: string | null; birthPlace?: string | null; address?: string | null; streetNumber?: string | null; city?: string | null; province?: string | null; phone?: string | null; enteRows?: Array<{ imageUrl?: string; text?: string }>; exams?: Exam[]; grades?: string[]; qualifications?: Qualification[] }) {
+type StageEvent = { data?: string; luogo?: string; tipo?: string; maestro?: string };
+function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, presidenteSignature, direttivoSignature, photoUrl, onPhotoUpload, userName, userSurname, birthDate, birthPlace, address, streetNumber, city, province, phone, enteRows, exams, grades, qualifications, stageEvents }: { pageNum: number; budoPassNumber?: string | null; issuedAt?: string | null; from?: string | null; scadenza?: string | null; presidenteSignature?: string | null; direttivoSignature?: string | null; photoUrl?: string | null; onPhotoUpload?: (file: File) => void; userName?: string | null; userSurname?: string | null; birthDate?: string | null; birthPlace?: string | null; address?: string | null; streetNumber?: string | null; city?: string | null; province?: string | null; phone?: string | null; enteRows?: Array<{ imageUrl?: string; text?: string }>; exams?: Exam[]; grades?: string[]; qualifications?: Qualification[]; stageEvents?: StageEvent[] }) {
   const [bg, setBg] = useState("");
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   
@@ -345,15 +419,64 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
                     flexDirection: "column",
                     gap: "0.15cm",
                   }}>
-                    {/* Riga A rimossa: non mostrare 'da:'/'a:' nelle pagine utente */}
-                    {/* Riga B: Esame di + Data esame sulla stessa riga */}
+                    {/* Riga 1: Esame di */}
                     <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
                       <span style={{ fontWeight: 600 }}>Esame di:</span>{" "}
                       <span style={{ fontFamily: "'Special Elite', cursive" }}>{toGrade}</span>
-                      {" "}<span style={{ fontWeight: 600 }}>Data:</span>{" "}
-                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{row?.examDate ? formatDateIT(row.examDate) : ""}</span>
                     </div>
-                    {/* Riga C: Luogo - Esaminatore */}
+                    {/* Riga 2: Data + Rettangolo Cintura */}
+                    <div style={{ fontSize: "12pt", lineHeight: 1.2, display: "flex", alignItems: "center", gap: "0.3cm" }}>
+                      <div>
+                        <span style={{ fontWeight: 600 }}>Data:</span>{" "}
+                        <span style={{ fontFamily: "'Special Elite', cursive" }}>{row?.examDate ? formatDateIT(row.examDate) : ""}</span>
+                      </div>
+                      {(() => {
+                        const colors = getBeltColors(toGrade);
+                        return (
+                          <div style={{
+                            width: "1.5cm",
+                            height: "0.4cm",
+                            border: "1px solid #000",
+                            display: "flex",
+                            position: "relative",
+                            flexShrink: 0,
+                          }}>
+                            {/* Metà sinistra */}
+                            <div style={{
+                              width: "50%",
+                              height: "100%",
+                              backgroundColor: colors.left,
+                            }} />
+                            {/* Metà destra */}
+                            <div style={{
+                              width: "50%",
+                              height: "100%",
+                              backgroundColor: colors.right,
+                            }} />
+                            {/* Righe gialle per dan */}
+                            {colors.hasStripe && colors.stripeCount && Array.from({ length: colors.stripeCount }, (_, i) => {
+                              const totalStripes = colors.stripeCount!;
+                              const spacing = 1.5 / (totalStripes + 1); // cm
+                              const position = spacing * (i + 1);
+                              return (
+                                <div
+                                  key={i}
+                                  style={{
+                                    position: "absolute",
+                                    left: `${(position / 1.5) * 100}%`,
+                                    top: 0,
+                                    bottom: 0,
+                                    width: "2px",
+                                    backgroundColor: "#FFD700",
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    {/* Riga 3: Luogo - Esaminatore */}
                     <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
                       <span style={{ fontWeight: 600 }}>Luogo:</span>{" "}
                       <span style={{ fontFamily: "'Special Elite', cursive" }}>{row?.place || ""}</span>
@@ -392,7 +515,7 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
               flex: 1,
               display: "grid",
               gridTemplateRows: "repeat(5, 1fr)",
-              rowGap: "0.3cm",
+              rowGap: "0",
               paddingBottom: "0.6cm",
             }}>
               {Array.from({ length: 5 }, (_, i) => {
@@ -409,7 +532,7 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
                     {/* Riga 1: Tipo e Ente */}
                     <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
                       <span style={{ fontWeight: 600 }}>Tipo:</span>{" "}
-                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{qual?.tipo || ""}</span>
+                      <span style={{ fontFamily: "'Special Elite', cursive", fontWeight: 600 }}>{qual?.tipo || ""}</span>
                       {" - "}
                       <span style={{ fontWeight: 600 }}>Ente:</span>{" "}
                       <span style={{ fontFamily: "'Special Elite', cursive" }}>{qual?.ente || ""}</span>
@@ -423,6 +546,78 @@ function SimplePage({ pageNum, budoPassNumber, issuedAt, from, scadenza, preside
                     <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
                       <span style={{ fontWeight: 600 }}>Esaminatore:</span>{" "}
                       <span style={{ fontFamily: "'Special Elite', cursive" }}>{qual?.esaminatore || ""}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Pagine 9-25: STAGES ED EVENTI (4 righe per pagina) */}
+      {pageNum >= 9 && pageNum <= 25 && (
+        <div className="absolute inset-0" style={{ paddingLeft: "0.5cm", paddingRight: "0.5cm" }}>
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",
+            color: "#000",
+            fontFamily: "'Noto Serif', serif",
+          }}>
+            <div style={{
+              textAlign: "center",
+              fontSize: "12pt",
+              fontWeight: "normal",
+              marginTop: "0.6cm",
+            }}>
+              STAGES ED EVENTI
+            </div>
+            {/* Spazio di 0.7cm sotto il titolo */}
+            <div style={{ height: "0.7cm" }} />
+            <div style={{
+              flex: 1,
+              display: "grid",
+              gridTemplateRows: "repeat(4, 1fr)",
+              rowGap: "0",
+              paddingBottom: "0.6cm",
+            }}>
+              {Array.from({ length: 4 }, (_, i) => {
+                const eventIndex = (pageNum - 9) * 4 + i;
+                const event = stageEvents?.[eventIndex];
+                return (
+                  <div key={i} style={{
+                    border: "1px solid #000",
+                    padding: "0.2cm 0.3cm",
+                    backgroundColor: "transparent",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.1cm",
+                  }}>
+                    {/* Riga 1: Data e Luogo */}
+                    <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
+                      <span style={{ fontWeight: 600 }}>Data:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{event?.data ? formatDateIT(event.data) : ""}</span>
+                      {" - "}
+                      <span style={{ fontWeight: 600 }}>Luogo:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{event?.luogo || ""}</span>
+                    </div>
+                    {/* Riga 2: Tipo */}
+                    <div style={{ fontSize: "12pt", lineHeight: 1.2, display: "flex", alignItems: "center", gap: "0.2cm" }}>
+                      <span style={{ fontWeight: 600 }}>Tipo:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{event?.tipo || ""}</span>
+                      {event?.tipo && (
+                        <span style={{ 
+                          fontSize: "18pt", 
+                          color: "#FFD700",
+                          WebkitTextStroke: "1px black",
+                          marginLeft: "0.1cm"
+                        }}>★</span>
+                      )}
+                    </div>
+                    {/* Riga 3: il Maestro */}
+                    <div style={{ fontSize: "12pt", lineHeight: 1.2 }}>
+                      <span style={{ fontWeight: 600 }}>il Maestro:</span>{" "}
+                      <span style={{ fontFamily: "'Special Elite', cursive" }}>{event?.maestro || ""}</span>
                     </div>
                   </div>
                 );
@@ -634,6 +829,9 @@ export default function BudoPassPage() {
   const [pageIndex, setPageIndex] = useState(0);
   const [exporting, setExporting] = useState(false);
   const [user] = useAuthState(auth);
+  const searchParams = useSearchParams();
+  const impersonateId = searchParams.get('impersonate');
+  const effectiveUserId = impersonateId || user?.uid;
   const [budoPassNumber, setBudoPassNumber] = useState<string | null>(null);
   const [issuedAt, setIssuedAt] = useState<string | null>(null);
   const [from, setFrom] = useState<string | null>(null);
@@ -646,6 +844,7 @@ export default function BudoPassPage() {
   const [exams, setExams] = useState<Array<{ fromGrade: string; toGrade: string; stars?: number; examDate?: string; place?: string; examiner?: string }>>([]);
   const [grades, setGrades] = useState<string[]>([]);
   const [qualifications, setQualifications] = useState<Array<{ tipo?: string; ente?: string; data?: string; esaminatore?: string }>>([]);
+  const [stageEvents, setStageEvents] = useState<Array<{ data?: string; luogo?: string; tipo?: string; maestro?: string }>>([]);
   
   // Dati anagrafici
   const [userName, setUserName] = useState<string | null>(null);
@@ -661,8 +860,8 @@ export default function BudoPassPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        if (!user?.uid) return;
-        const ref = doc(db, "users", user.uid);
+        if (!effectiveUserId) return;
+        const ref = doc(db, "users", effectiveUserId);
         const snap = await getDoc(ref);
         if (snap.exists()) {
           const data = snap.data() as any;
@@ -701,6 +900,10 @@ export default function BudoPassPage() {
           const qualificationsArr = (data as any)?.budoPassExtra?.qualifications || [];
           setQualifications(qualificationsArr);
           
+          // Carico stageEvents da budoPassExtra
+          const stageEventsArr = (data as any)?.budoPassExtra?.stageEvents || [];
+          setStageEvents(stageEventsArr);
+          
           // Carico elenco gradi da config/karate
           try {
             const karateDoc = await getDoc(doc(db, "config", "karate"));
@@ -725,23 +928,23 @@ export default function BudoPassPage() {
       }
     };
     load();
-  }, [user?.uid]);
+  }, [effectiveUserId]);
 
   const handlePrev = () => setPageIndex((i) => Math.max(0, i - 1));
   const handleNext = () => setPageIndex((i) => Math.min(TOTAL_PAGES - 1, i + 1));
 
   const handlePhotoUpload = async (file: File) => {
-    if (!user?.uid) return;
+    if (!effectiveUserId) return;
     
     try {
       setUploading(true);
       const storage = getStorage();
-      const photoRef = storageRef(storage, `budopass/fototessere/${user.uid}_${Date.now()}.jpg`);
+      const photoRef = storageRef(storage, `budopass/fototessere/${effectiveUserId}_${Date.now()}.jpg`);
       
       await uploadBytes(photoRef, file);
       const url = await getDownloadURL(photoRef);
       
-      const userRef = doc(db, "users", user.uid);
+      const userRef = doc(db, "users", effectiveUserId);
       await updateDoc(userRef, {
         "budoPassExtra.photoUrl": url,
       });
@@ -819,6 +1022,7 @@ export default function BudoPassPage() {
         exams={exams}
         grades={grades}
         qualifications={qualifications}
+        stageEvents={stageEvents}
       />
 
       {uploading && (

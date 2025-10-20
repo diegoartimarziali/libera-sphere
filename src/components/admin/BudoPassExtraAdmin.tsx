@@ -37,6 +37,13 @@ interface BudoPassExtra {
     data?: string; // ISO date
     esaminatore?: string;
   }>;
+  // Stages ed Eventi (68 righe = 17 pagine * 4 righe)
+  stageEvents?: Array<{
+    data?: string; // ISO date
+    luogo?: string;
+    tipo?: string;
+    maestro?: string;
+  }>;
 }
 
 interface User {
@@ -855,6 +862,133 @@ export default function BudoPassExtraAdmin({ userId: initialUserId }: Props) {
                             setExtra((prev) => ({ ...prev, qualifications: newQual }));
                           } catch (e) {
                             setError("Errore nella cancellazione qualifica.");
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                      >
+                        Elimina riga
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sezione Tabella STAGES ED EVENTI */}
+          <div className="mt-10 space-y-3">
+            <h3 className="text-sm font-bold" style={{ color: "hsl(var(--my-marscuro))" }}>
+              Tabella "STAGES ED EVENTI" (68 righe = 17 pagine * 4 righe)
+            </h3>
+            <div className="space-y-3">
+              {Array.from({ length: 68 }, (_, idx) => {
+                const event = (extra.stageEvents || [])[idx] || {};
+                const pageNum = Math.floor(idx / 4) + 1;
+                const rowInPage = (idx % 4) + 1;
+                return (
+                  <div key={idx} className="border rounded p-3 bg-gray-50">
+                    <div className="text-sm font-medium mb-2">Pagina {pageNum} - Riga {rowInPage}</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Data */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Data</label>
+                        <Input
+                          type="date"
+                          value={event.data || ""}
+                          onChange={(e) => {
+                            const newEvents = [...(extra.stageEvents || [])];
+                            if (!newEvents[idx]) newEvents[idx] = {};
+                            newEvents[idx].data = e.target.value;
+                            setExtra((prev) => ({ ...prev, stageEvents: newEvents }));
+                          }}
+                        />
+                      </div>
+                      {/* Luogo */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Luogo</label>
+                        <Input
+                          value={event.luogo || ""}
+                          onChange={(e) => {
+                            const newEvents = [...(extra.stageEvents || [])];
+                            if (!newEvents[idx]) newEvents[idx] = {};
+                            newEvents[idx].luogo = e.target.value;
+                            setExtra((prev) => ({ ...prev, stageEvents: newEvents }));
+                          }}
+                          placeholder="Es. Roma"
+                        />
+                      </div>
+                      {/* Tipo */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1">Tipo</label>
+                        <Input
+                          value={event.tipo || ""}
+                          onChange={(e) => {
+                            const newEvents = [...(extra.stageEvents || [])];
+                            if (!newEvents[idx]) newEvents[idx] = {};
+                            newEvents[idx].tipo = e.target.value;
+                            setExtra((prev) => ({ ...prev, stageEvents: newEvents }));
+                          }}
+                          placeholder="Es. Stage Nazionale"
+                        />
+                      </div>
+                      {/* il Maestro */}
+                      <div>
+                        <label className="block text-xs font-medium mb-1">il Maestro</label>
+                        <Input
+                          value={event.maestro || ""}
+                          onChange={(e) => {
+                            const newEvents = [...(extra.stageEvents || [])];
+                            if (!newEvents[idx]) newEvents[idx] = {};
+                            newEvents[idx].maestro = e.target.value;
+                            setExtra((prev) => ({ ...prev, stageEvents: newEvents }));
+                          }}
+                          placeholder="Es. M° Rossi"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={saving}
+                        className="px-2 h-7"
+                        onClick={async () => {
+                          if (!selectedUserId) return;
+                          setSaving(true);
+                          setError(null);
+                          try {
+                            await updateDoc(doc(db, "users", selectedUserId), {
+                              "budoPassExtra.stageEvents": extra.stageEvents || [],
+                            });
+                          } catch (e) {
+                            setError("Errore nel salvataggio stage/evento.");
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                      >
+                        Salva riga
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        disabled={saving}
+                        className="px-2 h-7"
+                        onClick={async () => {
+                          if (!selectedUserId) return;
+                          setSaving(true);
+                          setError(null);
+                          try {
+                            let newEvents = [...(extra.stageEvents || [])];
+                            newEvents[idx] = {};
+                            await updateDoc(doc(db, "users", selectedUserId), {
+                              "budoPassExtra.stageEvents": newEvents,
+                            });
+                            setExtra((prev) => ({ ...prev, stageEvents: newEvents }));
+                          } catch (e) {
+                            setError("Errore nella cancellazione stage/evento.");
                           } finally {
                             setSaving(false);
                           }
