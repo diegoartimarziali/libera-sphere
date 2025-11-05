@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 
     export function AttendancePrompt() {
         // 🚨 DEBUG: Forza la visualizzazione del messaggio per test
-        const FORCE_SHOW_MESSAGE = true;
+        const FORCE_SHOW_MESSAGE = false;
         
         const [isLoading, setIsLoading] = useState(true);
         const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,10 +69,10 @@ import { useState, useEffect } from "react";
                         limit(1)
                     );
                     const eventsSnap = await getDocs(eventsQuery);
-                    console.log("DEBUG - Events found:", eventsSnap.size);
+                    // ...existing code...
                     if (!eventsSnap.empty) {
                         const lessonDoc = eventsSnap.docs[0];
-                        console.log("DEBUG - Lesson event:", lessonDoc.data());
+                        // ...existing code...
                         todaysLessonData = { id: lessonDoc.id, ...lessonDoc.data() };
                         setTodaysLesson(todaysLessonData);
                     }
@@ -80,7 +80,7 @@ import { useState, useEffect } from "react";
 
                 // 4. CONTROLLO SPECIFICO: Verifica se ha già risposto per QUESTA lezione specifica
                 if (todaysLessonData) {
-                    console.log("🔍 DEBUG - Checking attendance for lesson:", todaysLessonData.id);
+                    // ...existing code...
                     
                     // Controlla nella sottocollezione utente (eventId specifico)
                     const userAttendanceQuery = query(
@@ -88,7 +88,7 @@ import { useState, useEffect } from "react";
                         where("eventId", "==", todaysLessonData.id)
                     );
                     const userAttendanceSnap = await getDocs(userAttendanceQuery);
-                    console.log("🔍 DEBUG - User attendance docs found:", userAttendanceSnap.size);
+                    // ...existing code...
 
                     // Controlla anche nella collezione generale attendances
                     const globalAttendanceQuery = query(
@@ -97,17 +97,17 @@ import { useState, useEffect } from "react";
                         where("eventId", "==", todaysLessonData.id)
                     );
                     const globalAttendanceSnap = await getDocs(globalAttendanceQuery);
-                    console.log("🔍 DEBUG - Global attendance docs found:", globalAttendanceSnap.size);
+                    // ...existing code...
 
                     // Se esiste una risposta in una delle due collezioni, non mostrare il messaggio
                     if (!userAttendanceSnap.empty || !globalAttendanceSnap.empty) {
-                        console.log("🔍 DEBUG - Found existing attendance, hiding message");
+                        // ...existing code...
                         setAlreadyResponded(true);
                         setIsLoading(false);
                         return;
                     }
                     
-                    console.log("🔍 DEBUG - No attendance found by eventId, checking by date...");
+                    // ...existing code...
                     
                     // CONTROLLO ALTERNATIVO: Verifica per data se eventId non trova nulla
                     const todayStart = new Date();
@@ -121,10 +121,10 @@ import { useState, useEffect } from "react";
                         where("lessonDate", "<=", Timestamp.fromDate(todayEnd))
                     );
                     const dateAttendanceSnap = await getDocs(dateAttendanceQuery);
-                    console.log("🔍 DEBUG - Attendance by date found:", dateAttendanceSnap.size);
+                    // ...existing code...
                     
                     if (!dateAttendanceSnap.empty) {
-                        console.log("🔍 DEBUG - Found attendance by date, hiding message");
+                        // ...existing code...
                         setAlreadyResponded(true);
                         setIsLoading(false);
                         return;
