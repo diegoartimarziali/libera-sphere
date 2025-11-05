@@ -100,6 +100,7 @@ function DashboardContent() {
   const [showSubscriptionActivatedMessage, setShowSubscriptionActivatedMessage] = useState(false);
   const [grades, setGrades] = useState<string[]>([]);
   const [exams, setExams] = useState<Array<{ fromGrade: string; toGrade: string; stars?: number }>>([]);
+  const [showAssociationApprovedAlert, setShowAssociationApprovedAlert] = useState(false);
 
   useFirebaseMessaging((payload) => {
     // Use toast instead of alert for a better UX
@@ -419,6 +420,23 @@ function DashboardContent() {
       }
   }, [user, authLoading, impersonateId])
 
+  // Aggiorna subscriptionAccessStatus a 'expired' se la data di scadenza è passata
+  useEffect(() => {
+    if (
+      userData?.activeSubscription?.expiresAt &&
+      userData?.activeSubscription?.type === 'monthly'
+    ) {
+      const expiryDate = userData.activeSubscription.expiresAt.toDate();
+      const today = new Date();
+      if (expiryDate < today && userData.subscriptionAccessStatus === 'active') {
+        setUserData({
+          ...userData,
+          subscriptionAccessStatus: 'expired',
+        });
+      }
+    }
+  }, [userData]);
+
   const handleRenewCertificate = async () => {
     if (!user) return;
     // Rimuovi lo stato invalid prima di reindirizzare
@@ -427,181 +445,207 @@ function DashboardContent() {
     router.push('/dashboard/renew-medical-certificate');
   }
 
-  const renderInfoAlerts = () => {
-      const alerts = [];
+  // Sposto la logica di useEffect per il messaggio di associazione approvata qui, nel corpo del componente
+  useEffect(() => {
+    if (
+      userData?.associationStatus === 'active' &&
+      userData.subscriptionAccessStatus !== 'active' &&
+      userData.subscriptionAccessStatus !== 'pending' &&
+      !sessionStorage.getItem('associationApprovedAlertShown')
+    ) {
+      sessionStorage.setItem('associationApprovedAlertShown', 'true');
+      setShowAssociationApprovedAlert(true);
+    }
+  }, [userData]);
 
-      if (userData?.associationPaymentFailed) {
-          alerts.push(
-              <Alert key="assoc-failed" variant="destructive" className="mb-6">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Domanda di Associazione Rifiutata</AlertTitle>
-                  <AlertDescription>
-                      La tua domanda non è stata approvata in quanto l'importo non è stato trasferito sul nostro conto corrente. Verifica ed effettua un nuovo pagamento.
-                  </AlertDescription>
-                   <Button onClick={() => router.push('/dashboard/associates?step=2')} variant="secondary" className="mt-4">
-                      Procedi al Pagamento
-                  </Button>
-              </Alert>
-          );
-      }
-      
-       if (userData?.trialPaymentFailed) {
-          alerts.push(
-              <Alert key="trial-failed" variant="destructive" className="mb-6">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Pagamento Lezioni di Prova Fallito</AlertTitle>
-                  <AlertDescription>
-                      La tua iscrizione alle lezioni di prova non è andata a buon fine. Per favore, ripeti la procedura di iscrizione.
-                  </AlertDescription>
-                   <Button onClick={() => router.push('/dashboard/class-selection')} variant="secondary" className="mt-4">
-                      Iscriviti alle Lezioni
-                  </Button>
-              </Alert>
-          );
-      }
+  function renderInfoAlerts() {
+    const alerts = [];
 
-      if (userData?.subscriptionPaymentFailed) {
-      alerts.push(
-        <div key="sub-failed" className="mb-6 w-full max-w-lg p-4 rounded-lg border-2 font-semibold text-base text-center" style={{ background: '#FFEAEA', color: '#B91C1C', borderColor: '#B91C1C', margin: '0 auto' }}>
-          <div className="flex items-center justify-center mb-2">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            <span className="text-xl font-bold">Pagamento Abbonamento Fallito</span>
-          </div>
-          <div className="mb-2">La tua richiesta di abbonamento non è andata a buon fine. Per favore, procedi a un nuovo acquisto.</div>
-          <Button onClick={() => router.push('/dashboard/subscriptions')} variant="secondary" style={{ color: '#B91C1C', borderColor: '#B91C1C', background: '#fff' }} className="mt-2 font-bold">
-            Vai agli Abbonamenti
-          </Button>
-        </div>
-      );
-      }
+    if (userData?.associationPaymentFailed) {
+        alerts.push(
+            <Alert key="assoc-failed" variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Domanda di Associazione Rifiutata</AlertTitle>
+                <AlertDescription>
+                    La tua domanda non è stata approvata in quanto l'importo non è stato trasferito sul nostro conto corrente. Verifica ed effettua un nuovo pagamento.
+                </AlertDescription>
+                 <Button onClick={() => router.push('/dashboard/associates?step=2')} variant="secondary" className="mt-4">
+                    Procedi al Pagamento
+                </Button>
+            </Alert>
+        );
+    }
+    
+     if (userData?.trialPaymentFailed) {
+        alerts.push(
+            <Alert key="trial-failed" variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Pagamento Lezioni di Prova Fallito</AlertTitle>
+                <AlertDescription>
+                    La tua iscrizione alle lezioni di prova non è andata a buon fine. Per favore, ripeti la procedura di iscrizione.
+                </AlertDescription>
+                 <Button onClick={() => router.push('/dashboard/class-selection')} variant="secondary" className="mt-4">
+                    Iscriviti alle Lezioni
+                </Button>
+            </Alert>
+        );
+    }
 
-      if (userData?.medicalCertificateStatus === 'invalid') {
-          alerts.push(
-              <Alert key="cert-invalid" variant="destructive" className="mb-6">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Certificato Medico non Valido</AlertTitle>
-                  <AlertDescription>
-                      Il certificato che hai caricato è stato respinto. Caricane uno nuovo per ripristinare la tua copertura assicurativa e l'accesso completo alle attività.
-                  </AlertDescription>
-                  <Button onClick={handleRenewCertificate} variant="secondary" className="mt-4">
-                      Aggiorna Certificato
-                  </Button>
-              </Alert>
-          );
-      }
-
-    // Mostra il toast solo se non è scaduto
-    if (showDataCorrectionMessage && !localStorage.getItem('showDataCorrectionMessageExpired')) {
+    if (userData?.subscriptionPaymentFailed) {
     alerts.push(
-      <Alert key="data-correction" variant="warning" className="mb-6">
-        <Mail className="h-4 w-4" />
-        <AlertTitle>Controlla i tuoi dati</AlertTitle>
-        <AlertDescription>
-          Se hai notato errori, invia entro 1 ora una email di correzione a: <a href="mailto:segreteria@artimarzialivalledaosta.com" className="font-semibold underline">segreteria@artimarzialivalledaosta.com</a>.
-        </AlertDescription>
-      </Alert>
+      <div key="sub-failed" className="mb-6 w-full max-w-lg p-4 rounded-lg border-2 font-semibold text-base text-center" style={{ background: '#FFEAEA', color: '#B91C1C', borderColor: '#B91C1C', margin: '0 auto' }}>
+        <div className="flex items-center justify-center mb-2">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          <span className="text-xl font-bold">Pagamento Abbonamento Fallito</span>
+        </div>
+        <div className="mb-2">La tua richiesta di abbonamento non è andata a buon fine. Per favore, procedi a un nuovo acquisto.</div>
+        <Button onClick={() => router.push('/dashboard/subscriptions')} variant="secondary" style={{ color: '#B91C1C', borderColor: '#B91C1C', background: '#fff' }} className="mt-2 font-bold">
+          Vai agli Abbonamenti
+        </Button>
+      </div>
     );
     }
 
-      if (showSubscriptionActivatedMessage && userData?.activeSubscription) {
-          alerts.push(
-            <Alert key="sub-activated" variant="success" className="mb-6">
-                <CheckCircle className="h-4 w-4" />
-                <AlertTitle>Abbonamento Attivato!</AlertTitle>
+    if (userData?.medicalCertificateStatus === 'invalid') {
+        alerts.push(
+            <Alert key="cert-invalid" variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Certificato Medico non Valido</AlertTitle>
                 <AlertDescription>
-                    Il tuo abbonamento "{userData.activeSubscription.name}" è attivo!
+                    Il certificato che hai caricato è stato respinto. Caricane uno nuovo per ripristinare la tua copertura assicurativa e l'accesso completo alle attività.
                 </AlertDescription>
+                <Button onClick={handleRenewCertificate} variant="secondary" className="mt-4">
+                    Aggiorna Certificato
+                </Button>
             </Alert>
-          );
-      }
+        );
+    }
 
-      if (
-          userData?.associationStatus === 'active' &&
-          userData.subscriptionAccessStatus !== 'active' &&
-          userData.subscriptionAccessStatus !== 'pending'
-      ) {
-          alerts.push(
-              <Alert key="sub-choice" variant="success" className="mb-6">
-                  <Smile className="h-4 w-4" />
-                  <AlertTitle>Associazione Approvata!</AlertTitle>
-                  <AlertDescription>
-                      La tua Associazione è stata Approvata. Ora puoi procedere alla scelta del tuo Abbonamento dal menu: Abbonamenti.
-                  </AlertDescription>
-              </Alert>
-          );
-      }
+  // Mostra il toast solo se non è scaduto
+  if (showDataCorrectionMessage && !localStorage.getItem('showDataCorrectionMessageExpired')) {
+  alerts.push(
+    <Alert key="data-correction" variant="warning" className="mb-6">
+      <Mail className="h-4 w-4" />
+      <AlertTitle>Controlla i tuoi dati</AlertTitle>
+      <AlertDescription>
+        Se hai notato errori, invia entro 1 ora una email di correzione a: <a href="mailto:segreteria@artimarzialivalledaosta.com" className="font-semibold underline">segreteria@artimarzialivalledaosta.com</a>.
+      </AlertDescription>
+    </Alert>
+  );
+  }
 
-      if (userData?.subscriptionAccessStatus === 'pending') {
-          alerts.push(
-            <Alert key="sub-pending" variant="warning" className="mb-6">
-              <DoorClosed className="h-4 w-4" />
-              <AlertTitle>Abbonamento in Attesa</AlertTitle>
-              <AlertDescription>
-                Il tuo accesso ai corsi sarà attivato non appena il pagamento del tuo abbonamento verrà confermato dalla segreteria.
-              </AlertDescription>
-            </Alert>
-          );
-      }
-      
-      if (userData?.associationStatus === 'pending') {
-          alerts.push(
-            <Alert key="assoc-pending" variant="warning" className="mb-6 bg-orange-100 border-orange-500 text-orange-700">
-              <Clock className="h-4 w-4 text-orange-600" />
-              <AlertTitle className="text-orange-800">Domanda di Associazione Inviata!</AlertTitle>
-              <AlertDescription className="text-orange-700">
-                La tua richiesta è in attesa di approvazione. Riceverai una notifica non appena il pagamento sarà confermato e lo stato aggiornato.
-              </AlertDescription>
-            </Alert>
-          );
-      }
-      
-      if (userData?.trialStatus === 'pending_payment') {
-           alerts.push(
-            <Alert key="trial-pending" variant="warning" className="mb-6">
-              <Clock className="h-4 w-4" />
-              <AlertTitle>Richiesta Lezioni di Prova Inviata!</AlertTitle>
-              <AlertDescription>
-                La tua iscrizione è in attesa di approvazione. Riceverai una notifica non appena il pagamento sarà confermato.
-              </AlertDescription>
-            </Alert>
-          );
-      }
-
-      if (userData?.trialOutcome === 'declined') {
-          alerts.push(
-            <Alert key="trial-declined" variant="info" className="mb-6">
-              <Frown className="h-4 w-4" />
-              <AlertTitle>Ci dispiace vederti andare</AlertTitle>
-              <AlertDescription>
-                Grazie per aver provato i nostri corsi. Le nostre porte per te sono sempre aperte se dovessi cambiare idea in futuro!
-              </AlertDescription>
-            </Alert>
-          );
-      }
-      
-      if (certificateStatus === 'expired') {
+    if (showSubscriptionActivatedMessage && userData?.activeSubscription) {
         alerts.push(
-          <Alert key="cert-expired" variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Certificato Medico Scaduto!</AlertTitle>
+          <Alert key="sub-activated" variant="success" className="mb-6">
+              <CheckCircle className="h-4 w-4" />
+              <AlertTitle>Abbonamento Attivato!</AlertTitle>
+              <AlertDescription>
+                  Il tuo abbonamento "{userData.activeSubscription.name}" è attivo!
+              </AlertDescription>
+          </Alert>
+        );
+    }
+
+    if (
+      showAssociationApprovedAlert
+    ) {
+      alerts.push(
+        <Alert key="sub-choice" variant="success" className="mb-6">
+          <Smile className="h-4 w-4" />
+          <AlertTitle>Associazione Approvata!</AlertTitle>
+          <AlertDescription>
+            La tua Associazione è stata Approvata. Ora puoi procedere alla scelta del tuo Abbonamento dal menu: Abbonamenti.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (userData?.subscriptionAccessStatus === 'pending') {
+        alerts.push(
+          <Alert key="sub-pending" variant="warning" className="mb-6">
+            <DoorClosed className="h-4 w-4" />
+            <AlertTitle>Abbonamento in Attesa</AlertTitle>
             <AlertDescription>
-              Il tuo certificato medico è scaduto. Per continuare le attività, devi caricarne uno nuovo.
+              Il tuo accesso ai corsi sarà attivato non appena il pagamento del tuo abbonamento verrà confermato dalla segreteria.
             </AlertDescription>
           </Alert>
         );
-      }
-      
-      if (certificateStatus === 'expiring' && daysToExpire !== null) {
+    }
+    
+    if (userData?.associationStatus === 'pending') {
         alerts.push(
-          <Alert key="cert-expiring" variant="warning" className="mb-6">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Certificato Medico in Scadenza</AlertTitle>
-            <AlertDescription>
-              {daysToExpire > 0 ? `Attenzione, il tuo certificato medico scadrà tra ${daysToExpire} giorni.` : "Attenzione, il tuo certificato medico scade oggi."} Ricordati di rinnovarlo e caricare la nuova versione.
+          <Alert key="assoc-pending" variant="warning" className="mb-6 bg-orange-100 border-orange-500 text-orange-700">
+            <Clock className="h-4 w-4 text-orange-600" />
+            <AlertTitle className="text-orange-800">Domanda di Associazione Inviata!</AlertTitle>
+            <AlertDescription className="text-orange-700">
+              La tua richiesta è in attesa di approvazione. Riceverai una notifica non appena il pagamento sarà confermato e lo stato aggiornato.
             </AlertDescription>
           </Alert>
         );
-      }
+    }
+    
+    if (userData?.trialStatus === 'pending_payment') {
+         alerts.push(
+          <Alert key="trial-pending" variant="warning" className="mb-6">
+            <Clock className="h-4 w-4" />
+            <AlertTitle>Richiesta Lezioni di Prova Inviata!</AlertTitle>
+            <AlertDescription>
+              La tua iscrizione è in attesa di approvazione. Riceverai una notifica non appena il pagamento sarà confermato.
+            </AlertDescription>
+          </Alert>
+        );
+    }
+
+    if (userData?.trialOutcome === 'declined') {
+        alerts.push(
+          <Alert key="trial-declined" variant="info" className="mb-6">
+            <Frown className="h-4 w-4" />
+            <AlertTitle>Ci dispiace vederti andare</AlertTitle>
+            <AlertDescription>
+              Grazie per aver provato i nostri corsi. Le nostre porte per te sono sempre aperte se dovessi cambiare idea in futuro!
+            </AlertDescription>
+          </Alert>
+        );
+    }
+    
+    if (certificateStatus === 'expired') {
+      alerts.push(
+        <Alert key="cert-expired" variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Certificato Medico Scaduto!</AlertTitle>
+          <AlertDescription>
+            Il tuo certificato medico è scaduto. Per continuare le attività, devi caricarne uno nuovo.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    
+    if (certificateStatus === 'expiring' && daysToExpire !== null) {
+      alerts.push(
+        <Alert key="cert-expiring" variant="warning" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Certificato Medico in Scadenza</AlertTitle>
+          <AlertDescription>
+            {daysToExpire > 0 ? `Attenzione, il tuo certificato medico scadrà tra ${daysToExpire} giorni.` : "Attenzione, il tuo certificato medico scade oggi."} Ricordati di rinnovarlo e caricare la nuova versione.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+
+    if (userData?.subscriptionAccessStatus === 'expired' && userData?.activeSubscription?.type === 'monthly') {
+      alerts.push(
+        <Alert key="sub-expired" variant="warning" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Abbonamento Mensile Scaduto</AlertTitle>
+          <AlertDescription>
+            Il tuo abbonamento mensile è scaduto. Per continuare ad accedere ai corsi, acquista un nuovo abbonamento dal menu Abbonamenti.
+          </AlertDescription>
+          <Button onClick={() => router.push('/dashboard/subscriptions')} variant="secondary" className="mt-4">
+            Vai agli Abbonamenti
+          </Button>
+        </Alert>
+      );
+    }
 
     return alerts.length > 0 ? <>{alerts}</> : null;
   }

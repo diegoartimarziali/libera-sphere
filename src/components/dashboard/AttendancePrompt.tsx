@@ -1,5 +1,4 @@
-
-    import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
     import { auth, db } from "@/lib/firebase";
     import { doc, getDoc, collection, serverTimestamp, query, where, getDocs, Timestamp, increment, orderBy, limit, setDoc, writeBatch } from "firebase/firestore";
     import { useAuthState } from "react-firebase-hooks/auth";
@@ -12,7 +11,7 @@
 
     export function AttendancePrompt() {
         // 🚨 DEBUG: Forza la visualizzazione del messaggio per test
-        const FORCE_SHOW_MESSAGE = false;
+        const FORCE_SHOW_MESSAGE = true;
         
         const [isLoading, setIsLoading] = useState(true);
         const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,9 +69,10 @@
                         limit(1)
                     );
                     const eventsSnap = await getDocs(eventsQuery);
-
+                    console.log("DEBUG - Events found:", eventsSnap.size);
                     if (!eventsSnap.empty) {
                         const lessonDoc = eventsSnap.docs[0];
+                        console.log("DEBUG - Lesson event:", lessonDoc.data());
                         todaysLessonData = { id: lessonDoc.id, ...lessonDoc.data() };
                         setTodaysLesson(todaysLessonData);
                     }
