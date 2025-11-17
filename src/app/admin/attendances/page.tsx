@@ -397,11 +397,22 @@ export default function AdminAttendancesPage() {
                                                 const totalPresences = profile.attendances.filter(a => a.status === 'presente').length;
                                                 return (
                                                     <AccordionItem value={profile.uid} key={profile.uid}>
+                                                        <div className="flex items-center gap-2 justify-start mb-2">
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="bg-transparent border-blue-400 text-blue-700 px-2"
+                                                                style={{ minWidth: '120px', textAlign: 'left' }}
+                                                                onClick={() => window.open(`/dashboard/attendances?impersonate=${profile.uid}`, '_blank')}
+                                                                title="Vedi come utente"
+                                                            >
+                                                                Vedi come utente
+                                                            </Button>
+                                                            <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                                                            <span className="font-bold text-sm sm:text-base truncate">{profile.name} {profile.surname}</span>
+                                                        </div>
                                                         <AccordionTrigger>
-                                                            <div className="flex items-center gap-2">
-                                                                <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                                                                <span className="font-bold text-sm sm:text-base truncate">{profile.name} {profile.surname}</span>
-                                                            </div>
+                                                            <span className="font-bold text-sm sm:text-base truncate">Dettagli</span>
                                                         </AccordionTrigger>
                                                         <AccordionContent className="p-4 bg-amber-50/30">
                                                             <div className="mb-4 flex flex-col md:flex-row md:items-end gap-2 md:gap-4 bg-white/60 p-2 rounded border border-amber-100">

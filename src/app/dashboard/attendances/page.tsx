@@ -17,6 +17,7 @@ import { Badge, badgeVariants } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { AttendancePrompt } from "@/components/dashboard/AttendancePrompt"
 
 // Definisco il tipo di dati per una presenza
 interface Attendance {
@@ -126,122 +127,127 @@ export default function AttendancesPage() {
     const presentAttendances = attendances.filter(att => att.status === 'presente').length;
 
     return (
-        <Card className="w-full">
-            <CardHeader className="space-y-3">
-                <div>
-                    <CardTitle className="text-xl md:text-2xl">Le Mie Presenze</CardTitle>
-                    <CardDescription className="text-sm md:text-base">
-                        Qui trovi il riepilogo delle tue presenze a lezioni e stage.
-                    </CardDescription>
-                </div>
-            </CardHeader>
-            <CardContent className="p-3 md:p-6">
-                {loading ? (
-                    <div className="flex justify-center items-center h-32 md:h-48">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                ) : (
-                    <div>
-                        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-center sm:text-left">
-                                <div className="text-base md:text-lg font-semibold text-blue-800">
-                                    📊 Presenze: {presentAttendances} / {totalLessons ?? 'N/D'}
-                                </div>
-                                {totalLessons && totalLessons > 0 && (
-                                    <span className="inline-block px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-bold border border-green-300">
-                                        {Math.round((presentAttendances / totalLessons) * 100)}%
-                                    </span>
-                                )}
-                            </div>
-                            <div className="text-xs md:text-sm text-blue-600 mt-2 text-center sm:text-left">
-                                Basato solo su lezioni effettive (escluse festività)
-                            </div>
+        <>
+            {/* Prompt per la gestione presenze, visibile anche in impersonificazione */}
+            <AttendancePrompt />
+            <div className="w-full max-w-2xl mx-auto mt-6">
+                <Card className="bg-white">
+                    <CardHeader className="space-y-3">
+                        <div>
+                            <CardTitle className="text-xl md:text-2xl">Le Mie Presenze</CardTitle>
+                            <CardDescription className="text-sm md:text-base">
+                                Qui trovi il riepilogo delle tue presenze a lezioni e stage.
+                            </CardDescription>
                         </div>
-                        {/* Layout Card per mobile */}
-                        <div className="block md:hidden space-y-3">
-                            {attendances.length > 0 ? attendances.map((attendance) => {
-                                const eventDate = attendance.eventId && eventDates[attendance.eventId] ? eventDates[attendance.eventId] : null;
-                                return (
-                                    <div key={attendance.id} className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div>
-                                                <div className="text-sm font-medium text-gray-900 capitalize">
-                                                    {/* Mostra la data dello stage se presente, altrimenti lessonDate */}
-                                                    {eventDate ? format(eventDate.toDate(), 'eeee dd/MM', { locale: it }) : (attendance.lessonDate ? format(attendance.lessonDate.toDate(), 'eeee dd/MM', { locale: it }) : 'N/D')}
-                                                </div>
-                                                <div className="text-xs text-gray-500 mt-1">
-                                                    {attendance.lessonTime} • {attendance.discipline}
-                                                </div>
-                                            </div>
-                                            <Badge variant={getStatusVariant(attendance.status)}
-                                                   className={cn({
-                                                        'bg-success text-success-foreground hover:bg-success/80': attendance.status === 'presente',
-                                                    })}
-                                            >
-                                                {translateStatus(attendance.status)}
-                                            </Badge>
+                    </CardHeader>
+                    <CardContent className="p-3 md:p-6">
+                        {loading ? (
+                            <div className="flex justify-center items-center h-32 md:h-48">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            </div>
+                        ) : (
+                            <div>
+                                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-center sm:text-left">
+                                        <div className="text-base md:text-lg font-semibold text-blue-800">
+                                            📊 Presenze: {presentAttendances} / {totalLessons ?? 'N/D'}
                                         </div>
-                                        <div className="text-xs text-gray-600">
-                                            📍 {attendance.gymName}
-                                        </div>
+                                        {totalLessons && totalLessons > 0 && (
+                                            <span className="inline-block px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-bold border border-green-300">
+                                                {Math.round((presentAttendances / totalLessons) * 100)}%
+                                            </span>
+                                        )}
                                     </div>
-                                );
-                            }) : (
-                                <div className="p-8 text-center text-gray-500">
-                                    <div className="text-4xl mb-2">📋</div>
-                                    <div>Nessuna presenza registrata.</div>
+                                    <div className="text-xs md:text-sm text-blue-600 mt-2 text-center sm:text-left">
+                                        Basato solo su lezioni effettive (escluse festività)
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                        
-                        {/* Layout Tabella per desktop */}
-                        <div className="hidden md:block overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Data</TableHead>
-                                        <TableHead>Orario</TableHead>
-                                        <TableHead>Disciplina</TableHead>
-                                        <TableHead>Palestra</TableHead>
-                                        <TableHead className="text-center">Stato</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
+                                {/* Layout Card per mobile */}
+                                <div className="block md:hidden space-y-3">
                                     {attendances.length > 0 ? attendances.map((attendance) => {
                                         const eventDate = attendance.eventId && eventDates[attendance.eventId] ? eventDates[attendance.eventId] : null;
                                         return (
-                                            <TableRow key={attendance.id}>
-                                                <TableCell className="font-medium capitalize">
-                                                    {/* Mostra la data dello stage se presente, altrimenti lessonDate */}
-                                                    {eventDate ? format(eventDate.toDate(), 'eeee, dd MMMM yyyy', { locale: it }) : (attendance.lessonDate ? format(attendance.lessonDate.toDate(), 'eeee, dd MMMM yyyy', { locale: it }) : 'N/D')}
-                                                </TableCell>
-                                                <TableCell>{attendance.lessonTime}</TableCell>
-                                                <TableCell>{attendance.discipline}</TableCell>
-                                                <TableCell>{attendance.gymName}</TableCell>
-                                                <TableCell className="text-center">
-                                                    <Badge variant={getStatusVariant(attendance.status)}>
+                                            <div key={attendance.id} className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div>
+                                                        <div className="text-sm font-medium text-gray-900 capitalize">
+                                                            {/* Mostra la data dello stage se presente, altrimenti lessonDate */}
+                                                            {eventDate ? format(eventDate.toDate(), 'eeee dd/MM', { locale: it }) : (attendance.lessonDate ? format(attendance.lessonDate.toDate(), 'eeee dd/MM', { locale: it }) : 'N/D')}
+                                                        </div>
+                                                        <div className="text-xs text-gray-500 mt-1">
+                                                            {attendance.lessonTime} • {attendance.discipline}
+                                                        </div>
+                                                    </div>
+                                                    <Badge variant={getStatusVariant(attendance.status)}
+                                                           className={cn({
+                                                                'bg-success text-success-foreground hover:bg-success/80': attendance.status === 'presente',
+                                                            })}
+                                                    >
                                                         {translateStatus(attendance.status)}
                                                     </Badge>
-                                                </TableCell>
-                                            </TableRow>
+                                                </div>
+                                                <div className="text-xs text-gray-600">
+                                                    📍 {attendance.gymName}
+                                                </div>
+                                            </div>
                                         );
                                     }) : (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center h-24">
-                                                <div className="flex flex-col items-center text-gray-500">
-                                                    <div className="text-4xl mb-2">📋</div>
-                                                    <div>Nessuna presenza registrata.</div>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
+                                        <div className="p-8 text-center text-gray-500">
+                                            <div className="text-4xl mb-2">📋</div>
+                                            <div>Nessuna presenza registrata.</div>
+                                        </div>
                                     )}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
+                                </div>
+                                {/* Layout Tabella per desktop */}
+                                <div className="hidden md:block overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Data</TableHead>
+                                                <TableHead>Orario</TableHead>
+                                                <TableHead>Disciplina</TableHead>
+                                                <TableHead>Palestra</TableHead>
+                                                <TableHead className="text-center">Stato</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {attendances.length > 0 ? attendances.map((attendance) => {
+                                                const eventDate = attendance.eventId && eventDates[attendance.eventId] ? eventDates[attendance.eventId] : null;
+                                                return (
+                                                    <TableRow key={attendance.id}>
+                                                        <TableCell className="font-medium capitalize">
+                                                            {/* Mostra la data dello stage se presente, altrimenti lessonDate */}
+                                                            {eventDate ? format(eventDate.toDate(), 'eeee, dd MMMM yyyy', { locale: it }) : (attendance.lessonDate ? format(attendance.lessonDate.toDate(), 'eeee, dd MMMM yyyy', { locale: it }) : 'N/D')}
+                                                        </TableCell>
+                                                        <TableCell>{attendance.lessonTime}</TableCell>
+                                                        <TableCell>{attendance.discipline}</TableCell>
+                                                        <TableCell>{attendance.gymName}</TableCell>
+                                                        <TableCell className="text-center">
+                                                            <Badge variant={getStatusVariant(attendance.status)}>
+                                                                {translateStatus(attendance.status)}
+                                                            </Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            }) : (
+                                                <TableRow>
+                                                    <TableCell colSpan={5} className="text-center h-24">
+                                                        <div className="flex flex-col items-center text-gray-500">
+                                                            <div className="text-4xl mb-2">📋</div>
+                                                            <div>Nessuna presenza registrata.</div>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </>
     );
 }
 

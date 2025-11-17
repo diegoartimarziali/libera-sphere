@@ -592,25 +592,29 @@ function DashboardContent() {
     
     if (certificateStatus === 'expired') {
       alerts.push(
-        <Alert key="cert-expired" variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Certificato Medico Scaduto!</AlertTitle>
-          <AlertDescription>
-            Il tuo certificato medico è scaduto. Per continuare le attività, devi caricarne uno nuovo.
-          </AlertDescription>
-        </Alert>
+        <div key="cert-expired" className="mb-6 w-full max-w-2xl mx-auto">
+          <Alert variant="destructive" className="bg-white">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Certificato Medico Scaduto!</AlertTitle>
+            <AlertDescription>
+              Il tuo certificato medico è scaduto. Per continuare le attività, devi caricarne uno nuovo.
+            </AlertDescription>
+          </Alert>
+        </div>
       );
     }
     
     if (certificateStatus === 'expiring' && daysToExpire !== null) {
       alerts.push(
-        <Alert key="cert-expiring" variant="warning" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Certificato Medico in Scadenza</AlertTitle>
-          <AlertDescription>
-            {daysToExpire > 0 ? `Attenzione, il tuo certificato medico scadrà tra ${daysToExpire} giorni.` : "Attenzione, il tuo certificato medico scade oggi."} Ricordati di rinnovarlo e caricare la nuova versione.
-          </AlertDescription>
-        </Alert>
+        <div key="cert-expiring" className="mb-6 w-full max-w-2xl mx-auto">
+          <Alert variant="warning" className="bg-white">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Certificato Medico in Scadenza</AlertTitle>
+            <AlertDescription>
+              {daysToExpire > 0 ? `Attenzione, il tuo certificato medico scadrà tra ${daysToExpire} giorni.` : "Attenzione, il tuo certificato medico scade oggi."} Ricordati di rinnovarlo e caricare la nuova versione.
+            </AlertDescription>
+          </Alert>
+        </div>
       );
     }
 
