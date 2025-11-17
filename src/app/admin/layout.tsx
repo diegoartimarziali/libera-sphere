@@ -36,6 +36,7 @@ interface AdminNavItem {
 const adminNavItems: AdminNavItem[] = [
     { href: "/dashboard", label: "Torna a utente", icon: Shield },
     { href: "/admin/super-admin", label: "SuperAdmin", icon: Crown, superAdminOnly: true },
+    { href: "/admin/banners", label: "Banner Utenti", icon: Gift, superAdminOnly: true },
     { href: "/admin/payments", label: "Pagamenti", icon: CreditCard },
     { href: "/admin/attendances", label: "Presenze", icon: UserCheck },
     { href: "/admin/calendar", label: "Calendario", icon: Calendar },

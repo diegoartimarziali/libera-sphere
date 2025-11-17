@@ -20,6 +20,7 @@ import { AlertCircle, AlertTriangle, Clock, Smile, Frown, DoorClosed, Mail, Chec
 import { MemberSummaryCard, type MemberSummaryProps, type TrialLesson } from "@/components/dashboard/MemberSummaryCard"
 import { TotalAwardsCard } from "@/components/dashboard/TotalAwardsCard"
 import { AttendancePrompt } from "@/components/dashboard/AttendancePrompt"
+import UserBannerList from "@/components/dashboard/UserBannerList"
 import Link from "next/link"
 
 interface UserData {
@@ -182,243 +183,224 @@ function DashboardContent() {
     if (authLoading || (!user && !impersonateId)) return;
     if (effectiveUserId) {
       const fetchUserData = async () => {
-      try {
-        const userDocRef = doc(db, "users", effectiveUserId)
-        const seasonSettingsRef = doc(db, "settings", "season");
-        const gymsCollectionRef = collection(db, "gyms");
-        // Nuovo: stato pagamento abbonamento
-        const paymentStatusDocRef = doc(db, `users/${effectiveUserId}/payments/status`);
-        const karateConfigRef = doc(db, "config", "karate");
-        const [userDocSnap, seasonDocSnap, gymsSnapshot, paymentStatusSnap, trialMainDocSnap, karateConfigSnap] = await Promise.all([
-          getDoc(userDocRef),
-          getDoc(seasonSettingsRef),
-          getDocs(gymsCollectionRef),
-          getDoc(paymentStatusDocRef),
-          getDoc(doc(db, `users/${effectiveUserId}/trialLessons/main`)),
-          getDoc(karateConfigRef)
-        ]);
+        try {
+          // Ottieni snapshot delle palestre
+          const gymsSnapshot = await getDocs(collection(db, "gyms"));
+          const gymsMap = new Map<string, string>();
+          gymsSnapshot.forEach((doc: any) => gymsMap.set(doc.id, doc.data().name));
 
-        const gymsMap = new Map<string, string>();
-        gymsSnapshot.forEach(doc => gymsMap.set(doc.id, doc.data().name));
+          // Ottieni snapshot utente
+          const userDocSnap = await getDoc(doc(db, `users/${effectiveUserId}`));
+          // Ottieni config karate
+          const karateConfigSnap = await getDoc(doc(db, "config/karate"));
+          // Ottieni stato pagamento abbonamento
+          const paymentStatusSnap = await getDoc(doc(db, `users/${effectiveUserId}/payments/status`));
+          // Ottieni stagione sportiva
+          const seasonDocSnap = await getDoc(doc(db, "config/season"));
+          // Ottieni lezioni di prova
+          const trialMainDocSnap = await getDoc(doc(db, `users/${effectiveUserId}/trialLessons/main`));
 
-        if (userDocSnap.exists()) {
-          const data = userDocSnap.data() as UserData;
-          
-          // Carico grades da config/karate
-          const gradesArr = (karateConfigSnap.exists() && Array.isArray(karateConfigSnap.data()?.grades)) ? karateConfigSnap.data()!.grades as string[] : [];
-          setGrades(gradesArr);
-          
-          // Carico exams da budoPassExtra
-          const examsArr = (data as any)?.budoPassExtra?.exams || [];
-          setExams(examsArr);
-          
-          // Leggi lezioni di prova e stato dal documento unico 'main'
-          let trialStatus = data.trialStatus;
-          let trialExpiryDate = data.trialExpiryDate;
-          let trialLessonsArr: { eventId: string; startTime: Timestamp; endTime: Timestamp }[] = [];
-          if (trialMainDocSnap.exists()) {
-            const trialData = trialMainDocSnap.data();
-            trialStatus = trialData.trialStatus;
-            trialExpiryDate = trialData.trialExpiryDate;
-            trialLessonsArr = Array.isArray(trialData.lessons) ? trialData.lessons : [];
-          }
-
-          // Leggi stato pagamento abbonamento
-          let subscriptionAccessStatus = data.subscriptionAccessStatus;
-          let paymentStatus = undefined;
-          if (paymentStatusSnap.exists()) {
-            const paymentStatusData = paymentStatusSnap.data();
-            paymentStatus = paymentStatusData.status;
-            if (paymentStatus === 'completed') {
-              subscriptionAccessStatus = 'active';
-              // Se il pagamento è completato e lo stato delle lezioni è ancora 'pending_payment', aggiorna a 'active'
-              if (trialStatus === 'pending_payment') {
-                const trialMainDocRef = doc(db, `users/${effectiveUserId}/trialLessons/main`);
-                await updateDoc(trialMainDocRef, { trialStatus: 'active' });
-                // Rileggi il documento main aggiornato
-                const updatedTrialMainDocSnap = await getDoc(trialMainDocRef);
-                if (updatedTrialMainDocSnap.exists()) {
-                  const updatedTrialData = updatedTrialMainDocSnap.data();
-                  trialStatus = updatedTrialData.trialStatus;
-                  trialExpiryDate = updatedTrialData.trialExpiryDate;
-                  trialLessonsArr = Array.isArray(updatedTrialData.lessons) ? updatedTrialData.lessons : [];
-                }
-              }
-            } else if (paymentStatus === 'pending') {
-              subscriptionAccessStatus = 'pending';
-            } else if (paymentStatus === 'expired') {
-              subscriptionAccessStatus = 'expired';
+          if (userDocSnap.exists()) {
+            const data = userDocSnap.data() as UserData;
+            // Carico grades da config/karate
+            const gradesArr = (karateConfigSnap.exists() && Array.isArray(karateConfigSnap.data()?.grades)) ? karateConfigSnap.data()!.grades as string[] : [];
+            setGrades(gradesArr);
+            // Carico exams da budoPassExtra
+            const examsArr = (data as any)?.budoPassExtra?.exams || [];
+            setExams(examsArr);
+            // Leggi lezioni di prova e stato dal documento unico 'main'
+            let trialStatus = data.trialStatus;
+            let trialExpiryDate = data.trialExpiryDate;
+            let trialLessonsArr: { eventId: string; startTime: Timestamp; endTime: Timestamp }[] = [];
+            if (trialMainDocSnap.exists()) {
+              const trialData = trialMainDocSnap.data();
+              trialStatus = trialData.trialStatus;
+              trialExpiryDate = trialData.trialExpiryDate;
+              trialLessonsArr = Array.isArray(trialData.lessons) ? trialData.lessons : [];
             }
-          }
-
-          setUserData({ ...data, trialStatus, trialExpiryDate, trialLessons: trialLessonsArr, subscriptionAccessStatus });
-              
-        let membershipStatusLabel = "Non Associato";
-        switch (data.associationStatus) {
-          case 'pending':
-            membershipStatusLabel = 'In Attesa di Approvazione';
-            break;
-          case 'active':
-            membershipStatusLabel = data.associationExpiryDate ? `Valida fino al ${format(data.associationExpiryDate.toDate(), 'dd/MM/yyyy')}` : 'Attiva';
-            break;
-          case 'expired':
-            membershipStatusLabel = 'Scaduta';
-            break;
-          case 'not_associated':
-          default:
-            membershipStatusLabel = 'Non Associato';
-            break;
-        }
-              
-        let medicalStatusLabel = "Non Presente";
-        let certStatus: 'valid' | 'expiring' | 'expired' | null = null;
-        if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
-          const expiry = data.medicalInfo.expiryDate.toDate();
-          
-          const today = startOfDay(new Date());
-          const expiryDate = startOfDay(expiry);
-          const daysDiff = differenceInDays(expiryDate, today);
-
-          if (daysDiff < 0) {
-            certStatus = 'expired';
-            medicalStatusLabel = 'SCADUTO';
-          } else if (daysDiff <= 30) {
-            certStatus = 'expiring';
-            medicalStatusLabel = `Scade il ${format(expiry, 'dd/MM/yyyy')}`;
-          } else {
-            certStatus = 'valid';
-            medicalStatusLabel = `Scade il ${format(expiry, 'dd/MM/yyyy')}`;
-          }
-          setCertificateStatus(certStatus);
-          setDaysToExpire(daysDiff);
-        }
-
-        const regulationsStatusLabel = data.regulationsAccepted 
-          ? "Accettati"
-          : "Non Accettati";
-              
-        // Nuovo: usa trialLessonsArr e trialStatus
-        const trialLessons: TrialLesson[] | undefined = 
-          (trialStatus === 'active' || trialStatus === 'pending_payment') && trialLessonsArr.length > 0
-          ? trialLessonsArr.map(l => ({
-            date: l.startTime.toDate(),
-            time: format(l.startTime.toDate(), "HH:mm")
-          }))
-          : undefined;
-              
-        let socioDalYear: string | undefined;
-        if (data.associationStatus === 'active' || data.associationStatus === 'pending') {
-          if (data.isFormerMember === 'yes' && data.firstYear) {
-            socioDalYear = data.firstYear;
-          } else {
-            socioDalYear = format(data.createdAt.toDate(), 'yyyy');
-          }
-        }
-              
-        let trialStatusLabel: string | undefined = undefined;
-        if(trialStatus === 'pending_payment' && trialLessonsArr.length > 0) {
-          trialStatusLabel = "In attesa di approvazione pagamento";
-        } else if(trialStatus === 'active') {
-          trialStatusLabel = "Attiva";
-        } else if(trialStatus === 'completed') {
-          trialStatusLabel = "Completata";
-        } else if(trialLessonsArr.length > 0) {
-          trialStatusLabel = "Lezioni di prova prenotate";
-        }
-
-        let subscriptionStatusLabel: string | undefined = undefined;
-        let subscriptionValidityMonth: string | undefined = undefined;
-
-        if (data.subscriptionPaymentFailed) {
-          subscriptionStatusLabel = "Non Approvato";
-        } else if (subscriptionAccessStatus && data.activeSubscription && data.activeSubscription.type === 'monthly') {
-           switch(subscriptionAccessStatus) {
-            case 'pending': 
-              subscriptionStatusLabel = 'In attesa di approvazione'; 
-              break;
-            case 'expired': 
-              subscriptionStatusLabel = 'Scaduto'; 
-              break;
-            case 'active':
-               if (data.activeSubscription.expiresAt) {
-                const expiryDate = startOfDay(data.activeSubscription.expiresAt.toDate());
-                const today = startOfDay(new Date());
-                const daysDiff = differenceInDays(expiryDate, today);
-                if (isPast(expiryDate)) {
-                  subscriptionStatusLabel = 'Scaduto';
-                } else if (daysDiff <= 4) {
-                  subscriptionStatusLabel = 'In scadenza';
-                } else {
-                  subscriptionStatusLabel = 'Attivo';
+            // Leggi stato pagamento abbonamento
+            let subscriptionAccessStatus = data.subscriptionAccessStatus;
+            let paymentStatus = undefined;
+            if (paymentStatusSnap.exists()) {
+              const paymentStatusData = paymentStatusSnap.data();
+              paymentStatus = paymentStatusData.status;
+              if (paymentStatus === 'completed') {
+                subscriptionAccessStatus = 'active';
+                // Se il pagamento è completato e lo stato delle lezioni è ancora 'pending_payment', aggiorna a 'active'
+                if (trialStatus === 'pending_payment') {
+                  const trialMainDocRef = doc(db, `users/${effectiveUserId}/trialLessons/main`);
+                  await updateDoc(trialMainDocRef, { trialStatus: 'active' });
+                  // Rileggi il documento main aggiornato
+                  const updatedTrialMainDocSnap = await getDoc(trialMainDocRef);
+                  if (updatedTrialMainDocSnap.exists()) {
+                    const updatedTrialData = updatedTrialMainDocSnap.data();
+                    trialStatus = updatedTrialData.trialStatus;
+                    trialExpiryDate = updatedTrialData.trialExpiryDate;
+                    trialLessonsArr = Array.isArray(updatedTrialData.lessons) ? updatedTrialData.lessons : [];
+                  }
                 }
+              } else if (paymentStatus === 'pending') {
+                subscriptionAccessStatus = 'pending';
+              } else if (paymentStatus === 'expired') {
+                subscriptionAccessStatus = 'expired';
+              }
+            }
+            setUserData({ ...data, trialStatus, trialExpiryDate, trialLessons: trialLessonsArr, subscriptionAccessStatus });
+            let membershipStatusLabel = "Non Associato";
+            switch (data.associationStatus) {
+              case 'pending':
+                membershipStatusLabel = 'In Attesa di Approvazione';
+                break;
+              case 'active':
+                membershipStatusLabel = data.associationExpiryDate ? `Valida fino al ${format(data.associationExpiryDate.toDate(), 'dd/MM/yyyy')}` : 'Attiva';
+                break;
+              case 'expired':
+                membershipStatusLabel = 'Scaduta';
+                break;
+              case 'not_associated':
+              default:
+                membershipStatusLabel = 'Non Associato';
+                break;
+            }
+            let medicalStatusLabel = "Non Presente";
+            let certStatus: 'valid' | 'expiring' | 'expired' | null = null;
+            if (data.medicalInfo?.type === 'certificate' && data.medicalInfo.expiryDate) {
+              const expiry = data.medicalInfo.expiryDate.toDate();
+              const today = startOfDay(new Date());
+              const expiryDate = startOfDay(expiry);
+              const daysDiff = differenceInDays(expiryDate, today);
+              if (daysDiff < 0) {
+                certStatus = 'expired';
+                medicalStatusLabel = 'SCADUTO';
+              } else if (daysDiff <= 30) {
+                certStatus = 'expiring';
+                medicalStatusLabel = `Scade il ${format(expiry, 'dd/MM/yyyy')}`;
               } else {
-                subscriptionStatusLabel = 'Attivo';
+                certStatus = 'valid';
+                medicalStatusLabel = `Scade il ${format(expiry, 'dd/MM/yyyy')}`;
               }
-              break;
-          }
-           if (data.activeSubscription.expiresAt) {
-            subscriptionValidityMonth = format(data.activeSubscription.expiresAt.toDate(), "MMMM yyyy", { locale: it });
-          }
-        } else if (subscriptionAccessStatus && data.activeSubscription) { // Abbonamento non mensile
-           switch(subscriptionAccessStatus) {
-            case 'pending': 
-              subscriptionStatusLabel = 'In attesa di approvazione'; 
-              break;
-            case 'expired': 
-              subscriptionStatusLabel = 'Scaduto'; 
-              break;
-            case 'active':
-              subscriptionStatusLabel = 'Attivo';
-              break;
-           }
-        }
-
-        setMemberCardProps({
-          name: `${data.name} ${data.surname}`,
-          email: data.email,
-          socioDal: socioDalYear,
-          sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
-          regulationsStatus: regulationsStatusLabel,
-          regulationsAccepted: data.regulationsAccepted,
-          regulationsAcceptedAt: data.regulationsAcceptedAt?.toDate(),
-          medicalStatus: medicalStatusLabel,
-          medicalStatusState: certStatus,
-          gymName: data.gym ? `${data.gym}, ${gymsMap.get(data.gym)}` : undefined,
-          discipline: data.discipline,
-          grade: data.lastGrade,
-          qualifica: data.qualification,
-          membershipStatus: membershipStatusLabel,
-          membershipStatusState: data.associationStatus,
-          isInsured: data.isInsured,
-          trialLessons: trialLessons,
-          trialStatus: trialStatusLabel,
-          trialStatusState: trialStatus,
-          subscriptionType: data.activeSubscription?.name,
-          subscriptionStatus: subscriptionStatusLabel,
-          subscriptionValidity: subscriptionValidityMonth,
-          taxCode: data.taxCode,
-          phone: data.phone,
-          birthDate: data.birthDate instanceof Timestamp ? data.birthDate.toDate() : undefined,
-          birthPlace: data.birthPlace,
-          fullAddress: data.address ? `${data.address}, ${data.streetNumber}, ${data.zipCode} ${data.city} (${data.province})` : undefined,
-          isMinor: data.isMinor,
-          parentData: data.parentData,
-          grades: gradesArr,
-          exams: examsArr,
-        });
-
+              setCertificateStatus(certStatus);
+              setDaysToExpire(daysDiff);
             }
-          } catch (error) {
-            console.error("Error fetching user data for dashboard:", error)
-          } finally {
-            setDataLoading(false)
+            const regulationsStatusLabel = data.regulationsAccepted 
+              ? "Accettati"
+              : "Non Accettati";
+            // Nuovo: usa trialLessonsArr e trialStatus
+            const trialLessons: TrialLesson[] | undefined = 
+              (trialStatus === 'active' || trialStatus === 'pending_payment') && trialLessonsArr.length > 0
+              ? trialLessonsArr.map(l => ({
+                date: l.startTime.toDate(),
+                time: format(l.startTime.toDate(), "HH:mm")
+              }))
+              : undefined;
+            let socioDalYear: string | undefined;
+            if (data.associationStatus === 'active' || data.associationStatus === 'pending') {
+              if (data.isFormerMember === 'yes' && data.firstYear) {
+                socioDalYear = data.firstYear;
+              } else {
+                socioDalYear = format(data.createdAt.toDate(), 'yyyy');
+              }
+            }
+            let trialStatusLabel: string | undefined = undefined;
+            if(trialStatus === 'pending_payment' && trialLessonsArr.length > 0) {
+              trialStatusLabel = "In attesa di approvazione pagamento";
+            } else if(trialStatus === 'active') {
+              trialStatusLabel = "Attiva";
+            } else if(trialStatus === 'completed') {
+              trialStatusLabel = "Completata";
+            } else if(trialLessonsArr.length > 0) {
+              trialStatusLabel = "Lezioni di prova prenotate";
+            }
+            let subscriptionStatusLabel: string | undefined = undefined;
+            let subscriptionValidityMonth: string | undefined = undefined;
+            if (data.subscriptionPaymentFailed) {
+              subscriptionStatusLabel = "Non Approvato";
+            } else if (subscriptionAccessStatus && data.activeSubscription && data.activeSubscription.type === 'monthly') {
+               switch(subscriptionAccessStatus) {
+                case 'pending': 
+                  subscriptionStatusLabel = 'In attesa di approvazione'; 
+                  break;
+                case 'expired': 
+                  subscriptionStatusLabel = 'Scaduto'; 
+                  break;
+                case 'active':
+                   if (data.activeSubscription.expiresAt) {
+                    const expiryDate = startOfDay(data.activeSubscription.expiresAt.toDate());
+                    const today = startOfDay(new Date());
+                    const daysDiff = differenceInDays(expiryDate, today);
+                    if (isPast(expiryDate)) {
+                      subscriptionStatusLabel = 'Scaduto';
+                    } else if (daysDiff <= 4) {
+                      subscriptionStatusLabel = 'In scadenza';
+                    } else {
+                      subscriptionStatusLabel = 'Attivo';
+                    }
+                  } else {
+                    subscriptionStatusLabel = 'Attivo';
+                  }
+                  break;
+              }
+               if (data.activeSubscription.expiresAt) {
+                subscriptionValidityMonth = format(data.activeSubscription.expiresAt.toDate(), "MMMM yyyy", { locale: it });
+              }
+            } else if (subscriptionAccessStatus && data.activeSubscription) { // Abbonamento non mensile
+               switch(subscriptionAccessStatus) {
+                case 'pending': 
+                  subscriptionStatusLabel = 'In attesa di approvazione'; 
+                  break;
+                case 'expired': 
+                  subscriptionStatusLabel = 'Scaduto'; 
+                  break;
+                case 'active':
+                  subscriptionStatusLabel = 'Attivo';
+                  break;
+               }
+            }
+            setMemberCardProps({
+              name: `${data.name} ${data.surname}`,
+              email: data.email,
+              socioDal: socioDalYear,
+              sportingSeason: (seasonDocSnap.data() as SeasonSettings)?.label || 'N/D',
+              regulationsStatus: regulationsStatusLabel,
+              regulationsAccepted: data.regulationsAccepted,
+              regulationsAcceptedAt: data.regulationsAcceptedAt?.toDate(),
+              medicalStatus: medicalStatusLabel,
+              medicalStatusState: certStatus,
+              gymName: data.gym ? `${data.gym}, ${gymsMap.get(data.gym)}` : undefined,
+              discipline: data.discipline,
+              grade: data.lastGrade,
+              qualifica: data.qualification,
+              membershipStatus: membershipStatusLabel,
+              membershipStatusState: data.associationStatus,
+              isInsured: data.isInsured,
+              trialLessons: trialLessons,
+              trialStatus: trialStatusLabel,
+              trialStatusState: trialStatus,
+              subscriptionType: data.activeSubscription?.name,
+              subscriptionStatus: subscriptionStatusLabel,
+              subscriptionValidity: subscriptionValidityMonth,
+              taxCode: data.taxCode,
+              phone: data.phone,
+              birthDate: data.birthDate instanceof Timestamp ? data.birthDate.toDate() : undefined,
+              birthPlace: data.birthPlace,
+              fullAddress: data.address ? `${data.address}, ${data.streetNumber}, ${data.zipCode} ${data.city} (${data.province})` : undefined,
+              isMinor: data.isMinor,
+              parentData: data.parentData,
+              grades: gradesArr,
+              exams: examsArr,
+            });
           }
-        }
-        fetchUserData()
-      } else {
+        } catch (error) {
+          console.error("Error fetching user data for dashboard:", error)
+        } finally {
           setDataLoading(false)
+        }
       }
-  }, [user, authLoading, impersonateId])
+      fetchUserData();
+    } else {
+      setDataLoading(false);
+    }
+  }, [user, authLoading, impersonateId]);
 
   // Aggiorna subscriptionAccessStatus a 'expired' se la data di scadenza è passata
   useEffect(() => {
@@ -547,7 +529,7 @@ function DashboardContent() {
     }
 
     if (
-      showAssociationApprovedAlert
+      showAssociationApprovedAlert && userData?.subscriptionAccessStatus !== 'expired'
     ) {
       alerts.push(
         <Alert key="sub-choice" variant="success" className="mb-6">
@@ -658,6 +640,7 @@ function DashboardContent() {
 
       <Suspense fallback={<div><Skeleton className="h-24 w-full mb-6" /></div>}>
         <AttendancePrompt />
+        <UserBannerList userId={impersonateId || user?.uid} />
       </Suspense>
 
       {dataLoading ? <Skeleton className="h-24 w-full mb-6" /> : renderInfoAlerts()}

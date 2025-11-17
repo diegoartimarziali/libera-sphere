@@ -50,14 +50,13 @@ import { useState, useEffect } from "react";
                 }
                 setUserData(fetchedUserData);
 
-                // 3. Recupera la lezione di oggi dalla collezione events
+                // 3. Recupera solo la lezione di oggi (nessun prompt stage/alertDate)
                 let todaysLessonData = null;
                 if (fetchedUserData.gym && fetchedUserData.discipline) {
                     const todayStart = new Date();
                     todayStart.setHours(0, 0, 0, 0);
                     const todayEnd = new Date();
                     todayEnd.setHours(23, 59, 59, 999);
-
                     const eventsQuery = query(
                         collection(db, "events"),
                         where("type", "==", "lesson"),
@@ -69,10 +68,8 @@ import { useState, useEffect } from "react";
                         limit(1)
                     );
                     const eventsSnap = await getDocs(eventsQuery);
-                    // ...existing code...
                     if (!eventsSnap.empty) {
                         const lessonDoc = eventsSnap.docs[0];
-                        // ...existing code...
                         todaysLessonData = { id: lessonDoc.id, ...lessonDoc.data() };
                         setTodaysLesson(todaysLessonData);
                     }
@@ -246,26 +243,32 @@ import { useState, useEffect } from "react";
         
         setIsSubmitting(true);
         try {
-            const today_start = new Date();
-            today_start.setHours(0, 0, 0, 0);
+            let attendanceEventData = todaysLesson;
+            // Se eventId è presente e il tipo NON è 'lesson', recupera l'evento da 'events'
+            if (todaysLesson.eventId && todaysLesson.type && todaysLesson.type !== 'lesson') {
+                const eventDocRef = doc(db, 'events', todaysLesson.eventId);
+                const eventDocSnap = await getDoc(eventDocRef);
+                if (eventDocSnap.exists()) {
+                    attendanceEventData = { id: eventDocSnap.id, ...eventDocSnap.data() };
+                }
+            }
             const batch = writeBatch(db);
             const newAttendanceRef = doc(collection(db, "users", user.uid, "attendances"));
-            const lessonStartTime = todaysLesson.startTime.toDate();
+            const lessonStartTime = attendanceEventData.startTime?.toDate ? attendanceEventData.startTime.toDate() : new Date();
             const attendanceData = {
                 userId: user.uid,
                 userName: userData.name,
                 userSurname: userData.surname,
-                gymId: todaysLesson.gymId,
-                gymName: todaysLesson.gymName,
-                discipline: todaysLesson.discipline,
-                lessonDate: Timestamp.fromDate(today_start),
+                gymId: attendanceEventData.gymId || '',
+                gymName: attendanceEventData.gymName || '',
+                discipline: attendanceEventData.discipline || '',
+                lessonDate: attendanceEventData.startTime || serverTimestamp(),
                 lessonTime: format(lessonStartTime, "HH:mm", { locale: it }),
                 status: status,
                 recordedAt: serverTimestamp(),
-                eventId: todaysLesson.id  // IMPORTANTE: salva sempre l'eventId
+                eventId: attendanceEventData.id  // IMPORTANTE: salva sempre l'eventId
             };
-            
-            console.log("💾 DEBUG - Saving attendance with eventId:", todaysLesson.id);
+            console.log("💾 DEBUG - Saving attendance with eventId:", attendanceEventData.id);
             batch.set(newAttendanceRef, attendanceData);
             if (status === 'presente') {
                 const userDocRef = doc(db, "users", user.uid);
@@ -277,7 +280,7 @@ import { useState, useEffect } from "react";
             setAlreadyResponded(true);
             // Imposta SEMPRE il flag in localStorage per la lezione dopo risposta
             setShowAutoToast(false);
-            localStorage.setItem(`attendance-toast-${todaysLesson.id}`, "true");
+            localStorage.setItem(`attendance-toast-${attendanceEventData.id}`, "true");
             toast({
                 title: "Risposta Registrata!",
                 description: "Grazie per averci fatto sapere."
@@ -296,33 +299,34 @@ import { useState, useEffect } from "react";
 
     // Toast automatico 3 ore prima della lezione (nascosto automaticamente 1 ora dopo se senza risposta)
     if (showAutoToast && todaysLesson && !alreadyResponded && !alreadySeen) {
+    // Prompt classico lezione
     return (
-            <Alert className="mb-6 animate-in fade-in-50 border-[4px] !border-green-600 bg-green-50" style={{borderWidth: 4, borderColor: '#16a34a'}}>
-                <CalendarCheck className="h-4 w-4 text-amber-600" />
-                <AlertTitle className="font-bold text-amber-600 text-center bg-amber-50 p-2 rounded-lg">Appello per la lezione di oggi, ogni presenza ti premia!</AlertTitle>
-                <AlertDescription className="text-amber-600 text-center mt-2">
-                    Sei dei nostri stasera per la lezione di {userData?.discipline} delle {format(todaysLesson.startTime.toDate(), "HH:mm", { locale: it })}?
-                </AlertDescription>
-                <div className="mt-4 flex gap-4">
-                    <Button 
-                        className="w-full font-bold" 
-                        variant="success"
-                        onClick={() => handleRespond('presente', true)}
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? <Loader2 className="animate-spin" /> : <span className="font-bold">Presente</span>}
-                    </Button>
-                    <Button 
-                        className="w-full font-bold" 
-                        variant="destructive"
-                        onClick={() => { handleRespond('assente', true); }}
-                        disabled={isSubmitting}
-                    >
-                        {isSubmitting ? <Loader2 className="animate-spin" /> : <span className="font-bold">Assente</span>}
-                    </Button>
-                </div>
-            </Alert>
-        );
+        <Alert className="mb-6 animate-in fade-in-50 border-[4px] !border-green-600 bg-green-50" style={{borderWidth: 4, borderColor: '#16a34a'}}>
+            <CalendarCheck className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="font-bold text-amber-600 text-center bg-amber-50 p-2 rounded-lg">Appello per la lezione di oggi, ogni presenza ti premia!</AlertTitle>
+            <AlertDescription className="text-amber-600 text-center mt-2">
+                Sei dei nostri stasera per la lezione di {userData?.discipline} delle {format(todaysLesson.startTime.toDate(), "HH:mm", { locale: it })}?
+            </AlertDescription>
+            <div className="mt-4 flex gap-4">
+                <Button 
+                    className="w-full font-bold" 
+                    variant="success"
+                    onClick={() => handleRespond('presente', true)}
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? <Loader2 className="animate-spin" /> : <span className="font-bold">Presente</span>}
+                </Button>
+                <Button 
+                    className="w-full font-bold" 
+                    variant="destructive"
+                    onClick={() => { handleRespond('assente', true); }}
+                    disabled={isSubmitting}
+                >
+                    {isSubmitting ? <Loader2 className="animate-spin" /> : <span className="font-bold">Assente</span>}
+                </Button>
+            </div>
+        </Alert>
+    );
     }
 
     if (!todaysLesson || alreadyResponded || alreadySeen) {

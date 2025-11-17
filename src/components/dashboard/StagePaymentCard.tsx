@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Euro, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, QueryDocumentSnapshot, DocumentData, collection, addDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { doc, updateDoc, QueryDocumentSnapshot, DocumentData, collection, addDoc, Timestamp, onSnapshot, getDoc } from 'firebase/firestore';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { usePremiumSystem } from '@/hooks/use-premium-system';
@@ -26,7 +26,6 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
   const router = useRouter();
   const { toast } = useToast();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  
   // 🚀 SISTEMA UNIFICATO: sostituisce tutta la logica sparsa precedente
   const {
     totalSpendable,
@@ -37,35 +36,65 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
     getAwardsSummary
   } = usePremiumSystem(userId);
 
-  
+  // Stato per i premi
+  const [awardsSummary, setAwardsSummary] = useState({ spendableAwards: [], nonSpendableAwards: [] });
+  useEffect(() => {
+    async function fetchAwards() {
+      const summary = await getAwardsSummary();
+      setAwardsSummary(summary);
+    }
+    fetchAwards();
+  }, [getAwardsSummary]);
+
   // 🧮 CALCOLO BONUS UNIFICATO: sostituisce logiche manuali precedenti
   const bonusCalculation = calculateBonus(price);
   const { bonusToUse, finalPrice, awardUsage } = bonusCalculation;
   const useBonus = bonusToUse > 0;
   
   // 📊 RIEPILOGO PREMI per visualizzazione UI
-  const awardsSummary = getAwardsSummary();
-  
-  console.log('� [StagePayment] Sistema unificato - Bonus disponibile:', totalSpendable);
-  console.log('� [StagePayment] Calcolo per acquisto €', price, '→ Bonus da usare:', bonusToUse, '€');
-  console.log('🚀 [StagePayment] Prezzo finale:', finalPrice, '€');
-
   const handleGymPayment = async () => {
     let paymentDocRef;
+    let gymName = '';
+    let lessonDate = Timestamp.now();
     try {
-      // Crea documento pagamento
-      paymentDocRef = await addDoc(collection(db, `users/${userId}/payments`), {
+      // Recupera dati evento
+      const eventDoc = await getDoc(doc(db, 'events', eventId));
+      if (eventDoc.exists()) {
+        const eventData = eventDoc.data();
+        gymName = eventData.gymName || '';
+        if (eventData.startDate) {
+          lessonDate = eventData.startDate;
+        }
+      }
+      // Oggetto pagamento per debug
+      // Recupera la data dello stage
+      let stageDate = lessonDate;
+      try {
+        const eventDoc = await getDoc(doc(db, 'events', eventId));
+        if (eventDoc.exists()) {
+          const eventData = eventDoc.data();
+          stageDate = eventData.startTime || eventData.startDate || lessonDate;
+        }
+      } catch {}
+      const paymentData = {
         eventId,
         amount: finalPrice,
-        method: "gym",
+        paymentMethod: "in_person",
         status: "pending",
         createdAt: Timestamp.now(),
         eventTitle: title,
         bonusUsed: bonusToUse,
         awardId: awardUsage.length === 1 ? awardUsage[0].id : awardUsage.map(u => u.id),
         description: `Tipologia Evento: ${eventType} - Disciplina: ${discipline}`,
-      });
+        startTime: stageDate,
+      };
+      console.log('DEBUG pagamento palestra:', paymentData);
+      paymentDocRef = await addDoc(collection(db, `users/${userId}/payments`), paymentData);
+      if (!paymentDocRef || !paymentDocRef.id) {
+        throw new Error('Documento pagamento non creato');
+      }
     } catch (error) {
+      console.error('Errore creazione pagamento:', error);
       toast({
         variant: "destructive",
         title: "Errore pagamento",
@@ -100,14 +129,13 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
             console.error('Errore applicazione bonus dopo conferma:', error);
           }
         }
-        
         // Aggiungi presenza solo se non già registrata
         const attendancesRef = collection(db, `users/${userId}/attendances`);
         await addDoc(attendancesRef, {
-          lessonDate: Timestamp.now(),
+          lessonDate,
           lessonTime: '',
           discipline,
-          gymName: '',
+          gymName,
           status: 'presente',
           eventId,
           eventType,
@@ -115,20 +143,27 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
         });
       }
     });
-    
+
     // 💸 APPLICAZIONE BONUS: Solo se il pagamento è completamente coperto dal bonus
     if (finalPrice === 0 && useBonus && bonusToUse > 0) {
       try {
         await applyBonus(bonusCalculation);
         if (onRefresh) onRefresh(); // Aggiorna UI premi nel wallet
-        
         // Aggiungi immediatamente la presenza se l'iscrizione è gratuita
+        let stageDate = lessonDate;
+        try {
+          const eventDoc = await getDoc(doc(db, 'events', eventId));
+          if (eventDoc.exists()) {
+            const eventData = eventDoc.data();
+            stageDate = eventData.startTime || eventData.startDate || lessonDate;
+          }
+        } catch {}
         const attendancesRef = collection(db, `users/${userId}/attendances`);
         await addDoc(attendancesRef, {
-          lessonDate: Timestamp.now(),
+          lessonDate: stageDate,
           lessonTime: '',
           discipline,
-          gymName: '',
+          gymName,
           status: 'presente',
           eventId,
           eventType,
@@ -136,10 +171,10 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
         });
       } catch (error) {
         console.error('Errore applicazione bonus:', error);
-        return; // Interrompe se fallisce applicazione bonus
+        // Interrompe se fallisce applicazione bonus
+        return;
       }
     }
-    
     toast({
       title: finalPrice > 0 ? "Pagamento in palestra selezionato" : "Iscrizione completata",
       description: finalPrice > 0 
@@ -155,16 +190,26 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
     
     // Crea il documento pagamento in Firestore
     try {
+      // Recupera la data dello stage
+      let stageDate = Timestamp.now();
+      try {
+        const eventDoc = await getDoc(doc(db, 'events', eventId));
+        if (eventDoc.exists()) {
+          const eventData = eventDoc.data();
+          stageDate = eventData.startTime || eventData.startDate || Timestamp.now();
+        }
+      } catch {}
       paymentDocRef = await addDoc(collection(db, `users/${userId}/payments`), {
         eventId,
         amount: finalPrice,
-        method: "online",
+        paymentMethod: "online",
         status: "pending",
         createdAt: Timestamp.now(),
         eventTitle: title,
         bonusUsed: bonusToUse,
         awardId: awardUsage.length === 1 ? awardUsage[0].id : awardUsage.map(u => u.id),
         description: `Tipologia Evento: ${eventType} - Disciplina: ${discipline}`,
+        startTime: stageDate,
       });
     } catch (error) {
       toast({
@@ -192,10 +237,19 @@ export function StagePaymentCard({ title, price, sumupUrl, onClose, userId, even
     onSnapshot(paymentDocRef, async (docSnap: import('firebase/firestore').DocumentSnapshot<DocumentData>) => {
       const data = docSnap.data();
       if (data && data.status === 'completed') {
+        // Recupera la data dello stage
+        let stageDate = Timestamp.now();
+        try {
+          const eventDoc = await getDoc(doc(db, 'events', eventId));
+          if (eventDoc.exists()) {
+            const eventData = eventDoc.data();
+            stageDate = eventData.startTime || eventData.startDate || Timestamp.now();
+          }
+        } catch {}
         // Aggiungi presenza solo se non già registrata
         const attendancesRef = collection(db, `users/${userId}/attendances`);
         await addDoc(attendancesRef, {
-          lessonDate: Timestamp.now(),
+          lessonDate: stageDate,
           lessonTime: '',
           discipline,
           gymName: '',

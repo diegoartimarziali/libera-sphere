@@ -166,11 +166,14 @@ export default function CalendarPage() {
                     const paidEventIds: string[] = [];
                     const paymentDetails: {[eventId: string]: string} = {};
                     paymentsSnap.forEach(docSnap => {
-                        const data = docSnap.data();
-                        if (data.eventId && (data.status === "completed" || data.status === "pending")) {
-                            paidEventIds.push(data.eventId);
-                            paymentDetails[data.eventId] = data.status;
-                        }
+                                                const data = docSnap.data();
+                                                if (data.eventId && (data.status === "completed" || data.status === "pending")) {
+                                                        paidEventIds.push(data.eventId);
+                                                        paymentDetails[data.eventId] = {
+                                                            status: data.status,
+                                                            method: data.paymentMethod || data.method || 'N/D'
+                                                        };
+                                                }
                     });
                     setUserPaidEvents(paidEventIds);
                     setUserPaymentDetails(paymentDetails);
@@ -253,9 +256,10 @@ export default function CalendarPage() {
                                                     />
                                                     {isPaid && (
                                                         <span className={`absolute top-2 right-2 text-white text-xs font-bold px-2 py-1 rounded shadow ${
-                                                            userPaymentDetails[event.id] === 'completed' ? 'bg-green-600' : 'bg-yellow-600'
+                                                            userPaymentDetails[event.id]?.status === 'completed' ? 'bg-green-600' : 'bg-yellow-600'
                                                         }`}>
-                                                            {userPaymentDetails[event.id] === 'completed' ? 'Iscritto' : 'Pending'}
+                                                            {userPaymentDetails[event.id]?.status === 'completed' ? 'Iscritto' : 'Pending'}<br />
+                                                            <span className="block text-[10px] font-normal">Metodo: {userPaymentDetails[event.id]?.method || 'N/D'}</span>
                                                         </span>
                                                     )}
                                                 </div>

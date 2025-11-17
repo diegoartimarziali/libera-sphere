@@ -70,6 +70,73 @@ const translateStatus = (status: Attendance['status']) => {
 
 
 export default function AdminAttendancesPage() {
+        // Stato per il form di aggiunta presenza
+        const [newAttendanceDate, setNewAttendanceDate] = useState<{[uid: string]: string}>({});
+        const [newAttendanceStatus, setNewAttendanceStatus] = useState<{[uid: string]: 'presente' | 'assente' | ""}>({});
+        const [addingAttendance, setAddingAttendance] = useState<{[uid: string]: boolean}>({});
+        const [deletingAttendance, setDeletingAttendance] = useState<{[attendanceId: string]: boolean}>({});
+
+        // Funzione per aggiungere una presenza manuale
+        // Creazione presenza
+        const handleAddAttendance = async (uid: string, gymName: string) => {
+            if (!newAttendanceDate[uid] || !newAttendanceStatus[uid]) {
+                toast({
+                    variant: "destructive",
+                    title: "Dati mancanti",
+                    description: "Seleziona sia la data che lo stato."
+                });
+                return;
+            }
+            setAddingAttendance(prev => ({ ...prev, [uid]: true }));
+            try {
+                const attendanceRef = collection(db, "users", uid, "attendances");
+                await addDoc(attendanceRef, {
+                    userId: uid,
+                    gymName: gymName || "",
+                    lessonDate: Timestamp.fromDate(new Date(newAttendanceDate[uid])),
+                    status: newAttendanceStatus[uid],
+                });
+                toast({
+                    title: "Presenza aggiunta",
+                    description: `Presenza (${newAttendanceStatus[uid]}) aggiunta con successo.`
+                });
+                setNewAttendanceDate(prev => ({ ...prev, [uid]: "" }));
+                setNewAttendanceStatus(prev => ({ ...prev, [uid]: "" }));
+                await fetchData();
+            } catch (error) {
+                toast({
+                    variant: "destructive",
+                    title: "Errore aggiunta presenza",
+                    description: "Controlla la console per dettagli."
+                });
+                console.error(error);
+            } finally {
+                setAddingAttendance(prev => ({ ...prev, [uid]: false }));
+            }
+        };
+
+        // Cancellazione presenza
+        const handleDeleteAttendance = async (uid: string, attendanceId: string) => {
+            setDeletingAttendance(prev => ({ ...prev, [attendanceId]: true }));
+            try {
+                const attendanceDocRef = doc(db, "users", uid, "attendances", attendanceId);
+                await deleteDoc(attendanceDocRef);
+                toast({
+                    title: "Presenza eliminata",
+                    description: "La presenza è stata eliminata con successo."
+                });
+                await fetchData();
+            } catch (error) {
+                toast({
+                    variant: "destructive",
+                    title: "Errore eliminazione presenza",
+                    description: "Controlla la console per dettagli."
+                });
+                console.error(error);
+            } finally {
+                setDeletingAttendance(prev => ({ ...prev, [attendanceId]: false }));
+            }
+        };
     const [user, loadingAuth] = useAuthState(auth);
     const [currentUserData, setCurrentUserData] = useState<UserData | null>(null);
     const [profiles, setProfiles] = useState<UserProfile[]>([]);
@@ -324,131 +391,127 @@ export default function AdminAttendancesPage() {
                         Ricalcola Totali
                     </Button>
                 </div>
-
-                {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    </div>
-                ) : (
-                    <Accordion type="multiple" className="w-full">
-                        {filteredProfiles.length > 0 ? filteredProfiles.map(profile => {
-                            const totalPresences = profile.attendances.filter(a => a.status === 'presente').length;
-                            // Mostra "Presenze: X / Y" accanto al nome utente
-                            return (
-                                <AccordionItem value={profile.uid} key={profile.uid}>
-                                    <div className="flex items-center hover:bg-amber-50 px-2 sm:px-4 rounded-md transition-colors">
-                                        <AccordionTrigger className="flex-1">
-                                            <div className="flex flex-1 flex-col text-left gap-2">
-                                                {/* Nome utente + pulsante impersonifica (solo per superAdmin) */}
-                                                <div className="flex items-center gap-2">
-                                                    <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-                                                    <span className="font-bold text-sm sm:text-base truncate">{profile.name} {profile.surname}</span>
-                                                    {canImpersonate && (
-                                                        <a
-                                                            href={`/dashboard?impersonate=${profile.uid}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="ml-2 text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 border border-blue-300 hover:bg-blue-200 transition font-semibold flex-shrink-0"
-                                                            title="Vedi come utente"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            👁️ Vedi come utente
-                                                        </a>
-                                                    )}
-                                                </div>
-                                                
-                                                {/* Statistiche presenze - responsive */}
-                                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 pl-6 sm:pl-7">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <span className="px-2 py-1 rounded bg-primary/10 text-primary font-semibold text-xs sm:text-sm border border-primary/20">
-                                                            Presenze: {totalPresences} / {typeof profile.totalLessons === 'number' ? profile.totalLessons : 'N/D'}
-                                                        </span>
-                                                        {typeof profile.totalLessons === 'number' && profile.totalLessons > 0 && (
-                                                            <span className="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-bold border border-green-300">
-                                                                {Math.round((totalPresences / profile.totalLessons) * 100)}%
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    
-                                                    {/* Disciplina e Palestra */}
-                                                    <div className="flex flex-wrap gap-2 text-xs sm:text-sm text-muted-foreground">
-                                                        {profile.discipline && <span>{profile.discipline}</span>}
-                                                        {profile.gym && (
-                                                            <span>
-                                                                {gyms.find(g => g.id === profile.gym)?.name || profile.gym}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </AccordionTrigger>
-                                    </div>
-                                    <AccordionContent className="p-4 bg-amber-50/30">
-                                        {profile.attendances.length > 0 ? (
-                                            <>
-                                                {/* Vista Desktop */}
-                                                <div className="hidden md:block">
-                                                    <Table>
-                                                        <TableHeader>
-                                                            <TableRow>
-                                                                <TableHead>Data</TableHead>
-                                                                <TableHead className="text-right">Stato</TableHead>
-                                                            </TableRow>
-                                                        </TableHeader>
-                                                        <TableBody>
-                                                            {profile.attendances.map(a => (
-                                                                <TableRow key={a.id}>
-                                                                    <TableCell>{a.lessonDate ? format(a.lessonDate.toDate(), 'eeee dd/MM/yy', { locale: it }) : 'N/D'}</TableCell>
-                                                                    <TableCell className="text-right">
-                                                                        <Badge variant={getStatusVariant(a.status)} className={a.status === 'presente' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}>
-                                                                            {translateStatus(a.status)}
-                                                                        </Badge>
-                                                                    </TableCell>
-                                                                </TableRow>
-                                                            ))}
-                                                        </TableBody>
-                                                    </Table>
-                                                </div>
-                                                
-                                                {/* Vista Mobile - Cards */}
-                                                <div className="md:hidden space-y-3">
-                                                    {profile.attendances.map(a => (
-                                                        <Card key={a.id} className={`border-l-4 ${a.status === 'presente' ? 'border-l-green-500' : 'border-l-red-500'}`}>
-                                                            <CardContent className="p-3">
-                                                                <div className="space-y-2">
-                                                                    {/* Header con data e stato */}
-                                                                    <div className="flex justify-between items-start">
-                                                                        <div className="text-sm font-medium">
-                                                                            {a.lessonDate ? format(a.lessonDate.toDate(), 'eeee dd/MM/yy', { locale: it }) : 'N/D'}
-                                                                        </div>
-                                                                        <Badge variant={getStatusVariant(a.status)} className={a.status === 'presente' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}>
-                                                                            {translateStatus(a.status)}
-                                                                        </Badge>
+                                    <Accordion type="multiple" className="w-full">
+                                        {(filteredProfiles.length > 0 ? filteredProfiles : profiles).length > 0 ?
+                                            (filteredProfiles.length > 0 ? filteredProfiles : profiles).map(profile => {
+                                                const totalPresences = profile.attendances.filter(a => a.status === 'presente').length;
+                                                return (
+                                                    <AccordionItem value={profile.uid} key={profile.uid}>
+                                                        <AccordionTrigger>
+                                                            <div className="flex items-center gap-2">
+                                                                <User className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
+                                                                <span className="font-bold text-sm sm:text-base truncate">{profile.name} {profile.surname}</span>
+                                                            </div>
+                                                        </AccordionTrigger>
+                                                        <AccordionContent className="p-4 bg-amber-50/30">
+                                                            <div className="mb-4 flex flex-col md:flex-row md:items-end gap-2 md:gap-4 bg-white/60 p-2 rounded border border-amber-100">
+                                                                <input
+                                                                    type="date"
+                                                                    className="border rounded px-2 py-1 text-sm"
+                                                                    value={newAttendanceDate[profile.uid] || ""}
+                                                                    onChange={e => setNewAttendanceDate(prev => ({...prev, [profile.uid]: e.target.value}))}
+                                                                />
+                                                                <select
+                                                                    className="border rounded px-2 py-1 text-sm"
+                                                                    value={newAttendanceStatus[profile.uid] || ""}
+                                                                    onChange={e => setNewAttendanceStatus(prev => ({...prev, [profile.uid]: e.target.value as 'presente' | 'assente' | ""}))}
+                                                                >
+                                                                    <option value="">Stato...</option>
+                                                                    <option value="presente">Presente</option>
+                                                                    <option value="assente">Assente</option>
+                                                                </select>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="text-green-800 border-green-700"
+                                                                    disabled={addingAttendance[profile.uid]}
+                                                                    onClick={() => handleAddAttendance(profile.uid, profile.gym || "")}
+                                                                >
+                                                                    {addingAttendance[profile.uid] ? <Loader2 className="animate-spin h-4 w-4" /> : "Aggiungi Presenza"}
+                                                                </Button>
+                                                            </div>
+                                                            {profile.attendances.length > 0 ? (
+                                                                <>
+                                                                    <div className="hidden md:block">
+                                                                        <Table>
+                                                                            <TableHeader>
+                                                                                <TableRow>
+                                                                                    <TableHead>Data</TableHead>
+                                                                                    <TableHead className="text-right">Stato</TableHead>
+                                                                                </TableRow>
+                                                                            </TableHeader>
+                                                                            <TableBody>
+                                                                                {profile.attendances.map(a => (
+                                                                                    <TableRow key={a.id}>
+                                                                                        <TableCell>{a.lessonDate ? format(a.lessonDate.toDate(), 'eeee dd/MM/yy', { locale: it }) : 'N/D'}</TableCell>
+                                                                                        <TableCell className="text-right flex items-center gap-2 justify-end">
+                                                                                            <Badge variant={getStatusVariant(a.status)} className={a.status === 'presente' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}>
+                                                                                                {translateStatus(a.status)}
+                                                                                            </Badge>
+                                                                                            <Button
+                                                                                                size="icon"
+                                                                                                variant="ghost"
+                                                                                                className="text-red-600 hover:bg-red-100"
+                                                                                                title="Elimina presenza"
+                                                                                                disabled={deletingAttendance[a.id]}
+                                                                                                onClick={() => handleDeleteAttendance(profile.uid, a.id)}
+                                                                                            >
+                                                                                                {deletingAttendance[a.id] ? <Loader2 className="animate-spin h-4 w-4" /> : "✕"}
+                                                                                            </Button>
+                                                                                        </TableCell>
+                                                                                    </TableRow>
+                                                                                ))}
+                                                                            </TableBody>
+                                                                        </Table>
                                                                     </div>
-                                                                    
-
-                                                                </div>
-                                                            </CardContent>
-                                                        </Card>
-                                                    ))}
+                                                                    <div className="md:hidden space-y-3">
+                                                                        {profile.attendances.map(a => (
+                                                                            <Card key={a.id} className={`border-l-4 ${a.status === 'presente' ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                                                                                <CardContent className="p-3">
+                                                                                    <div className="space-y-2">
+                                                                                        <div className="flex justify-between items-start">
+                                                                                            <div className="text-sm font-medium">
+                                                                                                {a.lessonDate ? format(a.lessonDate.toDate(), 'eeee dd/MM/yy', { locale: it }) : 'N/D'}
+                                                                                            </div>
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <Badge variant={getStatusVariant(a.status)} className={a.status === 'presente' ? 'bg-green-100 text-green-800 border-green-300' : 'bg-red-100 text-red-800 border-red-300'}>
+                                                                                                    {translateStatus(a.status)}
+                                                                                                </Badge>
+                                                                                                <Button
+                                                                                                    size="icon"
+                                                                                                    variant="ghost"
+                                                                                                    className="text-red-600 hover:bg-red-100"
+                                                                                                    title="Elimina presenza"
+                                                                                                    disabled={deletingAttendance[a.id]}
+                                                                                                    onClick={() => handleDeleteAttendance(profile.uid, a.id)}
+                                                                                                >
+                                                                                                    {deletingAttendance[a.id] ? <Loader2 className="animate-spin h-4 w-4" /> : "✕"}
+                                                                                                </Button>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </CardContent>
+                                                                            </Card>
+                                                                        ))}
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <p className="text-center text-muted-foreground py-4">Nessuna presenza o assenza registrata per questo utente per i filtri selezionati.</p>
+                                                            )}
+                                                        </AccordionContent>
+                                                    </AccordionItem>
+                                                );
+                                            })
+                                            : (
+                                                <div className="text-center py-16 text-muted-foreground">
+                                                    <Users className="mx-auto h-12 w-12" />
+                                                    <h3 className="mt-4 text-lg font-semibold">Nessun Utente Trovato</h3>
+                                                    <p className="mt-1 text-sm">Prova a modificare i filtri di ricerca.</p>
                                                 </div>
-                                            </>
-                                        ) : (
-                                            <p className="text-center text-muted-foreground py-4">Nessuna presenza o assenza registrata per questo utente per i filtri selezionati.</p>
-                                        )}
-                                    </AccordionContent>
-                                </AccordionItem>
-                            )
-                        }) : (
-                             <div className="text-center py-16 text-muted-foreground">
-                                <Users className="mx-auto h-12 w-12" />
-                                <h3 className="mt-4 text-lg font-semibold">Nessun Utente Trovato</h3>
-                                <p className="mt-1 text-sm">Prova a modificare i filtri di ricerca.</p>
-                            </div>
-                        )}
-                    </Accordion>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
+                                            )
+                                        }
+                                    </Accordion>
+                                </CardContent>
+                            </Card>
+                        );
+                    }

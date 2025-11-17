@@ -338,7 +338,7 @@ export default function AdminPaymentsPage() {
             }
 
             if (newStatus === 'completed') {
-                 if (payment.type === 'association') {
+                if (payment.type === 'association') {
                     batch.update(userDocRef, { 
                         associationStatus: 'active',
                         isInsured: true,
@@ -356,6 +356,23 @@ export default function AdminPaymentsPage() {
                         subscriptionPaymentFailed: false, 
                     });
                     sessionStorage.setItem('showSubscriptionActivatedMessage', new Date().toISOString());
+                } else if (payment.type === 'stage' && payment.eventId) {
+                    // REGISTRA PRESENZA AUTOMATICA PER STAGE
+                    const attendanceRef = doc(collection(db, 'users', payment.userId, 'attendances'));
+                    const eventDoc = await getDoc(doc(db, 'events', payment.eventId));
+                    let eventData = eventDoc.exists() ? eventDoc.data() : {};
+                    batch.set(attendanceRef, {
+                        userId: payment.userId,
+                        eventId: payment.eventId,
+                        gymId: eventData.gymId || '',
+                        gymName: eventData.gymName || '',
+                        discipline: eventData.discipline || '',
+                        lessonDate: eventData.startTime || serverTimestamp(),
+                        lessonTime: eventData.startTime ? eventData.startTime.toDate().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '',
+                        status: 'presente',
+                        recordedAt: serverTimestamp(),
+                        isStage: true
+                    });
                 }
             } else { // newStatus === 'failed'
                  if (payment.type === 'association') {
